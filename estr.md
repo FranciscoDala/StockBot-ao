@@ -122,7 +122,7 @@ Write-Host "✅ StockBot AO criado com sucesso em: $PWD"
 
 
 
-# como subir o projecto gitHub
+# como subir o projecto novo lá gitHub
     1. criar o repositorio la no gitHub
     2. copiar o endereço do repositorio criado 
         ex: https://github.com/FranciscoDala/StockBot-ao.git
@@ -137,4 +137,19 @@ Write-Host "✅ StockBot AO criado com sucesso em: $PWD"
 
         # push -u origin main = Envia tudo e já deixa main como padrão
         3. git push -u origin main
-     
+
+# ok, depois de subir a pasta do projeto
+# para começar atualizar no gitHub as pastas e arquivos alterados localmente
+# é so usar os seguintes comandos
+
+    # para adicionar todos os arquivos ou pastas alterados
+    1. git add .
+
+    # comentar o nome para saber o que vc subiu
+    2. git commit .m "Qualquer nome para saber o que subiu"
+
+    #  Envia tudo e já deixa main como padrão
+    3 git push origin main
+
+# para rodar o app
+    1. uvicorn app.main:app --reload --port 8000
