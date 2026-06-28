@@ -58,3 +58,83 @@ stockbot-ao/
 ├── package.json # <- Root do Monorepo. Comando: pnpm dev
 ├── pnpm-workspace.yaml # <- Liga todas pastas
 └── README.md # <- Pitch + Como rodar: `pnpm dev`
+
+
+
+
+# comando para criar todas as pastas automaticamente e os 
+# ficheiros que estão dentro da pasta
+
+# pasta principal
+$root = "stockbot-ao"
+
+$folders = @(
+"apps/api/app/api","apps/api/app/core","apps/api/app/db","apps/api/app/models","apps/api/app/schemas","apps/api/app/services","apps/api/app/integrations","apps/api/tests",
+"apps/pwa/src/components","apps/pwa/src/pages","apps/pwa/src/api","apps/pwa/public/icons",
+"apps/dashboard/app/dashboard","apps/dashboard/components",
+"packages/ui","packages/tsconfig","packages/eslint-config","packages/db",
+"infra","docs",".github/workflows"
+)
+
+$files = @(
+"apps/api/app/main.py","apps/api/app/__init__.py","apps/api/app/api/v1_venda.py","apps/api/app/api/v1_produto.py","apps/api/app/api/v1_webhook.py",
+"apps/api/app/core/config.py","apps/api/app/db/session.py","apps/api/app/db/base.py",
+"apps/api/app/models/loja.py","apps/api/app/models/produto.py","apps/api/app/models/venda.py","apps/api/app/models/user.py",
+"apps/api/app/schemas/produto_schema.py","apps/api/app/schemas/venda_schema.py",
+"apps/api/app/services/stock_service.py","apps/api/app/services/relatorio_service.py",
+"apps/api/app/integrations/ultramsg.py","apps/api/tests/test_venda.py","apps/api/alembic.ini","apps/api/Dockerfile","apps/api/pyproject.toml",
+"apps/pwa/src/main.tsx","apps/pwa/src/components/Button.tsx","apps/pwa/src/components/ProductCard.tsx","apps/pwa/src/pages/VendaPage.tsx","apps/pwa/src/api/client.ts",
+"apps/pwa/public/manifest.json","apps/pwa/public/sw.js","apps/pwa/index.html","apps/pwa/package.json",
+"apps/dashboard/app/login/page.tsx","apps/dashboard/app/dashboard/page.tsx","apps/dashboard/components/Header.tsx","apps/dashboard/package.json",
+"packages/ui/index.ts","packages/tsconfig/base.json","packages/eslint-config/index.js","packages/db/index.ts",
+"infra/docker-compose.yml","infra/render.yaml","infra/nginx.conf",
+"docs/API.md","docs/ONBOARDING.md",".github/workflows/deploy.yml",".gitignore","package.json","pnpm-workspace.yaml","README.md",".env.example"
+)
+
+New-Item -ItemType Directory -Force -Path $root | Out-Null
+foreach ($f in $folders) { New-Item -ItemType Directory -Force -Path "$root/$f" | Out-Null }
+foreach ($f in $files) { New-Item -ItemType File -Force -Path "$root/$f" | Out-Null }
+
+Set-Location $root
+git init
+git branch -M main
+@"
+node_modules
+.env
+__pycache__
+.venv
+dist
+build
+"@ | Out-File -FilePath .gitignore -Encoding utf8
+
+git add .
+git commit -m "chore: init StockBot AO v1 - estrutura escalável"
+
+Write-Host "✅ StockBot AO criado com sucesso em: $PWD"
+
+
+
+
+
+
+
+
+
+
+
+# como subir o projecto gitHub
+    1. criar o repositorio la no gitHub
+    2. copiar o endereço do repositorio criado 
+        ex: https://github.com/FranciscoDala/StockBot-ao.git
+    
+    3. usar os comandos do gitHub para subir a pasta toda
+
+        # remote add origin = Liga teu PC com o GitHub
+        1. git remote add origin https://github.com/FranciscoDala/StockBot-ao.git
+
+        # branch -M main = Garante que o nome da branch é main
+        2. git branch -M main
+
+        # push -u origin main = Envia tudo e já deixa main como padrão
+        3. git push -u origin main
+     
