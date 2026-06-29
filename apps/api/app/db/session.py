@@ -1,15 +1,33 @@
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from app.core.config import settings
+from app.db.base import Base # <- IMPORTA O BASE CERTO AQUI
 
-engine = create_async_engine(settings.DATABASE_URL, echo=False)
-
-AsyncSessionLocal = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+# Engine Async com pool mais estável pra produção
+engine = create_async_engine(
+    settings.DATABASE_URL, 
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_size=10,
+    max_overflow=20
 )
 
-Base = declarative_base() # <-- ESSA LINHA É A QUE TÁ FALTANDO
+AsyncSessionLocal = async_sessionmaker(
+    engine, 
+    class_=AsyncSession, 
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False
+)
 
+# Dependency pro FastAPI
 async def get_db():
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()

@@ -153,3 +153,18 @@ Write-Host "✅ StockBot AO criado com sucesso em: $PWD"
 
 # para rodar o app
     1. uvicorn app.main:app --reload --port 8000
+
+
+# usuario
+
+    Admin
+    user - admin@stockbot.ao
+    pass - 123456
+
+    Gerente
+    user - carlos@stockbot.ao
+    pass - 123456
+
+    Vendedor
+    user - ana@stockbot.ao
+    pass - 123456
