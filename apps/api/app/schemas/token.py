@@ -1,10 +1,12 @@
 from pydantic import BaseModel
 from uuid import UUID
+from app.models.usuario import NivelAcesso 
 
 class Token(BaseModel):
     access_token: str
-    token_type: str = "bearer" # <- Padrão OAuth2
+    token_type: str = "bearer" 
+    loja_slug: str # <- NOVO: Pra fazer o redirect
 
 class TokenData(BaseModel):
-    user_id: UUID | None = None
-    # nivel: str | None = None # <- Se quiseres puxar o nível do token depois, descomenta
+    sub: UUID | None = None       
+    nivel: NivelAcesso | None = None # <- Tirei o = None pra tipar certo

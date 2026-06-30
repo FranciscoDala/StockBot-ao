@@ -1,18 +1,19 @@
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from decimal import Decimal
-from typing import List
+from typing import List # <- CERTO. Não é tvoing
+from uuid import UUID
 
 class ItemVendaCreate(BaseModel):
-    produto_id: int
-    quantidade: int = Field(gt=0, description="Quantidade tem que ser > 0")
+    produto_id: UUID
+    quantidade: int = Field(gt=0)
 
 class VendaCreate(BaseModel):
-    itens: List[ItemVendaCreate] = Field(min_length=1, description="Venda precisa ter no mínimo 1 item")
+    itens: List[ItemVendaCreate] = Field(min_length=1)
 
 class ItemVendaRead(BaseModel):
-    id: int
-    produto_id: int
+    id: UUID
+    produto_id: UUID
     nome_produto: str
     quantidade: int
     preco_unitario: Decimal
@@ -20,11 +21,12 @@ class ItemVendaRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class VendaRead(BaseModel):
-    id: int
-    usuario_id: int
+    id: UUID
+    loja_id: UUID
+    usuario_id: UUID
     nome_vendedor: str
     total: Decimal
-    created_at: datetime
-    status: str # <- ADD STATUS
+    data_venda: datetime
+    status: str 
     itens: List[ItemVendaRead]
     model_config = ConfigDict(from_attributes=True)

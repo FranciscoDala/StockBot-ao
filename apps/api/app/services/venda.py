@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 from fastapi import HTTPException, status
 from decimal import Decimal
 from datetime import date
+from uuid import UUID # <- ADD
 
 from app.models.venda import Venda, ItemVenda
 from app.models.produto import Produto
@@ -18,61 +19,47 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario)
         for item_in in venda_in.itens:
             result = await db.execute(select(Produto).where(Produto.id == item_in.produto_id).with_for_update())
             produto = result.scalar_one_or_none()
-
             if not produto:
                 raise HTTPException(status_code=404, detail=f"Produto id={item_in.produto_id} não encontrado")
+            if produto.estoque < item_in.quantidade: # <- MUDOU: stock -> estoque
+                raise HTTPException(status_code=400, detail=f"Estoque insuficiente para {produto.nome}. Disponível: {produto.estoque}")
 
-            if produto.stock < item_in.quantidade:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Stock insuficiente para {produto.nome}. Disponível: {produto.stock}")
-
-            produto.stock -= item_in.quantidade
+            produto.estoque -= item_in.quantidade # <- MUDOU: stock -> estoque
             db.add(produto)
-
             subtotal = produto.preco * item_in.quantidade
             total_venda += subtotal
-
             itens_para_criar.append(ItemVenda(produto_id=produto.id, quantidade=item_in.quantidade, preco_unitario=produto.preco, subtotal=subtotal))
 
-        nova_venda = Venda(usuario_id=usuario.id, total=total_venda, itens=itens_para_criar)
+        nova_venda = Venda(loja_id=usuario.lojas[0].id, usuario_id=usuario.id, total=total_venda, itens=itens_para_criar) # <- ADD loja_id
         db.add(nova_venda)
         await db.flush()
-
         result = await db.execute(select(Venda).where(Venda.id == nova_venda.id).options(selectinload(Venda.itens).selectinload(ItemVenda.produto), selectinload(Venda.usuario)))
         venda_db = result.scalar_one()
 
-    return VendaRead(
-        id=venda_db.id, usuario_id=venda_db.usuario_id, nome_vendedor=venda_db.usuario.nome,
-        total=venda_db.total, created_at=venda_db.created_at, status=venda_db.status, # <- ADD STATUS
-        itens=[ItemVendaRead(id=i.id, produto_id=i.produto_id, nome_produto=i.produto.nome, quantidade=i.quantidade, preco_unitario=i.preco_unitario, subtotal=i.subtotal) for i in venda_db.itens]
-    )
+    return VendaRead(id=venda_db.id, loja_id=venda_db.loja_id, usuario_id=venda_db.usuario_id, nome_vendedor=venda_db.usuario.nome, total=venda_db.total, data_venda=venda_db.data_venda, status=venda_db.status, itens=[ItemVendaRead(id=i.id, produto_id=i.produto_id, nome_produto=i.produto.nome, quantidade=i.quantidade, preco_unitario=i.preco_unitario, subtotal=i.subtotal) for i in venda_db.itens])
 
-async def listar_vendas(db: AsyncSession, usuario: Usuario, data_inicio: date | None = None, data_fim: date | None = None, vendedor_id: int | None = None) -> list[VendaRead]:
+async def listar_vendas(db: AsyncSession, usuario: Usuario, data_inicio: date | None = None, data_fim: date | None = None, vendedor_id: UUID | None = None) -> list[VendaRead]: # <- MUDOU: int -> UUID
     query = select(Venda).options(selectinload(Venda.itens).selectinload(ItemVenda.produto), selectinload(Venda.usuario))
-
-    filtros = [Venda.status == "concluida"] # <- Só venda válida
-    if data_inicio: filtros.append(func.date(Venda.created_at) >= data_inicio)
-    if data_fim: filtros.append(func.date(Venda.created_at) <= data_fim)
+    filtros = [Venda.status == "concluida"]
+    if data_inicio: filtros.append(func.date(Venda.data_venda) >= data_inicio) # <- MUDOU: created_at -> data_venda
+    if data_fim: filtros.append(func.date(Venda.data_venda) <= data_fim)
     if usuario.nivel == NivelAcesso.VENDEDOR: filtros.append(Venda.usuario_id == usuario.id)
     elif vendedor_id: filtros.append(Venda.usuario_id == vendedor_id)
-
-    query = query.where(and_(*filtros)).order_by(Venda.created_at.desc())
+    query = query.where(and_(*filtros)).order_by(Venda.data_venda.desc())
     result = await db.execute(query)
     vendas_db = result.scalars().all()
+    return [VendaRead(id=v.id, loja_id=v.loja_id, usuario_id=v.usuario_id, nome_vendedor=v.usuario.nome, total=v.total, data_venda=v.data_venda, status=v.status, itens=[ItemVendaRead(id=i.id, produto_id=i.produto_id, nome_produto=i.produto.nome, quantidade=i.quantidade, preco_unitario=i.preco_unitario, subtotal=i.subtotal) for i in v.itens]) for v in vendas_db]
 
-    return [VendaRead(id=v.id, usuario_id=v.usuario_id, nome_vendedor=v.usuario.nome, total=v.total, created_at=v.created_at, status=v.status, itens=[ItemVendaRead(id=i.id, produto_id=i.produto_id, nome_produto=i.produto.nome, quantidade=i.quantidade, preco_unitario=i.preco_unitario, subtotal=i.subtotal) for i in v.itens]) for v in vendas_db]
-
-async def estornar_venda_service(db: AsyncSession, venda_id: int):
+async def estornar_venda_service(db: AsyncSession, venda_id: UUID): # <- MUDOU: int -> UUID
     async with db.begin():
         result = await db.execute(select(Venda).where(Venda.id == venda_id, Venda.status == "concluida").options(selectinload(Venda.itens)).with_for_update())
         venda = result.scalar_one_or_none()
         if not venda: raise HTTPException(status_code=404, detail="Venda não encontrada ou já estornada")
-
         for item in venda.itens:
             result_prod = await db.execute(select(Produto).where(Produto.id == item.produto_id).with_for_update())
             produto = result_prod.scalar_one()
-            produto.stock += item.quantidade
+            produto.estoque += item.quantidade # <- MUDOU: stock -> estoque
             db.add(produto)
-
-        venda.status = "estornada" # <- SOFT DELETE
+        venda.status = "estornada"
         db.add(venda)
-    return {"msg": f"Venda {venda_id} estornada. Stock devolvido. Histórico mantido."}
+    return {"msg": f"Venda {venda_id} estornada. Estoque devolvido."}
