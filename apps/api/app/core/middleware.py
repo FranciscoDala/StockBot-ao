@@ -1,11 +1,9 @@
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.core.tenant import set_current_loja_id
-from app.models.loja import Loja
-from app.db.session import AsyncSessionLocal
+from api.app.core.tenant import set_current_loja_id
+from api.app.db.session import AsyncSessionLocal
 
 class TenantMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -15,7 +13,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
         if len(path_parts) > 2 and path_parts[1] == "loja":
             slug = path_parts[2]
             
-            # 2. Busca no DB: Esse slug existe?
+            # 2. FIX: Importa o Model aqui dentro, DEPOIS que o SQLAlchemy já carregou
+            from api.app.models.loja import Loja
+            
+            # 3. Busca no DB: Esse slug existe?
             async with AsyncSessionLocal() as db:
                 result = await db.execute(select(Loja).where(Loja.slug == slug))
                 loja = result.scalar_one_or_none()
@@ -23,10 +24,10 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 if not loja:
                     raise HTTPException(status_code=404, detail=f"Loja '{slug}' não encontrada")
                 
-                # 3. Guarda o UUID da loja na "caixa segura" da request
+                # 4. Guarda o UUID da loja na "caixa segura" da request
                 set_current_loja_id(loja.id)
                 
-                # 4. Libera passar pro Router
+                # 5. Libera passar pro Router
                 response = await call_next(request)
                 return response
         

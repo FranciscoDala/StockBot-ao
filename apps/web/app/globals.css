@@ -1,24 +1,57 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+/* TEMA V4: Aqui definimos todas as variáveis que o Shadcn usa */
+@theme {
+  /* Cores */
+  --color-brand: #22c55e; /* Verde StockBot */
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #18181b;
+  
+  /* Shadcn V4 usa essas: */
+  --color-primary: var(--color-brand);
+  --color-primary-foreground: #000;
+  --color-muted: var(--color-zinc-900);
+  --color-muted-foreground: #a1a1aa;
+  --color-border: var(--color-zinc-800);
+  --color-card: var(--color-zinc-900);
+  --color-card-foreground: var(--color-foreground);
+  --color-input: var(--color-zinc-800);
+  --color-ring: var(--color-brand);
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+
+  /* FONTE */
+  --font-sans: var(--font-zalando), ui-sans-serif, system-ui, sans-serif; 
+}
+
+/* BASE */
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
-  --brand: #22c55e; /* Verde StockBot */
+  color-scheme: dark;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }
 
-@layer components {
-  .btn-brand {
-    @apply bg-green-600 hover:bg-green-500 text-black font-bold py-2 px-4 rounded-lg transition-all;
-  }
-  .input-dark {
-    @apply bg-zinc-900 border-zinc-700 rounded-lg px-3 py-2 w-full focus:border-green-500 focus:outline-none;
-  }
+/* UTILITIES CUSTOM - V4 usa @utility direto */
+@utility btn-brand {
+  @apply bg-brand hover:bg-green-500 text-black font-bold py-2 px-4 rounded-lg transition-all;
+}
+
+@utility input-dark {
+  @apply bg-zinc-900 border-zinc-700 rounded-lg px-3 py-2 w-full focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand;
+}
+
+/* Tira o blur do Radix que não usamos mais */
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

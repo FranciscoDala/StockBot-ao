@@ -2,26 +2,26 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Integer, Numeric, ForeignKey
-from app.db.base import BaseModel
-from uuid import UUID
+from sqlalchemy.dialects.postgresql import UUID
+from api.app.db.base import BaseModel 
+import uuid
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from app.models.venda import Venda
-    from app.models.produto import Produto
-    from app.models.loja import Loja
+    from api.app.models.venda import Venda
+    from api.app.models.produto import Produto
+    from api.app.models.loja import Loja
 
 class ItemVenda(BaseModel):
     __tablename__ = "itens_venda"
 
+    venda_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vendas.id"), nullable=False, index=True)
+    produto_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("produtos.id"), nullable=False, index=True)
+    loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id"), nullable=False, index=True)
+
     quantidade: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     preco_unitario: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     subtotal: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
-
-    # CORREÇÃO FINAL: Mapped + Tipo + mapped_column
-    venda_id: Mapped[UUID] = mapped_column(ForeignKey("vendas.id"), nullable=False, index=True)
-    produto_id: Mapped[UUID] = mapped_column(ForeignKey("produtos.id"), nullable=False, index=True)
-    loja_id: Mapped[UUID] = mapped_column(ForeignKey("lojas.id"), nullable=False, index=True)
 
     venda: Mapped["Venda"] = relationship(back_populates="itens")
     produto: Mapped["Produto"] = relationship(back_populates="itens_venda")

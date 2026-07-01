@@ -1,7 +1,7 @@
 from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Numeric, Integer, ForeignKey
-from app.db.base import BaseModel
+from api.app.db.base import BaseModel
 from uuid import UUID
 from decimal import Decimal
 from typing import TYPE_CHECKING, List

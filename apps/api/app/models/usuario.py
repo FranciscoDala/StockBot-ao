@@ -1,33 +1,33 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, Enum as SQLEnum
-from app.db.base import BaseModel 
+from api.app.db.base import BaseModel
 import enum
+from typing import TYPE_CHECKING, List
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING: 
-    from app.models.loja import Loja
-    from app.models.venda import Venda
+if TYPE_CHECKING:
+    from api.app.models.loja import Loja
+    from api.app.models.venda import Venda
 
-class NivelAcesso(str, enum.Enum):
+class NivelUsuario(str, enum.Enum):
     ADMIN = "admin"
-    GERENTE = "gerente" 
+    GERENTE = "gerente"
     VENDEDOR = "vendedor"
 
 class Usuario(BaseModel):
+    __allow_unmapped__ = True
     __tablename__ = "usuarios"
 
     nome: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    senha_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    
-    nivel: Mapped[NivelAcesso] = mapped_column(
-        SQLEnum(NivelAcesso, name="nivel_acesso", native_enum=False, create_type=False),
-        default=NivelAcesso.VENDEDOR, 
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False) # <- Nome certo
+    nivel: Mapped[NivelUsuario] = mapped_column(
+        SQLEnum(NivelUsuario, name="nivel_acesso", native_enum=False, create_type=False, values_callable=lambda x: [e.value for e in x]),
+        default=NivelUsuario.VENDEDOR,
         nullable=False
     )
-    ativo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    # FIX: 1 Usuario é dono de N Lojas. Aponta pro 'dono' do Loja
-    lojas: Mapped[list["Loja"]] = relationship(back_populates="dono", cascade="all, delete-orphan")
-    vendas: Mapped[list["Venda"]] = relationship(back_populates="usuario")
+    lojas_dono: Mapped[List["Loja"]] = relationship(back_populates="dono", foreign_keys="[Loja.usuario_id_dono]")
+    lojas_gerente: Mapped[List["Loja"]] = relationship(back_populates="gerente", foreign_keys="[Loja.gerente_id]")
+    vendas: Mapped[List["Venda"]] = relationship(back_populates="usuario")

@@ -2,18 +2,24 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
-from app.db.session import get_db
-from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate
-from app.services.produto import criar_produto_service, listar_produtos_service
-from app.core.deps import get_current_user, require_nivel
-from app.models.usuario import NivelAcesso
-from app.models.produto import Produto
-from app.models.loja import Loja
+from typing import TYPE_CHECKING # <- ADD
+
+from api.app.db.session import get_db
+from api.app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate
+# from api.app.services.produto import criar_produto_service, listar_produtos_service # <- REMOVIDO
+from api.app.core.deps import get_current_user, require_nivel
+from api.app.models.usuario import NivelUsuario
+from api.app.models.produto import Produto
+# from api.app.models.loja import Loja # <- REMOVIDO
+
+if TYPE_CHECKING: # <- ADD: Só pra IDE/mypy não chorar
+    from api.app.models.loja import Loja
 
 router = APIRouter()
 
-async def get_loja_or_404(db: AsyncSession, slug: str) -> Loja:
+async def get_loja_or_404(db: AsyncSession, slug: str) -> "Loja": # <- aspas
     """Helper pra buscar a loja e já barrar se não existir"""
+    from api.app.models.loja import Loja # <- FIX: Import aqui dentro
     result = await db.execute(select(Loja).where(Loja.slug == slug))
     loja = result.scalar_one_or_none()
     if not loja:
@@ -31,25 +37,25 @@ async def get_produto_da_loja_or_404(db: AsyncSession, slug: str, produto_id: UU
 
 
 # >>> 1. CRIAR = SÓ CHEFES <<<
-@router.post("/", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_nivel(NivelAcesso.ADMIN, NivelAcesso.GERENTE))])
+@router.post("/", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_nivel(NivelUsuario.ADMIN, NivelUsuario.GERENTE))])
 async def criar_produto(slug: str, produto: ProdutoCreate, db: AsyncSession = Depends(get_db)):
-    # O slug vem da URL: /loja/{slug}/produtos
+    from api.app.services.produto import criar_produto_service # <- FIX: Import aqui
     return await criar_produto_service(db, slug, produto)
 
 # >>> 2. LISTAR = TODO MUNDO LOGADO <<<
 @router.get("/", response_model=list[ProdutoOut], dependencies=[Depends(get_current_user)])
 async def listar_produtos(slug: str, db: AsyncSession = Depends(get_db)):
-    # Agora lista só os produtos da loja do slug
+    from api.app.services.produto import listar_produtos_service # <- FIX: Import aqui
     return await listar_produtos_service(db, slug)
 
 # >>> 3. BUSCAR POR ID = TODO MUNDO LOGADO <<<
 @router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
-async def buscar_produto(slug: str, produto_id: UUID, db: AsyncSession = Depends(get_db)): # <- UUID
+async def buscar_produto(slug: str, produto_id: UUID, db: AsyncSession = Depends(get_db)):
     return await get_produto_da_loja_or_404(db, slug, produto_id)
 
 # >>> 4. EDITAR = SÓ CHEFES <<<
-@router.put("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(require_nivel(NivelAcesso.ADMIN, NivelAcesso.GERENTE))])
-async def atualizar_produto(slug: str, produto_id: UUID, produto_update: ProdutoUpdate, db: AsyncSession = Depends(get_db)): # <- UUID
+@router.put("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(require_nivel(NivelUsuario.ADMIN, NivelUsuario.GERENTE))])
+async def atualizar_produto(slug: str, produto_id: UUID, produto_update: ProdutoUpdate, db: AsyncSession = Depends(get_db)):
     produto_db = await get_produto_da_loja_or_404(db, slug, produto_id)
     
     update_data = produto_update.model_dump(exclude_unset=True)
@@ -61,8 +67,8 @@ async def atualizar_produto(slug: str, produto_id: UUID, produto_update: Produto
     return produto_db
 
 # >>> 5. APAGAR = SÓ CHEFES <<<
-@router.delete("/{produto_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_nivel(NivelAcesso.ADMIN, NivelAcesso.GERENTE))])
-async def apagar_produto(slug: str, produto_id: UUID, db: AsyncSession = Depends(get_db)): # <- UUID
+@router.delete("/{produto_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_nivel(NivelUsuario.ADMIN, NivelUsuario.GERENTE))])
+async def apagar_produto(slug: str, produto_id: UUID, db: AsyncSession = Depends(get_db)):
     produto_db = await get_produto_da_loja_or_404(db, slug, produto_id)
     
     await db.delete(produto_db)

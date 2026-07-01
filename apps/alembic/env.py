@@ -9,38 +9,35 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# 1. ADICIONA apps/api NO PATH PRA ACHAR O app.core.config
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../api')))
+# 1. Garante que o Python ache o /api
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-# 2. IMPORTA O SETTINGS QUE JÁ FUNCIONOU NO TEU TESTE
-from app.core.config import settings 
+# 2. IMPORTA SÓ ISSO AQUI. Nada mais.
+from api.app.db.base import Base 
+from api.app.core.config import settings
+
+# 3. IMPORTA OS MODELS SÓ PRA REGISTAR NO METADATA. Sem usar as classes.
+#    Importa direto, sem passar pelo __init__.py
+import api.app.models.usuario  # noqa
+import api.app.models.loja     # noqa
+import api.app.models.produto  # noqa
+import api.app.models.venda    # noqa
+import api.app.models.itens_venda # noqa
 
 # this is the Alembic Config object
 config = context.config
-
-# 3. FORÇA A URL DO ALEMBIC A SER A MESMA DO .env
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-from app.db.base import Base
 target_metadata = Base.metadata
-
-# importa todos os models aqui pra metadata ver as tabelas
-from app.models.usuario import Usuario
-from app.models.produto import Produto
-from app.models.venda import Venda, ItemVenda
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
-        target_metadata=target_metadata,
-        literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        url=url, target_metadata=target_metadata, literal_binds=True, dialect_opts={"paramstyle": "named"},
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -50,7 +47,7 @@ def do_run_migrations(connection: Connection) -> None:
     with context.begin_transaction():
         context.run_migrations()
 
-async def run_migrations_online() -> None:
+async def run_async_migrations() -> None:
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
@@ -60,7 +57,10 @@ async def run_migrations_online() -> None:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()
 
+def run_migrations_online() -> None:
+    asyncio.run(run_async_migrations())
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:
-    asyncio.run(run_migrations_online())
+    run_migrations_online()

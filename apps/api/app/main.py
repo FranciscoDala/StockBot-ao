@@ -1,93 +1,97 @@
-from fastapi import FastAPI, Depends 
+from fastapi import FastAPI, Depends, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import logging, traceback, asyncio 
+import logging, traceback
 from typing import AsyncGenerator
 
-from app.core.config import settings
-from app.db.session import engine, Base
-from app.core.deps import get_current_user
-from app.core.middleware import TenantMiddleware
+from api.app.db.session import engine, Base
+from api.app.core.deps import get_current_user
+from api.app.core.middleware import TenantMiddleware
+from api.app.models.usuario import Usuario
+from api.app.schemas.usuario import UsuarioOut
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 def import_all_models():
-    """Força o import de todos os models SEMPRE. Evita circular e skip."""
+    """Força o SQLAlchemy a registrar todos os models 1x só. Evita duplicidade."""
     logger.info("🔄 Forçando import de todos os models...")
-    from app.models.loja import Loja 
-    from app.models.produto import Produto
-    from app.models.venda import Venda, ItemVenda 
-    from app.models.usuario import Usuario 
-    logger.info(f"✅ MODELS REGISTRADOS NO METADATA: {', '.join(Base.metadata.tables.keys())}")
 
+    # Ordem: Base -> Sem dependência circular -> Tabelas de associação por último
+    from api.app.models.usuario import Usuario
+    from api.app.models.loja import Loja
+    from api.app.models.produto import Produto
+    from api.app.models.venda import Venda
+    from api.app.models.itens_venda import ItemVenda
+    from api.app.models.documento import DocumentoKYC # <- 1. NOVO
+    from api.app.models.funcionario import Funcionario # <- 2. NOVO
+    from api.app.models.usuario_loja import usuario_loja # <- Tabela de associação
+
+    tabelas = sorted(list(Base.metadata.tables.keys()))
+    logger.info(f"✅ MODELS REGISTRADOS NO METADATA: {', '.join(tabelas)}")
+    logger.info(f"📊 Total: {len(tabelas)} tabelas mapeadas.")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("🚀 StockBot AO API a iniciar...")
+
     import_all_models()
 
     try:
-        logger.info("⏳ Tentando criar tabelas no DB... max 7s")
         async with engine.begin() as conn:
-            await asyncio.wait_for(conn.run_sync(Base.metadata.create_all), timeout=7.0) 
-        logger.info("✅ Tabelas criadas/verificadas no DB.")
-    except asyncio.TimeoutError:
-        logger.error("❌ FALHA CRÍTICA: Postgres não respondeu em 7s. Confere serviço/senha/porta 5432.")
+            table_exists = await conn.run_sync(lambda sync_conn: sync_conn.dialect.has_table(sync_conn, "usuarios"))
+
+            if not table_exists:
+                logger.warning("⚠️ Tabelas não encontradas. Criando tudo no Postgres...")
+                await conn.run_sync(Base.metadata.create_all)
+                tabelas_criadas = await conn.run_sync(lambda sync_conn: sync_conn.dialect.get_table_names(sync_conn))
+                logger.info(f"✅ TABELAS CRIADAS NO BANCO: {', '.join(sorted(tabelas_criadas))}")
+            else:
+                logger.info("✅ Tabelas já existem. Pulando criação.")
+                # 3. AVISO IMPORTANTE: create_all não adiciona colunas novas
+                logger.warning("⚠️ Se adicionaste colunas novas, dropa o DB ou usa Alembic.")
+
     except Exception as e:
-        logger.error(f"❌ ERRO AO CRIAR TABELAS: {e}")
-        logger.error(traceback.format_exc())
-    
+        logger.error(f"❌ ERRO CRÍTICO AO VERIFICAR/CRIAR TABELAS: {e}\n{traceback.format_exc()}")
+        raise e
+
     yield
-    logger.info("👋 StockBot AO API a desligar...")
+    logger.info("👋 API a desligar...")
 
-app = FastAPI(
-    title="StockBot AO API", 
-    version="1.0.0", 
-    lifespan=lifespan, 
-    docs_url="/docs",
-    openapi_url="/openapi.json"
-)
+app = FastAPI(title="StockBot AO API", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
-# 1. CORS SEMPRE PRIMEIRO -> Senão bloqueia o OPTIONS
 app.add_middleware(
-    CORSMiddleware, 
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ], # <- Hardcoded pra garantir. Pode tirar o settings depois.
-    allow_credentials=True, 
-    allow_methods=["*"], 
-    allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
 )
-
-# 2. Tenant DEPOIS do CORS
 app.add_middleware(TenantMiddleware)
 
+api_v1_router = APIRouter(prefix="/api/v1")
+
 @app.get("/health", tags=["Health"])
-async def health_check(): 
+async def health_check():
     return {"status": "ok"}
 
-@app.get("/me", tags=["Auth"])
-async def read_me(current_user: "Usuario" = Depends(get_current_user)):
-    return {
-        "id": str(current_user.id),
-        "nome": current_user.nome, 
-        "email": current_user.email, 
-        "nivel": current_user.nivel.value
-    }
+@app.get("/me", response_model=UsuarioOut, tags=["Auth"])
+async def read_me(current_user: Usuario = Depends(get_current_user)):
+    return current_user
 
 # >>> REGISTRO DOS ROUTERS <<<
-from app.api.v1 import auth as auth_router
-from app.api.v1 import usuario as usuario_router 
-from app.api.v1 import loja as loja_router
-from app.api.v1.produto import router as produto_router
-from app.api.v1.venda import router as venda_router
-from app.api.v1.webhook import router as webhook_router
+from api.app.api.v1 import auth as auth_router
+from api.app.api.v1 import usuario as usuario_router
+from api.app.api.v1 import loja as admin_loja_router
+from api.app.api.v1 import company as company_router # <- Alias pra /company
+from api.app.api.v1.produto import router as produto_router
+from api.app.api.v1.venda import router as venda_router
+from api.app.api.v1.webhook import router as webhook_router
 
-app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["Auth"])
-app.include_router(usuario_router.router, prefix="/api/v1", tags=["Usuarios"])
-app.include_router(loja_router.router, prefix="/api/v1", tags=["Lojas"])
-app.include_router(produto_router, prefix="/api/v1/loja/{slug}/produtos", tags=["Produtos"])
-app.include_router(venda_router, prefix="/api/v1/loja/{slug}/vendas", tags=["Vendas"])
-app.include_router(webhook_router, prefix="/api/v1/webhook", tags=["WhatsApp"])
+api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["Auth"])
+api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["Usuarios"])
+api_v1_router.include_router(admin_loja_router.router, prefix="/lojas", tags=["Lojas"])
+api_v1_router.include_router(company_router.router, prefix="/company", tags=["Company"]) # <- Alias
+api_v1_router.include_router(produto_router, prefix="/loja/{slug}/produtos", tags=["Produtos"])
+api_v1_router.include_router(venda_router, prefix="/loja/{slug}/vendas", tags=["Vendas"])
+api_v1_router.include_router(webhook_router, prefix="/webhook", tags=["WhatsApp"])
+
+app.include_router(api_v1_router)

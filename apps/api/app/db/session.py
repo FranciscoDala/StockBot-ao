@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from app.core.config import settings
-from app.db.base import Base # <- IMPORTA O BASE CERTO AQUI
+from api.app.core.config import settings
+from api.app.db.base import Base # <- IMPORTA O BASE CERTO AQUI
 
 # Engine Async com pool mais estável pra produção
 engine = create_async_engine(

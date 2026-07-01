@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from uuid import UUID
-from app.models.usuario import NivelAcesso 
+from api.app.models.usuario import NivelUsuario 
 
 class Token(BaseModel):
     access_token: str
@@ -9,4 +9,4 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     sub: UUID | None = None       
-    nivel: NivelAcesso | None = None # <- Tirei o = None pra tipar certo
+    nivel: NivelUsuario | None = None # <- Tirei o = None pra tipar certo

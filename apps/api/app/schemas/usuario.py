@@ -1,29 +1,29 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from uuid import UUID
-import enum
+from enum import Enum
 
-class NivelAcesso(str, enum.Enum):
+class NivelUsuario(str, Enum):
     ADMIN = "admin"
-    GERENTE = "gerente" 
+    GERENTE = "gerente"
     VENDEDOR = "vendedor"
 
 class UsuarioCreate(BaseModel):
     nome: str = Field(..., max_length=100)
     email: EmailStr
-    senha: str = Field(..., min_length=6) 
-    nivel: NivelAcesso = NivelAcesso.VENDEDOR
+    senha: str = Field(..., min_length=6)
+    nivel: NivelUsuario = NivelUsuario.ADMIN
 
 class UsuarioOut(BaseModel):
     id: UUID
     nome: str
     email: EmailStr
-    nivel: NivelAcesso
-    ativo: bool
-    criado_em: datetime = Field(alias="created_at") # <- 1. CORRIGIDO: Mapeia created_at do DB -> criado_em no JSON
+    nivel: NivelUsuario
+    is_active: bool
+    criado_em: datetime = Field(alias="created_at")
 
     model_config = ConfigDict(
         from_attributes=True,
-        populate_by_name=True, # <- 2. CORRIGIDO: Obrigatório pra alias funcionar
-        json_encoders={UUID: str} # <- 3. CORRIGIDO: Serializa UUID pra str e mata o 'UUID input should be a string'
+        populate_by_name=True,
+        json_encoders={UUID: str}
     )

@@ -2,57 +2,39 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload # <- NOVO
-from uuid import UUID
+from sqlalchemy.orm import selectinload
 
-from app.db.session import get_db
-from app.crud import usuario as crud_usuario
-from app.schemas.usuario import UsuarioCreate, UsuarioOut
-from app.schemas.token import Token 
-from app.core.security import verify_password, create_access_token
-from app.models.loja import Loja 
-from app.models.usuario import Usuario # <- NOVO
+from api.app.db.session import get_db
+from api.app.schemas.token import Token
+from api.app.core.security import verify_password, create_access_token, authenticate_user # <- adicionei authenticate_user
+from api.app.models.usuario import Usuario, NivelUsuario # <- 1. ESSA LINHA QUE FALTAVA
 
 router = APIRouter()
 
-@router.post("/register", response_model=UsuarioOut, status_code=status.HTTP_201_CREATED)
-async def register_user(
-    user_in: UsuarioCreate, 
-    loja_slug: str,
-    db: AsyncSession = Depends(get_db)
-):
-    db_user = await crud_usuario.get_user_by_email(db, email=user_in.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email já registado")
-    
-    loja = await crud_loja.get_loja_by_slug(db, slug=loja_slug)
-    if not loja:
-        raise HTTPException(status_code=404, detail="Loja não encontrada")
-
-    user_create_data = user_in.model_dump()
-    # Aqui tu tem que criar a relação na tabela de associação, não jogar loja_id no user
-    user = await crud_usuario.create_user(db=db, user_in=user_create_data)
-    loja.usuarios.append(user) # <- Associa user na loja
-    await db.commit()
-    return user
-
-@router.post("/login", response_model=Token)
+@router.post("/login") # <- Tirei o response_model=Token pra poder retornar o user
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    # FIX: Carrega as lojas junto com o user
-    stmt = select(Usuario).options(selectinload(Usuario.lojas)).where(Usuario.email == form_data.username)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    if not user or not verify_password(form_data.password, user.senha_hash):
-        raise HTTPException(status_code=400, detail="Email ou senha incorretos")
-    if not user.ativo:
-        raise HTTPException(status_code=400, detail="Usuario inativo")
-    if not user.lojas: # <- Se o user não tiver loja
-        raise HTTPException(status_code=404, detail="Usuário sem loja vinculada")
+    # <- 2. Usa o authenticate_user que já tem a regra da loja inativa
+    user = await authenticate_user(db, email=form_data.username, password=form_data.password)
 
     access_token = create_access_token(data={"sub": str(user.id), "nivel": user.nivel.value})
+
+    loja_slug = "admin"
+    if user.nivel == NivelUsuario.GERENTE:
+        loja_slug = user.lojas_gerente[0].slug if user.lojas_gerente else "admin"
+    elif user.nivel == NivelUsuario.VENDEDOR:
+        loja_slug = user.lojas_gerente[0].slug if user.lojas_gerente else "admin"
+    elif user.nivel == NivelUsuario.ADMIN:
+        loja_slug = user.lojas_dono[0].slug if user.lojas_dono else "admin"
+
+    # FIX: Retorna o objeto user completo pro front decidir pra onde ir
     return {
-        "access_token": access_token, 
+        "access_token": access_token,
         "token_type": "bearer",
-        "loja_slug": user.lojas[0].slug # <- Pega a 1ª loja pra redirecionar
+        "loja_slug": loja_slug,
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "nome": user.nome,
+            "nivel": user.nivel.value # <- "admin", "gerente", "vendedor"
+        }
     }

@@ -1,4 +1,3 @@
-from .usuario import Usuario, NivelAcesso
-from .produto import Produto 
-
-__all__ = ["Usuario", "NivelAcesso", "Produto"]
+# Deixa esse ficheiro totalmente vazio. 
+# Ou só com isso:
+from api.app.db.base import Base
