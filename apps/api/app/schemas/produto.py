@@ -23,12 +23,12 @@ class ProdutoBase(BaseModel):
     descricao: Optional[str] = None
     sku: Optional[str] = Field(None, max_length=50)
     codigo_barras: Optional[str] = Field(None, max_length=50)
-    codigo_qr: Optional[str] = Field(None) # <-- SEM max_length
+    codigo_qr: Optional[str] = Field(None)
     marca: Optional[str] = Field(None, max_length=100)
     imagem_url: Optional[str] = Field(None, max_length=255)
     ncm: Optional[str] = Field(None, max_length=10)
 
-    # NOMES QUE O FRONT MANDA
+    # ENTRADA: continua Decimal pra aceitar do banco
     preco: Decimal = Field(..., gt=0, description="Preco de venda")
     preco_custo: Decimal = Field(0, ge=0, description="Preco de compra")
     preco_promocao: Optional[Decimal] = Field(None, ge=0)
@@ -55,7 +55,7 @@ class ProdutoUpdate(BaseModel):
     descricao: Optional[str] = None
     sku: Optional[str] = Field(None, max_length=50)
     codigo_barras: Optional[str] = Field(None, max_length=50)
-    codigo_qr: Optional[str] = Field(None) # <-- SEM max_length
+    codigo_qr: Optional[str] = Field(None)
     marca: Optional[str] = Field(None, max_length=100)
     imagem_url: Optional[str] = Field(None, max_length=255)
     ncm: Optional[str] = Field(None, max_length=10)
@@ -78,19 +78,36 @@ class ProdutoUpdateWithAuth(ProdutoUpdate):
     senha_dono: str
     loja_id: UUID
 
-class ProdutoOut(ProdutoBase):
+class ProdutoOut(BaseModel):
     id: UUID
     loja_id: UUID
+    nome: str
+    descricao: Optional[str] = None
+    sku: Optional[str] = None
+    codigo_barras: Optional[str] = None
+    codigo_qr: Optional[str] = None
+    marca: Optional[str] = None
+    imagem_url: Optional[str] = None
+    ncm: Optional[str] = None
+
+    preco: float
+    preco_custo: float
+    preco_promocao: Optional[float] = None
+    custo_medio: float
+    estoque: float
+    estoque_minimo: float
+    estoque_maximo: Optional[float] = None
+    unidade: UnidadeEnum
+    peso_kg: Optional[float] = None
+    localizacao: Optional[str] = None
+
+    categoria_id: Optional[UUID] = None # <- só o id
+    fornecedor_id: Optional[UUID] = None # <- só o id
+    is_active: bool
     created_at: datetime
     updated_at: datetime
     deleted_at: Optional[datetime] = None
 
-    categoria: Optional[CategoriaOut] = None
-    fornecedor: Optional[FornecedorOut] = None
+    margem_lucro: float
 
-    @computed_field
-    @property
-    def margem_lucro(self) -> Decimal:
-        if self.preco_custo and self.preco_custo > 0:
-            return ((self.preco - self.preco_custo) / self.preco_custo) * 100
-        return Decimal(0)
+    model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})

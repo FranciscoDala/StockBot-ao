@@ -58,17 +58,25 @@ def gerar_qr_code_base64(produto_id: UUID, sku: str, nome: str) -> str:
     img.save(buf, format='PNG')
     return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
 
+
 def to_schema(produto: Produto) -> ProdutoOut:
     return ProdutoOut(
         id=produto.id, loja_id=produto.loja_id, nome=produto.nome, descricao=produto.descricao,
         categoria_id=produto.categoria_id, marca=produto.marca, imagem_url=produto.imagem_url,
         sku=produto.sku, codigo_barras=produto.codigo_barras, codigo_qr=produto.codigo_qr, ncm=produto.ncm,
-        preco=produto.preco_venda, preco_custo=produto.preco_compra, preco_promocao=produto.preco_promocao,
-        custo_medio=produto.custo_medio, estoque=produto.estoque, estoque_minimo=produto.estoque_minimo,
-        estoque_maximo=produto.estoque_maximo, unidade=produto.unidade, peso_kg=produto.peso_kg,
+        preco=float(produto.preco_venda) if produto.preco_venda else 0.0,
+        preco_custo=float(produto.preco_compra) if produto.preco_compra else 0.0,
+        preco_promocao=float(produto.preco_promocao) if produto.preco_promocao else None,
+        custo_medio=float(produto.custo_medio) if produto.custo_medio else 0.0,
+        estoque=float(produto.estoque),
+        estoque_minimo=float(produto.estoque_minimo),
+        estoque_maximo=float(produto.estoque_maximo) if produto.estoque_maximo else None,
+        unidade=produto.unidade, peso_kg=float(produto.peso_kg) if produto.peso_kg else None,
         fornecedor_id=produto.fornecedor_id, localizacao=produto.localizacao, is_active=produto.is_active,
         created_at=produto.created_at, updated_at=produto.updated_at, deleted_at=produto.deleted_at,
+        margem_lucro=float(produto.margem_lucro) if produto.margem_lucro else 0.0 # <- ADICIONA ISSO
     )
+
 
 async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha_dono: str, senha_confirmacao: str):
     if not senha_dono or not senha_confirmacao: raise HTTPException(status_code=403, detail="Senha do dono não informada")
@@ -105,7 +113,6 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
 
     sku_final = await gerar_sku_unico(db, loja_id)
 
-    # CORRECAO: Trata codigo_barras vazio
     codigo_barras_enviado = produto.codigo_barras.strip() if produto.codigo_barras else None
     if not codigo_barras_enviado:
         codigo_barras_final = gerar_ean13_interno(uuid.uuid4())
@@ -165,17 +172,14 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     print(f"DB codigo: '{produto_db.codigo_barras}' | RECEBIDO: '{produto_update.codigo_barras}'")
     print(f"DB imagem: '{produto_db.imagem_url}' | RECEBIDO: '{produto_update.imagem_url}'")
 
-    # SKU só valida se mudou
     if produto_update.sku and produto_update.sku.strip() and produto_update.sku!= produto_db.sku:
         existing = await db.execute(select(Produto).where(and_(Produto.loja_id == loja_id, Produto.sku == produto_update.sku, Produto.id!= produto_id)))
         if existing.scalar_one_or_none(): raise HTTPException(status_code=400, detail="SKU já cadastrado nesta loja")
         produto_db.sku = produto_update.sku
 
-    # REGRA FINAL CODIGO BARRAS: SÓ VALIDA SE O USER DIGITOU ALGO NOVO
     codigo_recebido = produto_update.codigo_barras
     if codigo_recebido is not None and codigo_recebido.strip()!= "":
         codigo_novo = codigo_recebido.strip()
-        # só valida se for diferente do que já está no banco
         if codigo_novo!= (produto_db.codigo_barras or ""):
             print(f"Validando novo codigo: {codigo_novo}")
             existing = await db.execute(select(Produto).where(and_(Produto.loja_id == loja_id, Produto.codigo_barras == codigo_novo, Produto.id!= produto_id)))
@@ -187,13 +191,11 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     else:
         print("Codigo veio vazio/null, ignorado")
 
-    # AJUSTE 1: Tirei 'codigo_barras' do exclude pra nossa regra acima funcionar
     update_data = produto_update.model_dump(exclude_unset=True, exclude={"senha_dono", "senha_confirmacao", "loja_id", "sku"})
 
     if 'preco' in update_data: produto_db.preco_venda = Decimal(str(update_data.pop('preco')))
     if 'preco_custo' in update_data: produto_db.preco_compra = Decimal(str(update_data.pop('preco_custo')))
 
-    # AJUSTE 2: Não deixa zerar imagem_url se vier ""
     for key, value in update_data.items():
         if key == 'imagem_url' and value == "":
             continue
@@ -207,7 +209,7 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     await db.commit()
     await db.refresh(produto_db)
     print("--- FIM PATCH ---\n")
-    return to_schema(produto_db)
+    return to_schema(produto_db) # <- CORRIGIDO: era 'novo'
 
 @router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO))])
 async def apagar_produto(body: dict, produto_id: UUID, db: AsyncSession = Depends(get_db)):
@@ -226,8 +228,8 @@ async def get_produto_publico(sku: str, db: AsyncSession = Depends(get_db)):
     produto = result.scalar_one_or_none()
     if not produto: raise HTTPException(status_code=404, detail="Produto não encontrado")
     return {
-        "id": str(produto.id), "nome": produto.nome, "sku": produto.sku, "preco": float(produto.preco_venda),
-        "preco_custo": float(produto.preco_compra), "estoque": produto.estoque, "unidade": produto.unidade,
+        "id": str(produto.id), "nome": produto.nome, "sku": produto.sku, "preco": float(produto.preco_venda), # <- MUDOU
+        "preco_custo": float(produto.preco_compra), "estoque": float(produto.estoque), "unidade": produto.unidade, # <- MUDOU
         "marca": produto.marca, "descricao": produto.descricao, "imagem_url": produto.imagem_url,
         "loja_nome": produto.loja.nome if produto.loja else "Loja não informada"
     }

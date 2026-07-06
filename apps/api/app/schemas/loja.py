@@ -27,6 +27,8 @@ class LojaBase(BaseModel):
     nome: str = Field(..., min_length=3, max_length=100)
     slug: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-z0-9-]+$")
     endereco: Optional[str] = None
+    nif: Optional[str] = None # <- ADICIONEI
+    telefone: Optional[str] = None # <- ADICIONEI
     is_active: bool = True
 
 class LojaCreateIn(LojaBase):
@@ -51,6 +53,8 @@ class LojaUpdateIn(BaseModel):
     slug: Optional[str] = None
     is_active: Optional[bool] = None
     endereco: Optional[str] = None
+    nif: Optional[str] = None # <- ADICIONEI
+    telefone: Optional[str] = None # <- ADICIONEI
     dono: Optional[DonoUpdateIn] = None
 
 class LojaSelectOut(BaseModel):
@@ -66,6 +70,8 @@ class LojaDetailOut(BaseModel):
     is_active: bool
     created_at: Union[datetime, str]
     endereco: Optional[str] = None
+    nif: Optional[str] = None # <- ADICIONEI
+    telefone: Optional[str] = None # <- ADICIONEI
     gerente: Optional[DonoOut] = None # <- "gerente" é o dono da loja
     total_funcionarios: int = 0 # <- Conta quantos membros ativos tem
     model_config = ConfigDict(from_attributes=True)
@@ -77,6 +83,8 @@ class LojaDetailFull(BaseModel):
     is_active: bool
     created_at: datetime
     endereco: Optional[str] = None
+    nif: Optional[str] = None # <- ADICIONEI
+    telefone: Optional[str] = None # <- ADICIONEI
     logo_url: Optional[str] = None
     ano_fundacao: Optional[int] = None
     deleted_at: Optional[datetime] = None # <- Pra Soft Delete futuro

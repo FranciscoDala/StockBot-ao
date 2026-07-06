@@ -7,8 +7,9 @@ from uuid import UUID
 class ItemVendaCreate(BaseModel):
     produto_id: UUID
     quantidade: int = Field(gt=0)
-    preco_unitario: Decimal # <- ADICIONADO
-    subtotal: Decimal # <- ADICIONADO
+    preco_unitario: Decimal
+    subtotal: Decimal
+    model_config = ConfigDict(json_encoders={Decimal: float}) # <- ADICIONADO
 
 class VendaCreate(BaseModel):
     total: Decimal
@@ -17,6 +18,7 @@ class VendaCreate(BaseModel):
     valor_recebido: Decimal = Decimal(0)
     troco: Decimal = Decimal(0)
     itens: List[ItemVendaCreate] = Field(min_length=1)
+    model_config = ConfigDict(json_encoders={Decimal: float}) # <- ADICIONADO
 
 class ItemVendaRead(BaseModel):
     id: UUID
@@ -25,7 +27,7 @@ class ItemVendaRead(BaseModel):
     quantidade: int
     preco_unitario: Decimal
     subtotal: Decimal
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float}) # <- ADICIONADO
 
 class VendaRead(BaseModel):
     id: UUID
@@ -33,11 +35,11 @@ class VendaRead(BaseModel):
     usuario_id: UUID
     nome_vendedor: str
     total: Decimal
-    total_itens: int # <- ADICIONADO
-    forma_pagamento: str # <- ADICIONADO
-    valor_recebido: Decimal # <- ADICIONADO
-    troco: Decimal # <- ADICIONADO
+    total_itens: int
+    forma_pagamento: str
+    valor_recebido: Decimal
+    troco: Decimal
     status: str
     data_venda: datetime
     itens: List[ItemVendaRead]
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float}) # <- ADICIONADO

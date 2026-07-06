@@ -1,15 +1,13 @@
 "use client";
-import { useState, useMemo, useEffect, useCallback } from "react"; // <- 1. ADICIONEI useCallback
+import { useMemo, useEffect, useCallback } from "react";
 import { Search, ShoppingCart, CreditCard, Banknote, Smartphone, ArrowLeft, PackageX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
 import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 interface Produto {
     id: number;
@@ -28,47 +26,66 @@ interface CarrinhoItem extends Produto {
     quantidade: number;
 }
 
+// 1. INTERFACE ATUALIZADA COM TODAS PROPS DO PAI
 interface Props {
     produtos: Produto[];
     carrinho: CarrinhoItem[];
-    setCarrinho: React.Dispatch<React.SetStateAction<CarrinhoItem[]>>;
+
+    busca: string;
+    setBusca: (v: string) => void;
+    formaPagamento: string;
+    setFormaPagamento: (v: string) => void;
+    valorRecebido: string;
+    setValorRecebido: (v: string) => void;
+    subtotal: number;
+    totalItens: number;
+    troco: number;
+    podeFinalizar: boolean;
+
+    adicionarAoCarrinho: (p: Produto) => void;
+    confirmarRemoverItem: (item: CarrinhoItem) => void;
+    handleFinalizar: () => void;
+
+    showConfirmarModal: boolean;
+    setShowConfirmarModal: (v: boolean) => void;
+    itemParaRemover: CarrinhoItem | null;
+    handleConfirmarRemocao: () => void;
+    showConfirmarFinalizar: boolean;
+    setShowConfirmarFinalizar: (v: boolean) => void;
+    executarFinalizarVenda: () => void;
+    loadingVenda: boolean;
+
     formatCurrency: (v: number) => string;
-    onFinalizarVenda: (venda: any) => void;
     onClose: () => void;
-    onRemoverItem: (item: CarrinhoItem) => void;
     token: string | null;
     nomeLoja: string;
 }
 
-export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFinalizarVenda, onClose, onRemoverItem, token, nomeLoja }: Props) {
-    const [busca, setBusca] = useState("");
-    const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
-    const [valorRecebido, setValorRecebido] = useState("");
-    const [loadingVenda, setLoadingVenda] = useState(false);
-
-    const [showConfirmarModal, setShowConfirmarModal] = useState(false);
-    const [itemParaRemover, setItemParaRemover] = useState<CarrinhoItem | null>(null);
-    const [showConfirmarFinalizar, setShowConfirmarFinalizar] = useState(false);
+export function VendaTab({
+    produtos,
+    carrinho,
+    busca, setBusca,
+    formaPagamento, setFormaPagamento,
+    valorRecebido, setValorRecebido,
+    subtotal, totalItens, troco, podeFinalizar,
+    adicionarAoCarrinho,
+    confirmarRemoverItem,
+    handleFinalizar,
+    showConfirmarModal, setShowConfirmarModal,
+    itemParaRemover,
+    handleConfirmarRemocao,
+    showConfirmarFinalizar, setShowConfirmarFinalizar,
+    executarFinalizarVenda,
+    loadingVenda,
+    formatCurrency,
+    onClose,
+    nomeLoja
+}: Props) {
 
     const getPreco = (item: CarrinhoItem) => item.preco_venda || item.preco || 0;
-    const subtotal = carrinho.reduce((acc, item) => acc + (getPreco(item) * item.quantidade), 0);
-    const totalItens = carrinho.reduce((acc, item) => acc + item.quantidade, 0);
-    const troco = formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal ? Number(valorRecebido) - subtotal : 0;
 
-    const podeFinalizar = useMemo(() => {
-        if (carrinho.length === 0) return false;
-        if (formaPagamento === "Dinheiro") {
-            return Number(valorRecebido) >= subtotal && subtotal > 0;
-        }
-        return true;
-    }, [carrinho, formaPagamento, valorRecebido, subtotal]);
-
-    const handleFinalizar = useCallback(() => { // <- 2. VIROU useCallback E SUBIU PRA CIMA
-        if (!podeFinalizar) return;
-        setShowConfirmarFinalizar(true);
-    }, [podeFinalizar]);
-
-    useEffect(() => { // <- 3. AGORA PODE USAR handleFinalizar E podeFinalizar
+    // 2. TECLADO AGORA USA AS FUNÇÕES DO PAI
+    useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
@@ -96,81 +113,6 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                 p.sku.toLowerCase().includes(busca.toLowerCase()))
         );
     }, [produtos, busca]);
-
-    const adicionarAoCarrinho = (produto: Produto) => {
-        if (produto.estoque <= 0) { toast.error("Produto sem estoque"); return; }
-        setCarrinho(prev => {
-            const itemExistente = prev.find(item => item.id === produto.id);
-            if (itemExistente) {
-                if (itemExistente.quantidade >= produto.estoque) { toast.warning("Estoque máximo atingido"); return prev; }
-                return prev.map(item => item.id === produto.id ? { ...item, quantidade: item.quantidade + 1 } : item);
-            }
-            return [...prev, { ...produto, quantidade: 1 }];
-        });
-    };
-
-    const confirmarRemoverItemCarrinho = (item: CarrinhoItem) => { // <- 4. VOLTOU A ABRIR MODAL
-        setItemParaRemover(item);
-        setShowConfirmarModal(true);
-    };
-
-
-    const handleConfirmarRemocao = () => { // <- 5. AGORA CHAMA O PAI PRA REMOVER
-        if (itemParaRemover) {
-            onRemoverItem(itemParaRemover);
-            toast.success("Produto removido do carrinho");
-        }
-        setShowConfirmarModal(false);
-        setItemParaRemover(null);
-    };
-
-    const executarFinalizarVenda = async () => {
-        if (!token) { toast.error("Sessão expirada. Faça login novamente"); return; }
-        setLoadingVenda(true);
-        setShowConfirmarFinalizar(false);
-
-        const payload = {
-            total: subtotal,
-            total_itens: totalItens,
-            forma_pagamento: formaPagamento,
-            valor_recebido: Number(valorRecebido) || 0,
-            troco: troco,
-            itens: carrinho.map(item => ({
-                produto_id: item.id,
-                quantidade: item.quantidade,
-                preco_unitario: getPreco(item),
-                subtotal: getPreco(item) * item.quantidade
-            }))
-        };
-
-        try {
-            const res = await fetch(`${API_URL}/vendas/`, {
-                method: 'POST',
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.detail || "Erro ao salvar venda");
-            }
-
-            const vendaSalva = await res.json();
-            setTimeout(() => {
-                onFinalizarVenda(vendaSalva);
-            }, 200);
-            setCarrinho([]);
-            setValorRecebido("");
-        } catch (error: any) {
-            toast.error(error.message);
-            setShowConfirmarFinalizar(true);
-        } finally {
-            setLoadingVenda(false);
-        }
-    };
 
     return (
         <div className="flex flex-col min-h-screen bg-[#0a0a0a] text-white">
@@ -213,8 +155,8 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                                     className="bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden text-left transition-all hover:border-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
                                 >
                                     <div className="relative w-full aspect-square bg-neutral-900">
-                                        {p.imagem_url ? (
-                                            <img src={p.imagem_url.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
+                                        {p.imagem_url? (
+                                            <img src={p.imagem_url.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">Sem Img</div>
                                         )}
@@ -232,6 +174,7 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                         })}
                     </div>
 
+                    {/* MOBILE CARRINHO */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2">
                             <ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}
@@ -248,7 +191,7 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                                 return (
                                     <div
                                         key={item.id}
-                                        onClick={() => confirmarRemoverItemCarrinho(item)}
+                                        onClick={() => confirmarRemoverItem(item)} // <- USANDO PROP DO PAI
                                         className="flex items-center gap-2 p-2 bg-neutral-900 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
                                     >
                                         <span className="text-xs font-bold w-8 text-center">{item.quantidade}</span>
@@ -263,6 +206,7 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                         </div>
                     </div>
 
+                    {/* MOBILE PAGAMENTO */}
                     <div className="lg:hidden py-3 space-y-2 border-t border-neutral-800 bg-neutral-950 sticky bottom-0">
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
                             <SelectTrigger className="bg-neutral-900 border-neutral-800 h-10 text-sm">
@@ -292,12 +236,13 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                             disabled={!podeFinalizar || loadingVenda}
                             className="bg-green-600 hover:bg-green-700 w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loadingVenda ? "Finalizando..." : "Finalizar Venda"}
+                            {loadingVenda? "Finalizando..." : "Finalizar Venda"}
                         </Button>
                     </div>
                 </div>
 
-                <div className="bg-neutral-950 border-t lg:border-t-0 lg:border-l border-neutral-800 hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-">
+                {/* DESKTOP CARRINHO */}
+                <div className="bg-neutral-950 border-t lg:border-t-0 lg:border-l border-neutral-800 hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0">
                     <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b border-neutral-800">
                         <ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}
                     </h3>
@@ -314,7 +259,7 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                             return (
                                 <div
                                     key={item.id}
-                                    onClick={() => confirmarRemoverItemCarrinho(item)}
+                                    onClick={() => confirmarRemoverItem(item)} // <- USANDO PROP DO PAI
                                     className="bg-neutral-900 p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
                                 >
                                     <div className="flex justify-between items-start gap-2">
@@ -355,7 +300,7 @@ export function VendaTab({ produtos, carrinho, setCarrinho, formatCurrency, onFi
                             disabled={!podeFinalizar || loadingVenda}
                             className="bg-green-600 hover:bg-green-700 w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loadingVenda ? "Finalizando..." : "Finalizar [Enter]"}
+                            {loadingVenda? "Finalizando..." : "Finalizar [Enter]"}
                         </Button>
                     </div>
                 </div>

@@ -24,6 +24,8 @@ class Loja(BaseModel):
     slug: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     endereco: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    nif: Mapped[Optional[str]] = mapped_column(String(14), nullable=True) # <- ADICIONEI
+    telefone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True) # <- ADICIONEI
     logo_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ano_fundacao: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 

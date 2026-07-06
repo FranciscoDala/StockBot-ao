@@ -32,7 +32,6 @@ class UsuarioLojaUpdateWithAuth(UsuarioLojaUpdateIn):
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
-# E COLA AQUI TAMBEM - ESSA É A NOVA
 class UsuarioLojaCreateWithAuth(BaseModel):
     nome: str
     telefone: Optional[str] = None # <- OPCIONAL
@@ -40,7 +39,6 @@ class UsuarioLojaCreateWithAuth(BaseModel):
     is_active: bool = True
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
-
 
 class LojaUpdateInWithAuth(LojaUpdateIn, AdminAuth):
     dono: Optional[DonoUpdateIn] = None
@@ -122,7 +120,11 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
         dono, membro = await get_dono_loja(db, l.id)
         count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == l.id, UsuarioLoja.is_active == True)
         total = (await db.execute(count_stmt)).scalar_one()
-        out.append(LojaDetailOut(id=l.id, nome=l.nome, slug=l.slug, is_active=l.is_active, created_at=l.created_at, endereco=l.endereco, gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total))
+        out.append(LojaDetailOut(
+            id=l.id, nome=l.nome, slug=l.slug, is_active=l.is_active, created_at=l.created_at,
+            endereco=l.endereco, nif=l.nif, telefone=l.telefone, logo_url=l.logo_url, # <- ADICIONEI
+            gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
+        ))
     return out
 
 @router.get("/donos", response_model=List[DonoOut])
@@ -151,7 +153,11 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
     dono, membro = await get_dono_loja(db, loja.id)
     count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.is_active == True)
     total = (await db.execute(count_stmt)).scalar_one()
-    return LojaDetailOut(id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at, endereco=loja.endereco, gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total)
+    return LojaDetailOut(
+        id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url, # <- ADICIONEI
+        gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
+    )
 
 @router.post("/", response_model=LojaDetailOut, status_code=status.HTTP_201_CREATED)
 async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
@@ -160,7 +166,11 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
     except ValueError as e: raise HTTPException(status_code=400, detail=str(e))
     except IntegrityError: await db.rollback(); raise HTTPException(status_code=400, detail="Erro de integridade: Email do dono já cadastrado.")
     dono, membro = await get_dono_loja(db, loja.id)
-    return LojaDetailOut(id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at, endereco=loja.endereco, gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=1)
+    return LojaDetailOut(
+        id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url, # <- ADICIONEI
+        gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=1
+    )
 
 @router.patch("/{loja_id}", response_model=LojaDetailOut)
 async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -201,7 +211,11 @@ async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSes
     dono, membro = await get_dono_loja(db, loja_id)
     count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.is_active == True)
     total = (await db.execute(count_stmt)).scalar_one()
-    return LojaDetailOut(id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at, endereco=loja.endereco, gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total)
+    return LojaDetailOut(
+        id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url, # <- ADICIONEI
+        gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
+    )
 
 @router.patch("/{loja_id}/dono", response_model=GerenteOut)
 async def atualizar_dono_loja(loja_id: UUID, body: DonoUpdateInWithAuth, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
@@ -252,7 +266,6 @@ async def listar_usuarios_loja(slug: str, db: AsyncSession = Depends(get_db), cu
     result = (await db.execute(stmt)).all()
     return [map_usuario_loja_out(u, ul) for u, ul in result]
 
-
 @router.post("/{slug}/usuarios", response_model=UsuarioLojaOut, status_code=201)
 async def adicionar_usuario_loja(slug: str, body: UsuarioLojaCreateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
@@ -271,7 +284,6 @@ async def adicionar_usuario_loja(slug: str, body: UsuarioLojaCreateWithAuth, db:
         email_temp = f"{slugify(primeiro_nome)}.{i}@{slugify(loja.nome.split(' ')[0])}.com"
         i += 1
 
-    # CORRECAO: senha fixa temp123. O usuario troca depois
     usuario = Usuario(nome=body.nome, email=email_temp, telefone=body.telefone, senha_hash=get_password_hash("temp123"), is_active=body.is_active)
     db.add(usuario)
     await db.flush()
@@ -281,7 +293,6 @@ async def adicionar_usuario_loja(slug: str, body: UsuarioLojaCreateWithAuth, db:
     await db.refresh(novo_membro)
     await db.refresh(usuario)
     return map_usuario_loja_out(usuario, novo_membro)
-
 
 @router.patch("/{slug}/usuarios/{usuario_id}", response_model=UsuarioLojaOut)
 async def atualizar_usuario_loja(slug: str, usuario_id: UUID, body: UsuarioLojaUpdateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
