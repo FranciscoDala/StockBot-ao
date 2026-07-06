@@ -17,11 +17,12 @@ class ItemVenda(BaseModel):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     venda_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vendas.id", ondelete="CASCADE"), nullable=False)
     produto_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("produtos.id", ondelete="RESTRICT"), nullable=False)
-    loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False) # <- FIX: faltava essa FK
+    loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False)
+
     quantidade: Mapped[int] = mapped_column(Integer, nullable=False)
     preco_unitario: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     subtotal: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
 
     venda: Mapped["Venda"] = relationship(back_populates="itens")
     produto: Mapped["Produto"] = relationship(back_populates="itens_venda")
-    loja: Mapped["Loja"] = relationship() # <- FK já resolve o join sozinha, não precisa back_populates
+    loja: Mapped["Loja"] = relationship() # <- FK já resolve o join

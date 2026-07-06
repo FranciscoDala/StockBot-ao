@@ -2,23 +2,27 @@
 
 import { useEffect, useState, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck } from "lucide-react";
-import { toast } from "sonner";
+import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart } from "lucide-react";
+import { toast, Toaster } from "sonner";
 
 import { DadosTab } from "./_components/tabs/DadosTab";
 import { ProdutosTab } from "./_components/tabs/ProdutosTab";
 import { EquipaTab } from "./_components/tabs/EquipaTab";
+import { VendaTab } from "./_components/tabs/VendaTab";
 
 import { PermissaoModal } from "./_components/modals/PermissaoModal";
 import { ErroModal } from "./_components/modals/ErroModal";
 import { DetalhesModal } from "./_components/modals/DetalhesModal";
 import { UserModal } from "./_components/modals/UserModal";
 import { ProdutoModal, Produto } from "./_components/modals/ProdutoModal";
+import { ConfirmarModal } from "./_components/modals/ConfirmacaoModal";
+import { VendaSucessoModal } from "./_components/modals/VendaSucessoModal";
 
 export type Loja = { id: string; nome: string; slug: string; is_active: boolean; created_at: string; endereco?: string | null; ano_fundacao?: number | null; }
 export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
 export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: string | null; role: UserRole; is_active: boolean; }
 export type userread = { id: string; nome: string; email: string; nivel: "admin" | "gerente" | "vendedor" | "dono"; loja?: Loja | null; loja_id?: string | null; }
+export type CarrinhoItem = Produto & { quantidade: number };
 
 const formatError = (data: any): string => {
     if (!data) return "Erro desconhecido";
@@ -30,6 +34,7 @@ export const formatCurrency = (value: number) => new Intl.NumberFormat('pt-AO', 
 
 const initialTabs = [
     { id: "dados", label: "Dados", icon: FileText },
+    { id: "venda", label: "Venda", icon: ShoppingCart },
     { id: "produtos", label: "Produtos", icon: Package },
     { id: "equipa", label: "Equipa", icon: Users },
     { id: "fornecedores", label: "Fornecedores", icon: Truck },
@@ -38,17 +43,17 @@ const initialTabs = [
     { id: "risco", label: "Risco", icon: ShieldAlert },
 ];
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
 const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`; };
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {
- ...options,
+        ...options,
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`,
-     ...options.headers
+            ...options.headers
         },
         credentials: 'include',
         cache: "no-store"
@@ -86,6 +91,7 @@ export default function LojaPage() {
     const [detalhesUser, setDetalhesUser] = useState<any>(null);
 
     const [produtos, setProdutos] = useState<Produto[]>([]);
+    const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
     const [editingProduto, setEditingProduto] = useState<Produto | null>(null);
     const [formDataProduto, setFormDataProduto] = useState({
         nome: "", sku: "", preco: 0, preco_custo: 0,
@@ -103,12 +109,18 @@ export default function LojaPage() {
     const [showErroModal, setShowErroModal] = useState(false);
     const [erroMsgPermissao, setErroMsgPermissao] = useState("");
     const [showDetalhesModal, setShowDetalhesModal] = useState(false);
+    // const [showConfirmarModal, setShowConfirmarModal] = useState(false);
+    const [itemParaRemover, setItemParaRemover] = useState<CarrinhoItem | null>(null);
     const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar' | 'adicionar', entidade: 'user' | 'produto', data?: UsuarioLoja | Produto } | null>(null);
+
+    // MODAIS DA VENDA
+    const [showVendaSucessoModal, setShowVendaSucessoModal] = useState(false);
+    const [vendaConcluida, setVendaConcluida] = useState<any>(null);
 
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
 
     const fetchEquipa = async (currentToken: string) => {
-        if (!currentToken ||!slug) return;
+        if (!currentToken || !slug) return;
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/${slug}/usuarios`, currentToken);
             if (data && Array.isArray(data)) setEquipa(data); else setEquipa([]);
@@ -116,7 +128,7 @@ export default function LojaPage() {
     };
 
     const fetchProdutos = async (currentToken: string, lojaId: string) => {
-        if (!currentToken ||!lojaId) { setProdutos([]); return; }
+        if (!currentToken || !lojaId) { setProdutos([]); return; }
         try {
             const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken);
             if (data && Array.isArray(data)) setProdutos(data); else setProdutos([]);
@@ -128,10 +140,10 @@ export default function LojaPage() {
         const currentToken = getCookie("token");
         const userStr = getCookie("user");
         setToken(currentToken || null);
-        if (!currentToken ||!userStr) { handleSair(); return; }
+        if (!currentToken || !userStr) { handleSair(); return; }
         try {
             const userData: userread = JSON.parse(userStr);
-            if (userData.loja?.slug!== slug) { handleSair(); return; }
+            if (userData.loja?.slug !== slug) { handleSair(); return; }
             setUser(userData);
             const loadData = async () => {
                 setLoading(true);
@@ -154,14 +166,14 @@ export default function LojaPage() {
                 nome: (data as UsuarioLoja)?.nome || "",
                 telefone: (data as UsuarioLoja)?.telefone || "",
                 role: ((data as UsuarioLoja)?.role?.toUpperCase() as UserRole) || "VENDEDOR",
-                is_active: (data as UsuarioLoja)?.is_active?? true
+                is_active: (data as UsuarioLoja)?.is_active ?? true
             });
         } else {
             setEditingProduto(data as Produto | null);
             setFormDataProduto({
                 nome: (data as Produto)?.nome || "", sku: (data as Produto)?.sku || "", preco: (data as Produto)?.preco || 0, preco_custo: (data as Produto)?.preco_custo || 0,
-                estoque: (data as Produto)?.estoque || 0, estoque_minimo: (data as Produto)?.estoque_minimo || 5, is_active: (data as Produto)?.is_active?? true,
-                loja_id: (data as Produto)?.loja_id || user?.loja_id || user?.loja?.id || "", descricao: (data as Produto)?.descricao || "", codigo_barras: (data as Produto)?.codigo_barras?? undefined,
+                estoque: (data as Produto)?.estoque || 0, estoque_minimo: (data as Produto)?.estoque_minimo || 5, is_active: (data as Produto)?.is_active ?? true,
+                loja_id: (data as Produto)?.loja_id || user?.loja_id || user?.loja?.id || "", descricao: (data as Produto)?.descricao || "", codigo_barras: (data as Produto)?.codigo_barras ?? undefined,
                 marca: (data as Produto)?.marca || "", categoria_id: (data as Produto)?.categoria_id || null, unidade: (data as Produto)?.unidade || "UN",
                 localizacao: (data as Produto)?.localizacao || "", fornecedor_id: (data as Produto)?.fornecedor_id || null, data_validade: (data as Produto)?.data_validade || "",
                 ncm: (data as Produto)?.ncm || "", peso_kg: (data as Produto)?.peso_kg || 0, imagem_url: (data as Produto)?.imagem_url || "",
@@ -174,7 +186,7 @@ export default function LojaPage() {
     const handleEditUserClick = (u: UsuarioLoja) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', data: u }); openModal('user', u); }
     const handleDeleteUserClick = (u: UsuarioLoja) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', data: u }); setShowPermissaoModal(true); }
     const handleViewUserClick = async (u: UsuarioLoja) => {
-        if (!token ||!slug) return;
+        if (!token || !slug) return;
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/${slug}/usuarios/${u.id}/detalhes`, token);
             if (data) { setDetalhesUser(data); setShowDetalhesModal(true); }
@@ -185,8 +197,24 @@ export default function LojaPage() {
     const handleEditProdutoClick = (p: Produto) => { setAcaoPendente({ tipo: 'editar', entidade: 'produto', data: p }); openModal('produto', p); }
     const handleDeleteProdutoClick = (p: Produto) => { setAcaoPendente({ tipo: 'apagar', entidade: 'produto', data: p }); setShowPermissaoModal(true); }
 
+    const handleConfirmarRemocao = () => {
+        if (itemParaRemover) {
+            setCarrinho(prev => prev.filter(i => i.id !== itemParaRemover.id));
+            toast.success("Produto removido do carrinho");
+        }
+        setShowConfirmarModal(false);
+        setItemParaRemover(null);
+    };
+
+    const handleFinalizarVenda = (vendaSalva: any) => {
+        console.log("Venda recebida:", vendaSalva);
+        setVendaConcluida(vendaSalva);
+        setShowVendaSucessoModal(true);
+        fetchProdutos(token!, user?.loja_id || user?.loja?.id || "");
+    }
+
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!acaoPendente ||!token) return;
+        if (!acaoPendente || !token) return;
         setSaving(true);
         setShowPermissaoModal(false);
         const { tipo, entidade, data } = acaoPendente;
@@ -196,7 +224,7 @@ export default function LojaPage() {
                     await fetchComAuth(`${API_URL}/lojas/${slug}/usuarios`, token, {
                         method: "POST",
                         body: JSON.stringify({
-                     ...formDataUser,
+                            ...formDataUser,
                             role: formDataUser.role.toLowerCase(),
                             senha_dono: senha_dono,
                             senha_confirmacao: senha_dono
@@ -209,7 +237,7 @@ export default function LojaPage() {
                     await fetchComAuth(`${API_URL}/lojas/${slug}/usuarios/${userData.id}`, token, {
                         method: "PATCH",
                         body: JSON.stringify({
-                     ...formDataUser,
+                            ...formDataUser,
                             role: formDataUser.role.toLowerCase(),
                             senha_dono: senha_dono,
                             senha_confirmacao: senha_dono
@@ -233,10 +261,10 @@ export default function LojaPage() {
                 const dadosAtuais = data || formDataProduto;
 
                 const payload: any = {
-             ...dadosAtuais,
+                    ...dadosAtuais,
                     senha_dono,
                     senha_confirmacao: senha_dono,
-                    loja_id: produtoData? produtoData.loja_id : loja_id
+                    loja_id: produtoData ? produtoData.loja_id : loja_id
                 }
 
                 if (tipo === 'editar' && (!payload.codigo_barras || String(payload.codigo_barras).trim() === "")) {
@@ -247,13 +275,13 @@ export default function LojaPage() {
                     await fetchComAuth(`${API_URL}/produtos/`, token, { method: "POST", body: JSON.stringify(payload) });
                     await fetchProdutos(token, loja_id);
                 }
-                if (tipo === 'editar' && editingProduto) { // <- ALTERACAO 1
+                if (tipo === 'editar' && editingProduto) {
                     await fetchComAuth(`${API_URL}/produtos/${editingProduto.id}`, token, { method: "PATCH", body: JSON.stringify(payload) });
-                    await fetchProdutos(token, editingProduto.loja_id || loja_id); // <- ALTERACAO 1
+                    await fetchProdutos(token, editingProduto.loja_id || loja_id);
                 }
-                if (tipo === 'apagar' && editingProduto) { // <- ALTERACAO 2
+                if (tipo === 'apagar' && editingProduto) {
                     await fetchComAuth(`${API_URL}/produtos/${editingProduto.id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono, loja_id: editingProduto.loja_id }) });
-                    await fetchProdutos(token, editingProduto.loja_id || loja_id); // <- ALTERACAO 2
+                    await fetchProdutos(token, editingProduto.loja_id || loja_id);
                 }
             }
 
@@ -288,9 +316,9 @@ export default function LojaPage() {
 
     const handleSave = async (payload: any) => {
         if (payload && typeof payload.preventDefault === 'function') payload.preventDefault();
-        const data = payload?.target? formDataProduto : payload;
+        const data = payload?.target ? formDataProduto : payload;
 
-        if (!token ||!slug) return;
+        if (!token || !slug) return;
         setSaving(true);
         setErrorMsg("");
         try {
@@ -316,7 +344,7 @@ export default function LojaPage() {
                 if (dadosParaValidar.preco <= 0) { setErrorMsg("Preço deve ser maior que 0"); setSaving(false); return; }
 
                 setShowModal(false);
-                setAcaoPendente({ tipo: editingProduto? 'editar' : 'adicionar', entidade: 'produto', data: data });
+                setAcaoPendente({ tipo: editingProduto ? 'editar' : 'adicionar', entidade: 'produto', data: data });
                 setShowPermissaoModal(true);
                 setSaving(false);
                 return;
@@ -330,42 +358,80 @@ export default function LojaPage() {
     const isAdmin = user?.nivel === "admin" || user?.nivel === "dono";
     const isDono = user?.nivel === "dono";
 
+    const subtotal = carrinho.reduce((acc, item) => acc + ((item.preco_venda || item.preco || 0) * item.quantidade), 0);
+
     return (
-        <div className="min-h-screen bg-black text-white p-3 sm:p-6">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-3 sm:gap-4">
-                        <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-neutral-800 flex items-center justify-center text-xl sm:text-2xl font-bold text-green-500 shrink-0"><Store /></div>
-                        <div className="min-w-0">
-                            <h1 className="text-xl sm:text-3xl font-bold truncate">{loja?.nome || "Sem loja vinculada"}</h1>
-                            <p className="text-xs sm:text-sm text-gray-400 truncate">{loja?.endereco || "endereço não informado"} {loja?.ano_fundacao? `· Fundada em ${loja.ano_fundacao}` : ""}</p>
+        <>
+            <Toaster position="top-center" richColors theme="dark" />
+
+            {activeTab === "venda" ? (
+                <div className="fixed inset-0 z-40 bg-black">
+                    <VendaTab
+                        produtos={produtos}
+                        carrinho={carrinho}
+                        setCarrinho={setCarrinho}
+                        formatCurrency={formatCurrency}
+                        onFinalizarVenda={handleFinalizarVenda}
+                        onClose={() => {
+                            setActiveTab("dados");
+                            setVendaConcluida(null);
+                        }}
+                        onRemoverItem={(item) => setCarrinho(prev => prev.filter(i => i.id !== item.id))} // <- DESCOMENTA E USA ISSO
+                        token={token}
+                        nomeLoja={loja?.nome || "PDV"}
+                    />
+                </div>
+            ) : (
+                <div className="min-h-screen bg-black text-white p-3 sm:p-6">
+                    <div className="max-w-7xl mx-auto">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                            <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-neutral-800 flex items-center justify-center text-xl sm:text-2xl font-bold text-green-500 shrink-0"><Store /></div>
+                                <div className="min-w-0">
+                                    <h1 className="text-xl sm:text-3xl font-bold truncate">{loja?.nome || "Sem loja vinculada"}</h1>
+                                    <p className="text-xs sm:text-sm text-gray-400 truncate">{loja?.endereco || "endereço não informado"} {loja?.ano_fundacao ? `· Fundada em ${loja.ano_fundacao}` : ""}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${loja?.is_active ? "bg-green-600 text-white" : "bg-gray-600 text-white"}`}><div className={`h-2 w-2 rounded-full ${loja?.is_active ? "bg-white" : "bg-gray-300"}`} />{loja?.is_active ? "ativa" : "inativa"}</span>
+                                <button onClick={handleSair} className="px-3 sm:px-4 py-2 bg-red-600 border-red-700 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 hover:bg-red-700"><LogOut size={16} /> <span className="hidden sm:inline">Terminar Sessão</span></button>
+                            </div>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${loja?.is_active? "bg-green-600 text-white" : "bg-gray-600 text-white"}`}><div className={`h-2 w-2 rounded-full ${loja?.is_active? "bg-white" : "bg-gray-300"}`} />{loja?.is_active? "ativa" : "inativa"}</span>
-                        <button onClick={handleSair} className="px-3 sm:px-4 py-2 bg-red-600 border-red-700 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 hover:bg-red-700"><LogOut size={16} /> <span className="hidden sm:inline">Terminar Sessão</span></button>
-                    </div>
-                </div>
 
-                <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg mb-6 overflow-x-auto">
-                    {initialTabs.map((tab) => (
-                        <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
-                            <tab.icon size={16} /> {tab.label}
-                        </button>
-                    ))}
-                </div>
+                        <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg mb-6 overflow-x-auto">
+                            {initialTabs.map((tab) => (
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id ? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                                    <tab.icon size={16} /> {tab.label}
+                                </button>
+                            ))}
+                        </div>
 
-                {activeTab === "dados" && <DadosTab loja={loja} user={user} />}
-                {activeTab === "produtos" && <ProdutosTab produtos={produtos} isAdmin={isAdmin} isDono={isDono} onAdd={handleAddProdutoClick} onEdit={handleEditProdutoClick} onDelete={handleDeleteProdutoClick} formatCurrency={formatCurrency} />}
-                {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={isAdmin} isDono={isDono} onAdd={handleAddUserClick} onEdit={handleEditUserClick} onDelete={handleDeleteUserClick} onView={handleViewUserClick} />}
-                {activeTab!== "dados" && activeTab!== "equipa" && activeTab!== "produtos" && (<div className="bg-neutral-900 p-6 rounded-xl border-neutral-800 text-center text-gray-400">Em breve: {initialTabs.find(t => t.id === activeTab)?.label}</div>)}
+                        {activeTab === "dados" && <DadosTab loja={loja} user={user} />}
+                        {activeTab === "produtos" && <ProdutosTab produtos={produtos} isAdmin={isAdmin} isDono={isDono} onAdd={handleAddProdutoClick} onEdit={handleEditProdutoClick} onDelete={handleDeleteProdutoClick} formatCurrency={formatCurrency} />}
+                        {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={isAdmin} isDono={isDono} onAdd={handleAddUserClick} onEdit={handleEditUserClick} onDelete={handleDeleteUserClick} onView={handleViewUserClick} />}
+                        {activeTab !== "dados" && activeTab !== "venda" && activeTab !== "equipa" && activeTab !== "produtos" && (<div className="bg-neutral-900 p-6 rounded-xl border-neutral-800 text-center text-gray-400">Em breve: {initialTabs.find(t => t.id === activeTab)?.label}</div>)}
+                    </div>
+
+                    <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v); if (!v) { setEditingUser(null); setErrorMsg(""); } }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
+                    <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v); if (!v) { setEditingProduto(null); setErrorMsg(""); } }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
+                    <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null); setSaving(false) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
+                    <ErroModal open={showErroModal} onClose={() => { setShowErroModal(false); if (acaoPendente?.tipo === 'editar') setShowModal(true) }} mensagem={erroMsgPermissao} />
+                    <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
+                </div>
+            )}
+
+            {/* MODAL MOVIDA PARA FORA DO IF/ELSE */}
+            <div className="relative z-[9999]">
+                <VendaSucessoModal
+                    open={showVendaSucessoModal}
+                    onClose={() => {
+                        setShowVendaSucessoModal(false);
+                        setVendaConcluida(null);
+                    }}
+                    venda={vendaConcluida}
+                    formatCurrency={formatCurrency}
+                />
             </div>
-
-            <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v); if (!v) { setEditingUser(null); setErrorMsg(""); } }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
-            <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v); if (!v) { setEditingProduto(null); setErrorMsg(""); } }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
-            <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null); setSaving(false) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
-            <ErroModal open={showErroModal} onClose={() => { setShowErroModal(false); if (acaoPendente?.tipo === 'editar') setShowModal(true) }} mensagem={erroMsgPermissao} />
-            <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
-        </div>
+        </>
     );
 }
