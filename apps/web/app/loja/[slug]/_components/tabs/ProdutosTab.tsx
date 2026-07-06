@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1','') || "http://127.0.0.1:8000";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"; // <-- ADICIONEI
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 interface Props {
     produtos: any[];
@@ -64,15 +64,16 @@ export function ProdutosTab({ produtos, isAdmin, isDono, onAdd, onEdit, onDelete
                 </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+            {/* MOBILE: 1 CARD = LARGURA DO BOTAO | DESKTOP: GRID */}
+            <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 sm:overflow-visible sm:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {produtos.map(p => {
                     const preco = p.preco_venda || p.preco || 0;
                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
                     const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
-                    const qrValue = `${APP_URL}/p/${p.sku || p.id}`; // <-- QR AGORA É LINK
+                    const qrValue = `${APP_URL}/p/${p.sku || p.id}`;
 
                     return (
-                        <div key={p.id} className={`bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden flex flex-col transition-all hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10 group ${!p.is_active? 'opacity-50' : ''}`}>
+                        <div key={p.id} className={`bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden flex-col transition-all hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10 group ${!p.is_active? 'opacity-50' : ''} w-full shrink-0 snap-start sm:w-auto`}>
                             <div className="relative w-full h-40 bg-neutral-900">
                                 {p.imagem_url? (
                                     <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -81,33 +82,24 @@ export function ProdutosTab({ produtos, isAdmin, isDono, onAdd, onEdit, onDelete
                                 )}
 
                                 <div className="absolute top-2 right-2 flex gap-1.5">
-                                    {/* BOTAO QR */}
-                                    <button
-                                        onClick={() => setQrProduto(p)}
-                                        className="bg-black/60 backdrop-blur-sm p-1.5 rounded-lg hover:bg-green-600 transition-colors"
-                                        title="Ver QR Code"
-                                    >
+                                    <button onClick={() => setQrProduto(p)} className="bg-black/60 backdrop-blur-sm p-1.5 rounded-lg hover:bg-green-600 transition-colors" title="Ver QR Code">
                                         <QrCode size={30} className="text-white" />
                                     </button>
                                     {!p.is_active && (<Badge variant="destructive" className="text-xs h-6 px-2">Inativo</Badge>)}
                                 </div>
                             </div>
 
-                            <div className="p-4 flex flex-col flex-1">
-                                {/* NOME */}
+                            <div className="p-4 flex-col flex-1">
                                 <h4 className="font-semibold text-base truncate group-hover:text-green-500 transition-colors mb-1">{p.nome}</h4>
-
-                                {/* SKU */}
                                 <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3"><Tag size={12} /> {p.sku || 'N/A'}</div>
 
-                                {/* INFO PRINCIPAL */}
                                 <div className="space-y-2 text-sm flex-1">
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-400">Preço</span>
                                         <span className="font-bold text-green-400 text-base">{formatCurrency(preco)}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-gray-400">Quantidade</span> {/* RENOMEADO */}
+                                        <span className="text-gray-400">Quantidade</span>
                                         <div className={`flex items-center gap-1.5 font-bold ${status.color}`}>
                                             {status.icon}
                                             <span>{p.estoque} {p.unidade}</span>
@@ -115,12 +107,10 @@ export function ProdutosTab({ produtos, isAdmin, isDono, onAdd, onEdit, onDelete
                                     </div>
                                 </div>
 
-                                {/* STATUS BADGE */}
                                 <div className={`mt-3 mb-3 px-2.5 py-1 rounded-md border text-xs font-medium flex items-center gap-1.5 w-fit ${status.bg} ${status.color}`}>
                                     {status.icon} {status.label}
                                 </div>
 
-                                {/* BOTOES */}
                                 {isAdmin && (
                                     <div className="flex gap-2 mt-auto pt-3 border-t border-neutral-800">
                                         <Button size="sm" variant="secondary" onClick={() => onEdit(p)} className="flex-1 bg-neutral-800 hover:bg-neutral-700 h-9">
@@ -140,9 +130,8 @@ export function ProdutosTab({ produtos, isAdmin, isDono, onAdd, onEdit, onDelete
             </div>
         </div>
 
-        {/* MODAL DO QR CODE - QR MAIOR */}
         <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-md">
+            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-md [&>button]:hidden">
                 <DialogHeader>
                     <DialogTitle>QR Code do Produto</DialogTitle>
                 </DialogHeader>
@@ -150,7 +139,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, onAdd, onEdit, onDelete
                     {qrProduto && (
                         <>
                             <div className="bg-white p-5 rounded-xl shadow-lg">
-                                <QRCodeSVG id={`qr-${qrProduto.id}`} value={`${APP_URL}/p/${qrProduto.sku || qrProduto.id}`} size={150} level="H" /> {/* AUMENTEI PARA 200 */}
+                                <QRCodeSVG id={`qr-${qrProduto.id}`} value={`${APP_URL}/p/${qrProduto.sku || qrProduto.id}`} size={150} level="H" />
                             </div>
                             <div className="text-center">
                                 <p className="font-semibold text-lg">{qrProduto.nome}</p>

@@ -13,7 +13,7 @@ interface Props {
     editingUser: UsuarioLoja | null;
     formData: { nome: string; telefone: string; role: UserRole; is_active: boolean };
     setFormData: (d: any) => void;
-    onSave: (e: React.FormEvent) => void; // <- agora isso só abre a modal de confirmação
+    onSave: (e: React.FormEvent) => void;
     saving: boolean;
     errorMsg: string;
     lojaNome: string | undefined;
@@ -52,6 +52,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 <option value="VENDEDOR">Vendedor</option>
                                 <option value="CAIXA">Caixa</option>
                                 <option value="ESTOQUISTA">Estoquista</option>
+                                <option value="DONO">Dono</option>
                             </select>
                         </div>
                     </div>

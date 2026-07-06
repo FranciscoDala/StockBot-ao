@@ -4,8 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 export function DetalhesModal({ open, onClose, dados }: { open: boolean; onClose: () => void; dados: any }) {
     if (!dados) return null;
     return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="w- sm:max-w-[700px] bg-neutral-900 border-white/10 text-white">
+        <Dialog open={open} onOpenChange={() => {}}>
+            <DialogContent
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                className="w- sm:max-w-[700px] bg-neutral-900 border-white/10 text-white [&>button]:hidden"
+            >
                 <DialogHeader><DialogTitle>Detalhes: {dados.nome}</DialogTitle></DialogHeader>
                 <div className="grid gap-4 py-4 max-h- overflow-y-auto">
                     <p><b>Email:</b> {dados.email}</p><p><b>Telefone:</b> {dados.telefone || '-'}</p>
@@ -16,6 +20,9 @@ export function DetalhesModal({ open, onClose, dados }: { open: boolean; onClose
                             {dados.historico_atividades?.map((h: any, i: number) => <li key={i}>{h.acao} - {new Date(h.data).toLocaleString()}</li>)}
                         </ul>
                     </div>
+                </div>
+                <div className="p-4 border-t border-white/10">
+                    <Button onClick={onClose} className="w-full bg-gray-600 hover:bg-gray-700">Fechar</Button>
                 </div>
             </DialogContent>
         </Dialog>

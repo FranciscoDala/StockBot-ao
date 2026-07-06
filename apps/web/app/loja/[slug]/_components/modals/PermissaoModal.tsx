@@ -20,12 +20,16 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
     const handleSubmit = () => {
         if(!senha.trim()) return;
         onConfirm(senha);
-        setSenha(""); // limpa depois de enviar
+        setSenha("");
     }
 
     return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[425px] bg-neutral-950 border-yellow-500/50 text-white p-0 shadow-2xl shadow-black/50">
+        <Dialog open={open} onOpenChange={() => {}}>
+            <DialogContent
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
+                className="sm:max-w-[425px] bg-neutral-950 border-yellow-500/50 text-white p-0 shadow-2xl shadow-black/50 [&>button]:hidden"
+            >
                 <DialogHeader className="p-6 pb-2">
                     <div className="flex items-center gap-3">
                         <ShieldCheck className="text-yellow-500" size={24} />
@@ -38,16 +42,7 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                 <div className="px-6 pb-4">
                     <div className="grid gap-2">
                         <Label htmlFor="senha" className="flex items-center gap-2"><KeyRound size={14}/> Senha do Proprietário</Label>
-                        <Input
-                            id="senha"
-                            type="password"
-                            placeholder="Digite a senha para confirmar"
-                            value={senha}
-                            onChange={(e) => setSenha(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                            className="bg-neutral-900 border-neutral-800 h-10"
-                            autoFocus
-                        />
+                        <Input id="senha" type="password" placeholder="Digite a senha para confirmar" value={senha} onChange={(e) => setSenha(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} className="bg-neutral-900 border-neutral-800 h-10" autoFocus />
                     </div>
                 </div>
                 <DialogFooter className="p-4 bg-neutral-900/50 border-t border-white/10 flex-row justify-end gap-2">
