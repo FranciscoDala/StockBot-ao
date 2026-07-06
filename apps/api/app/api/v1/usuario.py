@@ -2,102 +2,158 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
-from typing import TYPE_CHECKING, Optional
+from typing import List
 
 from api.app.db.session import get_db
-from api.app.schemas.usuario import UsuarioCreate, UsuarioOut, NivelUsuario
+from api.app.schemas.usuario import UsuarioCreate, UserRead, Role
+from api.app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
 from api.app.models.usuario import Usuario
-from api.app.core.deps import get_current_user, get_current_user_optional
-from api.app.core.security import get_password_hash
+from api.app.models.usuario_loja import UsuarioLoja
+from api.app.core.deps import require_role, get_current_loja_id, get_current_user
+from api.app.core.security import get_password_hash, verify_password
 
-if TYPE_CHECKING:
-    from api.app.models.loja import Loja
+router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
-router = APIRouter(prefix="", tags=["Usuarios"])
-
-@router.post("", response_model=UsuarioOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UsuarioLojaOut, status_code=status.HTTP_201_CREATED)
 async def criar_usuario(
-    usuario_in: UsuarioCreate,
+    body: UsuarioLojaCreateIn,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[Usuario] = Depends(get_current_user_optional)
+    loja_id: UUID = Depends(get_current_loja_id),
+    m: dict = Depends(require_role(Role.DONO, Role.GERENTE)) # <- CORRIGIDO
 ):
-    # 1. Verificar se email já existe
-    result = await db.execute(select(Usuario).where(Usuario.email == usuario_in.email))
+    current_user: Usuario = m["user"]
+    current_role: Role = m["role"]
+
+    if current_role == Role.GERENTE and body.role!= Role.VENDEDOR: # <- CORRIGIDO
+        raise HTTPException(status_code=403, detail="gerente só pode criar vendedor")
+
+    result = await db.execute(select(Usuario).where(Usuario.email == body.email))
     if result.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email já cadastrado")
+        raise HTTPException(status_code=400, detail="email já cadastrado")
 
-    # 2. Verificar se já existe algum ADMIN no banco
-    result_admin = await db.execute(select(Usuario).where(Usuario.nivel == NivelUsuario.ADMIN))
-    existe_admin = result_admin.scalar_one_or_none() is not None
-
-    # 3. Monta o dict pra criar o User - AQUI TAVA O BUG
-    user_data = usuario_in.model_dump(exclude={"senha"}) # Tira a senha plana
-    user_data['hashed_password'] = get_password_hash(usuario_in.senha) # <-- CORRIGIDO: era 'senha_hash'
-    user_data['is_active'] = True
-
-    # 4. Lógica de permissão: Bootstrap ou Regra normal
-    if not existe_admin:
-        if usuario_in.nivel!= NivelUsuario.ADMIN:
-            raise HTTPException(status_code=403, detail="O primeiro usuário deve ser ADMIN")
-        if current_user is not None:
-            raise HTTPException(status_code=403, detail="Já existe um ADMIN. Login necessário para criar mais usuários.")
-        novo_user = Usuario(**user_data)
-
-    elif current_user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Login necessário")
-
-    elif current_user.nivel == NivelUsuario.ADMIN:
-        novo_user = Usuario(**user_data)
-
-    elif current_user.nivel == NivelUsuario.GERENTE:
-        if usuario_in.nivel!= NivelUsuario.VENDEDOR:
-            raise HTTPException(status_code=403, detail="Gerente só pode criar vendedores")
-        if not current_user.lojas:
-            raise HTTPException(status_code=400, detail="Gerente sem loja vinculada")
-        novo_user = Usuario(**user_data)
-        novo_user.lojas.append(current_user.lojas[0])
-
-    else:
-        raise HTTPException(status_code=403, detail="Vendedor não pode criar usuários")
-
+    novo_user = Usuario(
+        nome=body.nome,
+        email=body.email,
+        senha_hash=get_password_hash(body.senha),
+        telefone=body.telefone,
+        is_active=True
+    )
     db.add(novo_user)
+    await db.flush()
+
+    vinculo = UsuarioLoja(usuario_id=novo_user.id, loja_id=loja_id, role=body.role, telefone=body.telefone, is_active=True)
+    db.add(vinculo)
     await db.commit()
     await db.refresh(novo_user)
-    return novo_user
 
-@router.get("", response_model=list[UsuarioOut])
+    return UsuarioLojaOut(
+        id=novo_user.id, nome=novo_user.nome, email=novo_user.email,
+        telefone=vinculo.telefone, role=vinculo.role, is_active=vinculo.is_active, loja_id=vinculo.loja_id
+    )
+
+@router.get("/me", response_model=UserRead)
+async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):
+    return UserRead.model_validate(current_user)
+
+@router.get("", response_model=List[UsuarioLojaOut])
 async def listar_usuarios(
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    loja_id: UUID = Depends(get_current_loja_id),
+    m: dict = Depends(require_role(Role.DONO, Role.GERENTE)) # <- CORRIGIDO
 ):
-    if current_user.nivel == NivelUsuario.ADMIN:
-        stmt = select(Usuario).where(Usuario.nivel == NivelUsuario.ADMIN)
-    elif current_user.nivel == NivelUsuario.GERENTE:
-        if not current_user.lojas:
-            return []
-        loja_id = current_user.lojas[0].id
-        from api.app.models.loja import Loja
-        stmt = select(Usuario).join(Usuario.lojas).where(Loja.id == loja_id, Usuario.nivel == NivelUsuario.VENDEDOR)
-    else:
-        raise HTTPException(status_code=403, detail="Sem permissão")
+    current_role: Role = m["role"]
+    stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja).where(
+        UsuarioLoja.loja_id == loja_id,
+        UsuarioLoja.is_active == True
+    )
+    if current_role == Role.GERENTE: # <- CORRIGIDO
+        stmt = stmt.where(UsuarioLoja.role == Role.VENDEDOR)
 
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return [
+        UsuarioLojaOut(
+            id=u.id, nome=u.nome, email=u.email,
+            telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
+        ) for u, ul in result.all()
+    ]
 
-@router.get("/{user_id}", response_model=UsuarioOut)
+@router.get("/{user_id}", response_model=UsuarioLojaOut)
 async def ler_usuario(
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    loja_id: UUID = Depends(get_current_loja_id),
+    m: dict = Depends(require_role(Role.DONO, Role.GERENTE)) # <- CORRIGIDO
 ):
-    user = await db.get(Usuario, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario não encontrado")
+    stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja).where(
+        Usuario.id == user_id,
+        UsuarioLoja.loja_id == loja_id,
+        UsuarioLoja.is_active == True
+    )
+    res = (await db.execute(stmt)).first()
+    if not res:
+        raise HTTPException(status_code=404, detail="usuario não encontrado na loja")
+    u, ul = res
+    return UsuarioLojaOut(
+        id=u.id, nome=u.nome, email=u.email,
+        telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
+    )
 
-    if current_user.nivel == NivelUsuario.GERENTE:
-        loja_ids_gerente = {l.id for l in current_user.lojas}
-        loja_ids_user = {l.id for l in user.lojas}
-        if not loja_ids_gerente.intersection(loja_ids_user) and user.nivel!= NivelUsuario.VENDEDOR:
-            raise HTTPException(status_code=403, detail="Sem permissão para ver este usuário")
+@router.put("/{user_id}", response_model=UsuarioLojaOut)
+async def atualizar_usuario(
+    user_id: UUID,
+    body: UsuarioLojaUpdateIn,
+    db: AsyncSession = Depends(get_db),
+    loja_id: UUID = Depends(get_current_loja_id),
+    m: dict = Depends(require_role(Role.DONO, Role.GERENTE)) # <- CORRIGIDO
+):
+    dono: Usuario = m["user"]
+    role_atual: Role = m["role"]
 
-    return user
+    if not verify_password(body.senha_confirmacao, dono.senha_hash):
+        raise HTTPException(status_code=403, detail="senha do administrador incorreta")
+
+    stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja).where(
+        Usuario.id == user_id, UsuarioLoja.loja_id == loja_id
+    )
+    res = (await db.execute(stmt)).first()
+    if not res:
+        raise HTTPException(status_code=404, detail="usuario não encontrado na loja")
+
+    u, ul = res
+    if role_atual == Role.GERENTE and ul.role in [Role.GERENTE, Role.DONO]: # <- CORRIGIDO
+        raise HTTPException(status_code=403, detail="gerente não pode editar gerente ou dono")
+
+    if body.nome is not None: u.nome = body.nome
+    if body.telefone is not None:
+        u.telefone = body.telefone
+        ul.telefone = body.telefone
+    if body.role is not None: ul.role = body.role
+    if body.is_active is not None: ul.is_active = body.is_active
+
+    await db.commit()
+    await db.refresh(u)
+    return UsuarioLojaOut(
+        id=u.id, nome=u.nome, email=u.email,
+        telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
+    )
+
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def deletar_usuario(
+    user_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    loja_id: UUID = Depends(get_current_loja_id),
+    m: dict = Depends(require_role(Role.DONO, Role.GERENTE)) # <- CORRIGIDO
+):
+    stmt = select(UsuarioLoja).where(UsuarioLoja.usuario_id == user_id, UsuarioLoja.loja_id == loja_id)
+    vinculo = (await db.execute(stmt)).scalar_one_or_none()
+    if not vinculo:
+        raise HTTPException(status_code=404, detail="usuario não encontrado nesta loja")
+
+    if vinculo.usuario_id == m["user"].id:
+        raise HTTPException(status_code=400, detail="você não pode se remover")
+    if m["role"] == Role.GERENTE and vinculo.role in [Role.GERENTE, Role.DONO]: # <- CORRIGIDO
+        raise HTTPException(status_code=403, detail="gerente não pode remover gerente ou dono")
+
+    vinculo.is_active = False
+    await db.commit()
+    return

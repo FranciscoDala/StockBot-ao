@@ -1,0 +1,91 @@
+import os
+import shutil
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from api.app.db.session import get_db
+from api.app.core.deps import get_current_user
+from api.app.crud import crud_documento, loja # <- ESTA CERTO
+from api.app.schemas.documento import DocumentoOut, DocumentoCreate
+from api.app.models.usuario import Usuario
+from api.app.models.loja import Loja
+from api.app.models.usuario_loja import UsuarioLoja
+from pathlib import Path
+
+router = APIRouter()
+UPLOAD_DIR = Path("uploads/lojas")
+
+# ================== ROTAS DE LOJA ==================
+
+@router.get("/minhas")
+async def listar_minhas_lojas(
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.is_superuser:
+        stmt = select(Loja).where(Loja.is_active == True).order_by(Loja.nome)
+        result = await db.execute(stmt)
+        lojas = result.scalars().all()
+    else:
+        stmt = select(Loja).join(UsuarioLoja).where(
+            UsuarioLoja.usuario_id == current_user.id,
+            UsuarioLoja.is_active == True,
+            Loja.is_active == True
+        ).order_by(Loja.nome)
+        result = await db.execute(stmt)
+        lojas = result.scalars().all()
+
+    return [
+        {"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at}
+        for l in lojas
+    ]
+
+# ================== ROTAS DE DOCUMENTOS ==================
+
+@router.get("/{loja_id}/documentos", response_model=list[DocumentoOut])
+async def listar_documentos(
+    loja_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    stmt = select(Loja).where(Loja.id == loja_id) # <- CORRIGIDO: Busca direta pq não tem get()
+    loja_db = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not loja_db:
+        raise HTTPException(status_code=404, detail="Loja não encontrada")
+    if not current_user.is_superuser and current_user.loja_id!= loja_id:
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
+    docs = await crud_documento.get_by_loja(db, loja_id=loja_id)
+    return [{"id": d.id, "tipo": d.tipo, "url": d.url, "status": d.status, "created_at": d.created_at, "nome": d.nome, "nome_arquivo": d.nome} for d in docs]
+
+@router.post("/{loja_id}/documentos", response_model=DocumentoOut)
+async def upload_documento(
+    loja_id: UUID,
+    tipo: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    stmt = select(Loja).where(Loja.id == loja_id) # <- CORRIGIDO
+    loja_db = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not loja_db:
+        raise HTTPException(status_code=404, detail="Loja não encontrada")
+    if not current_user.is_superuser and current_user.loja_id!= loja_id:
+        raise HTTPException(status_code=403, detail="Sem permissão")
+
+    loja_dir = UPLOAD_DIR / str(loja_id)
+    loja_dir.mkdir(parents=True, exist_ok=True)
+    file_path = loja_dir / file.filename
+
+    with file_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    url = f"/{file_path.as_posix()}"
+    obj_in = DocumentoCreate(tipo=tipo, nome=file.filename, url=url)
+    doc = await crud_documento.create(db, loja_id=loja_id, obj_in=obj_in)
+
+    return {"id": doc.id, "tipo": doc.tipo, "url": doc.url, "status": doc.status, "created_at": doc.created_at, "nome": doc.nome, "nome_arquivo": doc.nome}

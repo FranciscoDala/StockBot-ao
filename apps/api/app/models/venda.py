@@ -1,26 +1,25 @@
 from __future__ import annotations
-
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, ForeignKey, Numeric
+from sqlalchemy import ForeignKey, Numeric, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
-from api.app.db.base import BaseModel
-from decimal import Decimal
-from typing import TYPE_CHECKING, List
 import uuid
+from datetime import datetime
+from api.app.db.base import BaseModel
+from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from api.app.models.usuario import Usuario
     from api.app.models.loja import Loja
+    from api.app.models.usuario import Usuario
     from api.app.models.itens_venda import ItemVenda
 
 class Venda(BaseModel):
     __tablename__ = "vendas"
 
-    loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id"), nullable=False, index=True)
-    usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False, index=True)
-    total: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default="concluida", index=True)
-    # 1. REMOVIDO data_venda. Vamos usar o created_at do BaseModel
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False)
+    usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True)
+    total: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     loja: Mapped["Loja"] = relationship(back_populates="vendas")
     usuario: Mapped["Usuario"] = relationship(back_populates="vendas")

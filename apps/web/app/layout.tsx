@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Zalando_Sans_Expanded, Bricolage_Grotesque } from "next/font/google";
+import { Zalando_Sans_Expanded, Bricolage_Grotesque, Geist } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const zalando = Zalando_Sans_Expanded({
   subsets: ["latin"],
@@ -30,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-AO" className={`${zalando.variable} ${bricolage.variable}`}>
+    <html lang="pt-AO" className={cn(zalando.variable, bricolage.variable, "font-sans", geist.variable)}>
       <body className="font-[var(--font-zalando)]">{children}</body>
     </html>
   );

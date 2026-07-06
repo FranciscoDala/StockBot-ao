@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 /* TEMA V4: Aqui definimos todas as variáveis que o Shadcn usa */
 @theme {
@@ -8,7 +9,7 @@
   --color-foreground: #ededed;
   --color-zinc-800: #27272a;
   --color-zinc-900: #18181b;
-  
+
   /* Shadcn V4 usa essas: */
   --color-primary: var(--color-brand);
   --color-primary-foreground: #000;
@@ -21,9 +22,11 @@
   --color-ring: var(--color-brand);
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
+  --radius: 0.625rem;
 
-  /* FONTE */
-  --font-sans: var(--font-zalando), ui-sans-serif, system-ui, sans-serif; 
+  /* FONTE - Já linkada com a do layout.tsx */
+  --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-bricolage), sans-serif;
 }
 
 /* BASE */
@@ -34,19 +37,19 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-sans);
+  font-family: var(--font-zalando);
 }
 
-/* UTILITIES CUSTOM - V4 usa @utility direto */
-@utility btn-brand {
-  @apply bg-brand hover:bg-green-500 text-black font-bold py-2 px-4 rounded-lg transition-all;
+/* UTILITIES CUSTOM - v4 seguro */
+@layer utilities {
+  .btn-brand {
+    background-color: var(--color-brand);
+    @apply hover:bg-green-500 text-black font-bold py-2 px-4 rounded-lg transition-all;
+  }
+  .input-dark {
+    @apply bg-zinc-900 border-zinc-700 rounded-lg px-3 py-2 w-full focus:border-[--color-brand] focus:outline-none focus:ring-1 focus:ring-[--color-brand];
+  }
 }
-
-@utility input-dark {
-  @apply bg-zinc-900 border-zinc-700 rounded-lg px-3 py-2 w-full focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand;
-}
-
-/* Tira o blur do Radix que não usamos mais */
 
 .scrollbar-none {
   -ms-overflow-style: none;

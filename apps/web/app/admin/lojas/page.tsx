@@ -1,0 +1,203 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Building, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+
+type Loja = {
+  id: string;
+  nome: string;
+  slug: string;
+  role: "dono" | "gerente" | "vendedor";
+  endereco?: string | null;
+  is_active?: boolean;
+}
+
+type UserTemp = {
+  id: string;
+  nome: string;
+  email: string;
+  nivel: "admin" | "gerente" | "vendedor" | "dono";
+}
+
+const getCookie = (name: string): string | undefined => {
+    if (typeof document === "undefined") return undefined;
+    return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name? decodeURIComponent(parts[1]) : r;
+    }, '');
+};
+
+const setCookie = (name: string, value: string, days = 7) => {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
+const deleteCookie = (name: string) => {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+};
+
+export default function SelectLojaPage() {
+  const router = useRouter();
+  const [lojas, setLojas] = useState<Loja[]>([]);
+  const [user, setUser] = useState<UserTemp | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erroModalOpen, setErroModalOpen] = useState(false);
+  const [erroMsg, setErroMsg] = useState("");
+  const isMounted = useRef(true);
+  const isLoggingOut = useRef(false);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false }
+  }, [])
+
+  const handleTerminarSessao = () => {
+    isLoggingOut.current = true;
+    deleteCookie("temp_token");
+    deleteCookie("lojas_temp");
+    deleteCookie("user_temp");
+    window.onpopstate = null;
+    router.replace("/login");
+  }
+
+  useEffect(() => {
+    const tempToken = getCookie("temp_token");
+    const lojasStr = getCookie("lojas_temp");
+    const userStr = getCookie("user_temp");
+
+    if (!tempToken ||!lojasStr ||!userStr) {
+      handleTerminarSessao();
+      return;
+    }
+
+    try {
+        if(isMounted.current){
+            setLojas(JSON.parse(lojasStr));
+            setUser(JSON.parse(userStr));
+            setLoading(false);
+
+            window.history.pushState(null, '', window.location.href);
+            window.history.pushState(null, '', window.location.href);
+
+            window.onpopstate = () => {
+              if(!isLoggingOut.current) {
+                window.history.pushState(null, '', window.location.href);
+              }
+            };
+        }
+    } catch {
+        handleTerminarSessao();
+    }
+
+    return () => {
+      window.onpopstate = null;
+    }
+  }, [router]);
+
+  const handleSelectLoja = async (loja: Loja) => {
+    const tempToken = getCookie("temp_token");
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/v1/auth/select-loja", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${tempToken}`
+        },
+        body: JSON.stringify({ loja_id: loja.id })
+      });
+
+      if(!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Erro ao selecionar loja");
+      }
+
+      const data = await res.json();
+
+      if(isMounted.current){
+          window.onpopstate = null;
+          setCookie("token", data.access_token, 7);
+          setCookie("user", JSON.stringify(data.user), 7);
+          deleteCookie("temp_token");
+          deleteCookie("lojas_temp");
+          deleteCookie("user_temp");
+          router.push(`/loja/${loja.slug}`);
+      }
+
+    } catch (err: any) {
+      if(isMounted.current) {
+        setErroMsg(err.message || "Não foi possível entrar na loja");
+        setErroModalOpen(true);
+      }
+    }
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div></div>
+  }
+
+  return (
+    <div>
+        <div className="flex items-center justify-between mb-6">
+            <h2 className="text-3xl font-bold">Minhas Lojas</h2>
+            {/* BOTÃO REMOVIDO DAQUI. USA O DO LAYOUT */}
+        </div>
+
+        <p className="text-zinc-400 mb-8">Olá {user?.nome}, selecione uma loja para gerenciar</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {lojas.map((loja) => (
+                <button
+                    key={loja.id}
+                    onClick={() => handleSelectLoja(loja)}
+                    className="text-left rounded-xl border-zinc-800 bg-zinc-950 p-6 hover:border-green-500 hover:bg-zinc-900 transition-all group"
+                >
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <Building className="h-6 w-6 text-green-500 group-hover:scale-110 transition" />
+                            <h3 className="text-xl font-bold">{loja.nome}</h3>
+                        </div>
+                        <div className="flex flex-col gap-2 items-end">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                loja.is_active? "bg-green-600 text-white" : "bg-red-600 text-white"
+                            }`}>
+                                {loja.is_active? "Ativa" : "Inativa"}
+                            </span>
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold border-zinc-700 text-zinc-300">
+                                {loja.role}
+                            </span>
+                        </div>
+                    </div>
+                    <p className="text-sm text-zinc-400">
+                        {loja.endereco || "Endereço não informado"}
+                    </p>
+                </button>
+            ))}
+        </div>
+
+        <Dialog open={erroModalOpen} onOpenChange={setErroModalOpen}>
+            <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
+            <DialogContent className="sm:max-w-[425px] bg-zinc-950/85 backdrop-blur-xl border-red-500/50 z-50">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-red-500 text-xl">
+                        <AlertTriangle className="w-6 h-6" />
+                        Erro ao acessar loja
+                    </DialogTitle>
+                    <DialogDescription className="text-zinc-300 pt-2 text-base">
+                        {erroMsg}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold" onClick={() => setErroModalOpen(false)}>
+                        Entendi
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+    </div>
+  )
+}

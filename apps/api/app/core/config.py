@@ -1,20 +1,14 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
-import os
-import json
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    JWT_SECRET: str
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:12345@localhost:5432/stockbot_db"
+    JWT_SECRET: str = "stockbot-dev-secret-2026"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7 # 7 dias
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
+    ALLOWED_ORIGINS: List[str] = ["http://127.0.0.1:8000", "http://localhost:3000"]
 
-    ALLOWED_ORIGINS: List[str] = ["*"] # <- CORRIGIDO: Tem que ser Lista pro FastAPI
-
-    model_config = SettingsConfigDict(
-        env_file=os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
-        env_file_encoding="utf-8",
-        extra="ignore"
-    )
+    model_config = SettingsConfigDict(extra="ignore", case_sensitive=False)
 
 settings = Settings()
+print(f"DEBUG CONFIG LOADED: DB={settings.DATABASE_URL}")

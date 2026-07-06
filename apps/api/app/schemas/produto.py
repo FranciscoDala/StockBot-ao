@@ -1,23 +1,96 @@
-from pydantic import BaseModel, Field, ConfigDict
-from decimal import Decimal
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from typing import Optional
+from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
+from enum import Enum
+
+from.categoria import CategoriaOut
+from.fornecedor import FornecedorOut
+
+class UnidadeEnum(str, Enum):
+    UN = "UN"
+    KG = "KG"
+    CX = "CX"
+    GRADE = "GRADE"
+    CESTA = "CESTA"
+    PCT = "PCT"
+    LT = "LT"
+    MT = "MT"
 
 class ProdutoBase(BaseModel):
-    nome: str = Field(min_length=2, max_length=100)
-    preco: Decimal = Field(gt=0) # <- Era float. Agora Decimal
-    estoque: int = Field(default=0, ge=0) # <- Era `stock`. Agora `estoque`
+    nome: str = Field(..., min_length=2, max_length=150)
+    descricao: Optional[str] = None
+    sku: Optional[str] = Field(None, max_length=50)
+    codigo_barras: Optional[str] = Field(None, max_length=50)
+    codigo_qr: Optional[str] = Field(None) # <-- SEM max_length
+    marca: Optional[str] = Field(None, max_length=100)
+    imagem_url: Optional[str] = Field(None, max_length=255)
+    ncm: Optional[str] = Field(None, max_length=10)
+
+    # NOMES QUE O FRONT MANDA
+    preco: Decimal = Field(..., gt=0, description="Preco de venda")
+    preco_custo: Decimal = Field(0, ge=0, description="Preco de compra")
+    preco_promocao: Optional[Decimal] = Field(None, ge=0)
+
+    custo_medio: Decimal = Field(0, ge=0)
+    estoque: int = Field(0, ge=0, description="Estoque atual")
+    estoque_minimo: int = Field(5, ge=0)
+    estoque_maximo: Optional[int] = Field(None, ge=0)
+    unidade: UnidadeEnum = Field(UnidadeEnum.UN)
+    peso_kg: Optional[Decimal] = Field(None, ge=0)
+    localizacao: Optional[str] = Field(None, max_length=100)
+
+    categoria_id: Optional[UUID] = None
+    fornecedor_id: Optional[UUID] = None
+    is_active: bool = True
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class ProdutoCreate(ProdutoBase):
-    pass
+    loja_id: UUID
 
 class ProdutoUpdate(BaseModel):
-    nome: Optional[str] = Field(default=None, min_length=2, max_length=100)
-    preco: Optional[Decimal] = Field(default=None, gt=0) # <- Decimal
-    estoque: Optional[int] = Field(default=None, ge=0) # <- `estoque`
+    nome: Optional[str] = Field(None, min_length=2, max_length=150)
+    descricao: Optional[str] = None
+    sku: Optional[str] = Field(None, max_length=50)
+    codigo_barras: Optional[str] = Field(None, max_length=50)
+    codigo_qr: Optional[str] = Field(None) # <-- SEM max_length
+    marca: Optional[str] = Field(None, max_length=100)
+    imagem_url: Optional[str] = Field(None, max_length=255)
+    ncm: Optional[str] = Field(None, max_length=10)
+
+    preco: Optional[Decimal] = Field(None, gt=0)
+    preco_custo: Optional[Decimal] = Field(None, ge=0)
+    preco_promocao: Optional[Decimal] = Field(None, ge=0)
+    custo_medio: Optional[Decimal] = Field(None, ge=0)
+    estoque: Optional[int] = Field(None, ge=0)
+    estoque_minimo: Optional[int] = Field(None, ge=0)
+    estoque_maximo: Optional[int] = Field(None, ge=0)
+    unidade: Optional[UnidadeEnum] = None
+    peso_kg: Optional[Decimal] = Field(None, ge=0)
+    localizacao: Optional[str] = Field(None, max_length=100)
+    categoria_id: Optional[UUID] = None
+    fornecedor_id: Optional[UUID] = None
+    is_active: Optional[bool] = None
+
+class ProdutoUpdateWithAuth(ProdutoUpdate):
+    senha_dono: str
+    loja_id: UUID
 
 class ProdutoOut(ProdutoBase):
     id: UUID
     loja_id: UUID
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True) # <- Pydantic v2
+    categoria: Optional[CategoriaOut] = None
+    fornecedor: Optional[FornecedorOut] = None
+
+    @computed_field
+    @property
+    def margem_lucro(self) -> Decimal:
+        if self.preco_custo and self.preco_custo > 0:
+            return ((self.preco - self.preco_custo) / self.preco_custo) * 100
+        return Decimal(0)

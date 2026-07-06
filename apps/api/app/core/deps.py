@@ -1,19 +1,31 @@
-from typing import Callable, Optional
-from fastapi import Depends, HTTPException, status, Request
+from typing import Callable, TypedDict
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from jose import jwt, JWTError
+from sqlalchemy.orm import selectinload
+from jose import jwt, JWTError, ExpiredSignatureError
 from uuid import UUID
 
 from api.app.core.config import settings
 from api.app.db.session import get_db
 from api.app.models.usuario import Usuario
-from api.app.schemas.usuario import NivelUsuario
+from api.app.models.loja import Loja
+from api.app.models.usuario_loja import UsuarioLoja
+from api.app.models.role import UserRole # <- CORRIGIDO 1
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False) # <- auto_error=False pra deixar opcional
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-async def _decode_token(token: str, db: AsyncSession) -> Usuario:
+class Membership(TypedDict):
+    user: Usuario
+    loja_id: UUID | None
+    role: UserRole # <- CORRIGIDO 2
+    loja: Loja | None
+
+async def get_current_membership(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> Membership:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Nao foi possivel validar as credenciais",
@@ -22,53 +34,104 @@ async def _decode_token(token: str, db: AsyncSession) -> Usuario:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id_str: str = payload.get("sub")
-        if user_id_str is None: raise credentials_exception
+        loja_id_str: str = payload.get("loja_id")
+        role_str: str = payload.get("role")
+
+        if not user_id_str:
+            raise credentials_exception
+
         user_id = UUID(user_id_str)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="token expirado", headers={"WWW-Authenticate": "Bearer"})
     except (JWTError, ValueError):
         raise credentials_exception
 
     result = await db.execute(select(Usuario).where(Usuario.id == user_id))
     user = result.scalar_one_or_none()
-    if user is None or not user.is_active: # <- Corrigido: is_active
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=403, detail="usuario invalido ou inativo")
+
+    # REGRA ADMIN
+    if user.is_superuser:
+        if role_str != "admin":
+            raise credentials_exception
+        return {"user": user, "loja_id": None, "role": UserRole.DONO, "loja": None} # <- CORRIGIDO 3
+
+    if not all([loja_id_str, role_str]):
         raise credentials_exception
-    return user
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> Usuario:
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token não enviado",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    return await _decode_token(token, db)
+    loja_id = UUID(loja_id_str)
+    role = UserRole(role_str) # <- CORRIGIDO 4
 
-async def get_current_user_optional(token: Optional[str] = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> Optional[Usuario]:
-    """Versão que retorna None se não tiver token. Pra rota de bootstrap."""
-    if not token:
-        return None
+    stmt = select(UsuarioLoja).options(selectinload(UsuarioLoja.loja)).where(
+        UsuarioLoja.usuario_id == user_id,
+        UsuarioLoja.loja_id == loja_id,
+        UsuarioLoja.is_active == True
+    )
+    membro = (await db.execute(stmt)).scalar_one_or_none()
+    if not membro or membro.role != role:
+        raise HTTPException(status_code=403, detail="acesso negado a esta loja")
+
+    if not membro.loja.is_active:
+        raise HTTPException(status_code=403, detail="loja desativada")
+
+    return {"user": user, "loja_id": loja_id, "role": role, "loja": membro.loja}
+
+async def get_current_user(m: Membership = Depends(get_current_membership)) -> Usuario:
+    return m["user"]
+
+async def get_current_active_user(m: Membership = Depends(get_current_membership)) -> Usuario:
+    return m["user"]
+
+async def get_current_admin(token: str = Depends(oauth2_scheme)) -> dict:
     try:
-        return await _decode_token(token, db)
-    except HTTPException:
-        return None # Se o token for inválido, trata como se não tivesse
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        if payload.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Apenas super admin")
+        return payload
+    except JWTError:
+        raise HTTPException(status_code=401, detail="token invalido", headers={"WWW-Authenticate": "Bearer"})
 
-async def get_current_active_user(current_user: Usuario = Depends(get_current_user)) -> Usuario:
-    return current_user
-
-async def get_current_active_superuser(current_user: Usuario = Depends(get_current_active_user)) -> Usuario:
-    """Bloqueio: Só Admin."""
-    if current_user.nivel!= NivelUsuario.ADMIN: # <- Corrigido: ADMIN maiúsculo
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permissão insuficiente. Apenas Admin."
-        )
-    return current_user
-
-def require_nivel(*niveis_permitidos: NivelUsuario) -> Callable:
-    def nivel_checker(current_user: Usuario = Depends(get_current_user)):
-        if current_user.nivel not in niveis_permitidos:
+def require_role(*roles_permitidos: UserRole) -> Callable: # <- CORRIGIDO 5
+    def role_checker(m: Membership = Depends(get_current_membership)):
+        if m["role"] not in roles_permitidos:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Sem permissao. Nivel requerido: {[n.value for n in niveis_permitidos]}"
+                detail=f"sem permissao. role requerido: {[r.value for r in roles_permitidos]}"
             )
-        return current_user
-    return nivel_checker
+        return m
+    return role_checker
+
+async def get_current_loja_id(m: Membership = Depends(get_current_membership)) -> UUID:
+    if m["loja_id"] is None:
+        raise HTTPException(status_code=400, detail="Admin não está vinculado a uma loja")
+    return m["loja_id"]
+
+async def get_current_loja(m: Membership = Depends(get_current_membership)) -> Loja:
+    if m["loja"] is None:
+        raise HTTPException(status_code=400, detail="Admin não está vinculado a uma loja")
+    return m["loja"]
+
+# HELPER CORRIGIDO: usa UsuarioLoja em vez de Funcionario
+async def verificar_acesso_loja(
+    loja_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    if current_user.is_superuser:
+        return True
+
+    stmt = select(UsuarioLoja).where( # <- CORRIGIDO 6
+        UsuarioLoja.usuario_id == current_user.id,
+        UsuarioLoja.loja_id == loja_id,
+        UsuarioLoja.role == UserRole.DONO, # <- CORRIGIDO 7
+        UsuarioLoja.is_active == True
+    )
+    membro = (await db.execute(stmt)).scalar_one_or_none()
+
+    if not membro:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não tem permissão para acessar esta loja"
+        )
+    return True
