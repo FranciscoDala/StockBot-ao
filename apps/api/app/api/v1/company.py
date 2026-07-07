@@ -3,10 +3,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, joinedload
 
-from api.app.db.session import get_db
-from api.app.core.deps import get_current_user, verificar_acesso_loja # <- IMPORTA
-from api.app.models.loja import Loja
-from api.app.schemas.loja import LojaDetailFull
+from  app.db.session import get_db
+from  app.core.deps import get_current_user, verificar_acesso_loja # <- IMPORTA
+from  app.models.loja import Loja
+from  app.schemas.loja import LojaDetailFull
 
 router = APIRouter()
 

@@ -4,12 +4,12 @@ from datetime import date
 from typing import List
 from uuid import UUID
 
-from api.app.core.deps import get_current_user, require_role, get_current_loja_id
-from api.app.schemas.usuario import Role
-from api.app.models.usuario import Usuario # <- FIX: Essa linha tava faltando
-from api.app.db.session import get_db
-from api.app.schemas.venda import VendaCreate, VendaRead
-from api.app.services.venda import criar_venda, listar_vendas, estornar_venda_service
+from  app.core.deps import get_current_user, require_role, get_current_loja_id
+from  app.schemas.usuario import Role
+from  app.models.usuario import Usuario # <- FIX: Essa linha tava faltando
+from  app.db.session import get_db
+from  app.schemas.venda import VendaCreate, VendaRead
+from  app.services.venda import criar_venda, listar_vendas, estornar_venda_service
 
 router = APIRouter()
 

@@ -3,12 +3,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from api.app.db.base import BaseModel
+from  app.db.base import BaseModel
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from api.app.models.loja import Loja
-    from api.app.models.produto import Produto
+    from  app.models.loja import Loja
+    from  app.models.produto import Produto
 
 class Categoria(BaseModel):
     __tablename__ = "categorias"

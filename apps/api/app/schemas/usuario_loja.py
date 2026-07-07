@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from uuid import UUID
-from api.app.models.role import UserRole
+from  app.models.role import UserRole
 
 class UsuarioLojaCreateIn(BaseModel):
     nome: str = Field(min_length=2)

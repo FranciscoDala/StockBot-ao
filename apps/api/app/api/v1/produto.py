@@ -7,15 +7,15 @@ from decimal import Decimal
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from api.app.db.session import get_db
-from api.app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdateWithAuth
-from api.app.schemas.usuario import Role
-from api.app.core.deps import get_current_user, require_role
-from api.app.models.produto import Produto
-from api.app.models.usuario_loja import UsuarioLoja
-from api.app.models.role import UserRole
-from api.app.models.loja import Loja
-from api.app.core.security import verify_password
+from  app.db.session import get_db
+from  app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdateWithAuth
+from  app.schemas.usuario import Role
+from  app.core.deps import get_current_user, require_role
+from  app.models.produto import Produto
+from  app.models.usuario_loja import UsuarioLoja
+from  app.models.role import UserRole
+from  app.models.loja import Loja
+from  app.core.security import verify_password
 import qrcode
 import io
 import base64
@@ -85,7 +85,7 @@ async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha_dono: str,
     result = await db.execute(stmt)
     dono_loja = result.scalar_one_or_none()
     if not dono_loja: raise HTTPException(status_code=404, detail="Dono da loja não encontrado")
-    from api.app.models.usuario import Usuario
+    from  app.models.usuario import Usuario
     usuario_dono = await db.get(Usuario, dono_loja.usuario_id)
     if not usuario_dono: raise HTTPException(status_code=404, detail="Usuário dono não encontrado")
     senha_hash = getattr(usuario_dono, "senha_hash", None)

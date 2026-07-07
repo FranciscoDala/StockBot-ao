@@ -2,8 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update
 from uuid import UUID
-from api.app.models.documento import DocumentoKYC
-from api.app.schemas.documento import DocumentoCreate
+from  app.models.documento import DocumentoKYC
+from  app.schemas.documento import DocumentoCreate
 
 class CRUDDocumento:
     async def get_by_loja(self, db: AsyncSession, *, loja_id: UUID) -> list[DocumentoKYC]:

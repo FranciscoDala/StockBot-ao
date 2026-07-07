@@ -6,8 +6,8 @@ from sqlalchemy import select
 from fastapi import HTTPException, status
 import logging
 
-from api.app.core.config import settings
-from api.app.models.usuario import Usuario
+from  app.core.config import settings
+from  app.models.usuario import Usuario
 
 logger = logging.getLogger(__name__)
 

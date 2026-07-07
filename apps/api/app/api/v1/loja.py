@@ -9,16 +9,16 @@ import re
 import unicodedata
 from datetime import datetime
 
-from api.app.db.session import get_db
-from api.app.models.loja import Loja
-from api.app.models.usuario import Usuario
-from api.app.models.usuario_loja import UsuarioLoja
-from api.app.models.role import UserRole
-from api.app.schemas.loja import LojaDetailOut, LojaCreateIn, LojaUpdateIn, DonoOut, DonoUpdateIn, GerenteOut
-from api.app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
-from api.app.core.deps import get_current_admin, get_current_user, verificar_acesso_loja
-from api.app.core.security import verify_password, get_password_hash
-from api.app.crud import loja as crud_loja
+from  app.db.session import get_db
+from  app.models.loja import Loja
+from  app.models.usuario import Usuario
+from  app.models.usuario_loja import UsuarioLoja
+from  app.models.role import UserRole
+from  app.schemas.loja import LojaDetailOut, LojaCreateIn, LojaUpdateIn, DonoOut, DonoUpdateIn, GerenteOut
+from  app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
+from  app.core.deps import get_current_admin, get_current_user, verificar_acesso_loja
+from  app.core.security import verify_password, get_password_hash
+from  app.crud import loja as crud_loja
 
 router = APIRouter()
 

@@ -6,11 +6,11 @@ from datetime import date
 from fastapi import HTTPException
 from decimal import Decimal
 
-from api.app.models.venda import Venda
-from api.app.models.itens_venda import ItemVenda
-from api.app.models.produto import Produto
-from api.app.schemas.venda import VendaCreate, VendaRead, ItemVendaRead
-from api.app.models.usuario import Usuario
+from  app.models.venda import Venda
+from  app.models.itens_venda import ItemVenda
+from  app.models.produto import Produto
+from  app.schemas.venda import VendaCreate, VendaRead, ItemVendaRead
+from  app.models.usuario import Usuario
 
 async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario, loja_id: UUID):
     try:

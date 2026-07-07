@@ -4,12 +4,12 @@ from sqlalchemy import select
 from uuid import UUID
 from typing import List
 
-from api.app.db.session import get_db
-from api.app.models.usuario import Usuario
-from api.app.models.usuario_loja import UsuarioLoja, Role
-from api.app.schemas.funcionario import FuncionarioCreate, FuncionarioRead # <- IMPORTA DO SCHEMA
-from api.app.core.deps import require_role, get_current_loja_id
-from api.app.core.security import get_password_hash
+from  app.db.session import get_db
+from  app.models.usuario import Usuario
+from  app.models.usuario_loja import UsuarioLoja, Role
+from  app.schemas.funcionario import FuncionarioCreate, FuncionarioRead # <- IMPORTA DO SCHEMA
+from  app.core.deps import require_role, get_current_loja_id
+from  app.core.security import get_password_hash
 
 router = APIRouter()
 

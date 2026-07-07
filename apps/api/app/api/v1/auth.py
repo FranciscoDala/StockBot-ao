@@ -6,14 +6,14 @@ from uuid import UUID
 from pydantic import BaseModel
 from jose import JWTError, jwt
 
-from api.app.db.session import get_db
-from api.app.core.security import verify_password, create_access_token
-from api.app.core.config import settings
-from api.app.models.usuario import Usuario
-from api.app.models.usuario_loja import UsuarioLoja
-from api.app.models.role import UserRole # <- CORRIGIDO AQUI
-from api.app.schemas.usuario import userread, LoginResponse, LojaSelectOut, LoginRequest, Role # <- Role do schema pra response
-from api.app.core.deps import get_current_user, oauth2_scheme
+from  app.db.session import get_db
+from  app.core.security import verify_password, create_access_token
+from  app.core.config import settings
+from  app.models.usuario import Usuario
+from  app.models.usuario_loja import UsuarioLoja
+from  app.models.role import UserRole # <- CORRIGIDO AQUI
+from  app.schemas.usuario import userread, LoginResponse, LojaSelectOut, LoginRequest, Role # <- Role do schema pra response
+from  app.core.deps import get_current_user, oauth2_scheme
 
 router = APIRouter()
 

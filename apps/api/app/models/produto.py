@@ -5,15 +5,15 @@ from sqlalchemy.dialects.postgresql import UUID
 import uuid
 import enum
 from datetime import datetime
-from api.app.db.base import BaseModel
+from  app.db.base import BaseModel
 from typing import TYPE_CHECKING
 from decimal import Decimal
 
 if TYPE_CHECKING:
-    from api.app.models.loja import Loja
-    from api.app.models.itens_venda import ItemVenda
-    from api.app.models.categoria import Categoria
-    from api.app.models.fornecedor import Fornecedor
+    from  app.models.loja import Loja
+    from  app.models.itens_venda import ItemVenda
+    from  app.models.categoria import Categoria
+    from  app.models.fornecedor import Fornecedor
 
 class UnidadeEnum(str, enum.Enum):
     UN = "UN"

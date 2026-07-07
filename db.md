@@ -25,3 +25,11 @@ python-jose[cryptography]==3.3.0
 python-multipart==0.0.12
 alembic==1.13.2
 httpx==0.27.2 # Pra chamar UltraMSG
+
+
+
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+python-dotenv

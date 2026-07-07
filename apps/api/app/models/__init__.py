@@ -1,3 +1,3 @@
-# Deixa esse ficheiro totalmente vazio. 
+# Deixa esse ficheiro totalmente vazio.
 # Ou só com isso:
-from api.app.db.base import Base
+from  app.db.base import Base

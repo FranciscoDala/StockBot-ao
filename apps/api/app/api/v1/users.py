@@ -3,9 +3,9 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from api.app.core.deps import get_current_user, get_db
-from api.app.models.usuario import Usuario
-from api.app.schemas.usuario import userread # <- minúsculo
+from  app.core.deps import get_current_user, get_db
+from  app.models.usuario import Usuario
+from  app.schemas.usuario import userread # <- minúsculo
 
 router = APIRouter()
 

@@ -5,11 +5,11 @@ from sqlalchemy.dialects.postgresql import UUID
 import uuid
 import enum
 from datetime import datetime
-from api.app.db.base import BaseModel
+from  app.db.base import BaseModel
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from api.app.models.loja import Loja
+    from  app.models.loja import Loja
 
 class TipoDocumento(enum.Enum):
     bi = "bi"

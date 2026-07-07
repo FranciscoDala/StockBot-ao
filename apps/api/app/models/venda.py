@@ -4,13 +4,13 @@ from sqlalchemy import ForeignKey, Numeric, DateTime, func, String, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
-from api.app.db.base import BaseModel
+from  app.db.base import BaseModel
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from api.app.models.loja import Loja
-    from api.app.models.usuario import Usuario
-    from api.app.models.itens_venda import ItemVenda
+    from  app.models.loja import Loja
+    from  app.models.usuario import Usuario
+    from  app.models.itens_venda import ItemVenda
 
 class Venda(BaseModel):
     __tablename__ = "vendas"

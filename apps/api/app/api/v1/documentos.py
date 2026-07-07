@@ -9,12 +9,12 @@ import logging
 import traceback
 from pydantic import BaseModel
 
-from api.app.db.session import get_db
-from api.app.core.deps import get_current_user, require_role, get_current_loja_id # <- FIX
-from api.app.models.usuario import Usuario # <- FIX: Tirei NivelUsuario
-from api.app.models.documento import DocumentoKYC
-from api.app.schemas.usuario import Role # <- FIX
-from api.app.core.security import verify_password
+from  app.db.session import get_db
+from  app.core.deps import get_current_user, require_role, get_current_loja_id # <- FIX
+from  app.models.usuario import Usuario # <- FIX: Tirei NivelUsuario
+from  app.models.documento import DocumentoKYC
+from  app.schemas.usuario import Role # <- FIX
+from  app.core.security import verify_password
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

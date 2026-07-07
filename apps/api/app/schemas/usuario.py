@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from uuid import UUID
 from typing import List, Optional, Any
-from api.app.models.role import UserRole
+from  app.models.role import UserRole
 
 # ALIAS pra não quebrar código antigo que usa Role
 Role = UserRole

@@ -3,13 +3,13 @@ import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID
-from api.app.db.base import BaseModel
-from api.app.models.role import UserRole
+from  app.db.base import BaseModel
+from  app.models.role import UserRole
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from api.app.models.usuario import Usuario
-    from api.app.models.loja import Loja
+    from  app.models.usuario import Usuario
+    from  app.models.loja import Loja
 
 class UsuarioLoja(BaseModel):
     __tablename__ = "usuarios_lojas"

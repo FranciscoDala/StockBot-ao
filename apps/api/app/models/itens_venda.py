@@ -3,13 +3,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from api.app.db.base import BaseModel
+from  app.db.base import BaseModel
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from api.app.models.venda import Venda
-    from api.app.models.produto import Produto
-    from api.app.models.loja import Loja
+    from  app.models.venda import Venda
+    from  app.models.produto import Produto
+    from  app.models.loja import Loja
 
 class ItemVenda(BaseModel):
     __tablename__ = "itens_venda"

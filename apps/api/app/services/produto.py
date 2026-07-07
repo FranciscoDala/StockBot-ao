@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException
-from api.app.models.produto import Produto
-from api.app.models.loja import Loja # <- Import que faltava
-from api.app.schemas.produto import ProdutoCreate
+from  app.models.produto import Produto
+from  app.models.loja import Loja # <- Import que faltava
+from  app.schemas.produto import ProdutoCreate
 
 async def criar_produto_service(db: AsyncSession, slug: str, produto_in: ProdutoCreate) -> Produto:
     # 1. Busca a Loja pelo slug que veio da URL
@@ -13,11 +13,11 @@ async def criar_produto_service(db: AsyncSession, slug: str, produto_in: Produto
     # 2. Se não achar a loja, barra aqui antes de criar produto null
     if not loja:
         raise HTTPException(status_code=404, detail=f"Loja com slug '{slug}' não encontrada")
-    
+
     # 3. Cria o produto já com o loja_id correto
     produto_data = produto_in.model_dump()
     db_produto = Produto(**produto_data, loja_id=loja.id)
-    
+
     db.add(db_produto)
     await db.commit()
     await db.refresh(db_produto)

@@ -2,12 +2,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
-from api.app.models.loja import Loja
-from api.app.models.usuario import Usuario
-from api.app.models.usuario_loja import UsuarioLoja
-from api.app.models.role import UserRole # <- CORRIGIDO
-from api.app.schemas.loja import LojaCreateIn
-from api.app.core.security import get_password_hash
+from  app.models.loja import Loja
+from  app.models.usuario import Usuario
+from  app.models.usuario_loja import UsuarioLoja
+from  app.models.role import UserRole # <- CORRIGIDO
+from  app.schemas.loja import LojaCreateIn
+from  app.core.security import get_password_hash
 
 async def get_loja_by_slug(db: AsyncSession, *, slug: str) -> Loja | None:
     result = await db.execute(select(Loja).where(Loja.slug == slug))

@@ -7,26 +7,26 @@ import logging, traceback, shutil, uuid, os  # ADICIONEI os
 from typing import AsyncGenerator
 from pathlib import Path
 
-from api.app.db.session import engine, Base
-from api.app.core.deps import get_current_user
-from api.app.models.usuario import Usuario
-from api.app.schemas.usuario import userread
+from  app.db.session import engine, Base
+from  app.core.deps import get_current_user
+from  app.models.usuario import Usuario
+from  app.schemas.usuario import userread
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 def import_all_models():
     logger.info("forçando import de todos os models...")
-    from api.app.models.usuario import Usuario
-    from api.app.models.loja import Loja
-    from api.app.models.usuario_loja import UsuarioLoja
-    from api.app.models.produto import Produto
-    from api.app.models.venda import Venda
-    from api.app.models.itens_venda import ItemVenda
-    from api.app.models.documento import DocumentoKYC
-    from api.app.models.role import UserRole
-    from api.app.models.categoria import Categoria
-    from api.app.models.fornecedor import Fornecedor
+    from  app.models.usuario import Usuario
+    from  app.models.loja import Loja
+    from  app.models.usuario_loja import UsuarioLoja
+    from  app.models.produto import Produto
+    from  app.models.venda import Venda
+    from  app.models.itens_venda import ItemVenda
+    from  app.models.documento import DocumentoKYC
+    from  app.models.role import UserRole
+    from  app.models.categoria import Categoria
+    from  app.models.fornecedor import Fornecedor
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
@@ -91,8 +91,8 @@ async def health_check():
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 MAX_FILE_SIZE = 5 * 1024 * 1024 # 5MB
 
-from api.app.core.deps import require_role
-from api.app.schemas.usuario import Role
+from  app.core.deps import require_role
+from  app.schemas.usuario import Role
 
 @api_v1_router.post("/upload/produto", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_imagem(file: UploadFile = File(...)):
@@ -117,15 +117,15 @@ async def read_me(current_user: Usuario = Depends(get_current_user)):
     return current_user
 
 # >>> REGISTRO DOS ROUTERS <<<
-from api.app.api.v1 import auth as auth_router
-from api.app.api.v1 import usuario as usuario_router
-from api.app.api.v1 import loja as admin_loja_router
-from api.app.api.v1 import company as company_router
-from api.app.api.v1 import users as users_router
-from api.app.api.v1 import produto as produto_router
-from api.app.api.v1 import venda as venda_router
-from api.app.api.v1 import webhook as webhook_router
-from api.app.api.v1 import documentos as documentos_router
+from  app.api.v1 import auth as auth_router
+from  app.api.v1 import usuario as usuario_router
+from  app.api.v1 import loja as admin_loja_router
+from  app.api.v1 import company as company_router
+from  app.api.v1 import users as users_router
+from  app.api.v1 import produto as produto_router
+from  app.api.v1 import venda as venda_router
+from  app.api.v1 import webhook as webhook_router
+from  app.api.v1 import documentos as documentos_router
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuarios"])

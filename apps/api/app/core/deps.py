@@ -7,12 +7,12 @@ from sqlalchemy.orm import selectinload
 from jose import jwt, JWTError, ExpiredSignatureError
 from uuid import UUID
 
-from api.app.core.config import settings
-from api.app.db.session import get_db
-from api.app.models.usuario import Usuario
-from api.app.models.loja import Loja
-from api.app.models.usuario_loja import UsuarioLoja
-from api.app.models.role import UserRole # <- CORRIGIDO 1
+from  app.core.config import settings
+from  app.db.session import get_db
+from  app.models.usuario import Usuario
+from  app.models.loja import Loja
+from  app.models.usuario_loja import UsuarioLoja
+from  app.models.role import UserRole # <- CORRIGIDO 1
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 

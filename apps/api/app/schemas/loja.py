@@ -3,8 +3,8 @@ from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Union
 
-from api.app.schemas.documento import DocumentoOut
-from api.app.schemas.usuario import UserRead, Role # <- TROCA: Usa UserRead e Role do UsuarioLoja
+from  app.schemas.documento import DocumentoOut
+from  app.schemas.usuario import UserRead, Role # <- TROCA: Usa UserRead e Role do UsuarioLoja
 
 # SCHEMA: DonoOut / GerenteOut
 # Agora herda de UserRead pra reaproveitar os campos

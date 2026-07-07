@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from api.app.api.v1 import auth, company, documentos, funcionario, produto, usuario, users, venda, webhook
-from api.app.api.v1.endpoints import loja, admin_lojas
+from  app.api.v1 import auth, company, documentos, funcionario, produto, usuario, users, venda, webhook
+from  app.api.v1.endpoints import loja, admin_lojas
 
 api_router = APIRouter()
 

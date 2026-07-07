@@ -4,12 +4,12 @@ from sqlalchemy import String, Boolean, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
-from api.app.db.base import BaseModel
+from  app.db.base import BaseModel
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from api.app.models.venda import Venda
-    from api.app.models.usuario_loja import UsuarioLoja
+    from  app.models.venda import Venda
+    from  app.models.usuario_loja import UsuarioLoja
 
 class Usuario(BaseModel):
     __allow_unmapped__ = True

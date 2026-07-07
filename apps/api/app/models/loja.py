@@ -1,16 +1,16 @@
 ﻿from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, Integer
-from api.app.db.base import BaseModel
+from  app.db.base import BaseModel
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from api.app.models.produto import Produto
-    from api.app.models.venda import Venda
-    from api.app.models.documento import DocumentoKYC
-    from api.app.models.usuario_loja import UsuarioLoja
-    from api.app.models.categoria import Categoria # NOVO
-    from api.app.models.fornecedor import Fornecedor # NOVO
+    from  app.models.produto import Produto
+    from  app.models.venda import Venda
+    from  app.models.documento import DocumentoKYC
+    from  app.models.usuario_loja import UsuarioLoja
+    from  app.models.categoria import Categoria # NOVO
+    from  app.models.fornecedor import Fornecedor # NOVO
 
 class Loja(BaseModel):
     """

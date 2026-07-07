@@ -4,13 +4,13 @@ from sqlalchemy import select
 from uuid import UUID
 from typing import List
 
-from api.app.db.session import get_db
-from api.app.schemas.usuario import UsuarioCreate, UserRead, Role
-from api.app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
-from api.app.models.usuario import Usuario
-from api.app.models.usuario_loja import UsuarioLoja
-from api.app.core.deps import require_role, get_current_loja_id, get_current_user
-from api.app.core.security import get_password_hash, verify_password
+from  app.db.session import get_db
+from  app.schemas.usuario import UsuarioCreate, UserRead, Role
+from  app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
+from  app.models.usuario import Usuario
+from  app.models.usuario_loja import UsuarioLoja
+from  app.core.deps import require_role, get_current_loja_id, get_current_user
+from  app.core.security import get_password_hash, verify_password
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
