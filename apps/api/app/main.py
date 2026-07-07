@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-import logging, traceback, shutil, uuid
+import logging, traceback, shutil, uuid, os  # ADICIONEI os
 from typing import AsyncGenerator
 from pathlib import Path
 
@@ -51,10 +51,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
+# PEGAR ORIGINS DA VARIAVEL DE AMBIENTE + LOCAL
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+allowed_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_env:
+    origins.extend([o.strip() for o in allowed_env.split(",")])
 
 app.add_middleware(
     CORSMiddleware,
