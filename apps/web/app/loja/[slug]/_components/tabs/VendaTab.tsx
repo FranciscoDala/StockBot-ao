@@ -9,18 +9,29 @@ import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
-// 1. ACEITA TUDO OPCIONAL IGUAL AO ZOD
+// 1. ACEITA TUDO OPCIONAL IGUAL AO ZOD + CAMPOS QUE FALTAM
 interface Produto {
     id: string | number;
     nome: string;
     sku: string;
     preco_venda?: number; // <- OPCIONAL
     preco: number;
+    preco_custo: number; // <- ADICIONADO
     estoque: number;
     estoque_minimo: number;
     unidade: string;
     imagem_url?: string; // <- OPCIONAL
     is_active: boolean;
+    loja_id: string; // <- ADICIONADO
+    descricao?: string;
+    codigo_barras?: string | null;
+    marca?: string;
+    categoria_id?: string | number | null;
+    localizacao?: string;
+    fornecedor_id?: string | number | null;
+    data_validade?: string;
+    ncm?: string;
+    peso_kg?: number | null;
 }
 
 interface CarrinhoItem extends Produto {
