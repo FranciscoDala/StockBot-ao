@@ -9,17 +9,17 @@ import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
-// 1. preco_venda agora é opcional
+// 1. ACEITA TUDO OPCIONAL IGUAL AO ZOD
 interface Produto {
     id: string | number;
     nome: string;
     sku: string;
-    preco_venda?: number; // <- AJUSTE 1
+    preco_venda?: number; // <- OPCIONAL
     preco: number;
     estoque: number;
     estoque_minimo: number;
     unidade: string;
-    imagem_url: string;
+    imagem_url?: string; // <- OPCIONAL
     is_active: boolean;
 }
 
@@ -78,8 +78,7 @@ export function VendaTab({
     nomeLoja
 }: Props) {
 
-    // 2. getPreco com fallback
-    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0; // <- AJUSTE 2
+    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0; // <-?? EM VEZ DE ||
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -142,8 +141,7 @@ export function VendaTab({
 
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
-                            // 3. preco com fallback
-                            const preco = p.preco_venda?? p.preco?? 0; // <- AJUSTE 3
+                            const preco = p.preco_venda?? p.preco?? 0; // <-?? EM VEZ DE ||
                             return (
                                 <button
                                     key={String(p.id)}
