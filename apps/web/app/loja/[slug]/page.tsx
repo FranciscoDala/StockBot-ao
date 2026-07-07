@@ -252,7 +252,9 @@ export default function LojaPage() {
         } catch (err) { handleSair(); }
     }, [router, slug, fetchProdutos, fetchLoja]); // <- CORRIGIDO AQUI
 
-    const getPreco = (item: CarrinhoItem) => item.preco_venda || item.preco || 0;
+    const getPreco = (item: CarrinhoItem) => item.preco || 0;
+
+
     const subtotal = useMemo(() => carrinho.reduce((acc, item) => acc + (getPreco(item) * item.quantidade), 0), [carrinho]);
     const totalItens = useMemo(() => carrinho.reduce((acc, item) => acc + item.quantidade, 0), [carrinho]);
     const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
