@@ -273,7 +273,8 @@ export default function LojaPage() {
         setCarrinho(prev => {
             const itemExistente = prev.find(item => item.id === produto.id);
             if (itemExistente) {
-                if (itemExistente.quantidade >= produto.estoque) { toast.warning("Estoque máximo atingido"); return prev; }
+                if (itemExistente.quantidade >= (produto.estoque ?? 0)) { toast.warning("Estoque máximo atingido"); return prev; }
+
                 return prev.map(item => item.id === produto.id? {...item, quantidade: item.quantidade + 1 } : item);
             }
             return [...prev, {...produto, quantidade: 1 }];
