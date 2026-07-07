@@ -9,20 +9,20 @@ import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
-// 1. ACEITA TUDO OPCIONAL IGUAL AO ZOD + CAMPOS QUE FALTAM
+// 1. ID AGORA É SÓ STRING IGUAL AO ZOD
 interface Produto {
-    id: string | number;
+    id: string;
     nome: string;
     sku: string;
-    preco_venda?: number; // <- OPCIONAL
+    preco_venda?: number;
     preco: number;
-    preco_custo: number; // <- ADICIONADO
+    preco_custo: number;
     estoque: number;
     estoque_minimo: number;
     unidade: string;
-    imagem_url?: string; // <- OPCIONAL
+    imagem_url?: string;
     is_active: boolean;
-    loja_id: string; // <- ADICIONADO
+    loja_id: string;
     descricao?: string;
     codigo_barras?: string | null;
     marca?: string;
@@ -89,7 +89,7 @@ export function VendaTab({
     nomeLoja
 }: Props) {
 
-    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0; // <-?? EM VEZ DE ||
+    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -152,10 +152,10 @@ export function VendaTab({
 
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
-                            const preco = p.preco_venda?? p.preco?? 0; // <-?? EM VEZ DE ||
+                            const preco = p.preco_venda?? p.preco?? 0;
                             return (
                                 <button
-                                    key={String(p.id)}
+                                    key={p.id} // <- PODE TIRAR O STRING()
                                     onClick={() => adicionarAoCarrinho(p)}
                                     disabled={p.estoque <= 0}
                                     className="bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden text-left transition-all hover:border-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
@@ -196,7 +196,7 @@ export function VendaTab({
                                 const preco = getPreco(item);
                                 return (
                                     <div
-                                        key={String(item.id)}
+                                        key={item.id} // <- PODE TIRAR O STRING()
                                         onClick={() => confirmarRemoverItem(item)}
                                         className="flex items-center gap-2 p-2 bg-neutral-900 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
                                     >
@@ -264,7 +264,7 @@ export function VendaTab({
                             const preco = getPreco(item);
                             return (
                                 <div
-                                    key={String(item.id)}
+                                    key={item.id} // <- PODE TIRAR O STRING()
                                     onClick={() => confirmarRemoverItem(item)}
                                     className="bg-neutral-900 p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
                                 >
