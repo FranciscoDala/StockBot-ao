@@ -164,10 +164,11 @@ export default function LojaPage() {
     const [produtos, setProdutos] = useState<Produto[]>([]); // <- continua usando o Produto do ProdutoModal
     const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
     const [editingProduto, setEditingProduto] = useState<Produto | null>(null);
+
     const [formDataProduto, setFormDataProduto] = useState({
         nome: "", sku: "", preco: 0, preco_custo: 0,
         estoque: 0, estoque_minimo: 5, is_active: true,
-        loja_id: "", descricao: "", codigo_barras: "",
+        loja_id: "", descricao: "", codigo_barras: null, // <- null aqui
         marca: "", categoria_id: null, unidade: "UN",
         localizacao: "", fornecedor_id: null, data_validade: "", ncm: "", peso_kg: 0, imagem_url: ""
     });
@@ -384,7 +385,7 @@ export default function LojaPage() {
                 is_active: (data as Produto)?.is_active ?? true,
                 loja_id: (data as Produto)?.loja_id || user?.loja_id || user?.loja?.id || "", // string
                 descricao: (data as Produto)?.descricao || "",
-                codigo_barras: (data as Produto)?.codigo_barras || null, // null
+                codigo_barras: (data as Produto)?.codigo_barras ?? null, // null
                 marca: (data as Produto)?.marca || "",
                 categoria_id: (data as Produto)?.categoria_id || null, // null
                 unidade: (data as Produto)?.unidade || "UN",
