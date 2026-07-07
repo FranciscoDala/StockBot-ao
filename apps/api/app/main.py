@@ -9,10 +9,10 @@ from pathlib import Path
 import json
 
 from app.db.session import engine, Base
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_role
 from app.core.config import settings
 from app.models.usuario import Usuario
-from app.schemas.usuario import userread
+from app.schemas.usuario import userread, Role
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -53,14 +53,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
-# CORS: CORRIGIDO
+# CORS CORRIGIDO
 default_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://stockbot-ao-production.up.railway.app", # URL DO FRONTEND ATUAL
+    "https://stockbot-ao-production.up.railway.app",
 ]
 origins = default_origins + settings.ALLOWED_ORIGINS
-
 logger.info(f"CORS liberado para: {origins}")
 
 app.add_middleware(
@@ -74,33 +73,20 @@ app.add_middleware(
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"Erro interno: {str(exc)}"},
-    )
+    return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# CORRIGIDO: Health dentro do /api/v1
-@app.get("/api/v1/health", tags=["health"])
-async def health_check():
-    return {"status": "ok"}
-
-# CORRIGIDO: Health também na raiz pra facilitar teste
-@app.get("/health", tags=["health"])
-async def health_check_root():
-    return {"status": "ok"}
-
-ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
-MAX_FILE_SIZE = 5 * 1024 * 1024
-
-from app.core.deps import require_role
-from app.schemas.usuario import Role
+# >>> DECLARA O ROUTER AQUI ANTES DE USAR <<<
+api_v1_router = APIRouter(prefix="/api/v1")
 
 @api_v1_router.post("/upload/produto", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_imagem(file: UploadFile = File(...)):
+    ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+    MAX_FILE_SIZE = 5 * 1024 * 1024
+
     extension = file.filename.split(".")[-1].lower()
     if extension not in ALLOWED_EXTENSIONS:
         return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
@@ -114,15 +100,23 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    base_url = os.getenv("BASE_URL", "")
+    base_url = os.getenv("BASE_URL", "https://stockbot-ao-production.up.railway.app")
     url = f"{base_url}/uploads/{file_name}"
     return {"url": url, "filename": file_name}
+
+@api_v1_router.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "ok"}
+
+@app.get("/health", tags=["health"])
+async def health_check_root():
+    return {"status": "ok"}
 
 @app.get("/me", response_model=userread, tags=["auth"])
 async def read_me(current_user: Usuario = Depends(get_current_user)):
     return current_user
 
-# >>> REGISTRO DOS ROUTERS <<<
+# >>> REGISTRO DOS OUTROS ROUTERS <<<
 from app.api.v1 import auth as auth_router
 from app.api.v1 import usuario as usuario_router
 from app.api.v1 import loja as admin_loja_router
@@ -132,8 +126,6 @@ from app.api.v1 import produto as produto_router
 from app.api.v1 import venda as venda_router
 from app.api.v1 import webhook as webhook_router
 from app.api.v1 import documentos as documentos_router
-
-api_v1_router = APIRouter(prefix="/api/v1") # Movi pra cá pra ficar organizado
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuarios"])
