@@ -3,30 +3,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-import logging, traceback, shutil, uuid, os  # ADICIONEI os
+import logging, traceback, shutil, uuid, os
 from typing import AsyncGenerator
 from pathlib import Path
 
-from  app.db.session import engine, Base
-from  app.core.deps import get_current_user
-from  app.models.usuario import Usuario
-from  app.schemas.usuario import userread
+from app.db.session import engine, Base  # IMPORTA O ENGINE DAQUI AGORA
+from app.core.deps import get_current_user
+from app.models.usuario import Usuario
+from app.schemas.usuario import userread
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 def import_all_models():
     logger.info("forçando import de todos os models...")
-    from  app.models.usuario import Usuario
-    from  app.models.loja import Loja
-    from  app.models.usuario_loja import UsuarioLoja
-    from  app.models.produto import Produto
-    from  app.models.venda import Venda
-    from  app.models.itens_venda import ItemVenda
-    from  app.models.documento import DocumentoKYC
-    from  app.models.role import UserRole
-    from  app.models.categoria import Categoria
-    from  app.models.fornecedor import Fornecedor
+    from app.models.usuario import Usuario
+    from app.models.loja import Loja
+    from app.models.usuario_loja import UsuarioLoja
+    from app.models.produto import Produto
+    from app.models.venda import Venda
+    from app.models.itens_venda import ItemVenda
+    from app.models.documento import DocumentoKYC
+    from app.models.role import UserRole
+    from app.models.categoria import Categoria
+    from app.models.fornecedor import Fornecedor
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("stockbot ao api a iniciar...")
     import_all_models()
     try:
-        async with engine.begin() as conn:
+        async with engine.begin() as conn:  # usa o engine do session.py
             table_exists = await conn.run_sync(lambda sync_conn: sync_conn.dialect.has_table(sync_conn, "usuarios"))
             if not table_exists:
                 logger.warning("tabelas não encontradas. criando tudo no postgres...")
@@ -86,13 +86,11 @@ api_v1_router = APIRouter(prefix="/api/v1")
 async def health_check():
     return {"status": "ok"}
 
-# AJUSTE 1: Troquei a rota pra /upload/produto pra bater com o front
-# AJUSTE 2: Adicionei require_role pra só dono/gerente subir imagem
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
 MAX_FILE_SIZE = 5 * 1024 * 1024 # 5MB
 
-from  app.core.deps import require_role
-from  app.schemas.usuario import Role
+from app.core.deps import require_role
+from app.schemas.usuario import Role
 
 @api_v1_router.post("/upload/produto", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_imagem(file: UploadFile = File(...)):
@@ -117,15 +115,15 @@ async def read_me(current_user: Usuario = Depends(get_current_user)):
     return current_user
 
 # >>> REGISTRO DOS ROUTERS <<<
-from  app.api.v1 import auth as auth_router
-from  app.api.v1 import usuario as usuario_router
-from  app.api.v1 import loja as admin_loja_router
-from  app.api.v1 import company as company_router
-from  app.api.v1 import users as users_router
-from  app.api.v1 import produto as produto_router
-from  app.api.v1 import venda as venda_router
-from  app.api.v1 import webhook as webhook_router
-from  app.api.v1 import documentos as documentos_router
+from app.api.v1 import auth as auth_router
+from app.api.v1 import usuario as usuario_router
+from app.api.v1 import loja as admin_loja_router
+from app.api.v1 import company as company_router
+from app.api.v1 import users as users_router
+from app.api.v1 import produto as produto_router
+from app.api.v1 import venda as venda_router
+from app.api.v1 import webhook as webhook_router
+from app.api.v1 import documentos as documentos_router
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuarios"])
