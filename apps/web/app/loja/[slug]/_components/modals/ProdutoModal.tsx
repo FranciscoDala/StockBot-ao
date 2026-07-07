@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadCloud, X, Loader2, DollarSign, Package, Image as ImageIcon, QrCode, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-// import { Produto } from "../modals/ProdutoModal"; // REMOVIDO - causava import circular
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const API_BASE = API_URL.replace('/api/v1', '');
@@ -28,9 +27,9 @@ const gerarSkuAleatorio = () => {
     return result;
 };
 
-// Adicionei export aqui
+// 1. TIRA O? DO ID E FORÇA STRING
 export type Produto = {
-    id?: string;
+    id: string; // <- ERA id?: string
     nome: string;
     descricao?: string;
     sku?: string;
@@ -45,7 +44,7 @@ export type Produto = {
     imagem_url?: string;
     codigo_barras?: string | null;
     loja_id?: string;
-    categoria_id?: string | number | null; // <- MUDOU AQUI
+    categoria_id?: string | number | null;
     localizacao?: string;
     fornecedor_id?: string | number | null;
     data_validade?: string;
