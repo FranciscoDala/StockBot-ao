@@ -53,9 +53,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
-# CORS CORRIGIDO - URL CERTA DO FRONTEND
+# CORS CORRIGIDO - URL DO FRONTEND
 origins = [
-    "gentle-playfulness-production-d333.up.railway.app", # <- URL CORRETA DO BACKEND
+    "https://stockbot-ao-production.up.railway.app", # <- URL DO FRONTEND
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
@@ -80,7 +80,6 @@ UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# >>> DECLARA O ROUTER AQUI ANTES DE USAR <<<
 api_v1_router = APIRouter(prefix="/api/v1")
 
 @api_v1_router.post("/upload/produto", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
@@ -117,7 +116,6 @@ async def health_check_root():
 async def read_me(current_user: Usuario = Depends(get_current_user)):
     return current_user
 
-# >>> REGISTRO DOS OUTROS ROUTERS <<<
 from app.api.v1 import auth as auth_router
 from app.api.v1 import usuario as usuario_router
 from app.api.v1 import loja as admin_loja_router
