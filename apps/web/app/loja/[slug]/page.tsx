@@ -464,7 +464,7 @@ export default function LojaPage() {
             }
 
             if (entidade === 'produto') {
-                const loja_id = user?.loja_id || user?.loja?.id
+                const loja_id = user?.loja_id || user?.loja?.id || ""
                 const produtoData = data as Produto | null;
                 const dadosAtuais = data || formDataProduto;
 
