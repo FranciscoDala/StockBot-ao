@@ -43,6 +43,7 @@ export type Produto = {
     is_active?: boolean;
     imagem_url?: string;
     codigo_barras?: string | null;
+    loja_id?: string; // <- ADICIONA ESSA LINHA
 }
 
 interface Props {
