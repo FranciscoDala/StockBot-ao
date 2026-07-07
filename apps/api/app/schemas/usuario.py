@@ -3,7 +3,7 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from uuid import UUID
 from typing import List, Optional, Any
-from  app.models.role import UserRole
+from app.models.role import UserRole
 
 # ALIAS pra não quebrar código antigo que usa Role
 Role = UserRole
@@ -20,12 +20,12 @@ class UserRead(BaseModel):
     nome: str
     email: EmailStr
     telefone: Optional[str] = None
-    is_active: bool
-    is_superuser: bool
+    is_active: bool = True
+    is_superuser: bool = False
     criado_em: datetime = Field(alias="created_at")
 
     nivel: Optional[str] = None
-    role: Optional[str] = None
+    role: Optional[Role] = None # troquei pra Role em vez de str pra bater com o model
     loja_id: Optional[UUID] = None
     loja: Optional[Any] = None
 
@@ -45,7 +45,7 @@ class UsuarioCreate(BaseModel):
     telefone: Optional[str] = Field(None, max_length=20)
 
 class LoginRequest(BaseModel):
-    username: EmailStr
+    username: EmailStr # FastAPI OAuth2 manda "username" mesmo sendo email
     password: str
 
 # ALIAS pra não quebrar código antigo

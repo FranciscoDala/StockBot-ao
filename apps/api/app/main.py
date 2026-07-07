@@ -6,11 +6,11 @@ from contextlib import asynccontextmanager
 import logging, traceback, shutil, uuid, os
 from typing import AsyncGenerator
 from pathlib import Path
-import json # ADICIONA ISSO
+import json
 
 from app.db.session import engine, Base
 from app.core.deps import get_current_user
-from app.core.config import settings # ADICIONA ESSE IMPORT NO TOPO
+from app.core.config import settings
 from app.models.usuario import Usuario
 from app.schemas.usuario import userread
 
@@ -53,13 +53,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
-# CORS: LOCAL + RAILWAY + VARIAVEL DE AMBIENTE
+# CORS: CORRIGIDO
 default_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://gentle-playfulness-production-d333.up.railway.app", # adiciona railway aqui
+    "https://stockbot-ao-production.up.railway.app", # URL DO FRONTEND ATUAL
 ]
-origins = default_origins + settings.ALLOWED_ORIGINS # SÓ ISSO
+origins = default_origins + settings.ALLOWED_ORIGINS
 
 logger.info(f"CORS liberado para: {origins}")
 
@@ -83,10 +83,14 @@ UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-api_v1_router = APIRouter(prefix="/api/v1")
-
-@app.get("/health", tags=["health"])
+# CORRIGIDO: Health dentro do /api/v1
+@app.get("/api/v1/health", tags=["health"])
 async def health_check():
+    return {"status": "ok"}
+
+# CORRIGIDO: Health também na raiz pra facilitar teste
+@app.get("/health", tags=["health"])
+async def health_check_root():
     return {"status": "ok"}
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
@@ -110,8 +114,7 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    # FIX: retorna URL completa em produção
-    base_url = os.getenv("BASE_URL", "") # adiciona BASE_URL no Railway
+    base_url = os.getenv("BASE_URL", "")
     url = f"{base_url}/uploads/{file_name}"
     return {"url": url, "filename": file_name}
 
@@ -129,6 +132,8 @@ from app.api.v1 import produto as produto_router
 from app.api.v1 import venda as venda_router
 from app.api.v1 import webhook as webhook_router
 from app.api.v1 import documentos as documentos_router
+
+api_v1_router = APIRouter(prefix="/api/v1") # Movi pra cá pra ficar organizado
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuarios"])
