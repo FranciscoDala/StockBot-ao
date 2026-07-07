@@ -165,10 +165,16 @@ export default function LojaPage() {
     const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
     const [editingProduto, setEditingProduto] = useState<Produto | null>(null);
 
-    const [formDataProduto, setFormDataProduto] = useState({
+    const [formDataProduto, setFormDataProduto] = useState<{
+        nome: string; sku: string; preco: number; preco_custo: number;
+        estoque: number; estoque_minimo: number; is_active: boolean;
+        loja_id: string; descricao: string; codigo_barras: string | null;
+        marca: string; categoria_id: string | number | null; unidade: string;
+        localizacao: string; fornecedor_id: string | number | null; data_validade: string; ncm: string; peso_kg: number; imagem_url: string;
+    }>({
         nome: "", sku: "", preco: 0, preco_custo: 0,
         estoque: 0, estoque_minimo: 5, is_active: true,
-        loja_id: "", descricao: "", codigo_barras: null, // <- null aqui
+        loja_id: "", descricao: "", codigo_barras: null, // <- agora aceita string E null
         marca: "", categoria_id: null, unidade: "UN",
         localizacao: "", fornecedor_id: null, data_validade: "", ncm: "", peso_kg: 0, imagem_url: ""
     });
