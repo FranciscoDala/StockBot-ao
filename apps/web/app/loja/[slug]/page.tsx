@@ -89,7 +89,9 @@ export type Loja = {
     ano_fundacao?: number | null;
 }
 export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
-export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: string | null; role: UserRole; is_active: boolean; }
+
+export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: string; role: UserRole; is_active: boolean; }
+
 export type userread = { id: string; nome: string; email: string; nivel: "admin" | "gerente" | "vendedor" | "dono"; loja?: Loja | null; loja_id?: string | null; }
 
 const formatError = (data: any): string => {
