@@ -6,8 +6,9 @@ from contextlib import asynccontextmanager
 import logging, traceback, shutil, uuid, os
 from typing import AsyncGenerator
 from pathlib import Path
+import json # ADICIONA ISSO
 
-from app.db.session import engine, Base  # IMPORTA O ENGINE DAQUI AGORA
+from app.db.session import engine, Base
 from app.core.deps import get_current_user
 from app.models.usuario import Usuario
 from app.schemas.usuario import userread
@@ -36,7 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("stockbot ao api a iniciar...")
     import_all_models()
     try:
-        async with engine.begin() as conn:  # usa o engine do session.py
+        async with engine.begin() as conn:
             table_exists = await conn.run_sync(lambda sync_conn: sync_conn.dialect.has_table(sync_conn, "usuarios"))
             if not table_exists:
                 logger.warning("tabelas não encontradas. criando tudo no postgres...")
@@ -51,14 +52,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
-# PEGAR ORIGINS DA VARIAVEL DE AMBIENTE + LOCAL
-origins = [
+# CORS: LOCAL + RAILWAY + VARIAVEL DE AMBIENTE
+default_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://gentle-playfulness-production-d333.up.railway.app", # adiciona railway aqui
 ]
+
 allowed_env = os.getenv("ALLOWED_ORIGINS", "")
 if allowed_env:
-    origins.extend([o.strip() for o in allowed_env.split(",")])
+    try:
+        # Tenta ler como JSON: ["url1","url2"]
+        env_origins = json.loads(allowed_env)
+        origins = default_origins + env_origins
+    except:
+        # Se for separado por virgula: url1,url2
+        origins = default_origins + [o.strip() for o in allowed_env.split(",")]
+else:
+    origins = default_origins
+
+logger.info(f"CORS liberado para: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -87,7 +100,7 @@ async def health_check():
     return {"status": "ok"}
 
 ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
-MAX_FILE_SIZE = 5 * 1024 * 1024 # 5MB
+MAX_FILE_SIZE = 5 * 1024 * 1024
 
 from app.core.deps import require_role
 from app.schemas.usuario import Role
@@ -107,7 +120,9 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    url = f"/uploads/{file_name}"
+    # FIX: retorna URL completa em produção
+    base_url = os.getenv("BASE_URL", "") # adiciona BASE_URL no Railway
+    url = f"{base_url}/uploads/{file_name}"
     return {"url": url, "filename": file_name}
 
 @app.get("/me", response_model=userread, tags=["auth"])
