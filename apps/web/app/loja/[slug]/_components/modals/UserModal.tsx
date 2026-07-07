@@ -12,7 +12,7 @@ export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
 export type UsuarioLoja = {
   id: string;
   nome: string;
-  email?: string;
+  email: string; // <- TIREI O? DAQUI. AGORA BATE COM O PAGE
   telefone?: string;
   role: UserRole;
   is_active: boolean;
