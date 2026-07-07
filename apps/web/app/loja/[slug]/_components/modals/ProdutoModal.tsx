@@ -28,8 +28,8 @@ const gerarSkuAleatorio = () => {
     return result;
 };
 
-// Adicionei o type aqui pra não quebrar o Props
-type Produto = {
+// Adicionei export aqui
+export type Produto = {
     id?: string;
     nome: string;
     descricao?: string;
@@ -287,7 +287,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                         <div className="flex gap-2 w-full sm:w-auto">
                             <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving || uploading} className="flex-1 sm:flex-initial h-11">Cancelar</Button>
                             <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-initial min-w-28 h-11">
-                                {(saving || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                {(saving || uploading) && <Loader2 className="mr-4 h-4 w-4 animate-spin" />}
                                 {editingProduto? 'Salvar' : 'Criar'}
                             </Button>
                         </div>
