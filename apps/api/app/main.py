@@ -10,6 +10,7 @@ import json # ADICIONA ISSO
 
 from app.db.session import engine, Base
 from app.core.deps import get_current_user
+from app.core.config import settings # ADICIONA ESSE IMPORT NO TOPO
 from app.models.usuario import Usuario
 from app.schemas.usuario import userread
 
@@ -58,18 +59,7 @@ default_origins = [
     "http://127.0.0.1:3000",
     "https://gentle-playfulness-production-d333.up.railway.app", # adiciona railway aqui
 ]
-
-allowed_env = os.getenv("ALLOWED_ORIGINS", "")
-if allowed_env:
-    try:
-        # Tenta ler como JSON: ["url1","url2"]
-        env_origins = json.loads(allowed_env)
-        origins = default_origins + env_origins
-    except:
-        # Se for separado por virgula: url1,url2
-        origins = default_origins + [o.strip() for o in allowed_env.split(",")]
-else:
-    origins = default_origins
+origins = default_origins + settings.ALLOWED_ORIGINS # SÓ ISSO
 
 logger.info(f"CORS liberado para: {origins}")
 
