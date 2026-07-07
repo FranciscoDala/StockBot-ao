@@ -161,7 +161,7 @@ export default function LojaPage() {
     const [formDataUser, setFormDataUser] = useState({ nome: "", telefone: "", role: "VENDEDOR" as UserRole, is_active: true });
     const [detalhesUser, setDetalhesUser] = useState<any>(null);
 
-    const [produtos, setProdutos] = useState<Produto[]>([]); // <- continua usando o Produto do ProdutoModal
+    const [produtos, setProdutos] = useState<ProdutoType[]>([]);
     const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]);
     const [editingProduto, setEditingProduto] = useState<Produto | null>(null);
 
@@ -211,12 +211,12 @@ export default function LojaPage() {
             if (data && Array.isArray(data)) setEquipa(data); else setEquipa([]);
         } catch (e) { setEquipa([]) }
     };
-
-    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { // <- useCallback
+    
+    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => {
         if (!currentToken || !lojaId) { setProdutos([]); return; }
         try {
             const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken);
-            const produtosValidados = z.array(ProdutoSchema).parse(data); // <- VALIDA
+            const produtosValidados = z.array(ProdutoSchema).parse(data); // <- ProdutoType
             setProdutos(produtosValidados);
         } catch (e) {
             console.error(e);
