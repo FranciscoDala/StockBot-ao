@@ -53,13 +53,21 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
-# CORS CORRIGIDO
+# CORS CORRIGIDO - LENDO DA VAR E FORÇANDO URL DO FRONT
+allowed = []
+if hasattr(settings, "ALLOWED_ORIGINS") and settings.ALLOWED_ORIGINS:
+    if isinstance(settings.ALLOWED_ORIGINS, str):
+        allowed.append(settings.ALLOWED_ORIGINS)
+    else:
+        allowed.extend(settings.ALLOWED_ORIGINS)
+
 default_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://stockbot-ao-production.up.railway.app",
+    "https://gentle-playfulness-production-d333.up.railway.app", # URL do frontend
 ]
-origins = default_origins + settings.ALLOWED_ORIGINS
+
+origins = list(set(default_origins + allowed))
 logger.info(f"CORS liberado para: {origins}")
 
 app.add_middleware(
@@ -100,7 +108,7 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    base_url = os.getenv("BASE_URL", "https://stockbot-ao-production.up.railway.app")
+    base_url = os.getenv("BASE_URL", "https://gentle-playfulness-production-d333.up.railway.app")
     url = f"{base_url}/uploads/{file_name}"
     return {"url": url, "filename": file_name}
 
