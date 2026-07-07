@@ -382,14 +382,14 @@ export default function LojaPage() {
                 estoque: (data as Produto)?.estoque || 0,
                 estoque_minimo: (data as Produto)?.estoque_minimo || 5,
                 is_active: (data as Produto)?.is_active ?? true,
-                loja_id: (data as Produto)?.loja_id || user?.loja_id || user?.loja?.id || null, // <- trocado ""
+                loja_id: (data as Produto)?.loja_id || user?.loja_id || user?.loja?.id || "", // string
                 descricao: (data as Produto)?.descricao || "",
-                codigo_barras: (data as Produto)?.codigo_barras || null, // <- trocado ?? undefined
+                codigo_barras: (data as Produto)?.codigo_barras || null, // null
                 marca: (data as Produto)?.marca || "",
-                categoria_id: (data as Produto)?.categoria_id || null,
+                categoria_id: (data as Produto)?.categoria_id || null, // null
                 unidade: (data as Produto)?.unidade || "UN",
                 localizacao: (data as Produto)?.localizacao || "",
-                fornecedor_id: (data as Produto)?.fornecedor_id || null,
+                fornecedor_id: (data as Produto)?.fornecedor_id || null, // null
                 data_validade: (data as Produto)?.data_validade || "",
                 ncm: (data as Produto)?.ncm || "",
                 peso_kg: (data as Produto)?.peso_kg || 0,

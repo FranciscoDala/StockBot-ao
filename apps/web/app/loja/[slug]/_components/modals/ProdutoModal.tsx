@@ -37,13 +37,20 @@ export type Produto = {
     marca?: string;
     preco: number;
     preco_custo?: number;
+    preco_venda?: number;
     estoque?: number;
     estoque_minimo?: number;
     unidade?: string;
     is_active?: boolean;
     imagem_url?: string;
     codigo_barras?: string | null;
-    loja_id?: string; // <- ADICIONA ESSA LINHA
+    loja_id?: string;
+    categoria_id?: string | null;
+    localizacao?: string;
+    fornecedor_id?: string | null;
+    data_validade?: string;
+    ncm?: string;
+    peso_kg?: number | null;
 }
 
 interface Props {
