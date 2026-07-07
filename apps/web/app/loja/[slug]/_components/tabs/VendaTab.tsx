@@ -9,8 +9,9 @@ import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
+// 1. ACEITA STRING E NUMBER
 interface Produto {
-    id: number;
+    id: string | number; // <- AJUSTE 1
     nome: string;
     sku: string;
     preco_venda: number;
@@ -26,7 +27,7 @@ interface CarrinhoItem extends Produto {
     quantidade: number;
 }
 
-// 1. INTERFACE ATUALIZADA COM TODAS PROPS DO PAI
+// 2. INTERFACE ATUALIZADA COM TODAS PROPS DO PAI
 interface Props {
     produtos: Produto[];
     carrinho: CarrinhoItem[];
@@ -84,7 +85,7 @@ export function VendaTab({
 
     const getPreco = (item: CarrinhoItem) => item.preco_venda || item.preco || 0;
 
-    // 2. TECLADO AGORA USA AS FUNÇÕES DO PAI
+    // 3. TECLADO AGORA USA AS FUNÇÕES DO PAI
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
@@ -149,7 +150,7 @@ export function VendaTab({
                             const preco = p.preco_venda || p.preco || 0;
                             return (
                                 <button
-                                    key={p.id}
+                                    key={String(p.id)} // <- AJUSTE 2: FORÇA STRING NA KEY
                                     onClick={() => adicionarAoCarrinho(p)}
                                     disabled={p.estoque <= 0}
                                     className="bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden text-left transition-all hover:border-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
@@ -190,7 +191,7 @@ export function VendaTab({
                                 const preco = getPreco(item);
                                 return (
                                     <div
-                                        key={item.id}
+                                        key={String(item.id)} // <- AJUSTE 3
                                         onClick={() => confirmarRemoverItem(item)} // <- USANDO PROP DO PAI
                                         className="flex items-center gap-2 p-2 bg-neutral-900 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
                                     >
@@ -258,7 +259,7 @@ export function VendaTab({
                             const preco = getPreco(item);
                             return (
                                 <div
-                                    key={item.id}
+                                    key={String(item.id)} // <- AJUSTE 4
                                     onClick={() => confirmarRemoverItem(item)} // <- USANDO PROP DO PAI
                                     className="bg-neutral-900 p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
                                 >
@@ -300,7 +301,7 @@ export function VendaTab({
                             disabled={!podeFinalizar || loadingVenda}
                             className="bg-green-600 hover:bg-green-700 w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loadingVenda? "Finalizando..." : "Finalizar [Enter]"}
+                            {loadingVenda? "Finalizar [Enter]" : "Finalizar [Enter]"}
                         </Button>
                     </div>
                 </div>
