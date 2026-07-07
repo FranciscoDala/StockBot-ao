@@ -45,9 +45,9 @@ export type Produto = {
     imagem_url?: string;
     codigo_barras?: string | null;
     loja_id?: string;
-    categoria_id?: string | null;
+    categoria_id?: string | number | null; // <- MUDOU AQUI
     localizacao?: string;
-    fornecedor_id?: string | null;
+    fornecedor_id?: string | number | null;
     data_validade?: string;
     ncm?: string;
     peso_kg?: number | null;
