@@ -225,7 +225,7 @@ export default function LoginPage() {
             <div className="w-full max-w-sm space-y-6 rounded-2xl border-zinc-800 bg-zinc-950 p-8 shadow-2xl shadow-green-900/20">
                 <div className="flex flex-col items-center gap-2">
                     <Store className="h-10 w-10 text-green-500" />
-                    <h1 className="text-2xl font-bold text-white">stockbot</h1>
+                    <h1 className="text-2xl font-bold text-white">stockbot-ao</h1>
                     <p className="text-sm text-zinc-400">use: admin@stockbot.ao / admin123</p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">

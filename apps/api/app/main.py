@@ -55,7 +55,7 @@ app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_
 
 # CORS CORRIGIDO - URL CERTA DO FRONTEND
 origins = [
-    "https://stockbot-ao-production.up.railway.app", # <- URL CORRETA DO FRONTEND
+    "gentle-playfulness-production-d333.up.railway.app", # <- URL CORRETA DO BACKEND
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
