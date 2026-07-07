@@ -53,21 +53,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
 
-# CORS CORRIGIDO - LENDO DA VAR E FORÇANDO URL DO FRONT
-allowed = []
-if hasattr(settings, "ALLOWED_ORIGINS") and settings.ALLOWED_ORIGINS:
-    if isinstance(settings.ALLOWED_ORIGINS, str):
-        allowed.append(settings.ALLOWED_ORIGINS)
-    else:
-        allowed.extend(settings.ALLOWED_ORIGINS)
-
-default_origins = [
+# CORS CORRIGIDO - URL CERTA DO FRONTEND
+origins = [
+    "https://stockbot-ao-production.up.railway.app", # <- URL CORRETA DO FRONTEND
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://gentle-playfulness-production-d333.up.railway.app", # URL do frontend
 ]
 
-origins = list(set(default_origins + allowed))
 logger.info(f"CORS liberado para: {origins}")
 
 app.add_middleware(
@@ -76,6 +68,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"]
 )
 
 @app.exception_handler(Exception)
