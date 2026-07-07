@@ -27,6 +27,8 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     ...options,
     headers,
     body,
+    credentials: "include", // <- ADICIONA ESSA LINHA AQUI
+    mode: "cors", // <- E ESSA TAMBÉM PRA GARANTIR
   });
 
   if (res.status === 401 || res.status === 403) {
