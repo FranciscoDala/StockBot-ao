@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadCloud, X, Loader2, DollarSign, Package, Image as ImageIcon, QrCode, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { Produto } from "../modals/ProdutoModal";
+// import { Produto } from "../modals/ProdutoModal"; // REMOVIDO - causava import circular
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const API_BASE = API_URL.replace('/api/v1', '');
@@ -27,6 +27,23 @@ const gerarSkuAleatorio = () => {
     }
     return result;
 };
+
+// Adicionei o type aqui pra não quebrar o Props
+type Produto = {
+    id?: string;
+    nome: string;
+    descricao?: string;
+    sku?: string;
+    marca?: string;
+    preco: number;
+    preco_custo?: number;
+    estoque?: number;
+    estoque_minimo?: number;
+    unidade?: string;
+    is_active?: boolean;
+    imagem_url?: string;
+    codigo_barras?: string | null;
+}
 
 interface Props {
     open: boolean;
