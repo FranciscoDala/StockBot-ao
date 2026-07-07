@@ -98,7 +98,7 @@ export default async function CompanyDetailPage({
 
                 <TabsContent value="dados" className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mt-6">
                     <Card className="bg-card border-border text-card-foreground">
-                        <CardHeader><CardTitle className="text-base">Informações Base</CardTitle></CardHeader>
+                        <CardHeader><CardTitle className="text-base">Informações</CardTitle></CardHeader>
                         <CardContent className="space-y-2 text-sm">
                             <p><span className="text-muted-foreground">Slug:</span> {company.slug}</p>
                             <p><span className="text-muted-foreground">Ano Fundação:</span> {company.ano_fundacao}</p>
