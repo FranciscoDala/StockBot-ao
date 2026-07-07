@@ -90,7 +90,10 @@ export type Loja = {
 }
 export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
 
-export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: string; role: UserRole; is_active: boolean; }
+// TYPE QUE VEM DO BACKEND - ACEITA NULL
+export type UsuarioLojaPage = { id: string; nome: string; email: string; telefone?: string | null; role: UserRole; is_active: boolean; }
+
+export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: string; role: UserRole; is_active: boolean; } // <- TYPE DO MODAL
 
 export type userread = { id: string; nome: string; email: string; nivel: "admin" | "gerente" | "vendedor" | "dono"; loja?: Loja | null; loja_id?: string | null; }
 
@@ -158,7 +161,7 @@ export default function LojaPage() {
 
     const [activeTab, setActiveTab] = useState("dados");
 
-    const [equipa, setEquipa] = useState<UsuarioLoja[]>([]);
+    const [equipa, setEquipa] = useState<UsuarioLojaPage[]>([]); // <- USA TYPE DO PAGE
     const [editingUser, setEditingUser] = useState<UsuarioLoja | null>(null);
     const [formDataUser, setFormDataUser] = useState({ nome: "", telefone: "", role: "VENDEDOR" as UserRole, is_active: true });
     const [detalhesUser, setDetalhesUser] = useState<any>(null);
@@ -198,7 +201,7 @@ export default function LojaPage() {
     const [showConfirmarFinalizar, setShowConfirmarFinalizar] = useState(false);
     const [loadingVenda, setLoadingVenda] = useState(false);
 
-    const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar' | 'adicionar', entidade: 'user' | 'produto', data?: UsuarioLoja | ProdutoType } | null>(null); // <- AJUSTE 3
+    const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar' | 'adicionar', entidade: 'user' | 'produto', data?: UsuarioLojaPage | ProdutoType } | null>(null); // <- AJUSTE 3
 
     // 3. TIPAGEM FORTE AQUI
     const [showVendaSucessoModal, setShowVendaSucessoModal] = useState(false);
@@ -408,9 +411,14 @@ export default function LojaPage() {
     };
 
     const handleAddUserClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'user' }); openModal('user'); }
-    const handleEditUserClick = (u: UsuarioLoja) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', data: u }); openModal('user', u); }
-    const handleDeleteUserClick = (u: UsuarioLoja) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', data: u }); setShowPermissaoModal(true); }
-    const handleViewUserClick = async (u: UsuarioLoja) => {
+    // 3 FUNÇÕES AJUSTADAS AQUI ABAIXO
+    const handleEditUserClick = (u: UsuarioLojaPage) => {
+        const userConvertido: UsuarioLoja = { ...u, telefone: u.telefone ?? undefined };
+        setAcaoPendente({ tipo: 'editar', entidade: 'user', data: u });
+        openModal('user', userConvertido);
+    }
+    const handleDeleteUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', data: u }); setShowPermissaoModal(true); }
+    const handleViewUserClick = async (u: UsuarioLojaPage) => {
         if (!token || !slug) return;
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/${slug}/usuarios/${u.id}/detalhes`, token);
@@ -442,7 +450,7 @@ export default function LojaPage() {
                     await fetchEquipa(token);
                 }
                 if (tipo === 'editar' && data) {
-                    const userData = data as UsuarioLoja;
+                    const userData = data as UsuarioLojaPage;
                     await fetchComAuth(`${API_URL}/lojas/${slug}/usuarios/${userData.id}`, token, {
                         method: "PATCH",
                         body: JSON.stringify({
@@ -455,7 +463,7 @@ export default function LojaPage() {
                     await fetchEquipa(token);
                 }
                 if (tipo === 'apagar' && data) {
-                    const userData = data as UsuarioLoja;
+                    const userData = data as UsuarioLojaPage;
                     await fetchComAuth(`${API_URL}/lojas/${slug}/usuarios/${userData.id}`, token, {
                         method: "DELETE",
                         body: JSON.stringify({ senha_dono })
@@ -661,6 +669,7 @@ export default function LojaPage() {
 
                     loja_nome={loja?.nome || "MINHA LOJA"}
                     loja_nif={loja?.nif || ""} // <- já vai pegar quando tu criar no banco
+
                     loja_endereco={loja?.endereco || ""}
                     loja_telefone={loja?.telefone || ""} // <- já vai pegar
                     loja_logo={loja?.logo_url || ""} // <- já vai pegar
