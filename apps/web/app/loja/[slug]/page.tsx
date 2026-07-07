@@ -268,7 +268,8 @@ export default function LojaPage() {
     }, [carrinho, formaPagamento, valorRecebido, subtotal]);
 
     const adicionarAoCarrinho = (produto: Produto) => {
-        if (produto.estoque <= 0) { toast.error("Produto sem estoque"); return; }
+        if ((produto.estoque ?? 0) <= 0) { toast.error("Produto sem estoque"); return; }
+
         setCarrinho(prev => {
             const itemExistente = prev.find(item => item.id === produto.id);
             if (itemExistente) {
