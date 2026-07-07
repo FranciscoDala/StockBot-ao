@@ -5,7 +5,19 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
-import { UserRole, UsuarioLoja } from "../../page";
+
+// REMOVIDO import de page. Declarado aqui pra exportar
+export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
+
+export type UsuarioLoja = {
+  id: string;
+  nome: string;
+  email?: string;
+  telefone?: string;
+  role: UserRole;
+  is_active: boolean;
+  vendas_total?: number;
+}
 
 interface Props {
     open: boolean;
