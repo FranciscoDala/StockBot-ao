@@ -33,3 +33,15 @@ uvicorn[standard]
 pydantic
 python-multipart
 python-dotenv
+
+
+
+
+variavel de ambiente
+
+DATABASE_URL=postgresql+asyncpg://neondb_owner:npg_CGnUbs41DYfV@ep-solitary-haze-at4kcyv7-pooler.c-9.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+JWT_SECRET=stockbot-dev-secret-2026
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+ALLOWED_ORIGINS=["http://localhost:3000"]
+PORT=8000
