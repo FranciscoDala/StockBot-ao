@@ -127,14 +127,14 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
         ))
     return out
 
-@router.get("/donos/", response_model=List[DonoOut])
+@router.get("/donos", response_model=List[DonoOut])
 async def listar_donos(db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     stmt = select(Usuario).join(UsuarioLoja).where(UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True, Usuario.is_active == True).order_by(Usuario.nome).distinct()
     donos = (await db.execute(stmt)).scalars().all()
     return [DonoOut.model_validate(d) for d in donos]
 
 
-@router.get("/minhas/")
+@router.get("/minhas")
 async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     # ADMIN NÃO TEM LOJAS. Retorna vazio pra não mostrar tela de seleção
     if current_user.is_superuser:
