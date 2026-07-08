@@ -270,7 +270,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                             <Input value={formData.dono.nome} onChange={e => handleDonoChange('nome', e.target.value)} className="col-span-3 bg-background" />
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
-                                            <Label className="text-right">Email</Label>
+                                            <Label className="text-right">E-mail</Label>
                                             <Input type="email" value={formData.dono.email} onChange={e => handleDonoChange('email', e.target.value)} className="col-span-3 bg-background" />
                                         </div>
                                         <div className="grid grid-cols-4 items-center gap-4">
