@@ -226,7 +226,6 @@ export default function LoginPage() {
                 <div className="flex flex-col items-center gap-2">
                     <Store className="h-10 w-10 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot-ao</h1>
-                    <p className="text-sm text-zinc-400">use: admin@stockbot.ao / admin123</p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">

@@ -133,17 +133,19 @@ async def listar_donos(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
     donos = (await db.execute(stmt)).scalars().all()
     return [DonoOut.model_validate(d) for d in donos]
 
+
 @router.get("/minhas")
 async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    # ADMIN NÃO TEM LOJAS. Retorna vazio pra não mostrar tela de seleção
     if current_user.is_superuser:
-        stmt = select(Loja).where(Loja.is_active == True).order_by(Loja.nome)
-        result = await db.execute(stmt)
-        lojas = result.scalars().all()
-    else:
-        stmt = select(Loja).join(UsuarioLoja).where(UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.is_active == True, Loja.is_active == True).order_by(Loja.nome)
-        result = await db.execute(stmt)
-        lojas = result.scalars().all()
+        return []
+
+    stmt = select(Loja).join(UsuarioLoja).where(UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.is_active == True, Loja.is_active == True).order_by(Loja.nome)
+    result = await db.execute(stmt)
+    lojas = result.scalars().all()
+
     return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at} for l in lojas]
+
 
 @router.get("/{slug}", response_model=LojaDetailOut)
 async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
