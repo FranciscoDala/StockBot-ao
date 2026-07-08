@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, APIRouter, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware  # <- ADICIONADO
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -51,7 +52,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
     logger.info("api a desligar...")
 
-app = FastAPI(title="stockbot ao api", version="1.0.0", lifespan=lifespan, docs_url="/docs")
+app = FastAPI(
+    title="stockbot ao api",
+    version="1.0.0",
+    lifespan=lifespan,
+    docs_url="/docs",
+    root_path="/api/v1" # <- MANTIVE COMO ESTAVA
+)
 
 # CORS CORRIGIDO - URL DO FRONTEND
 origins = [
@@ -62,15 +69,21 @@ origins = [
 
 logger.info(f"CORS liberado para: {origins}")
 
+# 1. Primeiro: Confiar no Proxy do Railway
+app.add_middleware(
+    TrustedHostMiddleware,  # <- ADICIONADO
+    allowed_hosts=["*"]
+)
+
+# 2. Segundo: CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS, # <- USA O SETTINGS
+    allow_origins=origins, # <- MUDEI DE settings.ALLOWED_ORIGINS PARA origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
-
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
