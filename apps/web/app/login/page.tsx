@@ -7,7 +7,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Toaster, toast } from "sonner"; // <- adicionei toast
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? "https://gentle-playfulness-production-d333.up.railway.app/api/v1" : "http://127.0.0.1:8000/api/v1");
+
+const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  ? "http://127.0.0.1:8000/api/v1" // Local
+  : "https://gentle-playfulness-production-d333.up.railway.app/api/v1"; // Produção HTTPS
+
 
 
 
@@ -48,7 +52,7 @@ const setCookie = (name: string, value: string, days = 7) => {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     const isProd = process.env.NODE_ENV === 'production';
     const secure = isProd ? '; Secure' : '';
-    const sameSite = isProd ? '; SameSite=None' : '; SameSite=Lax'; // <- MUDOU SÓ ISSO
+    const sameSite = isProd ? '; SameSite=None' : '; SameSite=Lax';
     document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${secure}${sameSite}`;
 };
 

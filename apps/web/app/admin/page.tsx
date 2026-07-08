@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import AdminClient from "./_components/AdminClient";
 
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? "https://gentle-playfulness-production-d333.up.railway.app/api/v1" : "http://127.0.0.1:8000/api/v1");
+const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
+  ? "http://127.0.0.1:8000/api/v1" // Local
+  : "https://gentle-playfulness-production-d333.up.railway.app/api/v1"; // Produção HTTPS
 
-
-const getCookie = (name: string): string | undefined => { // <- MUDANÇA 2: helper aqui
+const getCookie = (name: string): string | undefined => {
     if (typeof window === "undefined") return undefined;
-    return document.cookie.split('; ').reduce((r, v) => {
-        const parts = v.split('=');
-        return parts[0] === name? decodeURIComponent(parts[1]) : r;
-    }, '');
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match? decodeURIComponent(match[2]) : undefined;
 };
 
 export default function AdminDashboard() {
