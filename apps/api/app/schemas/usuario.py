@@ -25,7 +25,7 @@ class UserRead(BaseModel):
     criado_em: datetime = Field(alias="created_at")
 
     nivel: Optional[str] = None
-    role: Optional[Role] = None # troquei pra Role em vez de str pra bater com o model
+    role: Optional[Role] = None # já está certo
     loja_id: Optional[UUID] = None
     loja: Optional[Any] = None
 
