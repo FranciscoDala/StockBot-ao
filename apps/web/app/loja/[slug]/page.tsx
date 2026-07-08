@@ -122,7 +122,7 @@ const deleteCookie = (name: string) => { if (typeof window === "undefined") retu
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 
-const fetchComAuth = async (url: string, token: string, onLogout: () => void, options: RequestInit = {}) => {
+const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {
         ...options,
         headers: {
@@ -134,13 +134,8 @@ const fetchComAuth = async (url: string, token: string, onLogout: () => void, op
         cache: "no-store"
     });
 
-    // Se token expirou ou é inválido, desloga
-    if (res.status === 401) {
-        onLogout(); // <- agora usa o callback
-        throw new Error("Sessão expirada");
-    }
-
     if (!res.ok) {
+        if (res.status === 401) throw new Error("UNAUTHORIZED"); // <- MUDANÇA UNICA AQUI
         const errorText = await res.text();
         try {
             throw new Error(formatError(JSON.parse(errorText)));
@@ -155,6 +150,7 @@ const fetchComAuth = async (url: string, token: string, onLogout: () => void, op
 
     return await res.json();
 }
+
 
 
 
