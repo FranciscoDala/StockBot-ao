@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Toaster, toast } from "sonner"; // <- adicionei toast
 
 
-const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-  ? "http://127.0.0.1:8000/api/v1" // Local
-  : "https://gentle-playfulness-production-d333.up.railway.app/api/v1"; // Produção HTTPS
-
-
+const API_URL = process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? "http://127.0.0.1:8000/api/v1"
+    : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
 
 
 const MENSAGEM_LOJA_DESATIVADA = "a sua loja foi desativada, vá até o escritório ou entra em contacto com o admin da stocckbot.\n\ncontacto:\ne-mail: stockbot26@gmail.com\nwhatsapp: +244930438947";
