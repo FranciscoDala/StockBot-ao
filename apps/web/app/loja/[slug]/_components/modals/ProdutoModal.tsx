@@ -12,6 +12,7 @@ import { UploadCloud, X, Loader2, DollarSign, Package, Image as ImageIcon, QrCod
 import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+
 const API_BASE = API_URL.replace('/api/v1', '');
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

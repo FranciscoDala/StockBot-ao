@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Toaster, toast } from "sonner"; // <- adicionei toast
 
-const API_URL = "http://127.0.0.1:8000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 const MENSAGEM_LOJA_DESATIVADA = "a sua loja foi desativada, vá até o escritório ou entra em contacto com o admin da stocckbot.\n\ncontacto:\ne-mail: stockbot26@gmail.com\nwhatsapp: +244930438947";
 

@@ -56,7 +56,7 @@ type FormData = {
     adminSenha: string;
 };
 
-const API_URL = "http://127.0.0.1:8000/api/v1";
+const API_URL = "   process.env.NEXT_PUBLIC_API_URL";
 const LOGIN_ROUTE = "/login";
 const emptyForm: FormData = {
     nome: "", slug: "", is_active: true, endereco: "",
