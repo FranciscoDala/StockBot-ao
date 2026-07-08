@@ -110,7 +110,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         if (!token) return handleTerminarSessao();
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/lojas`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+            const res = await fetch(`${API_URL}/lojas/`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
             if (res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setLojas(Array.isArray(data)? data : data.data?? data.lojas?? []);
@@ -121,7 +121,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         const token = getCookie("token");
         if (!token) return;
         try {
-            const res = await fetch(`${API_URL}/lojas/donos`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+            const res = await fetch(`${API_URL}/lojas/donos/`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
             if (!res.ok) return setDonos([]);
             const data = await res.json();
             setDonos(data);
