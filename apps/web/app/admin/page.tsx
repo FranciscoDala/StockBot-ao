@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminClient from "./_components/AdminClient";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? "https://gentle-playfulness-production-d333.up.railway.app/api/v1" : "http://127.0.0.1:8000/api/v1");
+
 
 const getCookie = (name: string): string | undefined => { // <- MUDANÇA 2: helper aqui
     if (typeof window === "undefined") return undefined;

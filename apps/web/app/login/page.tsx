@@ -7,7 +7,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Toaster, toast } from "sonner"; // <- adicionei toast
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'production' ? "https://gentle-playfulness-production-d333.up.railway.app/api/v1" : "http://127.0.0.1:8000/api/v1");
+
+
 
 const MENSAGEM_LOJA_DESATIVADA = "a sua loja foi desativada, vá até o escritório ou entra em contacto com o admin da stocckbot.\n\ncontacto:\ne-mail: stockbot26@gmail.com\nwhatsapp: +244930438947";
 
@@ -44,9 +46,10 @@ type LoginResponse = {
 
 const setCookie = (name: string, value: string, days = 7) => {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    const secure = process.env.NODE_ENV === 'production'? '; Secure' : '';
-    // ADICIONADO: HttpOnly não dá pra setar via JS. Mas Domain e Path ajudam
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax${secure}`;
+    const isProd = process.env.NODE_ENV === 'production';
+    const secure = isProd ? '; Secure' : '';
+    const sameSite = isProd ? '; SameSite=None' : '; SameSite=Lax'; // <- MUDOU SÓ ISSO
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${secure}${sameSite}`;
 };
 
 /**
