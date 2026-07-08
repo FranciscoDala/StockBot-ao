@@ -121,17 +121,24 @@ const deleteCookie = (name: string) => { if (typeof window === "undefined") retu
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
+
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {
         ...options,
         headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`, // <- TOKEN SENDO ENVIADO CORRETO
             ...options.headers
         },
         credentials: 'include',
         cache: "no-store"
     });
+
+    // NOVO: Se token expirou ou é inválido, desloga
+    if (res.status === 401) {
+        handleSair(); // <- limpa cookie e manda pro login
+        throw new Error("Sessão expirada");
+    }
 
     if (!res.ok) {
         const errorText = await res.text();
@@ -148,6 +155,8 @@ const fetchComAuth = async (url: string, token: string, options: RequestInit = {
 
     return await res.json();
 }
+
+
 
 export default function LojaPage() {
     const router = useRouter();

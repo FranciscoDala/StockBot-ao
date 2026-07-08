@@ -15,7 +15,7 @@ const ROUTES = {
     ADMIN: "/admin",
     VENDEDOR: "/loja",
     LOGIN: "/login",
-    SELECT_LOJA_ADMIN: "/admin/lojas", // <- dono/gerente
+    SELECT_LOJA_GESTOR: "/escolher-loja", // <- MUDANÇA 1: era SELECT_LOJA_ADMIN: "/admin/lojas"
     SELECT_LOJA_FUNC: "/select-loja" // <- funcionario
 };
 
@@ -98,7 +98,7 @@ export default function LoginPage() {
     const safeRedirect = (user: UserData) => {
         if (user.is_superuser || user.nivel === "admin") return router.replace(ROUTES.ADMIN);
         if (user.nivel === "vendedor") return router.replace(ROUTES.VENDEDOR);
-        if (user.nivel === "dono" || user.nivel === "gerente") return router.replace(ROUTES.SELECT_LOJA_ADMIN);
+        if (user.nivel === "dono" || user.nivel === "gerente") return router.replace(ROUTES.SELECT_LOJA_GESTOR); // <- MUDANÇA 2: era SELECT_LOJA_ADMIN
 
         setError("Erro no servidor: usuario sem nivel. Fala com o dev.");
         clearAllAuthCookies();
@@ -164,7 +164,7 @@ export default function LoginPage() {
                 redirectedRef.current = true;
 
                 const isGestor = data.user.nivel === "dono" || data.user.nivel === "gerente" || data.user.is_superuser;
-                return router.replace(isGestor? ROUTES.SELECT_LOJA_ADMIN : ROUTES.SELECT_LOJA_FUNC);
+                return router.replace(isGestor? ROUTES.SELECT_LOJA_GESTOR : ROUTES.SELECT_LOJA_FUNC); // <- MUDANÇA 3: era SELECT_LOJA_ADMIN
             }
 
             // REGRA 1: ADMIN SEMPRE VAI DIRETO
@@ -226,6 +226,7 @@ export default function LoginPage() {
                 <div className="flex flex-col items-center gap-2">
                     <Store className="h-10 w-10 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot-ao</h1>
+                    <p className="text-sm text-zinc-400">use: admin@stockbot.ao / admin123</p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">
