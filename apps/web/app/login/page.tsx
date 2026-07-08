@@ -41,10 +41,11 @@ type LoginResponse = {
  * FUNÇÃO: setCookie
  * Salva um cookie no navegador
  */
+
 const setCookie = (name: string, value: string, days = 7) => {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    // Secure só em produção
     const secure = process.env.NODE_ENV === 'production'? '; Secure' : '';
+    // ADICIONADO: HttpOnly não dá pra setar via JS. Mas Domain e Path ajudam
     document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax${secure}`;
 };
 
