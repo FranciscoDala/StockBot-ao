@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "stockbot-dev-secret-2026"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000" # MUDOU: era List[str], agora é str
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,https://stockbot-ao-production.up.railway.app"
     BASE_URL: str = ""
 
     model_config = SettingsConfigDict(extra="ignore", case_sensitive=False)
