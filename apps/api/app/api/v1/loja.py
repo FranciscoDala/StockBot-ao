@@ -9,16 +9,16 @@ import re
 import unicodedata
 from datetime import datetime
 
-from  app.db.session import get_db
-from  app.models.loja import Loja
-from  app.models.usuario import Usuario
-from  app.models.usuario_loja import UsuarioLoja
-from  app.models.role import UserRole
-from  app.schemas.loja import LojaDetailOut, LojaCreateIn, LojaUpdateIn, DonoOut, DonoUpdateIn, GerenteOut
-from  app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
-from  app.core.deps import get_current_admin, get_current_user, verificar_acesso_loja
-from  app.core.security import verify_password, get_password_hash
-from  app.crud import loja as crud_loja
+from app.db.session import get_db
+from app.models.loja import Loja
+from app.models.usuario import Usuario
+from app.models.usuario_loja import UsuarioLoja
+from app.models.role import UserRole
+from app.schemas.loja import LojaDetailOut, LojaCreateIn, LojaUpdateIn, DonoOut, DonoUpdateIn, GerenteOut
+from app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
+from app.core.deps import get_current_admin, get_current_user, verificar_acesso_loja
+from app.core.security import verify_password, get_password_hash
+from app.crud import loja as crud_loja
 
 router = APIRouter()
 
@@ -112,7 +112,7 @@ def map_usuario_to_gerente_out(usuario: Usuario | None, membro: UsuarioLoja | No
 def map_usuario_loja_out(usuario: Usuario, membro: UsuarioLoja) -> UsuarioLojaOut:
     return UsuarioLojaOut(id=usuario.id, nome=usuario.nome, email=usuario.email, telefone=usuario.telefone, role=membro.role, is_active=membro.is_active, loja_id=membro.loja_id)
 
-@router.get("/", response_model=List[LojaDetailOut])
+@router.get("", response_model=List[LojaDetailOut]) # <- MUDEI: TIREI A /
 async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     lojas = (await db.execute(select(Loja).order_by(Loja.nome))).scalars().all()
     out = []
@@ -122,19 +122,18 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
         total = (await db.execute(count_stmt)).scalar_one()
         out.append(LojaDetailOut(
             id=l.id, nome=l.nome, slug=l.slug, is_active=l.is_active, created_at=l.created_at,
-            endereco=l.endereco, nif=l.nif, telefone=l.telefone, logo_url=l.logo_url, # <- ADICIONEI
+            endereco=l.endereco, nif=l.nif, telefone=l.telefone, logo_url=l.logo_url,
             gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
         ))
     return out
 
-@router.get("/donos", response_model=List[DonoOut])
+@router.get("/donos", response_model=List[DonoOut]) # <- MUDEI: TIREI A /
 async def listar_donos(db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     stmt = select(Usuario).join(UsuarioLoja).where(UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True, Usuario.is_active == True).order_by(Usuario.nome).distinct()
     donos = (await db.execute(stmt)).scalars().all()
     return [DonoOut.model_validate(d) for d in donos]
 
-
-@router.get("/minhas")
+@router.get("/minhas") # <- MUDEI: TIREI A /
 async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     # ADMIN NÃO TEM LOJAS. Retorna vazio pra não mostrar tela de seleção
     if current_user.is_superuser:
@@ -146,7 +145,6 @@ async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: 
 
     return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at} for l in lojas]
 
-
 @router.get("/{slug}", response_model=LojaDetailOut)
 async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
@@ -157,11 +155,11 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
     total = (await db.execute(count_stmt)).scalar_one()
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
-        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url, # <- ADICIONEI
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
-@router.post("/", response_model=LojaDetailOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=LojaDetailOut, status_code=status.HTTP_201_CREATED) # <- MUDEI: TIREI A /
 async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     if (await db.execute(select(Loja).where(Loja.slug == body.slug))).scalar_one_or_none(): raise HTTPException(status_code=400, detail="Slug já existe")
     try: loja = await crud_loja.create_loja(db=db, loja_in=body)
@@ -170,7 +168,7 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
     dono, membro = await get_dono_loja(db, loja.id)
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
-        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url, # <- ADICIONEI
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=1
     )
 
@@ -215,7 +213,7 @@ async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSes
     total = (await db.execute(count_stmt)).scalar_one()
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
-        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url, # <- ADICIONEI
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
