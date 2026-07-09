@@ -108,15 +108,6 @@ def map_usuario_to_gerente_out(usuario: Usuario | None, membro: UsuarioLoja | No
 def map_usuario_loja_out(usuario: Usuario, membro: UsuarioLoja) -> UsuarioLojaOut:
     return UsuarioLojaOut(id=usuario.id, nome=usuario.nome, email=usuario.email, telefone=usuario.telefone, role=membro.role, is_active=membro.is_active, loja_id=membro.loja_id)
 
-
-
-
-
-
-
-
-
-
 @router.get("", response_model=List[LojaDetailOut])
 async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     lojas = (await db.execute(select(Loja).order_by(Loja.nome))).scalars().all()
@@ -179,7 +170,6 @@ async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_u
 
     return lojas_out
 
-
 # ADICIONADO: Buscar por ID pra evitar problema de slug com acento
 @router.get("/id/{loja_id}", response_model=LojaDetailOut)
 async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -194,9 +184,6 @@ async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
-
-
-
 
 @router.get("/{slug}", response_model=LojaDetailOut)
 async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -310,19 +297,20 @@ async def apagar_loja(loja_id: UUID, body: AdminAuth, db: AsyncSession = Depends
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao apagar loja: {e}")
 
-@router.get("/{slug}/usuarios", response_model=List[UsuarioLojaOut])
-async def listar_usuarios_loja(slug: str, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
-    if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+# ROTAS DE USUARIO AJUSTADAS PARA USAR loja_id
+@router.get("/id/{loja_id}/usuarios", response_model=List[UsuarioLojaOut])
+async def listar_usuarios_loja(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    loja = await db.get(Loja, loja_id)
+    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
     await verificar_acesso_loja(loja.id, db, current_user)
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id).where(UsuarioLoja.loja_id == loja.id)
     result = (await db.execute(stmt)).all()
     return [map_usuario_loja_out(u, ul) for u, ul in result]
 
-@router.post("/{slug}/usuarios", response_model=UsuarioLojaOut, status_code=201)
-async def adicionar_usuario_loja(slug: str, body: UsuarioLojaCreateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
-    if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+@router.post("/id/{loja_id}/usuarios", response_model=UsuarioLojaOut, status_code=201)
+async def adicionar_usuario_loja(loja_id: UUID, body: UsuarioLojaCreateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    loja = await db.get(Loja, loja_id)
+    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
     await verificar_acesso_loja(loja.id, db, current_user)
     await verify_dono_password(db, loja.id, body.senha_dono, body.senha_confirmacao)
 
@@ -347,10 +335,10 @@ async def adicionar_usuario_loja(slug: str, body: UsuarioLojaCreateWithAuth, db:
     await db.refresh(usuario)
     return map_usuario_loja_out(usuario, novo_membro)
 
-@router.patch("/{slug}/usuarios/{usuario_id}", response_model=UsuarioLojaOut)
-async def atualizar_usuario_loja(slug: str, usuario_id: UUID, body: UsuarioLojaUpdateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
-    if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+@router.patch("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut)
+async def atualizar_usuario_loja(loja_id: UUID, usuario_id: UUID, body: UsuarioLojaUpdateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    loja = await db.get(Loja, loja_id)
+    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
     await verificar_acesso_loja(loja.id, db, current_user)
     await verify_dono_password(db, loja.id, body.senha_dono, body.senha_confirmacao)
 
@@ -378,10 +366,10 @@ async def atualizar_usuario_loja(slug: str, usuario_id: UUID, body: UsuarioLojaU
     await db.refresh(usuario)
     return map_usuario_loja_out(usuario, membro)
 
-@router.delete("/{slug}/usuarios/{usuario_id}", status_code=204)
-async def remover_usuario_loja(slug: str, usuario_id: UUID, body: AcaoSensivelAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
-    if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+@router.delete("/id/{loja_id}/usuarios/{usuario_id}", status_code=204)
+async def remover_usuario_loja(loja_id: UUID, usuario_id: UUID, body: AcaoSensivelAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    loja = await db.get(Loja, loja_id)
+    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
     await verificar_acesso_loja(loja.id, db, current_user)
     await verify_dono_password(db, loja.id, body.senha_dono, body.senha_dono)
 
@@ -405,10 +393,10 @@ async def remover_usuario_loja(slug: str, usuario_id: UUID, body: AcaoSensivelAu
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao remover: {e}")
 
-@router.get("/{slug}/usuarios/{usuario_id}/detalhes")
-async def get_detalhes_usuario(slug: str, usuario_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
-    if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+@router.get("/id/{loja_id}/usuarios/{usuario_id}/detalhes")
+async def get_detalhes_usuario(loja_id: UUID, usuario_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    loja = await db.get(Loja, loja_id)
+    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
     await verificar_acesso_loja(loja.id, db, current_user)
     usuario = await db.get(Usuario, usuario_id)
     membro = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == usuario_id))).scalar_one_or_none()
