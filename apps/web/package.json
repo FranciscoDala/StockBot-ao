@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "node index.js",
     "lint": "eslint",
-    "start:next": "next start"
+    "start:next": "next start",
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
