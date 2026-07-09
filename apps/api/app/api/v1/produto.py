@@ -104,7 +104,7 @@ async def gerar_sku_unico(db: AsyncSession, loja_id: UUID) -> str:
         if not existing.scalar_one_or_none():
             return sku
 
-@router.post("/", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
+@router.post("", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depends(get_db)):
     loja_id = produto.loja_id
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório")
@@ -148,7 +148,7 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
     await db.refresh(novo)
     return to_schema(novo)
 
-@router.get("/", response_model=list[ProdutoOut], dependencies=[Depends(get_current_user)])
+@router.get("", response_model=list[ProdutoOut], dependencies=[Depends(get_current_user)])
 async def listar_produtos(loja_id: UUID, db: AsyncSession = Depends(get_db)):
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
     stmt = select(Produto).where(Produto.loja_id == loja_id, Produto.deleted_at.is_(None)).order_by(Produto.nome)
