@@ -45,20 +45,39 @@ client.on('ready', () => console.log('✅ WhatsApp Conectado!'));
 
 // ROTA PRA API CHAMAR
 app.post('/send', async (req, res) => {
-    console.log("CHEGOU NA ROTA /send", req.body);
+    console.log("=====================================");
+    console.log("ROTA /send CHAMADA - V4 DEBUG");
+    console.log("Body recebido:", JSON.stringify(req.body));
+    console.log("=====================================");
+
     const { to, message } = req.body;
-    if(!to ||!message) return res.status(400).json({error: "Falta 'to' ou 'message'"});
+
+    if(!to || !message) {
+        console.log("ERRO: Faltando 'to' ou 'message'");
+        return res.status(400).json({error: "Falta 'to' ou 'message'"});
+    }
 
     const numero = String(to).replace(/\D/g, '');
-    const chatId = `${numero}@c.us`;
+    const chatId = numero + "@c.us";
+    console.log("Numero limpo:", numero);
+    console.log("ChatId montado:", chatId);
+    console.log("Client status:", client ? "OK" : "UNDEFINED");
+    console.log("Client.sendMessage existe:", typeof client.sendMessage);
 
     try {
-        await client.sendMessage(chatId, message);
-        console.log(`OK: Mensagem enviada para ${chatId}`);
-        return res.status(200).json({status: "ok"});
+        console.log("Tentando enviar mensagem...");
+        // FORÇAR ERRO AQUI SE TIVER getChatById
+        const result = await client.sendMessage(chatId, message);
+        console.log("SUCESSO: Mensagem enviada. ID:", result.id._serialized);
+        return res.status(200).json({status: "ok", id: result.id._serialized});
+
     } catch (e) {
-        console.error("ERRO AO ENVIAR:", e.message);
-        return res.status(500).json({error: e.message});
+        console.log("=====================================");
+        console.log("ERRO PEGO NO CATCH:");
+        console.log("Mensagem:", e.message);
+        console.log("Stack:", e.stack);
+        console.log("=====================================");
+        return res.status(500).json({error: e.message, stack: e.stack});
     }
 });
 
