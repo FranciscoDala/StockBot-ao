@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, APIRouter, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware  # <- ADICIONADO
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -15,8 +15,19 @@ from app.core.config import settings
 from app.models.usuario import Usuario
 from app.schemas.usuario import userread, Role
 
+# NOVO: Cloudinary
+import cloudinary
+import cloudinary.uploader
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+# NOVO: Configura Cloudinary na subida da API
+cloudinary.config(
+    cloud_name = "d7dtiurw",
+    api_key = "598914546743518",
+    api_secret = "GxBW2UtKsSr2nDDc0WwztUWU3w8"
+)
 
 def import_all_models():
     logger.info("forçando import de todos os models...")
@@ -57,28 +68,25 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",
-    root_path="/api/v1" # <- MANTIVE COMO ESTAVA
+    root_path="/api/v1"
 )
 
-# CORS CORRIGIDO - URL DO FRONTEND
 origins = [
-    "https://stockbot-ao-production.up.railway.app", # <- URL DO FRONTEND
+    "https://stockbot-ao-production.up.railway.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
 
 logger.info(f"CORS liberado para: {origins}")
 
-# 1. Primeiro: Confiar no Proxy do Railway
 app.add_middleware(
-    TrustedHostMiddleware,  # <- ADICIONADO
+    TrustedHostMiddleware,
     allowed_hosts=["*"]
 )
 
-# 2. Segundo: CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # <- MUDEI DE settings.ALLOWED_ORIGINS PARA origins
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -90,10 +98,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}")
     return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
 
-# ALTERADO AQUI: pasta para apps/api/uploads/produtos
-UPLOAD_DIR = Path("apps/api/uploads/produtos")
+# CORRIGIDO AQUI: agora é apps/uploads/produtos
+UPLOAD_DIR = Path("apps/uploads/produtos")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
-app.mount("/uploads", StaticFiles(directory="apps/api/uploads"), name="uploads") # <- serve a pasta toda
+app.mount("/uploads", StaticFiles(directory="apps/uploads"), name="uploads") # <- serve apps/uploads
 
 api_v1_router = APIRouter()
 
@@ -111,13 +119,56 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
         return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
 
     file_name = f"{uuid.uuid4()}.{extension}"
-    file_path = UPLOAD_DIR / file_name # <- agora salva em apps/api/uploads/produtos/
+    file_path = UPLOAD_DIR / file_name # <- salva em apps/uploads/produtos/
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
     base_url = os.getenv("BASE_URL", "https://gentle-playfulness-production-d333.up.railway.app")
-    url = f"{base_url}/uploads/produtos/{file_name}" # <- link atualizado
+    url = f"{base_url}/uploads/produtos/{file_name}" # <- link continua igual
     return {"url": url, "filename": file_name}
+
+# NOVO: Upload direto pro Cloudinary com otimizacao f_auto q_auto
+@api_v1_router.post("/upload/produto/cloudinary", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
+async def upload_produto_cloudinary(file: UploadFile = File(...)):
+    ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
+    MAX_FILE_SIZE = 5 * 1024 * 1024
+
+    extension = file.filename.split(".")[-1].lower()
+    if extension not in ALLOWED_EXTENSIONS:
+        return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
+
+    contents = await file.read()
+    if len(contents) > MAX_FILE_SIZE:
+        return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
+
+    try:
+        # Upload direto pro Cloudinary a partir dos bytes
+        upload_result = cloudinary.uploader.upload(
+            contents,
+            folder="stockbot/apps/uploads/produtos",
+            resource_type="image"
+        )
+
+        public_id = upload_result['public_id']
+
+        # Gera URL otimizada
+        optimized_url = cloudinary.CloudinaryImage(public_id).build_url(
+            fetch_format="auto",
+            quality="auto"
+        )
+
+        return {
+            "original_url": upload_result['secure_url'],
+            "optimized_url": optimized_url,
+            "public_id": public_id,
+            "width": upload_result['width'],
+            "height": upload_result['height'],
+            "format": upload_result['format'],
+            "size_bytes": upload_result['bytes']
+        }
+    except Exception as e:
+        logger.error(f"Erro no upload cloudinary: {e}")
+        return JSONResponse(status_code=500, content={"detail": f"Erro ao enviar para Cloudinary: {str(e)}"})
 
 @api_v1_router.get("/health", tags=["health"])
 async def health_check():
