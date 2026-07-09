@@ -7,19 +7,19 @@ from sqlalchemy.orm import selectinload
 from jose import jwt, JWTError, ExpiredSignatureError
 from uuid import UUID
 
-from  app.core.config import settings
-from  app.db.session import get_db
-from  app.models.usuario import Usuario
-from  app.models.loja import Loja
-from  app.models.usuario_loja import UsuarioLoja
-from  app.models.role import UserRole # <- CORRIGIDO 1
+from app.core.config import settings
+from app.db.session import get_db
+from app.models.usuario import Usuario
+from app.models.loja import Loja
+from app.models.usuario_loja import UsuarioLoja
+from app.models.role import UserRole
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 class Membership(TypedDict):
     user: Usuario
     loja_id: UUID | None
-    role: UserRole # <- CORRIGIDO 2
+    role: UserRole
     loja: Loja | None
 
 async def get_current_membership(
@@ -55,14 +55,19 @@ async def get_current_membership(
     if user.is_superuser:
         if role_str != "admin":
             raise credentials_exception
-        return {"user": user, "loja_id": None, "role": UserRole.DONO, "loja": None} # <- CORRIGIDO 3
+        return {"user": user, "loja_id": None, "role": UserRole.DONO, "loja": None}
 
+    # REGRA USUARIO NORMAL: OBRIGATORIO TER LOJA VINCULADA
     if not all([loja_id_str, role_str]):
-        raise credentials_exception
+        raise HTTPException(status_code=403, detail="Usuario sem loja vinculada")
 
     loja_id = UUID(loja_id_str)
-    role = UserRole(role_str) # <- CORRIGIDO 4
+    try:
+        role = UserRole(role_str)
+    except ValueError:
+        raise credentials_exception
 
+    # 1. Busca o vinculo UsuarioLoja + Loja
     stmt = select(UsuarioLoja).options(selectinload(UsuarioLoja.loja)).where(
         UsuarioLoja.usuario_id == user_id,
         UsuarioLoja.loja_id == loja_id,
@@ -70,12 +75,20 @@ async def get_current_membership(
     )
     membro = (await db.execute(stmt)).scalar_one_or_none()
     if not membro or membro.role != role:
-        raise HTTPException(status_code=403, detail="acesso negado a esta loja")
+        raise HTTPException(status_code=403, detail="Usuario sem loja vinculada")
 
-    if not membro.loja.is_active:
-        raise HTTPException(status_code=403, detail="loja desativada")
+    # 2. VALIDA SE A LOJA EXISTE E ESTA ATIVA
+    loja = membro.loja
+    if not loja:
+        raise HTTPException(status_code=403, detail="Loja nao encontrada")
 
-    return {"user": user, "loja_id": loja_id, "role": role, "loja": membro.loja}
+    if not loja.is_active:
+        raise HTTPException(status_code=403, detail="Loja desativada")
+
+    if hasattr(loja, 'deleted_at') and loja.deleted_at is not None: # <- BARRAR LOJA DELETADA
+        raise HTTPException(status_code=403, detail="Loja excluida")
+
+    return {"user": user, "loja_id": loja_id, "role": role, "loja": loja}
 
 async def get_current_user(m: Membership = Depends(get_current_membership)) -> Usuario:
     return m["user"]
@@ -92,7 +105,7 @@ async def get_current_admin(token: str = Depends(oauth2_scheme)) -> dict:
     except JWTError:
         raise HTTPException(status_code=401, detail="token invalido", headers={"WWW-Authenticate": "Bearer"})
 
-def require_role(*roles_permitidos: UserRole) -> Callable: # <- CORRIGIDO 5
+def require_role(*roles_permitidos: UserRole) -> Callable:
     def role_checker(m: Membership = Depends(get_current_membership)):
         if m["role"] not in roles_permitidos:
             raise HTTPException(
@@ -104,12 +117,12 @@ def require_role(*roles_permitidos: UserRole) -> Callable: # <- CORRIGIDO 5
 
 async def get_current_loja_id(m: Membership = Depends(get_current_membership)) -> UUID:
     if m["loja_id"] is None:
-        raise HTTPException(status_code=400, detail="Admin não está vinculado a uma loja")
+        raise HTTPException(status_code=403, detail="Admin não está vinculado a uma loja")
     return m["loja_id"]
 
 async def get_current_loja(m: Membership = Depends(get_current_membership)) -> Loja:
     if m["loja"] is None:
-        raise HTTPException(status_code=400, detail="Admin não está vinculado a uma loja")
+        raise HTTPException(status_code=403, detail="Admin não está vinculado a uma loja")
     return m["loja"]
 
 # HELPER CORRIGIDO: usa UsuarioLoja em vez de Funcionario
@@ -121,10 +134,9 @@ async def verificar_acesso_loja(
     if current_user.is_superuser:
         return True
 
-    stmt = select(UsuarioLoja).where( # <- CORRIGIDO 6
+    stmt = select(UsuarioLoja).where(
         UsuarioLoja.usuario_id == current_user.id,
         UsuarioLoja.loja_id == loja_id,
-        UsuarioLoja.role == UserRole.DONO, # <- CORRIGIDO 7
         UsuarioLoja.is_active == True
     )
     membro = (await db.execute(stmt)).scalar_one_or_none()

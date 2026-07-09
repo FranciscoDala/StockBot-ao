@@ -6,14 +6,14 @@ from uuid import UUID
 from pydantic import BaseModel
 from jose import JWTError, jwt
 
-from  app.db.session import get_db
-from  app.core.security import verify_password, create_access_token
-from  app.core.config import settings
-from  app.models.usuario import Usuario
-from  app.models.usuario_loja import UsuarioLoja
-from  app.models.role import UserRole # <- CORRIGIDO AQUI
-from  app.schemas.usuario import userread, LoginResponse, LojaSelectOut, LoginRequest, Role # <- Role do schema pra response
-from  app.core.deps import get_current_user, oauth2_scheme
+from app.db.session import get_db
+from app.core.security import verify_password, create_access_token
+from app.core.config import settings
+from app.models.usuario import Usuario
+from app.models.usuario_loja import UsuarioLoja
+from app.models.role import UserRole
+from app.schemas.usuario import userread, LoginResponse, LojaSelectOut, LoginRequest, Role
+from app.core.deps import get_current_user, oauth2_scheme
 
 router = APIRouter()
 
@@ -65,10 +65,10 @@ def build_user_response(user: Usuario, membro: UsuarioLoja | None = None, all_me
         base["loja"] = {"id": str(membro.loja.id), "nome": membro.loja.nome, "slug": membro.loja.slug, "is_active": membro.loja.is_active}
     else:
         roles = [m.role for m in all_membros] if all_membros else []
-        if UserRole.DONO in roles: # <- CORRIGIDO
+        if UserRole.DONO in roles:
             base["nivel"] = "dono"
             base["role"] = "dono"
-        elif UserRole.GERENTE in roles: # <- CORRIGIDO
+        elif UserRole.GERENTE in roles:
             base["nivel"] = "gerente"
             base["role"] = "gerente"
         else:
@@ -95,28 +95,31 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         user_data = build_user_response(user, membro=None)
         return {"access_token": token, "token_type": "bearer", "user": user_data, "need_selection": False, "lojas": []}
 
+    # 1. FILTRA APENAS LOJAS ATIVAS E NAO DELETADAS
     stmt = select(UsuarioLoja).options(selectinload(UsuarioLoja.loja)).where(
         UsuarioLoja.usuario_id == user.id,
         UsuarioLoja.is_active == True,
-        UsuarioLoja.loja.has(is_active=True)
+        UsuarioLoja.loja.has(is_active=True),
+        UsuarioLoja.loja.has(deleted_at=None) # <- ADICIONADO: barra loja excluida
     )
     membros = (await db.execute(stmt)).scalars().all()
 
     if not membros:
-        raise HTTPException(status_code=403, detail="Usuário sem loja vinculada")
+        raise HTTPException(status_code=403, detail="Usuário sem loja vinculada") # <- BARRA AQUI
 
+    # 2. SE SO TEM 1 LOJA, JA LOGA DIRETO NELA. NAO MANDA PRO MULTI_LOJA
     if len(membros) == 1:
         m = membros[0]
         token = create_access_token({"sub": str(user.id), "loja_id": str(m.loja_id), "role": m.role.value})
         user_data = build_user_response(user, membro=m)
         return {"access_token": token, "token_type": "bearer", "user": user_data, "need_selection": False, "lojas": []}
 
+    # 3. SE TEM + DE 1 LOJA AI SIM MANDA PRA SELECAO
     roles = [m.role for m in membros]
-    tem_cargo_gestao = UserRole.DONO in roles or UserRole.GERENTE in roles # <- CORRIGIDO
+    tem_cargo_gestao = UserRole.DONO in roles or UserRole.GERENTE in roles
 
-    token = create_access_token({"sub": str(user.id), "role": "multi_loja"}, expires_delta=5)
+    token = create_access_token({"sub": str(user.id), "role": "multi_loja"}, expires_delta=5) # 5 min
     user_data = build_user_response(user, membro=None, all_membros=membros)
-    # Aqui usamos Role do schema pq o Pydantic espera string
     lojas_out = [LojaSelectOut(id=m.loja.id, nome=m.loja.nome, slug=m.loja.slug, role=Role(m.role.value)) for m in membros]
 
     return {
@@ -135,7 +138,8 @@ async def select_loja(body: SelectLojaIn, db: AsyncSession = Depends(get_db), cu
         UsuarioLoja.usuario_id == current_user.id,
         UsuarioLoja.loja_id == body.loja_id,
         UsuarioLoja.is_active == True,
-        UsuarioLoja.loja.has(is_active=True)
+        UsuarioLoja.loja.has(is_active=True),
+        UsuarioLoja.loja.has(deleted_at=None) # <- ADICIONADO: barra loja excluida
     )
     membro = (await db.execute(stmt)).scalar_one_or_none()
     if not membro:
