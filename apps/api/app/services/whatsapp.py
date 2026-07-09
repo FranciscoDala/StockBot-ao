@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
+from datetime import datetime
 
 EVOLUTION_URL = os.getenv("EVOLUTION_URL")
 EVOLUTION_KEY = os.getenv("EVOLUTION_API_KEY")
@@ -27,15 +28,20 @@ async def enviar_msg_venda(db: AsyncSession, loja_id: int, venda, mensagem_custo
     if mensagem_custom:
         mensagem = mensagem_custom
     else:
-        # CORRIGIDO: VendaRead não tem cliente_nome. Usar .cliente ou 'Balcão'
-        nome_cliente = getattr(venda, 'cliente', None) or 'Balcão'
+        # FIX 1: Pega cliente. Pode ser .cliente ou .cliente_nome
+        nome_cliente = getattr(venda, 'cliente', None) or getattr(venda, 'cliente_nome', None) or 'Balcão'
+
+        # FIX 2: Pega data. Pode ser .created_at ou .data_venda ou .criado_em
+        data_venda = getattr(venda, 'created_at', None) or getattr(venda, 'data_venda', None) or getattr(venda, 'criado_em', None) or datetime.now()
+        hora_str = data_venda.strftime('%H:%M') if hasattr(data_venda, 'strftime') else 'agora'
+
         mensagem = f"""🔔 NOVA VENDA - StockBot AO
 
-🧾 Venda: #{venda.id}
+🧾 Venda: #{str(venda.id)[:8]}
 💰 Total: {venda.total:.2f} KZ
 👤 Cliente: {nome_cliente}
 📦 Itens: {len(venda.itens)}
-⏰ Hora: {venda.created_at.strftime('%H:%M')}
+⏰ Hora: {hora_str}
 """
 
     payload = {"number": numero, "textMessage": {"text": mensagem}}
