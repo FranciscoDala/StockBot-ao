@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["glib", "nss", "nspr", "atk", "at-spi2-atk", "cups", "dbus", "libx11", "libxcomposite", "libxdamage", "libxext", "libxfixes", "libxrandr", "libxcb", "libxkbcommon", "libxshmfence", "pango", "cairo", "gdk-pixbuf", "gtk3"]
-
-[phases.install]
-cmds = ["npm install --legacy-peer-deps"]
-
-[start]
-cmd = "node index.js"
