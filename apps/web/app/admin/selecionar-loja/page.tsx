@@ -6,7 +6,7 @@ import { Building, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL; // <- ADICIONEI ISSO
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type Loja = {
   id: string;
@@ -14,7 +14,8 @@ type Loja = {
   slug: string;
   role: "dono" | "gerente" | "vendedor";
   endereco?: string | null;
-  is_active?: boolean;
+  is_active: boolean; // <- agora obrigatório
+  created_at: string;
 }
 
 type UserTemp = {
@@ -34,11 +35,17 @@ const getCookie = (name: string): string | undefined => {
 
 const setCookie = (name: string, value: string, days = 7) => {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+    const isProd = process.env.NODE_ENV === 'production';
+    const secure = isProd? '; Secure' : '';
+    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${secure}${sameSite}`;
 };
 
 const deleteCookie = (name: string) => {
-    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
+    const isProd = process.env.NODE_ENV === 'production';
+    const secure = isProd? '; Secure' : '';
+    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${secure}${sameSite}`;
 };
 
 export default function SelectLojaPage() {
@@ -70,14 +77,31 @@ export default function SelectLojaPage() {
     const lojasStr = getCookie("lojas_temp");
     const userStr = getCookie("user_temp");
 
-    if (!tempToken ||!lojasStr ||!userStr) {
+    if (!tempToken ||!userStr) {
       handleTerminarSessao();
       return;
     }
 
-    try {
+    const fetchLojas = async () => {
+      try {
+        // 1. Busca lojas reais do backend com is_active
+        const res = await fetch(`${API_URL}/lojas/minhas`, {
+          headers: { "Authorization": `Bearer ${tempToken}` }
+        });
+        if (!res.ok) throw new Error("Erro ao buscar lojas");
+        const lojasReais = await res.json();
+
+        // 2. Pega as roles do cookie pra juntar
+        const lojasDoCookie: {id: string, role: "dono" | "gerente" | "vendedor"}[] = lojasStr? JSON.parse(lojasStr) : [];
+
+        // 3. Junta role com os dados reais
+        const lojasComRole = lojasReais.map((l: any) => ({
+         ...l,
+          role: lojasDoCookie.find(lc => lc.id === l.id)?.role || 'dono'
+        }));
+
         if(isMounted.current){
-            setLojas(JSON.parse(lojasStr));
+            setLojas(lojasComRole);
             setUser(JSON.parse(userStr));
             setLoading(false);
 
@@ -90,9 +114,11 @@ export default function SelectLojaPage() {
               }
             };
         }
-    } catch {
+      } catch {
         handleTerminarSessao();
-    }
+      }
+    };
+    fetchLojas();
 
     return () => {
       window.onpopstate = null;
@@ -103,7 +129,6 @@ export default function SelectLojaPage() {
     const tempToken = getCookie("temp_token");
 
     try {
-      // CORRIGIDO: tirei as aspas e usei a const API_URL
       const res = await fetch(`${API_URL}/auth/select-loja`, {
         method: "POST",
         headers: {
@@ -127,7 +152,7 @@ export default function SelectLojaPage() {
           deleteCookie("temp_token");
           deleteCookie("lojas_temp");
           deleteCookie("user_temp");
-          router.push(`/loja/${loja.id}`); // <- CORRIGIDO: usa ID em vez de slug
+          router.push(`/loja/${loja.id}`);
       }
 
     } catch (err: any) {
