@@ -4,7 +4,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-import logging, traceback, shutil, uuid, os
+import logging, traceback, uuid
 from typing import AsyncGenerator
 from pathlib import Path
 
@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.models.usuario import Usuario
 from app.schemas.usuario import userread, Role
 
-# NOVO: Cloudinary
+# Cloudinary
 import cloudinary
 from cloudinary import CloudinaryImage
 import cloudinary.uploader
@@ -22,13 +22,13 @@ import cloudinary.uploader
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# NOVO: Configura Cloudinary usando settings
+# Configura Cloudinary
 cloudinary.config(
     cloud_name = settings.CLOUDINARY_CLOUD_NAME,
     api_key = settings.CLOUDINARY_API_KEY,
     api_secret = settings.CLOUDINARY_API_SECRET
 )
-logger.info(f"Cloudinary Configurado: {settings.CLOUDINARY_CLOUD_NAME}") # LOG
+logger.info(f"Cloudinary Configurado: {settings.CLOUDINARY_CLOUD_NAME}")
 
 def import_all_models():
     logger.info("forçando import de todos os models...")
@@ -93,14 +93,16 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}")
     return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
 
+# VOLTOU: Pasta local pra dev
 UPLOAD_DIR = Path("apps/uploads/produtos")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 app.mount("/uploads", StaticFiles(directory="apps/uploads"), name="uploads")
 
 api_v1_router = APIRouter()
 
-@api_v1_router.post("/upload/produto", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
-async def upload_produto_imagem(file: UploadFile = File(...)):
+# ROTA 1: SALVAR LOCAL - pra dev/teste
+@api_v1_router.post("/upload/produto/local", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
+async def upload_produto_local(file: UploadFile = File(...)):
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -119,22 +121,15 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
 
     base_url = settings.BASE_URL
     url = f"{base_url}/uploads/produtos/{file_name}"
-    return {"url": url, "filename": file_name}
+    logger.info(f"[LOCAL] Arquivo salvo: {url}")
+    return {"url": url, "filename": file_name, "storage": "local"}
 
-
-# ROTA OFICIAL COM AUTH
+# ROTA 2: SALVAR CLOUDINARY - pra produção
 @api_v1_router.post("/upload/produto/cloudinary", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_cloudinary(file: UploadFile = File(...)):
     return await _upload_to_cloudinary(file)
 
-
-# ROTA DE TESTE SEM AUTH - USA ESSA AGORA NO SWAGGER
-@api_v1_router.post("/upload/teste-cloudinary", tags=["upload"])
-async def upload_teste_cloudinary(file: UploadFile = File(...)):
-    return await _upload_to_cloudinary(file)
-
-
-# FUNCAO REUTILIZAVEL
+# FUNCAO REUTILIZAVEL CLOUDINARY
 async def _upload_to_cloudinary(file: UploadFile):
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -171,12 +166,12 @@ async def _upload_to_cloudinary(file: UploadFile):
             "width": upload_result['width'],
             "height": upload_result['height'],
             "format": upload_result['format'],
-            "size_bytes": upload_result['bytes']
+            "size_bytes": upload_result['bytes'],
+            "storage": "cloudinary"
         }
     except Exception as e:
         logger.error(f"[CLOUDINARY] ERRO: {e}\n{traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"detail": f"Erro ao enviar para Cloudinary: {str(e)}"})
-
 
 @api_v1_router.get("/health", tags=["health"])
 async def health_check():

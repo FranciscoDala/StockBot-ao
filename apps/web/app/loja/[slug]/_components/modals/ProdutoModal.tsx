@@ -17,7 +17,7 @@ const API_BASE = API_URL.replace('/api/v1', '');
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
 
 const gerarSkuAleatorio = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -71,21 +71,21 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const lucro = (formData.preco || 0) - (formData.preco_custo || 0);
-    const qrLink = formData.sku? `${APP_URL}/p/${formData.sku}` : null;
+    const qrLink = formData.sku ? `${APP_URL}/p/${formData.sku}` : null;
 
     useEffect(() => {
-        if (open &&!editingProduto &&!formData.sku) {
-            setFormData((prev: any) => ({...prev, sku: gerarSkuAleatorio() }));
+        if (open && !editingProduto && !formData.sku) {
+            setFormData((prev: any) => ({ ...prev, sku: gerarSkuAleatorio() }));
         }
         // Mostra imagem antiga se existir
         if (editingProduto?.imagem_url) {
-            const url = editingProduto.imagem_url.startsWith('http')? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
+            const url = editingProduto.imagem_url.startsWith('http') ? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
             setPreview(url);
         } else {
             setPreview(null);
         }
         if (editingProduto && editingProduto.codigo_barras === "") {
-            setFormData((prev: any) => ({...prev, codigo_barras: undefined }));
+            setFormData((prev: any) => ({ ...prev, codigo_barras: undefined }));
         }
         if (errorMsg) {
             let mensagemAmigavel = "Ocorreu um erro inesperado. Tente novamente.";
@@ -108,7 +108,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleFile = (file: File) => {
         if (!validateFile(file)) return;
         setPreview(URL.createObjectURL(file));
-        setFormData({...formData, file_to_upload: file });
+        setFormData({ ...formData, file_to_upload: file });
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,32 +119,64 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleDrag = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === "dragenter" || e.type === "dragover") setDragActive(true); else if (e.type === "dragleave") setDragActive(false); };
     const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file); };
 
+
+
     const handleSaveClick = async () => {
         if (!formData.nome || formData.nome.length < 2) { toast.error("Nome do produto é obrigatório"); return; }
         if ((formData.preco || 0) <= 0) { toast.error("Preço de venda deve ser maior que 0"); return; }
 
-        let finalData = {...formData };
+        let finalData = { ...formData };
         const file = finalData.file_to_upload;
         const token = getCookie('token');
+        let urls: any = {};
 
-        // 1. UPLOAD PRIMEIRO
+        // 1. UPLOAD NAS 2 ROTAS AO MESMO TEMPO
         if (file && token) {
             setUploading(true);
             try {
                 const formDataUpload = new FormData();
                 formDataUpload.append('file', file);
-                const uploadRes = await fetch(`${API_URL}/upload/produto`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` },
-                    body: formDataUpload
-                });
-                if (!uploadRes.ok) {
-                    const err = await uploadRes.json();
-                    throw new Error(err.detail || "Falha no upload da imagem");
+
+                // Faz os 2 uploads em paralelo
+                const [resLocal, resCloud] = await Promise.all([
+                    fetch(`${API_URL}/upload/produto/local`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formDataUpload
+                    }),
+                    fetch(`${API_URL}/upload/produto/cloudinary`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formDataUpload
+                    })
+                ]);
+
+                // Pega resultado do Local
+                if (resLocal.ok) {
+                    const dataLocal = await resLocal.json();
+                    urls.local = dataLocal.url;
+                    console.log("[LOCAL] OK:", dataLocal.url);
+                } else {
+                    console.warn("[LOCAL] Falhou:", await resLocal.text());
                 }
-                const uploadData = await uploadRes.json();
-                finalData.imagem_url = uploadData.url; // <- url completa volta do backend
-                toast.success("Imagem enviada!");
+
+                // Pega resultado do Cloudinary
+                if (resCloud.ok) {
+                    const dataCloud = await resCloud.json();
+                    urls.cloudinary = dataCloud.optimized_url;
+                    urls.public_id = dataCloud.public_id;
+                    console.log("[CLOUDINARY] OK:", dataCloud.optimized_url);
+                } else {
+                    console.warn("[CLOUDINARY] Falhou:", await resCloud.text());
+                }
+
+                // PRIORIDADE: Usa Cloudinary. Se falhar usa Local
+                finalData.imagem_url = urls.cloudinary || urls.local;
+
+                if (!finalData.imagem_url) throw new Error("Falha em ambos os uploads");
+
+                toast.success(`Imagem salva! Cloud: ${!!urls.cloudinary} | Local: ${!!urls.local}`);
+
             } catch (err: any) {
                 toast.error("Erro ao enviar imagem: " + err.message);
                 setUploading(false);
@@ -157,16 +189,14 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         if (!finalData.codigo_barras || String(finalData.codigo_barras).trim() === "") {
             finalData.codigo_barras = null;
         }
-        if (finalData.imagem_url === "") {
-            finalData.imagem_url = null;
-        }
 
-        // 2. DEPOIS SALVA O PRODUTO
+        // 2. DEPOIS SALVA O PRODUTO com a URL do Cloudinary
         onSave(finalData);
     };
 
+
     const handleInputChange = (field: string, value: any) => {
-        setFormData({...formData, [field]: value });
+        setFormData({ ...formData, [field]: value });
     }
 
     const inputClass = "bg-neutral-900 border-neutral-700 focus:border-green-500 h-11 px-3"
@@ -180,7 +210,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     className="!max-w-[800px] w-full bg-neutral-950 border-neutral-800 text-white p-0 h-[90vh] flex-col [&>button]:hidden"
                 >
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
-                        <DialogTitle className="text-lg sm:text-xl">{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl">{editingProduto ? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
                         <DialogDescription className="text-gray-400 text-xs sm:text-sm">Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
                     </DialogHeader>
 
@@ -222,11 +252,11 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 <TabsContent value="imagem" className="space-y-5 mt-0">
                                     <div className="space-y-2">
                                         <Label>Imagem do Produto</Label>
-                                        <div onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} className={`relative w-full h-52 sm:h-72 rounded-lg border-2 border-dashed transition-colors ${dragActive? 'border-green-500 bg-green-500/10' : 'border-neutral-700 bg-neutral-900'}`}>
-                                            {preview? (
+                                        <div onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} className={`relative w-full h-52 sm:h-72 rounded-lg border-2 border-dashed transition-colors ${dragActive ? 'border-green-500 bg-green-500/10' : 'border-neutral-700 bg-neutral-900'}`}>
+                                            {preview ? (
                                                 <>
                                                     <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-lg p-2" />
-                                                    <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
+                                                    <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({ ...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
                                                 </>
                                             ) : (
                                                 <div className="absolute inset-0 flex-col items-center justify-center text-gray-500 text-center">
@@ -264,7 +294,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                     <div className="bg-neutral-900 p-4 rounded-lg border-neutral-800">
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-gray-400">Lucro por unidade</span>
-                                            <span className={`font-bold text-base sm:text-lg ${lucro >= 0? 'text-green-400' : 'text-red-400'}`}>
+                                            <span className={`font-bold text-base sm:text-lg ${lucro >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                                 {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(lucro)}
                                             </span>
                                         </div>
@@ -296,21 +326,21 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                     <DialogFooter className="p-4 sm:p-6 pt-4 border-t border-neutral-800 shrink-0 flex-col sm:flex-row gap-2">
                         <div className="flex items-center space-x-2 mr-auto">
-                            <Checkbox id="active" checked={formData.is_active?? true} onCheckedChange={(val) => handleInputChange("is_active",!!val)} className="border-neutral-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600" />
+                            <Checkbox id="active" checked={formData.is_active ?? true} onCheckedChange={(val) => handleInputChange("is_active", !!val)} className="border-neutral-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600" />
                             <Label htmlFor="active" className="text-sm text-gray-300 font-medium cursor-pointer">Produto Ativo</Label>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
                             <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving || uploading} className="flex-1 sm:flex-initial h-11">Cancelar</Button>
                             <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-initial min-w-28 h-11">
                                 {(saving || uploading) && <Loader2 className="mr-4 h-4 w-4 animate-spin" />}
-                                {editingProduto? 'Salvar' : 'Criar'}
+                                {editingProduto ? 'Salvar' : 'Criar'}
                             </Button>
                         </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={!!erroModal} onOpenChange={() => {}}>
+            <Dialog open={!!erroModal} onOpenChange={() => { }}>
                 <DialogContent
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
