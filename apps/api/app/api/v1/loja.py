@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator # <- ADICIONADO
 import re
 import unicodedata
 from datetime import datetime
@@ -32,6 +32,13 @@ class UsuarioLojaUpdateWithAuth(UsuarioLojaUpdateIn):
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
+    @field_validator('role', mode='before') # <- ADICIONADO
+    @classmethod
+    def normalize_role(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
 class UsuarioLojaCreateWithAuth(BaseModel):
     nome: str
     telefone: Optional[str] = None
@@ -39,6 +46,13 @@ class UsuarioLojaCreateWithAuth(BaseModel):
     is_active: bool = True
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
+
+    @field_validator('role', mode='before') # <- ADICIONADO
+    @classmethod
+    def normalize_role(cls, v):
+        if isinstance(v, str):
+            return v.lower()
+        return v
 
 class LojaUpdateInWithAuth(LojaUpdateIn, AdminAuth):
     dono: Optional[DonoUpdateIn] = None
@@ -328,16 +342,15 @@ async def adicionar_usuario_loja(loja_id: UUID, body: UsuarioLojaCreateWithAuth,
     usuario = Usuario(nome=body.nome, email=email_temp, telefone=body.telefone, senha_hash=get_password_hash("temp123"), is_active=body.is_active)
     db.add(usuario)
     await db.flush()
-    novo_membro = UsuarioLoja(loja_id=loja.id, usuario_id=usuario.id, role=UserRole(body.role.lower()), is_active=body.is_active)
+    novo_membro = UsuarioLoja(loja_id=loja.id, usuario_id=usuario.id, role=body.role, is_active=body.is_active) # <- já vem minusculo
     db.add(novo_membro)
     await db.commit()
     await db.refresh(novo_membro)
     await db.refresh(usuario)
     return map_usuario_loja_out(usuario, novo_membro)
 
-
 @router.patch("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut)
-@router.put("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut) # <- ADICIONEI PUT
+@router.put("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut) # <- ADICIONADO PUT
 async def atualizar_usuario_loja(loja_id: UUID, usuario_id: UUID, body: UsuarioLojaUpdateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     loja = await db.get(Loja, loja_id)
     if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
@@ -355,7 +368,7 @@ async def atualizar_usuario_loja(loja_id: UUID, usuario_id: UUID, body: UsuarioL
     usuario = await db.get(Usuario, usuario_id)
     if not usuario: raise HTTPException(status_code=404, detail="Usuario não encontrado")
 
-    membro.role = UserRole(body.role.lower())
+    membro.role = body.role # <- já vem minusculo do validator
     membro.is_active = body.is_active
     usuario.nome = body.nome
     usuario.telefone = body.telefone
@@ -367,9 +380,6 @@ async def atualizar_usuario_loja(loja_id: UUID, usuario_id: UUID, body: UsuarioL
     await db.refresh(membro)
     await db.refresh(usuario)
     return map_usuario_loja_out(usuario, membro)
-
-
-
 
 @router.delete("/id/{loja_id}/usuarios/{usuario_id}", status_code=204)
 async def remover_usuario_loja(loja_id: UUID, usuario_id: UUID, body: AcaoSensivelAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
