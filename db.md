@@ -46,3 +46,27 @@ ACCESS_TOKEN_EXPIRE_MINUTES=10080
 ALLOWED_ORIGINS=["http://localhost:3000"]
 PORT=8000
 
+
+
+
+
+
+
+
+Backend
+
+DATABASE_URL="postgresql+asyncpg://neondb_owner:npg_CGnUbs41DYfV@ep-solitary-haze-at4kcyv7-pooler.c-9.us-east-1.aws.neon.tech/neondb?ssl=true"
+JWT_SECRET="stockbot-dev-secret-2026"
+JWT_ALGORITHM="HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES="10080"
+ALLOWED_ORIGINS="https://stockbot-ao-production.up.railway.app"
+BASE_URL="https://gentle-playfulness-production-d333.up.railway.app"
+PORT="8000"
+
+# Telegram
+TELEGRAM_BOT_TOKEN="COLA_SEU_TOKEN_AQUI"
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME="d7dtiurw"
+CLOUDINARY_API_KEY="598914546743518"
+CLOUDINARY_API_SECRET="GxBW2UtKsSr2nDDc0WwztUWU3w8"

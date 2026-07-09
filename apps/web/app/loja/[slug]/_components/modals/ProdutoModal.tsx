@@ -77,7 +77,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         if (open &&!editingProduto &&!formData.sku) {
             setFormData((prev: any) => ({...prev, sku: gerarSkuAleatorio() }));
         }
-        // CORRIGIDO: monta o preview com API_BASE
+        // Mostra imagem antiga se existir
         if (editingProduto?.imagem_url) {
             const url = editingProduto.imagem_url.startsWith('http')? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
             setPreview(url);
@@ -108,7 +108,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleFile = (file: File) => {
         if (!validateFile(file)) return;
         setPreview(URL.createObjectURL(file));
-        setFormData({...formData, file_to_upload: file }); // <- guarda o arquivo aqui
+        setFormData({...formData, file_to_upload: file });
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +119,6 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleDrag = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === "dragenter" || e.type === "dragover") setDragActive(true); else if (e.type === "dragleave") setDragActive(false); };
     const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file); };
 
-    // ALTERADO: Agora faz upload antes de chamar onSave
     const handleSaveClick = async () => {
         if (!formData.nome || formData.nome.length < 2) { toast.error("Nome do produto é obrigatório"); return; }
         if ((formData.preco || 0) <= 0) { toast.error("Preço de venda deve ser maior que 0"); return; }
@@ -128,7 +127,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         const file = finalData.file_to_upload;
         const token = getCookie('token');
 
-        // 1. SE TEM ARQUIVO NOVO, FAZ UPLOAD PRIMEIRO
+        // 1. UPLOAD PRIMEIRO
         if (file && token) {
             setUploading(true);
             try {
@@ -136,7 +135,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 formDataUpload.append('file', file);
                 const uploadRes = await fetch(`${API_URL}/upload/produto`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }, // sem Content-Type
+                    headers: { 'Authorization': `Bearer ${token}` },
                     body: formDataUpload
                 });
                 if (!uploadRes.ok) {
@@ -144,7 +143,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     throw new Error(err.detail || "Falha no upload da imagem");
                 }
                 const uploadData = await uploadRes.json();
-                finalData.imagem_url = uploadData.url; // <- usa a url que voltou do backend
+                finalData.imagem_url = uploadData.url; // <- url completa volta do backend
                 toast.success("Imagem enviada!");
             } catch (err: any) {
                 toast.error("Erro ao enviar imagem: " + err.message);
@@ -162,7 +161,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.imagem_url = null;
         }
 
-        // 2. DEPOIS CHAMA O onSave COM A URL NOVA
+        // 2. DEPOIS SALVA O PRODUTO
         onSave(finalData);
     };
 
