@@ -1,8 +1,8 @@
 [build]
-builder = "nixpacks"
+builder = "NIXPACKS"
 installCommand = "npm install --legacy-peer-deps"
-buildCommand = "npm run build"
 
 [deploy]
-startCommand = "npm run start"
+startCommand = "node index.js"
 healthcheckPath = "/"
+restartPolicyType = "ON_FAILURE"
