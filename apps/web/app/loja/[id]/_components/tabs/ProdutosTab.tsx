@@ -13,13 +13,14 @@ interface Props {
     produtos: any[];
     isAdmin: boolean;
     isDono: boolean;
+    lojaId?: string; // <- ADICIONEI
     onAdd: () => void;
     onEdit: (p: any) => void;
     onDelete: (p: any) => void;
     formatCurrency: (v: number) => string;
 }
 
-export function ProdutosTab({ produtos, isAdmin, isDono, onAdd, onEdit, onDelete, formatCurrency }: Props) {
+export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, onDelete, formatCurrency }: Props) {
     const [qrProduto, setQrProduto] = useState<any>(null);
 
     const getEstoqueStatus = (estoque: number, minimo: number) => {
@@ -64,13 +65,12 @@ export function ProdutosTab({ produtos, isAdmin, isDono, onAdd, onEdit, onDelete
                 </div>
             )}
 
-            {/* MOBILE: 1 CARD = LARGURA DO BOTAO | DESKTOP: GRID */}
             <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 sm:overflow-visible sm:pb-0 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {produtos.map(p => {
                     const preco = p.preco_venda || p.preco || 0;
                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
                     const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
-                    const qrValue = `${APP_URL}/p/${p.sku || p.id}`;
+                    const qrValue = `${APP_URL}/p/${p.sku || p.id}`; // <- continua assim
 
                     return (
                         <div key={p.id} className={`bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden flex-col transition-all hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10 group ${!p.is_active? 'opacity-50' : ''} w-full shrink-0 snap-start sm:w-auto`}>

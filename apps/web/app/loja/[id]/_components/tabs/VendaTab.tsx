@@ -9,7 +9,6 @@ import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
-// 1. ID AGORA É SÓ STRING IGUAL AO ZOD
 interface Produto {
     id: string;
     nome: string;
@@ -66,6 +65,7 @@ interface Props {
     onClose: () => void;
     token: string | null;
     nomeLoja: string;
+    lojaId?: string; // <- ADICIONEI
 }
 
 export function VendaTab({
@@ -86,7 +86,8 @@ export function VendaTab({
     loadingVenda,
     formatCurrency,
     onClose,
-    nomeLoja
+    nomeLoja,
+    lojaId // <- ADICIONEI
 }: Props) {
 
     const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
@@ -155,7 +156,7 @@ export function VendaTab({
                             const preco = p.preco_venda?? p.preco?? 0;
                             return (
                                 <button
-                                    key={p.id} // <- PODE TIRAR O STRING()
+                                    key={p.id}
                                     onClick={() => adicionarAoCarrinho(p)}
                                     disabled={p.estoque <= 0}
                                     className="bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden text-left transition-all hover:border-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
@@ -196,7 +197,7 @@ export function VendaTab({
                                 const preco = getPreco(item);
                                 return (
                                     <div
-                                        key={item.id} // <- PODE TIRAR O STRING()
+                                        key={item.id}
                                         onClick={() => confirmarRemoverItem(item)}
                                         className="flex items-center gap-2 p-2 bg-neutral-900 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
                                     >
@@ -264,7 +265,7 @@ export function VendaTab({
                             const preco = getPreco(item);
                             return (
                                 <div
-                                    key={item.id} // <- PODE TIRAR O STRING()
+                                    key={item.id}
                                     onClick={() => confirmarRemoverItem(item)}
                                     className="bg-neutral-900 p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
                                 >
