@@ -6,9 +6,7 @@ from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from datetime import datetime
 
-EVOLUTION_URL = os.getenv("EVOLUTION_URL")
-EVOLUTION_KEY = os.getenv("EVOLUTION_API_KEY")
-INSTANCE = os.getenv("EVOLUTION_INSTANCE")
+BOT_URL = os.getenv("BOT_URL") # https://whatsapp-production-e056.up.railway.app
 
 async def get_telefone_dono(db: AsyncSession, loja_id: int):
     stmt = select(Usuario.telefone).join(UsuarioLoja).where(
@@ -23,15 +21,10 @@ async def enviar_msg_venda(db: AsyncSession, loja_id: int, venda, mensagem_custo
         print("Dono sem telefone")
         return
 
-    numero = telefone.replace("+", "").replace(" ", "") + "@c.us"
-
     if mensagem_custom:
         mensagem = mensagem_custom
     else:
-        # FIX 1: Pega cliente. Pode ser .cliente ou .cliente_nome
         nome_cliente = getattr(venda, 'cliente', None) or getattr(venda, 'cliente_nome', None) or 'Balcão'
-
-        # FIX 2: Pega data. Pode ser .created_at ou .data_venda ou .criado_em
         data_venda = getattr(venda, 'created_at', None) or getattr(venda, 'data_venda', None) or getattr(venda, 'criado_em', None) or datetime.now()
         hora_str = data_venda.strftime('%H:%M') if hasattr(data_venda, 'strftime') else 'agora'
 
@@ -44,15 +37,11 @@ async def enviar_msg_venda(db: AsyncSession, loja_id: int, venda, mensagem_custo
 ⏰ Hora: {hora_str}
 """
 
-    payload = {"number": numero, "textMessage": {"text": mensagem}}
+    payload = {"to": telefone, "message": mensagem} # manda pro bot
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            r = await client.post(
-                f"{EVOLUTION_URL}/message/sendText/{INSTANCE}",
-                json=payload,
-                headers={"apikey": EVOLUTION_KEY}
-            )
-            print(f"Whats enviado: {r.status_code}")
+            r = await client.post(f"{BOT_URL}/send", json=payload)
+            print(f"Whats enviado: {r.status_code} - {r.text}")
     except Exception as e:
         print(f"Erro Whats: {e}")
