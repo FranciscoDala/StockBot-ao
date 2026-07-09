@@ -16,31 +16,37 @@ async def get_telefone_dono(db: AsyncSession, loja_id: int):
     )
     return (await db.execute(stmt)).scalar()
 
-async def enviar_msg_venda(db: AsyncSession, loja_id: int, venda, mensagem_custom: str = None): # <- ADICIONADO
+async def enviar_msg_venda(db: AsyncSession, loja_id: int, venda, mensagem_custom: str = None):
     telefone = await get_telefone_dono(db, loja_id)
     if not telefone:
+        print("Dono sem telefone")
         return
 
-    numero = telefone.replace("+", "") + "@c.us"
+    numero = telefone.replace("+", "").replace(" ", "") + "@c.us"
 
-    # Se passar mensagem_custom usa ela, senão monta a de venda
     if mensagem_custom:
         mensagem = mensagem_custom
     else:
+        # CORRIGIDO: VendaRead não tem cliente_nome. Usar .cliente ou 'Balcão'
+        nome_cliente = getattr(venda, 'cliente', None) or 'Balcão'
         mensagem = f"""🔔 NOVA VENDA - StockBot AO
 
 🧾 Venda: #{venda.id}
 💰 Total: {venda.total:.2f} KZ
-👤 Cliente: {venda.cliente_nome or 'Balcão'}
+👤 Cliente: {nome_cliente}
 📦 Itens: {len(venda.itens)}
 ⏰ Hora: {venda.created_at.strftime('%H:%M')}
 """
 
     payload = {"number": numero, "textMessage": {"text": mensagem}}
 
-    async with httpx.AsyncClient(timeout=10) as client:
-        await client.post(
-            f"{EVOLUTION_URL}/message/sendText/{INSTANCE}",
-            json=payload,
-            headers={"apikey": EVOLUTION_KEY}
-        )
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(
+                f"{EVOLUTION_URL}/message/sendText/{INSTANCE}",
+                json=payload,
+                headers={"apikey": EVOLUTION_KEY}
+            )
+            print(f"Whats enviado: {r.status_code}")
+    except Exception as e:
+        print(f"Erro Whats: {e}")
