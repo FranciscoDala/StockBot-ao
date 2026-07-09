@@ -146,19 +146,30 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
     await db.refresh(novo)
     return to_schema(novo)
 
+
 @router.get("", response_model=list[ProdutoOut], dependencies=[Depends(get_current_user)])
 async def listar_produtos(loja_id: UUID, db: AsyncSession = Depends(get_db)):
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
-    stmt = select(Produto).where(Produto.loja_id == loja_id, Produto.deleted_at.is_(None)).order_by(Produto.nome)
+
+    # ANTES:.order_by(Produto.nome)
+    # DEPOIS: mais novos primeiro
+    stmt = select(Produto).where(
+        Produto.loja_id == loja_id,
+        Produto.deleted_at.is_(None)
+    ).order_by(Produto.created_at.desc()) # <- MUDOU AQUI
+
     result = await db.execute(stmt)
     produtos = result.scalars().all()
     return [to_schema(p) for p in produtos]
+
 
 @router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
 async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Depends(get_db)):
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
     produto = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     return to_schema(produto)
+
+
 
 
 
