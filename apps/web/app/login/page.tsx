@@ -9,7 +9,7 @@ import { Toaster, toast } from "sonner"; // <- adicionei toast
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ||
   (typeof window!== 'undefined' && window.location.hostname === 'localhost'
-   ? "http://127.0.0.1:8000/api/v1"
+  ? "http://127.0.0.1:8000/api/v1"
     : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
 
 const MENSAGEM_LOJA_DESATIVADA = "a sua loja foi desativada, vá até o escritório ou entra em contacto com o admin da stocckbot.\n\ncontacto:\ne-mail: stockbot26@gmail.com\nwhatsapp: +244930438947";
@@ -18,8 +18,8 @@ const ROUTES = {
     ADMIN: "/admin",
     VENDEDOR: "/loja",
     LOGIN: "/login",
-    SELECT_LOJA_GESTOR: "/escolher-loja", // <- MUDANÇA 1: era SELECT_LOJA_ADMIN: "/admin/lojas"
-    SELECT_LOJA_FUNC: "/select-loja" // <- funcionario
+    SELECT_LOJA_GESTOR: "/selecionar-loja", // <- MUDANÇA 1: era "/escolher-loja"
+    SELECT_LOJA_FUNC: "/selecionar-loja" // <- MUDANÇA 2: era "/select-loja"
 };
 
 type LojaSelectOut = { id: string; nome: string; slug: string; role: "dono" | "gerente" | "vendedor" };
@@ -103,7 +103,7 @@ export default function LoginPage() {
     const safeRedirect = (user: UserData) => {
         if (user.is_superuser || user.nivel === "admin") return router.replace(ROUTES.ADMIN);
         if (user.nivel === "vendedor") return router.replace(ROUTES.VENDEDOR);
-        if (user.nivel === "dono" || user.nivel === "gerente") return router.replace(ROUTES.SELECT_LOJA_GESTOR); // <- MUDANÇA 2: era SELECT_LOJA_ADMIN
+        if (user.nivel === "dono" || user.nivel === "gerente") return router.replace(ROUTES.SELECT_LOJA_GESTOR); // <- MUDANÇA 3: era SELECT_LOJA_ADMIN
 
         setError("Erro no servidor: usuario sem nivel. Fala com o dev.");
         clearAllAuthCookies();
@@ -172,7 +172,7 @@ export default function LoginPage() {
                 redirectedRef.current = true;
 
                 const isGestor = data.user.nivel === "dono" || data.user.nivel === "gerente" || data.user.is_superuser;
-                return router.replace(isGestor? ROUTES.SELECT_LOJA_GESTOR : ROUTES.SELECT_LOJA_FUNC); // <- MUDANÇA 3: era SELECT_LOJA_ADMIN
+                return router.replace(isGestor? ROUTES.SELECT_LOJA_GESTOR : ROUTES.SELECT_LOJA_FUNC); // <- MUDANÇA 4: era SELECT_LOJA_ADMIN
             }
 
             // REGRA 1: ADMIN SEMPRE VAI DIRETO
@@ -199,7 +199,7 @@ export default function LoginPage() {
                 setCookie('role', data.user.nivel, 7); // <- NOVO: salva role
                 setCookie('user', JSON.stringify(data.user), 7);
                 redirectedRef.current = true;
-                return router.replace(`/loja/${data.user.loja?.slug}`);
+                return router.replace(`/loja/${data.user.loja?.id}`); // <- MUDANÇA 5: era.slug
             }
 
             // FALLBACK
