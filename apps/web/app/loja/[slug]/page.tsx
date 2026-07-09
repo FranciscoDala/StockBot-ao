@@ -495,7 +495,7 @@ export default function LojaPage() {
                 }
 
                 if (tipo === 'adicionar') {
-                    await fetchComAuth(`${API_URL}/produtos/`, token, { method: "POST", body: JSON.stringify(payload) });
+                    await fetchComAuth(`${API_URL}/produtos`, token, { method: "POST", body: JSON.stringify(payload) });
                     await fetchProdutos(token, loja_id);
                 }
                 if (tipo === 'editar' && editingProduto) {
