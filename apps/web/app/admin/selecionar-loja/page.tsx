@@ -74,32 +74,23 @@ export default function SelectLojaPage() {
 
   useEffect(() => {
     const tempToken = getCookie("temp_token");
-    const lojasStr = getCookie("lojas_temp");
     const userStr = getCookie("user_temp");
 
-    if (!tempToken ||!lojasStr ||!userStr) {
+    if (!tempToken ||!userStr) {
       handleTerminarSessao();
       return;
     }
 
-    const fetchLojasComStatus = async () => {
+    const fetchLojas = async () => {
       try {
-        const lojasDoCookie: {id: string, nome: string, slug: string, role: "dono" | "gerente" | "vendedor"}[] = JSON.parse(lojasStr);
-
-        // Busca o status real de cada loja usando /id/{id}
-        const promessas = lojasDoCookie.map(async (loja) => {
-          const res = await fetch(`${API_URL}/lojas/id/${loja.id}`, {
-            headers: { "Authorization": `Bearer ${tempToken}` }
-          });
-          if (!res.ok) return {...loja, is_active: false, created_at: new Date().toISOString(), endereco: null };
-          const data = await res.json();
-          return {...data, role: loja.role };
+        const res = await fetch(`${API_URL}/lojas/minhas-temp`, {
+          headers: { "Authorization": `Bearer ${tempToken}` }
         });
-
-        const lojasComStatus = await Promise.all(promessas);
+        if (!res.ok) throw new Error("Erro ao buscar lojas");
+        const lojasReais = await res.json();
 
         if(isMounted.current){
-            setLojas(lojasComStatus);
+            setLojas(lojasReais);
             setUser(JSON.parse(userStr));
             setLoading(false);
 
@@ -115,7 +106,7 @@ export default function SelectLojaPage() {
         handleTerminarSessao();
       }
     };
-    fetchLojasComStatus();
+    fetchLojas();
 
     return () => {
       window.onpopstate = null;

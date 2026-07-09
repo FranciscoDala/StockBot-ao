@@ -108,6 +108,15 @@ def map_usuario_to_gerente_out(usuario: Usuario | None, membro: UsuarioLoja | No
 def map_usuario_loja_out(usuario: Usuario, membro: UsuarioLoja) -> UsuarioLojaOut:
     return UsuarioLojaOut(id=usuario.id, nome=usuario.nome, email=usuario.email, telefone=usuario.telefone, role=membro.role, is_active=membro.is_active, loja_id=membro.loja_id)
 
+
+
+
+
+
+
+
+
+
 @router.get("", response_model=List[LojaDetailOut])
 async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     lojas = (await db.execute(select(Loja).order_by(Loja.nome))).scalars().all()
@@ -138,6 +147,38 @@ async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: 
     lojas = result.scalars().all()
     return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at} for l in lojas]
 
+
+@router.get("/minhas-temp")
+async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    """
+    Rota para usar com temp_token na tela de seleção.
+    Retorna todas lojas do usuário com is_active e role
+    """
+    if current_user.is_superuser:
+        stmt = select(Loja).order_by(Loja.nome)
+    else:
+        stmt = select(Loja).join(UsuarioLoja).where(UsuarioLoja.usuario_id == current_user.id).order_by(Loja.nome)
+
+    result = await db.execute(stmt)
+    lojas = result.scalars().all()
+
+    lojas_out = []
+    for l in lojas:
+        membro = (await db.execute(
+            select(UsuarioLoja).where(UsuarioLoja.loja_id == l.id, UsuarioLoja.usuario_id == current_user.id)
+        )).scalar_one_or_none()
+
+        lojas_out.append({
+            "id": str(l.id),
+            "nome": l.nome,
+            "slug": l.slug,
+            "is_active": l.is_active,
+            "created_at": l.created_at,
+            "endereco": l.endereco,
+            "role": membro.role.value if membro else "dono"
+        })
+
+    return lojas_out
 
 
 # ADICIONADO: Buscar por ID pra evitar problema de slug com acento
