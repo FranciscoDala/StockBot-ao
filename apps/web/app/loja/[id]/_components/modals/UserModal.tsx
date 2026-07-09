@@ -12,18 +12,28 @@ export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
 export type UsuarioLoja = {
   id: string;
   nome: string;
-  email: string; // <- TIREI O? DAQUI. AGORA BATE COM O PAGE
+  email: string; // <- AGORA É OBRIGATORIO
   telefone?: string;
   role: UserRole;
   is_active: boolean;
   vendas_total?: number;
 }
 
+// 1. ADICIONEI email e senha aqui
+type FormDataType = {
+  nome: string;
+  email: string;
+  senha?: string; // <- OPCIONAL PRA EDIÇÃO
+  telefone: string;
+  role: UserRole;
+  is_active: boolean
+};
+
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
     editingUser: UsuarioLoja | null;
-    formData: { nome: string; telefone: string; role: UserRole; is_active: boolean };
+    formData: FormDataType; // <- USEI O TYPE NOVO
     setFormData: (d: any) => void;
     onSave: (e: React.FormEvent) => void;
     saving: boolean;
@@ -34,29 +44,62 @@ interface Props {
 export function UserModal({ open, onOpenChange, editingUser, formData, setFormData, onSave, saving, errorMsg, lojaNome }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w- sm:max-w-[600px] bg-black/95 border-white/10 p-0 flex-col max-h- text-white" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+            <DialogContent className="w-full sm:max-w-[600px] bg-black/95 border-white/10 p-0 flex-col max-h-[90vh] text-white" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
                         <DialogTitle className="text-base sm:text-lg">{editingUser? "Editar" : "Adicionar"} Membro</DialogTitle>
-                        <DialogDescription className="text-gray-400 text-xs sm:text-sm">{`Preencha os dados. Loja: ${lojaNome}`}</DialogDescription>
+                        <DialogDescription className="text-gray-400 text-xs sm:text-sm">{`Preencha os dados. Loja: ${lojaNome || "-"}`}</DialogDescription> {/* <- CORRIGIDO UNDEFINED */}
                     </DialogHeader>
 
                     <div className="grid gap-3 sm:gap-4 py-4 px-4 sm:px-6 overflow-y-auto flex-1 min-h-0">
                         {errorMsg && <div className="bg-red-900/50 border-red-700 text-red-300 text-xs p-2 rounded-md">{errorMsg}</div>}
 
                         <p className="text-sm font-semibold text-muted-foreground -mb-2">Dados do Membro</p>
+
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right">Nome *</Label>
                             <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="sm:col-span-3 bg-background text-xs" required />
                         </div>
+
+                        {/* 2. CAMPO EMAIL NOVO */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right">Email *</Label>
+                            <Input
+                                type="email"
+                                value={formData.email}
+                                onChange={e => setFormData({...formData, email: e.target.value})}
+                                className="sm:col-span-3 bg-background text-xs"
+                                required
+                                disabled={!!editingUser} // <- email não muda na edição
+                                placeholder="usuario@email.com"
+                            />
+                        </div>
+
+                        {/* 3. CAMPO SENHA SÓ APARECE AO CRIAR */}
+                        {!editingUser && (
+                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                <Label className="text-xs sm:text-right">Senha *</Label>
+                                <Input
+                                    type="password"
+                                    value={formData.senha || ""}
+                                    onChange={e => setFormData({...formData, senha: e.target.value})}
+                                    className="sm:col-span-3 bg-background text-xs"
+                                    required
+                                    placeholder="mínimo 6 caracteres"
+                                />
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right">Telefone</Label>
                             <Input value={formData.telefone || ""} onChange={e => setFormData({...formData, telefone: e.target.value})} className="sm:col-span-3 bg-background text-xs" />
                         </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right">Ativo</Label>
                             <Switch checked={formData.is_active} onCheckedChange={v => setFormData({...formData, is_active: v})} className="sm:col-span-3 data-[state=checked]:bg-green-600 w-fit"/>
                         </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right">Cargo</Label>
                             <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})} className="sm:col-span-3 flex h-10 w-full rounded-md border-input bg-background px-3 py-2 text-xs">
@@ -64,7 +107,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 <option value="VENDEDOR">Vendedor</option>
                                 <option value="CAIXA">Caixa</option>
                                 <option value="ESTOQUISTA">Estoquista</option>
-                                <option value="DONO">Dono</option>
+                                {!editingUser && <option value="DONO">Dono</option>} {/* <- só pode criar dono na criação */}
                             </select>
                         </div>
                     </div>

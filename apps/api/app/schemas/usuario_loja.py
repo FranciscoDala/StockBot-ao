@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from uuid import UUID
-from  app.models.role import UserRole
+from app.models.role import UserRole
 
 class UsuarioLojaCreateIn(BaseModel):
     nome: str = Field(min_length=2)
@@ -10,9 +10,11 @@ class UsuarioLojaCreateIn(BaseModel):
     senha_confirmacao: str = Field(min_length=6)
     telefone: Optional[str] = None
     role: UserRole = UserRole.VENDEDOR
+
     @field_validator('senha_confirmacao')
-    def passwords_match(cls, v, values):
-        if 'senha' in values.data and v!= values.data['senha']:
+    def passwords_match(cls, v, info):
+        senha = info.data.get('senha')
+        if senha and v!= senha:
             raise ValueError('as senhas não coincidem')
         return v
 
@@ -21,7 +23,7 @@ class UsuarioLojaUpdateIn(BaseModel):
     telefone: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
-    senha_confirmacao: str = Field(min_length=6)
+    senha_confirmacao: str = Field(min_length=6) # <- senha do admin pra confirmar ação
 
 class UsuarioLojaOut(BaseModel):
     id: UUID
@@ -31,5 +33,6 @@ class UsuarioLojaOut(BaseModel):
     role: UserRole
     is_active: bool
     loja_id: UUID
+
     class Config:
         from_attributes = True

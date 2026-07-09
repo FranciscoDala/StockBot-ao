@@ -3,13 +3,13 @@ import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID
-from  app.db.base import BaseModel
-from  app.models.role import UserRole
+from app.db.base import BaseModel
+from app.models.role import UserRole
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from  app.models.usuario import Usuario
-    from  app.models.loja import Loja
+    from app.models.usuario import Usuario
+    from app.models.loja import Loja
 
 class UsuarioLoja(BaseModel):
     __tablename__ = "usuarios_lojas"
@@ -19,5 +19,6 @@ class UsuarioLoja(BaseModel):
     cargo: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     telefone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
     usuario: Mapped["Usuario"] = relationship(back_populates="lojas")
     loja: Mapped["Loja"] = relationship(back_populates="membros")
