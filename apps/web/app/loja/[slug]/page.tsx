@@ -153,15 +153,14 @@ const fetchComAuth = async (url: string, token: string, options: RequestInit = {
 
 
 
-
 export default function LojaPage() {
     const router = useRouter();
     const params = useParams();
-    const slug = params.slug as string;
+    const lojaId = params.id as string; // <- MUDOU DE slug PARA id
     const [isClient, setIsClient] = useState(false);
     const [user, setUser] = useState<userread | null>(null);
     const [token, setToken] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true); // <- ADICIONADO AQUI
+    const [loading, setLoading] = useState(true);
 
     const [loja, setLoja] = useState<Loja | null>(null); // <- LINHA NOVA
 
