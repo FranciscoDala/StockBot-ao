@@ -28,6 +28,7 @@ cloudinary.config(
     api_key = settings.CLOUDINARY_API_KEY,
     api_secret = settings.CLOUDINARY_API_SECRET
 )
+logger.info(f"Cloudinary Configurado: {settings.CLOUDINARY_CLOUD_NAME}") # LOG
 
 def import_all_models():
     logger.info("forçando import de todos os models...")
@@ -80,7 +81,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS_LIST, # <-- agora usa do settings
+    allow_origins=settings.ALLOWED_ORIGINS_LIST,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -92,10 +93,9 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}")
     return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
 
-# CORRIGIDO AQUI: agora é apps/uploads/produtos
 UPLOAD_DIR = Path("apps/uploads/produtos")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
-app.mount("/uploads", StaticFiles(directory="apps/uploads"), name="uploads") # <- serve apps/uploads
+app.mount("/uploads", StaticFiles(directory="apps/uploads"), name="uploads")
 
 api_v1_router = APIRouter()
 
@@ -113,17 +113,29 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
         return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
 
     file_name = f"{uuid.uuid4()}.{extension}"
-    file_path = UPLOAD_DIR / file_name # <- salva em apps/uploads/produtos/
+    file_path = UPLOAD_DIR / file_name
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    base_url = settings.BASE_URL # <-- agora pega do .env
-    url = f"{base_url}/uploads/produtos/{file_name}" # <- link continua igual
+    base_url = settings.BASE_URL
+    url = f"{base_url}/uploads/produtos/{file_name}"
     return {"url": url, "filename": file_name}
 
-# NOVO: Upload direto pro Cloudinary com otimizacao f_auto q_auto
+
+# ROTA OFICIAL COM AUTH
 @api_v1_router.post("/upload/produto/cloudinary", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_cloudinary(file: UploadFile = File(...)):
+    return await _upload_to_cloudinary(file)
+
+
+# ROTA DE TESTE SEM AUTH - USA ESSA AGORA NO SWAGGER
+@api_v1_router.post("/upload/teste-cloudinary", tags=["upload"])
+async def upload_teste_cloudinary(file: UploadFile = File(...)):
+    return await _upload_to_cloudinary(file)
+
+
+# FUNCAO REUTILIZAVEL
+async def _upload_to_cloudinary(file: UploadFile):
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -136,17 +148,18 @@ async def upload_produto_cloudinary(file: UploadFile = File(...)):
         return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
 
     try:
-        # Upload direto pro Cloudinary a partir dos bytes
+        logger.info(f"[CLOUDINARY] Enviando arquivo: {file.filename} - Tamanho: {len(contents)} bytes")
+
         upload_result = cloudinary.uploader.upload(
             contents,
             folder="stockbot/apps/uploads/produtos",
             resource_type="image"
         )
 
-        public_id = upload_result['public_id']
+        logger.info(f"[CLOUDINARY] SUCESSO! URL: {upload_result['secure_url']}")
 
-        # Gera URL otimizada
-        optimized_url = CloudinaryImage(public_id).build_url( # <-- import certo
+        public_id = upload_result['public_id']
+        optimized_url = CloudinaryImage(public_id).build_url(
             fetch_format="auto",
             quality="auto"
         )
@@ -161,8 +174,9 @@ async def upload_produto_cloudinary(file: UploadFile = File(...)):
             "size_bytes": upload_result['bytes']
         }
     except Exception as e:
-        logger.error(f"Erro no upload cloudinary: {e}")
+        logger.error(f"[CLOUDINARY] ERRO: {e}\n{traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"detail": f"Erro ao enviar para Cloudinary: {str(e)}"})
+
 
 @api_v1_router.get("/health", tags=["health"])
 async def health_check():
