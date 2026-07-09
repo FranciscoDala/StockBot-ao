@@ -45,19 +45,20 @@ client.on('ready', () => console.log('✅ WhatsApp Conectado!'));
 
 // ROTA PRA API CHAMAR
 app.post('/send', async (req, res) => {
+    console.log("CHEGOU NA ROTA /send", req.body);
     const { to, message } = req.body;
-    if(!to ||!message) return res.status(400).send({error: "Falta 'to' ou 'message'"});
+    if(!to ||!message) return res.status(400).json({error: "Falta 'to' ou 'message'"});
 
-    const numero = to.replace(/\D/g, ''); // remove tudo que não é número
-    const chatId = numero + "@c.us";
+    const numero = String(to).replace(/\D/g, '');
+    const chatId = `${numero}@c.us`;
 
     try {
-        await enviarTextoGrande(chatId, message); // Manda direto
-        console.log(`Mensagem enviada para: ${chatId}`);
-        res.status(200).send({status: "ok"});
+        await client.sendMessage(chatId, message);
+        console.log(`OK: Mensagem enviada para ${chatId}`);
+        return res.status(200).json({status: "ok"});
     } catch (e) {
-        console.error("Erro ao enviar:", e);
-        res.status(500).send({error: e.message});
+        console.error("ERRO AO ENVIAR:", e.message);
+        return res.status(500).json({error: e.message});
     }
 });
 
