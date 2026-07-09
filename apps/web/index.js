@@ -14,16 +14,22 @@ const client = new Client({
 });
 
 client.on('qr', (qr) => {
-    console.log('ESCANEIA ESSE QR CODE:');
+    console.log('================ ESCANEIA ESSE QR ==================');
     qrcode.generate(qr, { small: true });
+    console.log('====================================================');
 });
 
-client.on('ready', () => console.log('✅ WhatsApp Conectado!'));
+client.on('ready', () => {
+    console.log('✅ WhatsApp Conectado!');
+});
 
 client.on('message', async msg => {
     if (msg.body.toLowerCase().startsWith('!preco')) {
         const codigo = msg.body.split(' ')[1];
         msg.reply(`Buscando preço do produto: ${codigo}`);
+    }
+    if (msg.body.toLowerCase() === '!oi') {
+        msg.reply('StockBot AO online! Manda!preco CODIGO');
     }
 });
 
