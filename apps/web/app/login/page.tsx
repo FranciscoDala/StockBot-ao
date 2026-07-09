@@ -18,8 +18,8 @@ const ROUTES = {
     ADMIN: "/admin",
     VENDEDOR: "/loja",
     LOGIN: "/login",
-    SELECT_LOJA_GESTOR: "/selecionar-loja", // <- MUDANÇA 1: era "/escolher-loja"
-    SELECT_LOJA_FUNC: "/selecionar-loja" // <- MUDANÇA 2: era "/select-loja"
+    SELECT_LOJA_GESTOR: "/admin/selecionar-loja", // <- MUDANÇA 1: era "/escolher-loja"
+    SELECT_LOJA_FUNC: "/admin/selecionar-loja" // <- MUDANÇA 2: era "/select-loja"
 };
 
 type LojaSelectOut = { id: string; nome: string; slug: string; role: "dono" | "gerente" | "vendedor" };

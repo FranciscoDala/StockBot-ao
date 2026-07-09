@@ -138,6 +138,8 @@ async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: 
     lojas = result.scalars().all()
     return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at} for l in lojas]
 
+
+
 # ADICIONADO: Buscar por ID pra evitar problema de slug com acento
 @router.get("/id/{loja_id}", response_model=LojaDetailOut)
 async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -152,6 +154,9 @@ async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
+
+
+
 
 @router.get("/{slug}", response_model=LojaDetailOut)
 async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
