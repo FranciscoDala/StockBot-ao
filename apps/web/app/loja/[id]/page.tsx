@@ -449,16 +449,18 @@ export default function LojaPage() {
         try {
 
             if (entidade === 'user') {
+
                 if (tipo === 'adicionar') {
                     // 1. CREATE: cria Usuario + UsuarioLoja
                     await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, token, {
                         method: "POST",
                         body: JSON.stringify({
                             nome: formDataUser.nome,
-                            senha: formDataUser.senha,
-                            senha_confirmacao: formDataUser.senha,
                             telefone: formDataUser.telefone,
-                            role: formDataUser.role
+                            role: formDataUser.role,
+                            is_active: formDataUser.is_active,
+                            senha_dono: formDataUser.senha, // <- ERA formDataUser.senha
+                            senha_confirmacao: formDataUser.senha // <- ERA formDataUser.senha
                         })
                     });
                     await fetchEquipa(token);
@@ -473,14 +475,17 @@ export default function LojaPage() {
                         body: JSON.stringify({
                             nome: formDataUser.nome,
                             telefone: formDataUser.telefone,
-                            role: formDataUser.role,
+                            role: formDataUser.role, // <- já vem "GERENTE"
                             is_active: formDataUser.is_active,
-                            senha_confirmacao: senha_dono // <- senha do DONO/GERENTE logado
+                            senha_dono: senha_dono, // <- FALTAVA ESTE
+                            senha_confirmacao: senha_dono // <- era só este
                         })
                     });
                     await fetchEquipa(token);
                     toast.success("Membro atualizado com sucesso!");
                 }
+
+
 
                 if (tipo === 'apagar' && data) {
                     // 3. DELETE: só desativa o vinculo. Não manda body

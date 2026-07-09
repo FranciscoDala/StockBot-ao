@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react"; // <- adiciona useEffect
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,14 +17,17 @@ interface Props {
 export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Props) {
     const [senha, setSenha] = useState("");
 
+    useEffect(() => { // <- LIMPA SENHA AO FECHAR/ABRIR
+        if (!open) setSenha("");
+    }, [open]);
+
     const handleSubmit = () => {
         if(!senha.trim()) return;
         onConfirm(senha);
-        setSenha("");
     }
 
     return (
-        <Dialog open={open} onOpenChange={() => {}}>
+        <Dialog open={open} onOpenChange={onClose}> {/* <- CORRIGIDO: antes tava () => {} */}
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
@@ -42,7 +45,16 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                 <div className="px-6 pb-4">
                     <div className="grid gap-2">
                         <Label htmlFor="senha" className="flex items-center gap-2"><KeyRound size={14}/> Senha do Proprietário</Label>
-                        <Input id="senha" type="password" placeholder="Digite a senha para confirmar" value={senha} onChange={(e) => setSenha(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSubmit()} className="bg-neutral-900 border-neutral-800 h-10" autoFocus />
+                        <Input
+                            id="senha"
+                            type="password"
+                            placeholder="Digite a senha para confirmar"
+                            value={senha}
+                            onChange={(e) => setSenha(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                            className="bg-neutral-900 border-neutral-800 h-10"
+                            autoFocus
+                        />
                     </div>
                 </div>
                 <DialogFooter className="p-4 bg-neutral-900/50 border-t border-white/10 flex-row justify-end gap-2">

@@ -6,24 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 
-// REMOVIDO import de page. Declarado aqui pra exportar
 export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
 
 export type UsuarioLoja = {
   id: string;
   nome: string;
-  email: string; // <- CONTINUA PRA MOSTRAR NA EDIÇÃO
+  email: string;
   telefone?: string;
   role: UserRole;
   is_active: boolean;
   vendas_total?: number;
 }
 
-// 1. ADICIONEI email e senha aqui
 type FormDataType = {
   nome: string;
   email: string;
-  senha?: string; // <- OPCIONAL PRA EDIÇÃO
+  senha?: string; // <- só usado pra criar
   telefone: string;
   role: UserRole;
   is_active: boolean
@@ -33,7 +31,7 @@ interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
     editingUser: UsuarioLoja | null;
-    formData: FormDataType; // <- USEI O TYPE NOVO
+    formData: FormDataType;
     setFormData: (d: any) => void;
     onSave: (e: React.FormEvent) => void;
     saving: boolean;
@@ -61,33 +59,20 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="sm:col-span-3 bg-background text-xs" required />
                         </div>
 
-                        {/* 2. CAMPO EMAIL: AVISO NA CRIAÇÃO, INPUT TRAVADO NA EDIÇÃO */}
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right">Email</Label>
                             {editingUser? (
-                                <Input
-                                    type="email"
-                                    value={formData.email}
-                                    className="sm:col-span-3 bg-background text-xs"
-                                    disabled // <- TRAVADO
-                                />
+                                <Input type="email" value={formData.email} className="sm:col-span-3 bg-background text-xs" disabled />
                             ) : (
                                 <p className="sm:col-span-3 text-xs text-gray-400">Será gerado automaticamente: nome@loja.ao</p>
                             )}
                         </div>
 
-                        {/* 3. CAMPO SENHA SÓ APARECE AO CRIAR */}
+                        {/* SÓ APARECE AO CRIAR */}
                         {!editingUser && (
                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                <Label className="text-xs sm:text-right">Senha *</Label>
-                                <Input
-                                    type="password"
-                                    value={formData.senha || ""}
-                                    onChange={e => setFormData({...formData, senha: e.target.value})}
-                                    className="sm:col-span-3 bg-background text-xs"
-                                    required
-                                    placeholder="mínimo 6 caracteres"
-                                />
+                                <Label className="text-xs sm:text-right">Senha Temp *</Label>
+                                <Input type="password" value={formData.senha || ""} onChange={e => setFormData({...formData, senha: e.target.value})} className="sm:col-span-3 bg-background text-xs" required placeholder="mínimo 6 caracteres" />
                             </div>
                         )}
 
@@ -108,7 +93,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 <option value="VENDEDOR">Vendedor</option>
                                 <option value="CAIXA">Caixa</option>
                                 <option value="ESTOQUISTA">Estoquista</option>
-                                {!editingUser && <option value="DONO">Dono</option>} {/* <- só pode criar dono na criação */}
+                                {!editingUser && <option value="DONO">Dono</option>}
                             </select>
                         </div>
                     </div>
@@ -117,7 +102,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                         <DialogClose asChild><Button type="button" className="bg-gray-500 hover:bg-gray-600 text-white text-xs w-full sm:w-auto">Cancelar</Button></DialogClose>
                         <Button type="submit" disabled={saving} className="gap-2 bg-green-600 hover:bg-green-700 text-xs w-full sm:w-auto">
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {editingUser? "Continuar" : "Salvar"}
+                            {editingUser? "Salvar Alterações" : "Salvar"}
                         </Button>
                     </DialogFooter>
                 </form>
