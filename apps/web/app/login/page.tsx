@@ -7,12 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Toaster, toast } from "sonner"; // <- adicionei toast
 
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? "http://127.0.0.1:8000/api/v1"
+  (typeof window!== 'undefined' && window.location.hostname === 'localhost'
+   ? "http://127.0.0.1:8000/api/v1"
     : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
-
 
 const MENSAGEM_LOJA_DESATIVADA = "a sua loja foi desativada, vá até o escritório ou entra em contacto com o admin da stocckbot.\n\ncontacto:\ne-mail: stockbot26@gmail.com\nwhatsapp: +244930438947";
 
@@ -50,8 +48,8 @@ type LoginResponse = {
 const setCookie = (name: string, value: string, days = 7) => {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     const isProd = process.env.NODE_ENV === 'production';
-    const secure = isProd ? '; Secure' : '';
-    const sameSite = isProd ? '; SameSite=None' : '; SameSite=Lax';
+    const secure = isProd? '; Secure' : '';
+    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
     document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${secure}${sameSite}`;
 };
 
@@ -150,8 +148,9 @@ export default function LoginPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    email: email,
-                    senha: password })
+                    username: email, // <- MUDEI: era email
+                    password: password // <- MUDEI: era senha
+                })
             });
 
             if (!res.ok) {
