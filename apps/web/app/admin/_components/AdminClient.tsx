@@ -131,12 +131,17 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         const token = getCookie("token");
         if (!token) return;
         try {
-            const res = await fetch(`${API_URL}/lojas/donos/`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+            const res = await fetch(`${API_URL}/lojas/donos`, { // <- TIRA A /
+                headers: { Authorization: `Bearer ${token}` }, cache: 'no-store'
+            });
             if (!res.ok) return setDonos([]);
             const data = await res.json();
             setDonos(data);
         } catch { setDonos([]); }
     }
+
+
+
 
     const handleOpenModal = async (loja: Loja | null = null) => {
         setEditingLoja(loja);
@@ -164,7 +169,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         setIsSaving(true);
         const token = getCookie("token");
         const isEditing = !!editingLoja;
-        const url = isEditing ? `${API_URL}/lojas/${editingLoja.id}` : `${API_URL}/lojas/`;
+        const url = isEditing ? `${API_URL}/lojas/${editingLoja.id}` : `${API_URL}/lojas`; // <- SEM /
         const method = isEditing ? 'PATCH' : 'POST';
         let payload: any = { nome: formData.nome, slug: formData.slug, is_active: formData.is_active, endereco: formData.endereco || null, };
         if (isEditing) {
