@@ -335,7 +335,9 @@ async def adicionar_usuario_loja(loja_id: UUID, body: UsuarioLojaCreateWithAuth,
     await db.refresh(usuario)
     return map_usuario_loja_out(usuario, novo_membro)
 
+
 @router.patch("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut)
+@router.put("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut) # <- ADICIONEI PUT
 async def atualizar_usuario_loja(loja_id: UUID, usuario_id: UUID, body: UsuarioLojaUpdateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     loja = await db.get(Loja, loja_id)
     if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
@@ -365,6 +367,9 @@ async def atualizar_usuario_loja(loja_id: UUID, usuario_id: UUID, body: UsuarioL
     await db.refresh(membro)
     await db.refresh(usuario)
     return map_usuario_loja_out(usuario, membro)
+
+
+
 
 @router.delete("/id/{loja_id}/usuarios/{usuario_id}", status_code=204)
 async def remover_usuario_loja(loja_id: UUID, usuario_id: UUID, body: AcaoSensivelAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
