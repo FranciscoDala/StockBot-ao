@@ -42,7 +42,7 @@ const VendaSchema = z.object({
 
 // Helper: converte string/null pra number
 const numberFromString = z.preprocess(
-    (val) => val === null || val === ""? 0 : Number(val),
+    (val) => val === null || val === "" ? 0 : Number(val),
     z.number()
 );
 
@@ -116,18 +116,18 @@ const initialTabs = [
     { id: "risco", label: "Risco", icon: ShieldAlert },
 ];
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
 const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; Secure; SameSite=None`; }; // <- CORRIGIDO PRA CROSS-DOMAIN
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {
-       ...options,
+        ...options,
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`,
-           ...options.headers
+            ...options.headers
         },
         credentials: 'include',
         cache: "no-store"
@@ -165,7 +165,17 @@ export default function LojaPage() {
 
     const [equipa, setEquipa] = useState<UsuarioLojaPage[]>([]);
     const [editingUser, setEditingUser] = useState<UsuarioLoja | null>(null);
-    const [formDataUser, setFormDataUser] = useState({ nome: "", telefone: "", role: "VENDEDOR" as UserRole, is_active: true });
+
+    const [formDataUser, setFormDataUser] = useState({
+        nome: "",
+        email: "", // <- ADICIONA
+        senha: "", // <- ADICIONA
+        telefone: "",
+        role: "VENDEDOR" as UserRole,
+        is_active: true
+    });
+
+
     const [detalhesUser, setDetalhesUser] = useState<any>(null);
 
     const [produtos, setProdutos] = useState<ProdutoType[]>([]);
@@ -211,7 +221,7 @@ export default function LojaPage() {
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
 
     const fetchEquipa = async (currentToken: string) => {
-        if (!currentToken ||!lojaId) return; // <- CORRIGIDO
+        if (!currentToken || !lojaId) return; // <- CORRIGIDO
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken); // <- CORRIGIDO
             if (data && Array.isArray(data)) setEquipa(data); else setEquipa([]);
@@ -219,7 +229,7 @@ export default function LojaPage() {
     };
 
     const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => {
-        if (!currentToken ||!lojaId) { setProdutos([]); return; }
+        if (!currentToken || !lojaId) { setProdutos([]); return; }
         try {
             const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken);
             const produtosValidados = z.array(ProdutoSchema).parse(data);
@@ -232,7 +242,7 @@ export default function LojaPage() {
     }, []);
 
     const fetchLoja = useCallback(async (currentToken: string) => {
-        if (!currentToken ||!lojaId) return; // <- CORRIGIDO
+        if (!currentToken || !lojaId) return; // <- CORRIGIDO
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}`, currentToken); // <- CORRIGIDO
             setLoja(data);
@@ -247,10 +257,10 @@ export default function LojaPage() {
         const currentToken = getCookie("token");
         const userStr = getCookie("user");
         setToken(currentToken || null);
-        if (!currentToken ||!userStr) { handleSair(); return; }
+        if (!currentToken || !userStr) { handleSair(); return; }
         try {
             const userData: userread = JSON.parse(userStr);
-            if (userData.loja?.id!== lojaId) { handleSair(); return; } // <- CORRIGIDO
+            if (userData.loja?.id !== lojaId) { handleSair(); return; } // <- CORRIGIDO
             setUser(userData);
             const loadData = async () => {
                 setLoading(true);
@@ -269,7 +279,7 @@ export default function LojaPage() {
 
     const subtotal = useMemo(() => carrinho.reduce((acc, item) => acc + (getPreco(item) * item.quantidade), 0), [carrinho]);
     const totalItens = useMemo(() => carrinho.reduce((acc, item) => acc + item.quantidade, 0), [carrinho]);
-    const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
+    const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal ? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
 
     const podeFinalizar = useMemo(() => {
         if (carrinho.length === 0) return false;
@@ -280,15 +290,15 @@ export default function LojaPage() {
     }, [carrinho, formaPagamento, valorRecebido, subtotal]);
 
     const adicionarAoCarrinho = (produto: ProdutoType) => {
-        if ((produto.estoque?? 0) <= 0) { toast.error("Produto sem estoque"); return; }
+        if ((produto.estoque ?? 0) <= 0) { toast.error("Produto sem estoque"); return; }
 
         setCarrinho(prev => {
             const itemExistente = prev.find(item => String(item.id) === String(produto.id));
             if (itemExistente) {
-                if (itemExistente.quantidade >= (produto.estoque?? 0)) { toast.warning("Estoque máximo atingido"); return prev; }
-                return prev.map(item => String(item.id) === String(produto.id)? {...item, quantidade: item.quantidade + 1 } : item);
+                if (itemExistente.quantidade >= (produto.estoque ?? 0)) { toast.warning("Estoque máximo atingido"); return prev; }
+                return prev.map(item => String(item.id) === String(produto.id) ? { ...item, quantidade: item.quantidade + 1 } : item);
             }
-            return [...prev, {...produto, quantidade: 1 }];
+            return [...prev, { ...produto, quantidade: 1 }];
         });
     };
 
@@ -299,7 +309,7 @@ export default function LojaPage() {
 
     const handleConfirmarRemocao = () => {
         if (itemParaRemover) {
-            setCarrinho(prev => prev.filter(i => i.id!== itemParaRemover.id));
+            setCarrinho(prev => prev.filter(i => i.id !== itemParaRemover.id));
             toast.success("Produto removido do carrinho");
         }
         setShowConfirmarModal(false);
@@ -327,7 +337,7 @@ export default function LojaPage() {
                 total: Number(subtotal),
                 total_itens: Number(totalItens),
                 forma_pagamento: formaPagamento,
-                valor_pago: formaPagamento === "Dinheiro"? Number(valorRecebido) : Number(subtotal),
+                valor_pago: formaPagamento === "Dinheiro" ? Number(valorRecebido) : Number(subtotal),
                 troco: Number(troco),
                 loja_id: user?.loja_id || user?.loja?.id || "",
                 itens: itensPayload
@@ -347,7 +357,7 @@ export default function LojaPage() {
                 troco: payload.troco,
                 data_venda: vendaSalva.data_venda || new Date().toISOString(),
                 itens: itensPayload.map(i => ({
-                   ...i,
+                    ...i,
                     nome: carrinho.find(c => String(c.id) === i.produto_id)?.nome
                 })),
                 loja_id: payload.loja_id
@@ -375,12 +385,16 @@ export default function LojaPage() {
         setModalType(type);
         if (type === 'user') {
             setEditingUser(data as UsuarioLoja | null);
+
             setFormDataUser({
                 nome: (data as UsuarioLoja)?.nome || "",
+                email: (data as UsuarioLoja)?.email || "", // <- ADICIONA
+                senha: "", // <- ADICIONA. SEMPRE ZERADO
                 telefone: (data as UsuarioLoja)?.telefone || "",
                 role: ((data as UsuarioLoja)?.role?.toUpperCase() as UserRole) || "VENDEDOR",
-                is_active: (data as UsuarioLoja)?.is_active?? true
+                is_active: (data as UsuarioLoja)?.is_active ?? true
             });
+
         } else {
             setEditingProduto(data as ProdutoType | null);
             setFormDataProduto({
@@ -390,10 +404,10 @@ export default function LojaPage() {
                 preco_custo: (data as ProdutoType)?.preco_custo || 0,
                 estoque: (data as ProdutoType)?.estoque || 0,
                 estoque_minimo: (data as ProdutoType)?.estoque_minimo || 5,
-                is_active: (data as ProdutoType)?.is_active?? true,
+                is_active: (data as ProdutoType)?.is_active ?? true,
                 loja_id: (data as ProdutoType)?.loja_id || user?.loja_id || user?.loja?.id || "",
                 descricao: (data as ProdutoType)?.descricao || "",
-                codigo_barras: (data as ProdutoType)?.codigo_barras?? null,
+                codigo_barras: (data as ProdutoType)?.codigo_barras ?? null,
                 marca: (data as ProdutoType)?.marca || "",
                 categoria_id: (data as ProdutoType)?.categoria_id || null,
                 unidade: (data as ProdutoType)?.unidade || "UN",
@@ -410,13 +424,13 @@ export default function LojaPage() {
 
     const handleAddUserClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'user' }); openModal('user'); }
     const handleEditUserClick = (u: UsuarioLojaPage) => {
-        const userConvertido: UsuarioLoja = {...u, telefone: u.telefone?? undefined };
+        const userConvertido: UsuarioLoja = { ...u, telefone: u.telefone ?? undefined };
         setAcaoPendente({ tipo: 'editar', entidade: 'user', data: u });
         openModal('user', userConvertido);
     }
     const handleDeleteUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', data: u }); setShowPermissaoModal(true); }
     const handleViewUserClick = async (u: UsuarioLojaPage) => {
-        if (!token ||!lojaId) return; // <- CORRIGIDO
+        if (!token || !lojaId) return; // <- CORRIGIDO
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${u.id}/detalhes`, token); // <- CORRIGIDO
             if (data) { setDetalhesUser(data); setShowDetalhesModal(true); }
@@ -428,46 +442,58 @@ export default function LojaPage() {
     const handleDeleteProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'apagar', entidade: 'produto', data: p }); setShowPermissaoModal(true); }
 
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!acaoPendente ||!token) return;
+        if (!acaoPendente || !token) return;
         setSaving(true);
         setShowPermissaoModal(false);
         const { tipo, entidade, data } = acaoPendente;
         try {
+
             if (entidade === 'user') {
                 if (tipo === 'adicionar') {
-                    await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, token, { // <- CORRIGIDO
+                    // 1. CREATE: cria Usuario + UsuarioLoja
+                    await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, token, {
                         method: "POST",
                         body: JSON.stringify({
-                           ...formDataUser,
-                            role: formDataUser.role.toLowerCase(),
-                            senha_dono: senha_dono,
-                            senha_confirmacao: senha_dono
+                            nome: formDataUser.nome,
+                            email: formDataUser.email,
+                            senha: formDataUser.senha,
+                            senha_confirmacao: formDataUser.senha, // <- confirma com a própria senha
+                            telefone: formDataUser.telefone,
+                            role: formDataUser.role
                         })
                     });
                     await fetchEquipa(token);
+                    toast.success("Membro adicionado com sucesso!");
                 }
+
                 if (tipo === 'editar' && data) {
+                    // 2. UPDATE: edita Usuario + UsuarioLoja. Precisa senha do admin
                     const userData = data as UsuarioLojaPage;
-                    await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${userData.id}`, token, { // <- CORRIGIDO
-                        method: "PATCH",
+                    await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${userData.id}`, token, {
+                        method: "PUT",
                         body: JSON.stringify({
-                           ...formDataUser,
-                            role: formDataUser.role.toLowerCase(),
-                            senha_dono: senha_dono,
-                            senha_confirmacao: senha_dono
+                            nome: formDataUser.nome,
+                            telefone: formDataUser.telefone,
+                            role: formDataUser.role,
+                            is_active: formDataUser.is_active,
+                            senha_confirmacao: senha_dono // <- senha do DONO/GERENTE logado
                         })
                     });
                     await fetchEquipa(token);
+                    toast.success("Membro atualizado com sucesso!");
                 }
+
                 if (tipo === 'apagar' && data) {
+                    // 3. DELETE: só desativa o vinculo. Não manda body
                     const userData = data as UsuarioLojaPage;
-                    await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${userData.id}`, token, { // <- CORRIGIDO
-                        method: "DELETE",
-                        body: JSON.stringify({ senha_dono })
+                    await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${userData.id}`, token, {
+                        method: "DELETE"
                     });
                     await fetchEquipa(token);
+                    toast.success("Membro removido com sucesso!");
                 }
             }
+
 
             if (entidade === 'produto') {
                 const loja_id = user?.loja_id || user?.loja?.id || ""
@@ -475,10 +501,10 @@ export default function LojaPage() {
                 const dadosAtuais = data || formDataProduto;
 
                 const payload: any = {
-                   ...dadosAtuais,
+                    ...dadosAtuais,
                     senha_dono,
                     senha_confirmacao: senha_dono,
-                    loja_id: produtoData? produtoData.loja_id : loja_id
+                    loja_id: produtoData ? produtoData.loja_id : loja_id
                 }
 
                 if (tipo === 'editar' && (!payload.codigo_barras || String(payload.codigo_barras).trim() === "")) {
@@ -530,9 +556,9 @@ export default function LojaPage() {
 
     const handleSave = async (payload: any) => {
         if (payload && typeof payload.preventDefault === 'function') payload.preventDefault();
-        const data = payload?.target? formDataProduto : payload;
+        const data = payload?.target ? formDataProduto : payload;
 
-        if (!token ||!lojaId) return; // <- CORRIGIDO
+        if (!token || !lojaId) return; // <- CORRIGIDO
         setSaving(true);
         setErrorMsg("");
         try {
@@ -558,7 +584,7 @@ export default function LojaPage() {
                 if (dadosParaValidar.preco <= 0) { setErrorMsg("Preço deve ser maior que 0"); setSaving(false); return; }
 
                 setShowModal(false);
-                setAcaoPendente({ tipo: editingProduto? 'editar' : 'adicionar', entidade: 'produto', data: data });
+                setAcaoPendente({ tipo: editingProduto ? 'editar' : 'adicionar', entidade: 'produto', data: data });
                 setShowPermissaoModal(true);
                 setSaving(false);
                 return;
@@ -575,7 +601,7 @@ export default function LojaPage() {
         <>
             <Toaster position="top-center" richColors theme="dark" />
 
-            {activeTab === "venda"? (
+            {activeTab === "venda" ? (
                 <div className="fixed inset-0 z-40 bg-black">
                     <VendaTab
                         produtos={produtos}
@@ -620,18 +646,18 @@ export default function LojaPage() {
                                 <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-neutral-800 flex items-center justify-center text-xl sm:text-2xl font-bold text-green-500 shrink-0"><Store /></div>
                                 <div className="min-w-0">
                                     <h1 className="text-xl sm:text-3xl font-bold truncate">{loja?.nome || "Sem loja vinculada"}</h1>
-                                    <p className="text-xs sm:text-sm text-gray-400 truncate">{loja?.endereco || "endereço não informado"} {loja?.ano_fundacao? `· Fundada em ${loja.ano_fundacao}` : ""}</p>
+                                    <p className="text-xs sm:text-sm text-gray-400 truncate">{loja?.endereco || "endereço não informado"} {loja?.ano_fundacao ? `· Fundada em ${loja.ano_fundacao}` : ""}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 sm:gap-3">
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${loja?.is_active? "bg-green-600 text-white" : "bg-gray-600 text-white"}`}><div className={`h-2 w-2 rounded-full ${loja?.is_active? "bg-white" : "bg-gray-300"}`} />{loja?.is_active? "ativa" : "inativa"}</span>
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${loja?.is_active ? "bg-green-600 text-white" : "bg-gray-600 text-white"}`}><div className={`h-2 w-2 rounded-full ${loja?.is_active ? "bg-white" : "bg-gray-300"}`} />{loja?.is_active ? "ativa" : "inativa"}</span>
                                 <button onClick={handleSair} className="px-3 sm:px-4 py-2 bg-red-600 border-red-700 rounded-lg text-xs sm:text-sm font-bold flex items-center gap-2 hover:bg-red-700"><LogOut size={16} /> <span className="hidden sm:inline">Terminar Sessão</span></button>
                             </div>
                         </div>
 
                         <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg mb-6 overflow-x-auto">
                             {initialTabs.map((tab) => (
-                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id ? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
                                     <tab.icon size={16} /> {tab.label}
                                 </button>
                             ))}
@@ -646,12 +672,12 @@ export default function LojaPage() {
                         {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={isAdmin} isDono={isDono} lojaId={lojaId} onAdd={handleAddUserClick} onEdit={handleEditUserClick} onDelete={handleDeleteUserClick} onView={handleViewUserClick} />}
 
 
-                        {activeTab!== "dados" && activeTab!== "venda" && activeTab!== "equipa" && activeTab!== "produtos" && (<div className="bg-neutral-900 p-6 rounded-xl border-neutral-800 text-center text-gray-400">Em breve: {initialTabs.find(t => t.id === activeTab)?.label}</div>)}
+                        {activeTab !== "dados" && activeTab !== "venda" && activeTab !== "equipa" && activeTab !== "produtos" && (<div className="bg-neutral-900 p-6 rounded-xl border-neutral-800 text-center text-gray-400">Em breve: {initialTabs.find(t => t.id === activeTab)?.label}</div>)}
                     </div>
 
                     <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v); if (!v) { setEditingUser(null); setErrorMsg(""); } }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
                     <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v); if (!v) { setEditingProduto(null); setErrorMsg(""); } }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
-                    <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null); setSaving(false) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
+                    <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null); setSaving(false) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
                     <ErroModal open={showErroModal} onClose={() => { setShowErroModal(false); if (acaoPendente?.tipo === 'editar') setShowModal(true) }} mensagem={erroMsgPermissao} />
                     <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
                 </div>
