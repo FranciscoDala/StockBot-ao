@@ -4,11 +4,9 @@ import asyncio
 from datetime import date
 from app.db.session import AsyncSessionLocal
 from app.services.relatorio import gerar_relatorio_diario
-from app.services.whatsapp import enviar_relatorio_whatsapp
+from app.services.whatsapp import enviar_msg_venda # <- CORRIGIDO AQUI
 from sqlalchemy import select
 from app.models.loja import Loja
-from app.models.usuario_loja import UsuarioLoja
-from app.models.usuario import Usuario
 
 async def job_enviar_relatorios():
     print("Iniciando job de relatorios 22:00")
@@ -17,17 +15,27 @@ async def job_enviar_relatorios():
         lojas = result.scalars().all()
 
         for loja in lojas:
-            # Busca o dono na usuario_lojas
-            stmt = select(Usuario.telefone).join(UsuarioLoja).where(
-                UsuarioLoja.loja_id == loja.id,
-                UsuarioLoja.role == 'DONO'
-            )
-            telefone = (await db.execute(stmt)).scalar()
+            relatorio = await gerar_relatorio_diario(db, loja.id, date.today())
 
-            if telefone:
-                relatorio = await gerar_relatorio_diario(db, loja.id, date.today())
-                await enviar_relatorio_whatsapp(telefone, relatorio)
-                print(f"Enviado para {loja.nome} - {telefone}")
+            # CORRIGIDO: cria um objeto fake de venda só pra mandar o texto
+            class VendaFake:
+                def __init__(self, id, total, created_at, itens, cliente_nome):
+                    self.id = id
+                    self.total = total
+                    self.created_at = created_at
+                    self.itens = itens
+                    self.cliente_nome = cliente_nome
+
+            venda_fake = VendaFake(
+                id="RELATORIO",
+                total=0,
+                created_at=asyncio.get_event_loop().time(),
+                itens=[],
+                cliente_nome="Relatorio Diario"
+            )
+            # Reaproveita a mesma função de enviar
+            await enviar_msg_venda(db, loja.id, venda_fake, mensagem_custom=relatorio)
+            print(f"Enviado para: {loja.nome}")
 
 scheduler = AsyncIOScheduler(timezone="Africa/Luanda")
 scheduler.add_job(job_enviar_relatorios, CronTrigger(hour=22, minute=0))
