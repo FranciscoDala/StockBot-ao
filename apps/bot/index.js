@@ -12,27 +12,35 @@ app.use(express.json());
 app.get('/', (req, res) => res.status(200).send('StockBot AO Bot is running'));
 app.listen(PORT, () => console.log(`HTTP server running on ${PORT}`));
 
+// FUNÇÃO ATUALIZADA: USA BYPASS DE URL TAMBÉM
 async function enviarTextoGrande(destino, texto) {
     const LIMITE = 1500;
-    if (typeof destino === 'string') { // se for chatId
-        if (texto.length <= LIMITE) return client.sendMessage(destino, texto);
-        const partes = texto.match(new RegExp(`.{1,${LIMITE}}`, 'g'));
-        for (let i = 0; i < partes.length; i++) {
-            await client.sendMessage(destino, `[${i + 1}/${partes.length}]\n${partes[i]}`);
-            await new Promise(r => setTimeout(r, 1000));
-        }
-    } else { // se for objeto msg
-        if (texto.length <= LIMITE) return destino.reply(texto);
-        const partes = texto.match(new RegExp(`.{1,${LIMITE}}`, 'g'));
-        for (let i = 0; i < partes.length; i++) {
-            await destino.reply(`[${i + 1}/${partes.length}]\n${partes[i]}`);
-            await new Promise(r => setTimeout(r, 1000));
-        }
+    const numero = typeof destino === 'string' ? destino.replace('@c.us','') : destino.from.replace('@c.us','');
+
+    if (texto.length <= LIMITE) {
+        return enviarViaURL(numero, texto); // usa bypass
+    }
+
+    const partes = texto.match(new RegExp(`.{1,${LIMITE}}`, 'g'));
+    for (let i = 0; i < partes.length; i++) {
+        await enviarViaURL(numero, `[${i + 1}/${partes.length}]\n${partes[i]}`);
+        await new Promise(r => setTimeout(r, 2000)); // 2s pra não tomar block
     }
 }
 
+// NOVA FUNÇÃO: ENVIA PELA URL PRA BYPASSAR O BUG
+async function enviarViaURL(numero, mensagem) {
+    const url = `https://web.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(mensagem)}`;
+    console.log("BYPASS: Abrindo URL para", numero);
+    await client.pupPage.goto(url, {waitUntil: 'networkidle2', timeout: 60000});
+    await client.pupPage.waitForSelector('span[data-icon="send"]', {timeout: 20000});
+    await client.pupPage.click('span[data-icon="send"]');
+    await new Promise(r => setTimeout(r, 1000)); // espera enviar
+    console.log("BYPASS: Enviado para", numero);
+}
+
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: "stockbot", dataPath: "./.wwebjs_auth" }),
+    authStrategy: new LocalAuth({ clientId: "stockbot-v6", dataPath: "./.wwebjs_auth_v6" }), // muda pra limpar cache
     puppeteer: { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] }
 });
 
@@ -43,19 +51,21 @@ client.on('qr', (qr) => {
 
 client.on('ready', () => console.log('✅ WhatsApp Conectado!'));
 
-// ROTA PRA API CHAMAR
+// ROTA PRA API CHAMAR - 100% BYPASS
 app.post('/send', async (req, res) => {
-    console.log("ROTA /send V5");
+    console.log("ROTA /send V6 BYPASS");
     const { to, message } = req.body;
     if(!to ||!message) return res.status(400).json({error: "Falta 'to' ou 'message'"});
-    const chatId = String(to).replace(/\D/g, '') + "@c.us";
+
+    const numero = String(to).replace(/\D/g, '');
+    console.log("Tentando enviar para:", numero);
 
     try {
-        await client.sendMessage(chatId, message);
-        console.log("OK: Enviado para", chatId);
-        res.status(200).json({status: "ok"});
+        await enviarViaURL(numero, message);
+        console.log("OK: Enviado para", numero);
+        res.status(200).json({status: "ok", method: "url_bypass"});
     } catch (e) {
-        console.error("ERRO:", e);
+        console.error("ERRO BYPASS:", e.stack);
         res.status(500).json({error: e.message});
     }
 });
@@ -75,7 +85,7 @@ client.on('message', async msg => {
             const res = await axios.get(`${API_URL}/produtos/${codigo}`);
             const produto = res.data;
             const reply = `*${produto.nome}*\n💰 Preço: Kz ${produto.preco}\n📦 Estoque: ${produto.estoque}`;
-            await enviarTextoGrande(msg, reply);
+            await enviarTextoGrande(msg.from, reply); // passa o numero
         } catch (error) {
             msg.reply(`Produto ${codigo} não encontrado 😢`);
         }
