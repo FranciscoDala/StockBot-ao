@@ -16,7 +16,7 @@ from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
 from app.schemas.loja import LojaDetailOut, LojaCreateIn, LojaUpdateIn, DonoOut, DonoUpdateIn, GerenteOut
 from app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
-from app.core.deps import get_current_admin, get_current_user, verificar_acesso_loja
+from app.core.deps import get_current_admin, get_current_user, get_current_user_temp, verificar_acesso_loja
 from app.core.security import verify_password, get_password_hash
 from app.crud import loja as crud_loja
 
@@ -147,7 +147,6 @@ async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: 
     lojas = result.scalars().all()
     return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at} for l in lojas]
 
-
 @router.get("/minhas-temp")
 async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user_temp)):
     """
@@ -179,8 +178,6 @@ async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_u
         })
 
     return lojas_out
-
-
 
 
 # ADICIONADO: Buscar por ID pra evitar problema de slug com acento
