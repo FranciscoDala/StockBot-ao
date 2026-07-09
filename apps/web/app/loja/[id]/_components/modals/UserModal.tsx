@@ -12,7 +12,7 @@ export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
 export type UsuarioLoja = {
   id: string;
   nome: string;
-  email: string; // <- AGORA É OBRIGATORIO
+  email: string; // <- CONTINUA PRA MOSTRAR NA EDIÇÃO
   telefone?: string;
   role: UserRole;
   is_active: boolean;
@@ -48,7 +48,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
                         <DialogTitle className="text-base sm:text-lg">{editingUser? "Editar" : "Adicionar"} Membro</DialogTitle>
-                        <DialogDescription className="text-gray-400 text-xs sm:text-sm">{`Preencha os dados. Loja: ${lojaNome || "-"}`}</DialogDescription> {/* <- CORRIGIDO UNDEFINED */}
+                        <DialogDescription className="text-gray-400 text-xs sm:text-sm">{`Preencha os dados. Loja: ${lojaNome || "-"}`}</DialogDescription>
                     </DialogHeader>
 
                     <div className="grid gap-3 sm:gap-4 py-4 px-4 sm:px-6 overflow-y-auto flex-1 min-h-0">
@@ -61,18 +61,19 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="sm:col-span-3 bg-background text-xs" required />
                         </div>
 
-                        {/* 2. CAMPO EMAIL NOVO */}
+                        {/* 2. CAMPO EMAIL: AVISO NA CRIAÇÃO, INPUT TRAVADO NA EDIÇÃO */}
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-xs sm:text-right">Email *</Label>
-                            <Input
-                                type="email"
-                                value={formData.email}
-                                onChange={e => setFormData({...formData, email: e.target.value})}
-                                className="sm:col-span-3 bg-background text-xs"
-                                required
-                                disabled={!!editingUser} // <- email não muda na edição
-                                placeholder="usuario@email.com"
-                            />
+                            <Label className="text-xs sm:text-right">Email</Label>
+                            {editingUser? (
+                                <Input
+                                    type="email"
+                                    value={formData.email}
+                                    className="sm:col-span-3 bg-background text-xs"
+                                    disabled // <- TRAVADO
+                                />
+                            ) : (
+                                <p className="sm:col-span-3 text-xs text-gray-400">Será gerado automaticamente: nome@loja.ao</p>
+                            )}
                         </div>
 
                         {/* 3. CAMPO SENHA SÓ APARECE AO CRIAR */}

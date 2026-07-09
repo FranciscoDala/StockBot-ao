@@ -455,9 +455,8 @@ export default function LojaPage() {
                         method: "POST",
                         body: JSON.stringify({
                             nome: formDataUser.nome,
-                            email: formDataUser.email,
                             senha: formDataUser.senha,
-                            senha_confirmacao: formDataUser.senha, // <- confirma com a própria senha
+                            senha_confirmacao: formDataUser.senha,
                             telefone: formDataUser.telefone,
                             role: formDataUser.role
                         })

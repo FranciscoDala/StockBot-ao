@@ -16,6 +16,8 @@ from app.models.role import UserRole
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
+
+
 @router.post("", response_model=UsuarioLojaOut, status_code=status.HTTP_201_CREATED)
 async def criar_usuario(
     body: UsuarioLojaCreateIn,
@@ -29,23 +31,40 @@ async def criar_usuario(
     if current_role == UserRole.GERENTE and body.role!= UserRole.VENDEDOR:
         raise HTTPException(status_code=403, detail="gerente só pode criar vendedor")
 
-    # 1. Verifica se email já existe
-    result = await db.execute(select(Usuario).where(Usuario.email == body.email))
-    if result.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="email já cadastrado")
+    # 1. BUSCA NOME DA LOJA
+    loja = await db.get(Loja, loja_id)
+    if not loja:
+        raise HTTPException(status_code=404, detail="Loja não encontrada")
 
-    # 2. Cria Usuario na tabela global
+    # 2. GERA EMAIL AUTOMATICO: primeiroNomeUsuario@primeiroNomeLoja.ao
+    nome_usuario = body.nome.split()[0].lower()
+    nome_loja = loja.nome.split()[0].lower()
+    nome_usuario = re.sub(r'[^a-z0-9]', '', nome_usuario)
+    nome_loja = re.sub(r'[^a-z0-9]', '', nome_loja)
+    email_gerado = f"{nome_usuario}@{nome_loja}.ao"
+
+    # 3. Verifica se email já existe. Se existir adiciona numero
+    contador = 1
+    email_final = email_gerado
+    while True:
+        result = await db.execute(select(Usuario).where(Usuario.email == email_final))
+        if not result.scalar_one_or_none():
+            break
+        email_final = f"{nome_usuario}{contador}@{nome_loja}.ao"
+        contador += 1
+
+    # 4. Cria Usuario na tabela global
     novo_user = Usuario(
         nome=body.nome,
-        email=body.email,
+        email=email_final, # <- USA O GERADO
         senha_hash=get_password_hash(body.senha),
         telefone=body.telefone,
         is_active=True
     )
     db.add(novo_user)
-    await db.flush() # <- pra pegar o id
+    await db.flush()
 
-    # 3. Cria o vinculo UsuarioLoja
+    # 5. Cria o vinculo UsuarioLoja
     vinculo = UsuarioLoja(
         usuario_id=novo_user.id,
         loja_id=loja_id,
@@ -55,12 +74,17 @@ async def criar_usuario(
     )
     db.add(vinculo)
     await db.commit()
+    await db.refresh(vinculo) # <- CORRIGIDO
     await db.refresh(novo_user)
 
     return UsuarioLojaOut(
         id=novo_user.id, nome=novo_user.nome, email=novo_user.email,
         telefone=vinculo.telefone, role=vinculo.role, is_active=vinculo.is_active, loja_id=vinculo.loja_id
     )
+
+
+
+
 
 @router.get("/me", response_model=UserRead)
 async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):
