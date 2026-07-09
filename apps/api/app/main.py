@@ -94,7 +94,7 @@ UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-api_v1_router = APIRouter(prefix="/api/v1")
+api_v1_router = APIRouter()
 
 @api_v1_router.post("/upload/produto", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_imagem(file: UploadFile = File(...)):
