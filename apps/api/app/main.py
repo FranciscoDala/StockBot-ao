@@ -90,9 +90,10 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}")
     return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
 
-UPLOAD_DIR = Path("uploads")
+# ALTERADO AQUI: pasta para apps/api/uploads/produtos
+UPLOAD_DIR = Path("apps/api/uploads/produtos")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+app.mount("/uploads", StaticFiles(directory="apps/api/uploads"), name="uploads") # <- serve a pasta toda
 
 api_v1_router = APIRouter()
 
@@ -110,12 +111,12 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
         return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
 
     file_name = f"{uuid.uuid4()}.{extension}"
-    file_path = UPLOAD_DIR / file_name
+    file_path = UPLOAD_DIR / file_name # <- agora salva em apps/api/uploads/produtos/
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
     base_url = os.getenv("BASE_URL", "https://gentle-playfulness-production-d333.up.railway.app")
-    url = f"{base_url}/uploads/{file_name}"
+    url = f"{base_url}/uploads/produtos/{file_name}" # <- link atualizado
     return {"url": url, "filename": file_name}
 
 @api_v1_router.get("/health", tags=["health"])
