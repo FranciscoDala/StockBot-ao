@@ -14,7 +14,7 @@ type Loja = {
   slug: string;
   role: "dono" | "gerente" | "vendedor";
   endereco?: string | null;
-  is_active: boolean; // <- agora obrigatório
+  is_active: boolean;
   created_at: string;
 }
 
@@ -77,37 +77,34 @@ export default function SelectLojaPage() {
     const lojasStr = getCookie("lojas_temp");
     const userStr = getCookie("user_temp");
 
-    if (!tempToken ||!userStr) {
+    if (!tempToken ||!lojasStr ||!userStr) {
       handleTerminarSessao();
       return;
     }
 
-    const fetchLojas = async () => {
+    const fetchLojasComStatus = async () => {
       try {
-        // 1. Busca lojas reais do backend com is_active
-        const res = await fetch(`${API_URL}/lojas/minhas`, {
-          headers: { "Authorization": `Bearer ${tempToken}` }
+        const lojasDoCookie: {id: string, nome: string, slug: string, role: "dono" | "gerente" | "vendedor"}[] = JSON.parse(lojasStr);
+
+        // Busca o status real de cada loja usando /id/{id}
+        const promessas = lojasDoCookie.map(async (loja) => {
+          const res = await fetch(`${API_URL}/lojas/id/${loja.id}`, {
+            headers: { "Authorization": `Bearer ${tempToken}` }
+          });
+          if (!res.ok) return {...loja, is_active: false, created_at: new Date().toISOString(), endereco: null };
+          const data = await res.json();
+          return {...data, role: loja.role };
         });
-        if (!res.ok) throw new Error("Erro ao buscar lojas");
-        const lojasReais = await res.json();
 
-        // 2. Pega as roles do cookie pra juntar
-        const lojasDoCookie: {id: string, role: "dono" | "gerente" | "vendedor"}[] = lojasStr? JSON.parse(lojasStr) : [];
-
-        // 3. Junta role com os dados reais
-        const lojasComRole = lojasReais.map((l: any) => ({
-         ...l,
-          role: lojasDoCookie.find(lc => lc.id === l.id)?.role || 'dono'
-        }));
+        const lojasComStatus = await Promise.all(promessas);
 
         if(isMounted.current){
-            setLojas(lojasComRole);
+            setLojas(lojasComStatus);
             setUser(JSON.parse(userStr));
             setLoading(false);
 
             window.history.pushState(null, '', window.location.href);
             window.history.pushState(null, '', window.location.href);
-
             window.onpopstate = () => {
               if(!isLoggingOut.current) {
                 window.history.pushState(null, '', window.location.href);
@@ -118,7 +115,7 @@ export default function SelectLojaPage() {
         handleTerminarSessao();
       }
     };
-    fetchLojas();
+    fetchLojasComStatus();
 
     return () => {
       window.onpopstate = null;
@@ -127,7 +124,6 @@ export default function SelectLojaPage() {
 
   const handleSelectLoja = async (loja: Loja) => {
     const tempToken = getCookie("temp_token");
-
     try {
       const res = await fetch(`${API_URL}/auth/select-loja`, {
         method: "POST",
@@ -144,7 +140,6 @@ export default function SelectLojaPage() {
       }
 
       const data = await res.json();
-
       if(isMounted.current){
           window.onpopstate = null;
           setCookie("token", data.access_token, 7);
@@ -172,9 +167,7 @@ export default function SelectLojaPage() {
         <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold">Minhas Lojas</h2>
         </div>
-
         <p className="text-zinc-400 mb-8">Olá {user?.nome}, selecione uma loja para gerenciar</p>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {lojas.map((loja) => (
                 <button
@@ -204,7 +197,6 @@ export default function SelectLojaPage() {
                 </button>
             ))}
         </div>
-
         <Dialog open={erroModalOpen} onOpenChange={setErroModalOpen}>
             <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
             <DialogContent className="sm:max-w-[425px] bg-zinc-950/85 backdrop-blur-xl border-red-500/50 z-50">
@@ -224,7 +216,6 @@ export default function SelectLojaPage() {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-
     </div>
   )
 }
