@@ -485,17 +485,21 @@ export default function LojaPage() {
                     toast.success("Membro atualizado com sucesso!");
                 }
 
-
-
                 if (tipo === 'apagar' && data) {
-                    // 3. DELETE: só desativa o vinculo. Não manda body
+                    // 3. DELETE: precisa da senha do dono também
                     const userData = data as UsuarioLojaPage;
                     await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${userData.id}`, token, {
-                        method: "DELETE"
+                        method: "DELETE",
+                        body: JSON.stringify({
+                            senha_dono: senha_dono,        // <- ADICIONA
+                            senha_confirmacao: senha_dono  // <- ADICIONA
+                        })
                     });
                     await fetchEquipa(token);
                     toast.success("Membro removido com sucesso!");
                 }
+
+
             }
 
 
