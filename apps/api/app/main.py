@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 import logging, traceback, shutil, uuid, os
 from typing import AsyncGenerator
 from pathlib import Path
-import json
 
 from app.db.session import engine, Base
 from app.core.deps import get_current_user, require_role
@@ -17,16 +16,17 @@ from app.schemas.usuario import userread, Role
 
 # NOVO: Cloudinary
 import cloudinary
+from cloudinary import CloudinaryImage
 import cloudinary.uploader
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# NOVO: Configura Cloudinary na subida da API
+# NOVO: Configura Cloudinary usando settings
 cloudinary.config(
-    cloud_name = "d7dtiurw",
-    api_key = "598914546743518",
-    api_secret = "GxBW2UtKsSr2nDDc0WwztUWU3w8"
+    cloud_name = settings.CLOUDINARY_CLOUD_NAME,
+    api_key = settings.CLOUDINARY_API_KEY,
+    api_secret = settings.CLOUDINARY_API_SECRET
 )
 
 def import_all_models():
@@ -71,13 +71,7 @@ app = FastAPI(
     root_path="/api/v1"
 )
 
-origins = [
-    "https://stockbot-ao-production.up.railway.app",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
-
-logger.info(f"CORS liberado para: {origins}")
+logger.info(f"CORS liberado para: {settings.ALLOWED_ORIGINS_LIST}")
 
 app.add_middleware(
     TrustedHostMiddleware,
@@ -86,7 +80,7 @@ app.add_middleware(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=settings.ALLOWED_ORIGINS_LIST, # <-- agora usa do settings
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -123,7 +117,7 @@ async def upload_produto_imagem(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
-    base_url = os.getenv("BASE_URL", "https://gentle-playfulness-production-d333.up.railway.app")
+    base_url = settings.BASE_URL # <-- agora pega do .env
     url = f"{base_url}/uploads/produtos/{file_name}" # <- link continua igual
     return {"url": url, "filename": file_name}
 
@@ -152,7 +146,7 @@ async def upload_produto_cloudinary(file: UploadFile = File(...)):
         public_id = upload_result['public_id']
 
         # Gera URL otimizada
-        optimized_url = cloudinary.CloudinaryImage(public_id).build_url(
+        optimized_url = CloudinaryImage(public_id).build_url( # <-- import certo
             fetch_format="auto",
             quality="auto"
         )
