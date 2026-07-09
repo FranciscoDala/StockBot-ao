@@ -34,7 +34,7 @@ class UsuarioLojaUpdateWithAuth(UsuarioLojaUpdateIn):
 
 class UsuarioLojaCreateWithAuth(BaseModel):
     nome: str
-    telefone: Optional[str] = None # <- OPCIONAL
+    telefone: Optional[str] = None
     role: UserRole
     is_active: bool = True
     senha_dono: str = Field(..., min_length=1)
@@ -47,15 +47,11 @@ class DonoUpdateInWithAuth(DonoUpdateIn, AdminAuth):
     pass
 
 def slugify(text: str) -> str:
+    # CORRIGIDO: tira acento e troca espaço por -
+    text = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('ASCII')
     text = text.lower()
-    text = re.sub(r'[áàãâä]', 'a', text)
-    text = re.sub(r'[éèêë]', 'e', text)
-    text = re.sub(r'[íìîï]', 'i', text)
-    text = re.sub(r'[óòõôö]', 'o', text)
-    text = re.sub(r'[úùûü]', 'u', text)
-    text = re.sub(r'ç', 'c', text)
     text = re.sub(r'[^a-z0-9\s-]', '', text)
-    text = re.sub(r'[\s-]+', '.', text).strip('.')
+    text = re.sub(r'[\s-]+', '-', text).strip('-') # <- troquei. por -
     return text
 
 def gerar_email_temp(nome_usuario: str, nome_loja: str) -> str:
@@ -112,7 +108,7 @@ def map_usuario_to_gerente_out(usuario: Usuario | None, membro: UsuarioLoja | No
 def map_usuario_loja_out(usuario: Usuario, membro: UsuarioLoja) -> UsuarioLojaOut:
     return UsuarioLojaOut(id=usuario.id, nome=usuario.nome, email=usuario.email, telefone=usuario.telefone, role=membro.role, is_active=membro.is_active, loja_id=membro.loja_id)
 
-@router.get("", response_model=List[LojaDetailOut]) # <- MUDEI: TIREI A /
+@router.get("", response_model=List[LojaDetailOut])
 async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     lojas = (await db.execute(select(Loja).order_by(Loja.nome))).scalars().all()
     out = []
@@ -127,23 +123,35 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
         ))
     return out
 
-@router.get("/donos", response_model=List[DonoOut]) # <- MUDEI: TIREI A /
+@router.get("/donos", response_model=List[DonoOut])
 async def listar_donos(db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     stmt = select(Usuario).join(UsuarioLoja).where(UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True, Usuario.is_active == True).order_by(Usuario.nome).distinct()
     donos = (await db.execute(stmt)).scalars().all()
     return [DonoOut.model_validate(d) for d in donos]
 
-@router.get("/minhas") # <- MUDEI: TIREI A /
+@router.get("/minhas")
 async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    # ADMIN NÃO TEM LOJAS. Retorna vazio pra não mostrar tela de seleção
     if current_user.is_superuser:
         return []
-
     stmt = select(Loja).join(UsuarioLoja).where(UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.is_active == True, Loja.is_active == True).order_by(Loja.nome)
     result = await db.execute(stmt)
     lojas = result.scalars().all()
-
     return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at} for l in lojas]
+
+# ADICIONADO: Buscar por ID pra evitar problema de slug com acento
+@router.get("/id/{loja_id}", response_model=LojaDetailOut)
+async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    loja = await db.get(Loja, loja_id)
+    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
+    await verificar_acesso_loja(loja.id, db, current_user)
+    dono, membro = await get_dono_loja(db, loja.id)
+    count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.is_active == True)
+    total = (await db.execute(count_stmt)).scalar_one()
+    return LojaDetailOut(
+        id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
+        gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
+    )
 
 @router.get("/{slug}", response_model=LojaDetailOut)
 async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -159,7 +167,7 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
-@router.post("", response_model=LojaDetailOut, status_code=status.HTTP_201_CREATED) # <- MUDEI: TIREI A /
+@router.post("", response_model=LojaDetailOut, status_code=status.HTTP_201_CREATED)
 async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
     if (await db.execute(select(Loja).where(Loja.slug == body.slug))).scalar_one_or_none(): raise HTTPException(status_code=400, detail="Slug já existe")
     try: loja = await crud_loja.create_loja(db=db, loja_in=body)
@@ -259,7 +267,7 @@ async def apagar_loja(loja_id: UUID, body: AdminAuth, db: AsyncSession = Depends
 
 @router.get("/{slug}/usuarios", response_model=List[UsuarioLojaOut])
 async def listar_usuarios_loja(slug: str, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none() # <- CORRIGIDO AQUI
+    loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
     if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
     await verificar_acesso_loja(loja.id, db, current_user)
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id).where(UsuarioLoja.loja_id == loja.id)
@@ -271,7 +279,7 @@ async def adicionar_usuario_loja(slug: str, body: UsuarioLojaCreateWithAuth, db:
     loja = (await db.execute(select(Loja).where(Loja.slug == slug))).scalar_one_or_none()
     if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
     await verificar_acesso_loja(loja.id, db, current_user)
-    await verify_dono_password(db, loja.id, body.senha_dono, body.senha_confirmacao) # <- VALIDA SENHA
+    await verify_dono_password(db, loja.id, body.senha_dono, body.senha_confirmacao)
 
     if not current_user.is_superuser:
         membro_admin = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.role.in_([UserRole.DONO, UserRole.GERENTE])))).scalar_one_or_none()

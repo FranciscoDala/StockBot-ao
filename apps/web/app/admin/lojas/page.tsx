@@ -6,6 +6,8 @@ import { Building, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL; // <- ADICIONEI ISSO
+
 type Loja = {
   id: string;
   nome: string;
@@ -101,7 +103,8 @@ export default function SelectLojaPage() {
     const tempToken = getCookie("temp_token");
 
     try {
-      const res = await fetch("process.env.NEXT_PUBLIC_API_URL/auth/select-loja", {
+      // CORRIGIDO: tirei as aspas e usei a const API_URL
+      const res = await fetch(`${API_URL}/auth/select-loja`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -124,7 +127,7 @@ export default function SelectLojaPage() {
           deleteCookie("temp_token");
           deleteCookie("lojas_temp");
           deleteCookie("user_temp");
-          router.push(`/loja/${loja.slug}`);
+          router.push(`/loja/${loja.id}`); // <- CORRIGIDO: usa ID em vez de slug
       }
 
     } catch (err: any) {
@@ -143,7 +146,6 @@ export default function SelectLojaPage() {
     <div>
         <div className="flex items-center justify-between mb-6">
             <h2 className="text-3xl font-bold">Minhas Lojas</h2>
-            {/* BOTÃO REMOVIDO DAQUI. USA O DO LAYOUT */}
         </div>
 
         <p className="text-zinc-400 mb-8">Olá {user?.nome}, selecione uma loja para gerenciar</p>
