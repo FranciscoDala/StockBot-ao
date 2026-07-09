@@ -149,7 +149,7 @@ async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: 
 
 
 @router.get("/minhas-temp")
-async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user_temp)):
     """
     Rota para usar com temp_token na tela de seleção.
     Retorna todas lojas do usuário com is_active e role
@@ -179,6 +179,8 @@ async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_u
         })
 
     return lojas_out
+
+
 
 
 # ADICIONADO: Buscar por ID pra evitar problema de slug com acento

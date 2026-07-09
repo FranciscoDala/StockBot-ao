@@ -135,3 +135,30 @@ async def verificar_acesso_loja(
             detail="Você não tem permissão para acessar esta loja"
         )
     return True
+
+# ADICIONADO: Valida apenas o token, não exige loja_id. Para usar com temp_token
+async def get_current_user_temp(
+    token: str = Depends(oauth2_scheme),
+    db: AsyncSession = Depends(get_db)
+) -> Usuario:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Não foi possível validar as credenciais",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        user_id_str: str = payload.get("sub")
+        if not user_id_str:
+            raise credentials_exception
+        user_id = UUID(user_id_str)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="token expirado", headers={"WWW-Authenticate": "Bearer"})
+    except (JWTError, ValueError):
+        raise credentials_exception
+
+    result = await db.execute(select(Usuario).where(Usuario.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=403, detail="usuario invalido ou inativo")
+    return user
