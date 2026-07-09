@@ -7,15 +7,16 @@ from decimal import Decimal
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from  app.db.session import get_db
-from  app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdateWithAuth
-from  app.schemas.usuario import Role
-from  app.core.deps import get_current_user, require_role
-from  app.models.produto import Produto
-from  app.models.usuario_loja import UsuarioLoja
-from  app.models.role import UserRole
-from  app.models.loja import Loja
-from  app.core.security import verify_password
+from app.db.session import get_db
+from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate # <- CORRIGIDO
+from app.schemas.usuario import Role
+from app.core.deps import get_current_user, require_role
+from app.models.produto import Produto
+from app.models.usuario_loja import UsuarioLoja
+from app.models.role import UserRole
+from app.models.loja import Loja
+from app.models.usuario import Usuario # <- MOVI PRA CIMA
+from app.core.security import verify_password
 import qrcode
 import io
 import base64
@@ -29,7 +30,7 @@ class ProdutoCreateWithAuth(ProdutoCreate):
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
-class ProdutoUpdateWithAuth(ProdutoUpdateWithAuth):
+class ProdutoUpdateWithAuth(ProdutoUpdate): # <- CORRIGIDO: herdava de si mesmo
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
@@ -58,14 +59,13 @@ def gerar_qr_code_base64(produto_id: UUID, sku: str, nome: str) -> str:
     img.save(buf, format='PNG')
     return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
 
-
 def to_schema(produto: Produto) -> ProdutoOut:
     return ProdutoOut(
         id=produto.id, loja_id=produto.loja_id, nome=produto.nome, descricao=produto.descricao,
         categoria_id=produto.categoria_id, marca=produto.marca, imagem_url=produto.imagem_url,
         sku=produto.sku, codigo_barras=produto.codigo_barras, codigo_qr=produto.codigo_qr, ncm=produto.ncm,
-        preco=float(produto.preco_venda) if produto.preco_venda else 0.0,
-        preco_custo=float(produto.preco_compra) if produto.preco_compra else 0.0,
+        preco=float(produto.preco_venda) if produto.preco_venda else 0.0, # <- CORRIGIDO
+        preco_custo=float(produto.preco_compra) if produto.preco_compra else 0.0, # <- CORRIGIDO
         preco_promocao=float(produto.preco_promocao) if produto.preco_promocao else None,
         custo_medio=float(produto.custo_medio) if produto.custo_medio else 0.0,
         estoque=float(produto.estoque),
@@ -74,9 +74,8 @@ def to_schema(produto: Produto) -> ProdutoOut:
         unidade=produto.unidade, peso_kg=float(produto.peso_kg) if produto.peso_kg else None,
         fornecedor_id=produto.fornecedor_id, localizacao=produto.localizacao, is_active=produto.is_active,
         created_at=produto.created_at, updated_at=produto.updated_at, deleted_at=produto.deleted_at,
-        margem_lucro=float(produto.margem_lucro) if produto.margem_lucro else 0.0 # <- ADICIONA ISSO
+        margem_lucro=float(produto.margem_lucro) if produto.margem_lucro else 0.0
     )
-
 
 async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha_dono: str, senha_confirmacao: str):
     if not senha_dono or not senha_confirmacao: raise HTTPException(status_code=403, detail="Senha do dono não informada")
@@ -85,7 +84,6 @@ async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha_dono: str,
     result = await db.execute(stmt)
     dono_loja = result.scalar_one_or_none()
     if not dono_loja: raise HTTPException(status_code=404, detail="Dono da loja não encontrado")
-    from  app.models.usuario import Usuario
     usuario_dono = await db.get(Usuario, dono_loja.usuario_id)
     if not usuario_dono: raise HTTPException(status_code=404, detail="Usuário dono não encontrado")
     senha_hash = getattr(usuario_dono, "senha_hash", None)
@@ -198,7 +196,7 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
 
     for key, value in update_data.items():
         if key == 'imagem_url' and value == "":
-            continue
+            continue # <- não apaga imagem se vier vazio
         setattr(produto_db, key, value)
 
     if 'nome' in update_data or 'sku' in update_data:
@@ -209,7 +207,7 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     await db.commit()
     await db.refresh(produto_db)
     print("--- FIM PATCH ---\n")
-    return to_schema(produto_db) # <- CORRIGIDO: era 'novo'
+    return to_schema(produto_db)
 
 @router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO))])
 async def apagar_produto(body: dict, produto_id: UUID, db: AsyncSession = Depends(get_db)):
@@ -228,8 +226,8 @@ async def get_produto_publico(sku: str, db: AsyncSession = Depends(get_db)):
     produto = result.scalar_one_or_none()
     if not produto: raise HTTPException(status_code=404, detail="Produto não encontrado")
     return {
-        "id": str(produto.id), "nome": produto.nome, "sku": produto.sku, "preco": float(produto.preco_venda), # <- MUDOU
-        "preco_custo": float(produto.preco_compra), "estoque": float(produto.estoque), "unidade": produto.unidade, # <- MUDOU
+        "id": str(produto.id), "nome": produto.nome, "sku": produto.sku, "preco": float(produto.preco_venda),
+        "preco_custo": float(produto.preco_compra), "estoque": float(produto.estoque), "unidade": produto.unidade,
         "marca": produto.marca, "descricao": produto.descricao, "imagem_url": produto.imagem_url,
         "loja_nome": produto.loja.nome if produto.loja else "Loja não informada"
     }
