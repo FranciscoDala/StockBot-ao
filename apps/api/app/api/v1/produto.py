@@ -160,9 +160,16 @@ async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Dep
     produto = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     return to_schema(produto)
 
+
+
 @router.patch("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithAuth, db: AsyncSession = Depends(get_db)):
-    loja_id = produto_update.loja_id
+    # PEGA O PRODUTO PRIMEIRO PRA SABER A LOJA
+    produto_db = await db.get(Produto, produto_id)
+    if not produto_db or produto_db.deleted_at:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    loja_id = produto_db.loja_id # <- CORRETO: pega do banco
+
     await verify_dono_password(db, loja_id, produto_update.senha_dono, produto_update.senha_confirmacao)
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
 
@@ -189,7 +196,7 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     else:
         print("Codigo veio vazio/null, ignorado")
 
-    update_data = produto_update.model_dump(exclude_unset=True, exclude={"senha_dono", "senha_confirmacao", "loja_id", "sku"})
+    update_data = produto_update.model_dump(exclude_unset=True, exclude={"senha_dono", "senha_confirmacao", "sku"})
 
     if 'preco' in update_data: produto_db.preco_venda = Decimal(str(update_data.pop('preco')))
     if 'preco_custo' in update_data: produto_db.preco_compra = Decimal(str(update_data.pop('preco_custo')))
@@ -208,6 +215,10 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     await db.refresh(produto_db)
     print("--- FIM PATCH ---\n")
     return to_schema(produto_db)
+
+
+
+
 
 @router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO))])
 async def apagar_produto(body: dict, produto_id: UUID, db: AsyncSession = Depends(get_db)):
