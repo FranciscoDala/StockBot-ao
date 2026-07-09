@@ -6,13 +6,15 @@ from datetime import date
 from fastapi import HTTPException
 from decimal import Decimal
 
-from  app.models.venda import Venda
-from  app.models.itens_venda import ItemVenda
-from  app.models.produto import Produto
-from  app.schemas.venda import VendaCreate, VendaRead, ItemVendaRead
-from  app.models.usuario import Usuario
+from app.models.venda import Venda
+from app.models.itens_venda import ItemVenda
+from app.models.produto import Produto
+from app.schemas.venda import VendaCreate, VendaRead, ItemVendaRead
+from app.models.usuario import Usuario
 
 async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario, loja_id: UUID):
+    itens_para_broadcast = [] # <- 1. GUARDA OS DADOS PRA DEVOLVER
+
     try:
         # 1. Criar a venda
         nova_venda = Venda(
@@ -41,6 +43,13 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
             produto.estoque -= item_in.quantidade
             db.add(produto)
 
+            # GUARDA PRA MANDAR PRO WS DEPOIS DO COMMIT
+            itens_para_broadcast.append({
+                "produto_id": produto.id,
+                "nome": produto.nome,
+                "novo_estoque": produto.estoque
+            })
+
             # Criar item da venda
             novo_item = ItemVenda(
                 venda_id=nova_venda.id,
@@ -54,7 +63,15 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
 
         await db.commit() # <- COMMIT AQUI
         await db.refresh(nova_venda)
-        return await listar_venda_por_id(db, nova_venda.id, loja_id)
+
+        venda_read = await listar_venda_por_id(db, nova_venda.id, loja_id)
+
+        # 2. ANEXA O ESTOQUE ATUALIZADO NA VENDA PRA ROTA USAR
+        venda_read.itens = [
+            {**item.model_dump(), "estoque_atual": next((i["novo_estoque"] for i in itens_para_broadcast if i["produto_id"] == item.produto_id), 0)}
+            for item in venda_read.itens
+        ]
+        return venda_read
 
     except Exception:
         await db.rollback() # <- ROLLBACK SE DER ERRO
@@ -85,4 +102,31 @@ async def listar_vendas(db: AsyncSession, current_user: Usuario, loja_id: UUID, 
     pass
 
 async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID):
-    pass
+    itens_para_broadcast = [] # <- 3. GUARDA OS DADOS PRA DEVOLVER
+
+    stmt_venda = select(Venda).options(selectinload(Venda.itens)).where(Venda.id == venda_id, Venda.loja_id == loja_id)
+    venda = (await db.execute(stmt_venda)).scalar_one_or_none()
+    if not venda:
+        raise HTTPException(status_code=404, detail="Venda não encontrada")
+    if venda.status == 'estornada':
+        raise HTTPException(status_code=400, detail="Venda já estornada")
+
+    # 4. DEVOLVE ESTOQUE
+    for item in venda.itens:
+        stmt_prod = select(Produto).where(Produto.id == item.produto_id, Produto.loja_id == loja_id)
+        produto = (await db.execute(stmt_prod)).scalar_one_or_none()
+        if produto:
+            produto.estoque += item.quantidade
+            db.add(produto)
+
+            itens_para_broadcast.append({
+                "produto_id": produto.id,
+                "nome": produto.nome,
+                "novo_estoque": produto.estoque
+            })
+
+    venda.status = 'estornada'
+    db.add(venda)
+    await db.commit()
+
+    return itens_para_broadcast # <- 5. RETORNA PRA ROTA FAZER O BROADCAST

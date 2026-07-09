@@ -275,6 +275,67 @@ export default function LojaPage() {
         } catch (err) { handleSair(); }
     }, [router, lojaId, fetchProdutos, fetchLoja]); // <- CORRIGIDO
 
+    // 1. STATE PRA CONEXAO
+    const [ws, setWs] = useState<WebSocket | null>(null);
+
+    useEffect(() => {
+        if (!token || !lojaId) return;
+
+        const WS_URL = process.env.NEXT_PUBLIC_WS_URL; // <- pega do .env
+        const socket = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
+
+        socket.onopen = () => {
+            console.log("WS Conectado na loja:", lojaId);
+            setWs(socket);
+        };
+
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.tipo === "stock.updated") {
+                // 1. Atualiza lista de produtos
+                setProdutos(prev => prev.map(p =>
+                    String(p.id) === String(data.produto_id)
+                        ? { ...p, estoque: data.novo_estoque }
+                        : p
+                ));
+
+                // 2. Atualiza carrinho + corrige se passou do estoque <- ESSA É SUA LÓGICA
+                setCarrinho(prev => {
+                    const novoCarrinho = prev.map(item =>
+                        String(item.id) === String(data.produto_id)
+                            ? { ...item, estoque: data.novo_estoque }
+                            : item
+                    );
+                    return novoCarrinho.map(item =>
+                        item.quantidade > item.estoque
+                            ? { ...item, quantidade: item.estoque }
+                            : item
+                    ).filter(item => item.quantidade > 0);
+                });
+
+                toast.info(`Estoque atualizado: ${data.nome_produto} agora tem ${data.novo_estoque}`);
+            }
+        };
+
+        socket.onclose = () => {
+            console.log("WS Desconectado. Tentando reconectar em 3s...");
+            setWs(null);
+            setTimeout(() => {
+                // força re-render pra reconectar
+                if (token && lojaId) setWs(null);
+            }, 3000);
+        };
+
+        return () => socket.close(); // fecha ao sair da pagina
+    }, [token, lojaId]);
+
+
+
+
+
+
     const getPreco = (item: CarrinhoItem) => item.preco || 0;
 
     const subtotal = useMemo(() => carrinho.reduce((acc, item) => acc + (getPreco(item) * item.quantidade), 0), [carrinho]);
@@ -294,10 +355,21 @@ export default function LojaPage() {
 
         setCarrinho(prev => {
             const itemExistente = prev.find(item => String(item.id) === String(produto.id));
+
+            // 1. Se já existe, soma +1 mas respeita o estoque
             if (itemExistente) {
-                if (itemExistente.quantidade >= (produto.estoque ?? 0)) { toast.warning("Estoque máximo atingido"); return prev; }
-                return prev.map(item => String(item.id) === String(produto.id) ? { ...item, quantidade: item.quantidade + 1 } : item);
+                if (itemExistente.quantidade + 1 > (produto.estoque ?? 0)) {
+                    toast.warning("Estoque máximo atingido");
+                    return prev;
+                }
+                return prev.map(item =>
+                    String(item.id) === String(produto.id)
+                        ? { ...item, quantidade: item.quantidade + 1 }
+                        : item
+                );
             }
+
+            // 2. Se não existe, adiciona com qtd 1
             return [...prev, { ...produto, quantidade: 1 }];
         });
     };
