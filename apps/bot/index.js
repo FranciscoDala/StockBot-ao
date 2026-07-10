@@ -12,47 +12,56 @@ const FORCE_RESET = process.env.FORCE_RESET_SESSION === 'true';
 app.use(express.json());
 let clientReady = false;
 
-app.get('/', (req, res) => res.status(200).send('StockBot AO Bot V9 running'));
+app.get('/', (req, res) => res.status(200).send('StockBot AO Bot V10 running'));
 app.listen(PORT, () => console.log(`HTTP server running on ${PORT}`));
 
-async function enviarViaURL(numero, mensagem) {
-    if(!clientReady) throw new Error("WhatsApp ainda não conectou");
-    const url = `https://web.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(mensagem)}`;
-    console.log("BYPASS: Abrindo URL para", numero);
-    await client.pupPage.goto(url, {waitUntil: 'networkidle2', timeout: 60000});
-    await client.pupPage.waitForSelector('span[data-icon="send"]', {timeout: 20000});
-    await client.pupPage.click('span[data-icon="send"]');
-    await new Promise(r => setTimeout(r, 1500));
-    console.log("BYPASS: Enviado para", numero);
+async function enviarComRetry(numero, mensagem, tentativas = 3) {
+    for(let i = 0; i < tentativas; i++) {
+        try {
+            const chat = await client.getChatById(numero + '@c.us');
+            await chat.sendMessage(mensagem);
+            console.log("ENVIADO pra", numero);
+            return;
+        } catch(e) {
+            console.log(`Tentativa ${i+1} falhou:`, e.message);
+            await new Promise(r => setTimeout(r, 2000));
+        }
+    }
+    throw new Error("Falhou após 3 tentativas");
 }
 
 async function enviarTextoGrande(numero, texto) {
     const LIMITE = 1500;
-    if (texto.length <= LIMITE) return enviarViaURL(numero, texto);
+    if (texto.length <= LIMITE) return enviarComRetry(numero, texto);
     const partes = texto.match(new RegExp(`.{1,${LIMITE}}`, 'g'));
     for (let i = 0; i < partes.length; i++) {
-        await enviarViaURL(numero, `[${i + 1}/${partes.length}]\n${partes[i]}`);
+        await enviarComRetry(numero, `[${i + 1}/${partes.length}]\n${partes[i]}`);
         await new Promise(r => setTimeout(r, 2000));
     }
 }
 
 // DELETA SESSÃO SE A VARIAVEL ESTIVER ATIVA
-const sessionPath = './.wwebjs_auth_v9';
+const sessionPath = './.wwebjs_auth_v10';
 if (FORCE_RESET && fs.existsSync(sessionPath)) {
     console.log("🔥 FORÇANDO LIMPEZA TOTAL DA SESSÃO...");
     fs.rmSync(sessionPath, { recursive: true, force: true });
 }
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: "stockbot-v9", dataPath: sessionPath }),
+    authStrategy: new LocalAuth({ clientId: "stockbot-v10", dataPath: sessionPath }),
     puppeteer: {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // ESSENCIAL
+            '--disable-gpu'
+        ]
     }
 });
 
 client.on('qr', (qr) => {
-    console.log('================ ESCANEIA ESSE QR AGORA ==================');
+    console.log('================ ESCANEIA ESSE QR ==================');
     qrcode.generate(qr, { small: true });
 });
 
@@ -62,25 +71,15 @@ client.on('ready', () => {
 });
 
 client.on('authenticated', () => console.log('✅ Autenticado'));
-client.on('auth_failure', () => console.log('❌ Falha na autenticação'));
-client.on('disconnected', (reason) => {
-    clientReady = false;
-    console.log('❌ Desconectado:', reason);
-});
 
 app.post('/send', async (req, res) => {
-    console.log("ROTA /send V9");
     if(!clientReady) return res.status(503).json({error: "Bot ainda conectando. Tenta em 10s"});
-
     const { to, message } = req.body;
-    if(!to ||!message) return res.status(400).json({error: "Falta 'to' ou 'message'"});
-
     const numero = String(to).replace(/\D/g, '');
     try {
-        await enviarViaURL(numero, message);
-        res.status(200).json({status: "ok", method: "url_bypass"});
+        await enviarComRetry(numero, message);
+        res.status(200).json({status: "ok", method: "sendMessage"});
     } catch (e) {
-        console.error("ERRO BYPASS:", e.stack);
         res.status(500).json({error: e.message});
     }
 });
@@ -90,20 +89,20 @@ client.on('message', async msg => {
     const texto = msg.body.toLowerCase();
 
     if (texto === '!oi') {
-        return enviarViaURL(numero, 'StockBot AO online! ✅\n!preco CODIGO\n!lista');
+        return enviarComRetry(numero, 'StockBot AO online! ✅\n!preco CODIGO\n!lista');
     }
 
     if (texto.startsWith('!preco')) {
         const codigo = texto.split(' ')[1];
-        if(!codigo) return enviarViaURL(numero, 'Manda assim: !preco CODIGO');
+        if(!codigo) return enviarComRetry(numero, 'Manda assim:!preco CODIGO');
         try {
-            await enviarViaURL(numero, `Buscando produto ${codigo}...`);
+            await enviarComRetry(numero, `Buscando produto ${codigo}...`);
             const res = await axios.get(`${API_URL}/produtos/${codigo}`);
             const produto = res.data;
             const reply = `*${produto.nome}*\n💰 Preço: Kz ${produto.preco}\n📦 Estoque: ${produto.estoque}`;
             await enviarTextoGrande(numero, reply);
         } catch (error) {
-            await enviarViaURL(numero, `Produto ${codigo} não encontrado 😢`);
+            await enviarComRetry(numero, `Produto ${codigo} não encontrado 😢`);
         }
     }
 });
