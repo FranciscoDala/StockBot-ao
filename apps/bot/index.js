@@ -1,5 +1,4 @@
 const express = require('express');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const pino = require('pino');
@@ -7,13 +6,13 @@ const pino = require('pino');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_URL = process.env.API_URL;
-const SESSION_PATH = './baileys_auth_v11';
+const SESSION_PATH = './baileys_auth_v12';
 
 app.use(express.json());
 let sock;
 let clientReady = false;
 
-app.get('/', (req, res) => res.status(200).send('StockBot AO Bot V11 Baileys running'));
+app.get('/', (req, res) => res.status(200).send('StockBot AO Bot V12 Baileys ESM running'));
 app.listen(PORT, () => console.log(`HTTP server running on ${PORT}`));
 
 async function enviarTexto(numero, mensagem) {
@@ -34,6 +33,10 @@ async function enviarTextoGrande(numero, texto) {
 }
 
 async function startBot() {
+    // IMPORT DINAMICO PRA CORRIGIR ERR_REQUIRE_ESM
+    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys');
+    const { Boom } = await import('@hapi/boom');
+
     const { state, saveCreds } = await useMultiFileAuthState(SESSION_PATH);
     const { version } = await fetchLatestBaileysVersion();
 
@@ -93,14 +96,14 @@ async function startBot() {
 
 // ROTA PRA API CHAMAR
 app.post('/send', async (req, res) => {
-    console.log("ROTA /send V11");
+    console.log("ROTA /send V12");
     if(!clientReady) return res.status(503).json({error: "Bot ainda conectando. Tenta em 10s"});
     const { to, message } = req.body;
     if(!to ||!message) return res.status(400).json({error: "Falta 'to' ou 'message'"});
     const numero = String(to).replace(/\D/g, '');
     try {
         await enviarTexto(numero, message);
-        res.status(200).json({status: "ok", method: "baileys"});
+        res.status(200).json({status: "ok", method: "baileys-esm"});
     } catch (e) {
         console.error("ERRO:", e);
         res.status(500).json({error: e.message});
