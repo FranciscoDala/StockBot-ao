@@ -2,6 +2,7 @@ const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,7 +10,7 @@ const API_URL = process.env.API_URL;
 
 app.use(express.json());
 
-let clientReady = false; // FLAG NOVA
+let clientReady = false;
 
 app.get('/', (req, res) => res.status(200).send('StockBot AO Bot is running'));
 app.listen(PORT, () => console.log(`HTTP server running on ${PORT}`));
@@ -21,7 +22,7 @@ async function enviarViaURL(numero, mensagem) {
     await client.pupPage.goto(url, {waitUntil: 'networkidle2', timeout: 60000});
     await client.pupPage.waitForSelector('span[data-icon="send"]', {timeout: 20000});
     await client.pupPage.click('span[data-icon="send"]');
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 1500)); // 1.5s pra garantir
     console.log("BYPASS: Enviado para", numero);
 }
 
@@ -35,9 +36,24 @@ async function enviarTextoGrande(numero, texto) {
     }
 }
 
+// FORÇA LIMPAR SESSÃO ANTIGA CORROMPIDA
+const sessionPath = './.wwebjs_auth_v8';
+if (fs.existsSync(sessionPath)) {
+    console.log("LIMPANDO SESSÃO ANTIGA...");
+    fs.rmSync(sessionPath, { recursive: true, force: true });
+}
+
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: "stockbot-v7", dataPath: "./.wwebjs_auth_v7" }),
-    puppeteer: { headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'] }
+    authStrategy: new LocalAuth({ clientId: "stockbot-v8", dataPath: sessionPath }),
+    puppeteer: {
+        headless: true,
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu' // ESSENCIAL PRA RAILWAY
+        ]
+    }
 });
 
 client.on('qr', (qr) => {
@@ -46,13 +62,18 @@ client.on('qr', (qr) => {
 });
 
 client.on('ready', () => {
-    clientReady = true; // LIGA A FLAG
+    clientReady = true;
     console.log('✅ WhatsApp Conectado!')
 });
 
-// ROTA PRA API CHAMAR - COM PROTEÇÃO
+client.on('disconnected', (reason) => {
+    clientReady = false;
+    console.log('❌ Desconectado:', reason);
+});
+
+// ROTA PRA API CHAMAR
 app.post('/send', async (req, res) => {
-    console.log("ROTA /send V7");
+    console.log("ROTA /send V8");
     if(!clientReady) return res.status(503).json({error: "Bot ainda conectando. Tenta em 10s"});
 
     const { to, message } = req.body;
@@ -69,21 +90,24 @@ app.post('/send', async (req, res) => {
 });
 
 client.on('message', async msg => {
+    const numero = msg.from.replace('@c.us','');
     const texto = msg.body.toLowerCase();
-    if (texto === '!oi') return msg.reply('StockBot AO online! ✅\n!preco CODIGO\n!lista');
+
+    if (texto === '!oi') {
+        return enviarViaURL(numero, 'StockBot AO online! ✅\n!preco CODIGO\n!lista');
+    }
 
     if (texto.startsWith('!preco')) {
         const codigo = texto.split(' ')[1];
-        if(!codigo) return msg.reply('Manda assim:!preco CODIGO');
+        if(!codigo) return enviarViaURL(numero, 'Manda assim: !preco CODIGO');
         try {
-            msg.reply(`Buscando produto ${codigo}...`);
+            await enviarViaURL(numero, `Buscando produto ${codigo}...`);
             const res = await axios.get(`${API_URL}/produtos/${codigo}`);
             const produto = res.data;
             const reply = `*${produto.nome}*\n💰 Preço: Kz ${produto.preco}\n📦 Estoque: ${produto.estoque}`;
-            const numero = msg.from.replace('@c.us','');
             await enviarTextoGrande(numero, reply);
         } catch (error) {
-            msg.reply(`Produto ${codigo} não encontrado 😢`);
+            await enviarViaURL(numero, `Produto ${codigo} não encontrado 😢`);
         }
     }
 });

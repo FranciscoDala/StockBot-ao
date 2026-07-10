@@ -2,20 +2,21 @@ from fastapi import APIRouter, Request, UploadFile, File
 from app.core.config import settings
 from app.cloudinaryUploads import upload_image_to_cloudinary
 from app.services.telegram_service import handle_telegram_photo
-import requests
+import httpx
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-def send_telegram_message(chat_id: int, text: str):
+async def send_telegram_message(chat_id: int, text: str):
     """Envia mensagem de volta pro usuário - só roda se tiver token"""
     if not settings.TELEGRAM_BOT_TOKEN:
         return
     url = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text}
     try:
-        requests.post(url, json=payload)
+        async with httpx.AsyncClient() as client:
+            await client.post(url, json=payload)
     except Exception as e:
         logger.error(f"Erro ao enviar msg: {e}")
 
@@ -36,20 +37,21 @@ async def webhook_telegram(request: Request):
         file_id = message['photo'][-1]['file_id'] # pega a maior resolução
         try:
             link = await handle_telegram_photo(file_id, settings.TELEGRAM_BOT_TOKEN)
-            send_telegram_message(chat_id, f"✅ Foto enviada pro Cloudinary!\n\n{link}")
+            await send_telegram_message(chat_id, f"✅ Foto enviada pro Cloudinary!\n\n{link}")
         except Exception as e:
             logger.error(f"Erro no upload: {e}")
-            send_telegram_message(chat_id, "❌ Deu erro ao processar a imagem")
+            await send_telegram_message(chat_id, "❌ Deu erro ao processar a imagem")
 
     # 2. Se enviou TEXTO
     elif 'text' in message:
         texto = message['text']
         if texto == '/start':
-            send_telegram_message(chat_id, "Olá! Me manda uma foto de produto que eu subo pro Cloudinary pra você.")
+            await send_telegram_message(chat_id, "Olá! Me manda uma foto de produto que eu subo pro Cloudinary pra você.")
         else:
-            send_telegram_message(chat_id, f"Recebi: {texto}")
+            await send_telegram_message(chat_id, f"Recebi: {texto}")
 
     return {"ok": True}
+
 
 @router.post("/test-upload")
 async def test_upload(file: UploadFile = File(...)):
@@ -59,7 +61,7 @@ async def test_upload(file: UploadFile = File(...)):
     Body: form-data > key=file
     """
     try:
-        result = upload_image_to_cloudinary(file) # não precisa await pq não é async
+        result = upload_image_to_cloudinary(file) # se não for async não usa await
         return {
             "msg": "✅ Upload OK",
             "original_url": result["original_url"],
