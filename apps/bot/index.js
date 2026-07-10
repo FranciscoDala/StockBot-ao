@@ -7,12 +7,12 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const API_URL = process.env.API_URL;
+const FORCE_RESET = process.env.FORCE_RESET_SESSION === 'true';
 
 app.use(express.json());
-
 let clientReady = false;
 
-app.get('/', (req, res) => res.status(200).send('StockBot AO Bot is running'));
+app.get('/', (req, res) => res.status(200).send('StockBot AO Bot V9 running'));
 app.listen(PORT, () => console.log(`HTTP server running on ${PORT}`));
 
 async function enviarViaURL(numero, mensagem) {
@@ -22,7 +22,7 @@ async function enviarViaURL(numero, mensagem) {
     await client.pupPage.goto(url, {waitUntil: 'networkidle2', timeout: 60000});
     await client.pupPage.waitForSelector('span[data-icon="send"]', {timeout: 20000});
     await client.pupPage.click('span[data-icon="send"]');
-    await new Promise(r => setTimeout(r, 1500)); // 1.5s pra garantir
+    await new Promise(r => setTimeout(r, 1500));
     console.log("BYPASS: Enviado para", numero);
 }
 
@@ -36,28 +36,23 @@ async function enviarTextoGrande(numero, texto) {
     }
 }
 
-// FORÇA LIMPAR SESSÃO ANTIGA CORROMPIDA
-const sessionPath = './.wwebjs_auth_v8';
-if (fs.existsSync(sessionPath)) {
-    console.log("LIMPANDO SESSÃO ANTIGA...");
+// DELETA SESSÃO SE A VARIAVEL ESTIVER ATIVA
+const sessionPath = './.wwebjs_auth_v9';
+if (FORCE_RESET && fs.existsSync(sessionPath)) {
+    console.log("🔥 FORÇANDO LIMPEZA TOTAL DA SESSÃO...");
     fs.rmSync(sessionPath, { recursive: true, force: true });
 }
 
 const client = new Client({
-    authStrategy: new LocalAuth({ clientId: "stockbot-v8", dataPath: sessionPath }),
+    authStrategy: new LocalAuth({ clientId: "stockbot-v9", dataPath: sessionPath }),
     puppeteer: {
         headless: true,
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu' // ESSENCIAL PRA RAILWAY
-        ]
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
     }
 });
 
 client.on('qr', (qr) => {
-    console.log('================ ESCANEIA ESSE QR ==================');
+    console.log('================ ESCANEIA ESSE QR AGORA ==================');
     qrcode.generate(qr, { small: true });
 });
 
@@ -66,14 +61,15 @@ client.on('ready', () => {
     console.log('✅ WhatsApp Conectado!')
 });
 
+client.on('authenticated', () => console.log('✅ Autenticado'));
+client.on('auth_failure', () => console.log('❌ Falha na autenticação'));
 client.on('disconnected', (reason) => {
     clientReady = false;
     console.log('❌ Desconectado:', reason);
 });
 
-// ROTA PRA API CHAMAR
 app.post('/send', async (req, res) => {
-    console.log("ROTA /send V8");
+    console.log("ROTA /send V9");
     if(!clientReady) return res.status(503).json({error: "Bot ainda conectando. Tenta em 10s"});
 
     const { to, message } = req.body;
