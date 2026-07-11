@@ -53,9 +53,13 @@ async def get_current_membership(
 
     # REGRA ADMIN
     if user.is_superuser:
-        if role_str != "admin":
+        if role_str!= "admin":
             raise credentials_exception
         return {"user": user, "loja_id": None, "role": UserRole.DONO, "loja": None}
+
+    # REGRA TOKEN TEMPORARIO MULTI_LOJA - BARRAR AQUI
+    if role_str == "multi_loja":
+        raise HTTPException(status_code=403, detail="Selecione uma loja primeiro")
 
     # REGRA USUARIO NORMAL: OBRIGATORIO TER LOJA VINCULADA
     if not all([loja_id_str, role_str]):
@@ -74,7 +78,7 @@ async def get_current_membership(
         UsuarioLoja.is_active == True
     )
     membro = (await db.execute(stmt)).scalar_one_or_none()
-    if not membro or membro.role != role:
+    if not membro or membro.role!= role:
         raise HTTPException(status_code=403, detail="Usuario sem loja vinculada")
 
     # 2. VALIDA SE A LOJA EXISTE E ESTA ATIVA
@@ -99,7 +103,7 @@ async def get_current_active_user(m: Membership = Depends(get_current_membership
 async def get_current_admin(token: str = Depends(oauth2_scheme)) -> dict:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        if payload.get("role") != "admin":
+        if payload.get("role")!= "admin":
             raise HTTPException(status_code=403, detail="Apenas super admin")
         return payload
     except JWTError:
@@ -161,7 +165,8 @@ async def get_current_user_temp(
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id_str: str = payload.get("sub")
-        if not user_id_str:
+        role: str = payload.get("role")
+        if not user_id_str or role!= "multi_loja":
             raise credentials_exception
         user_id = UUID(user_id_str)
     except ExpiredSignatureError:

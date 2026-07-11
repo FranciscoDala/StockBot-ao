@@ -70,3 +70,36 @@ TELEGRAM_BOT_TOKEN="COLA_SEU_TOKEN_AQUI"
 CLOUDINARY_CLOUD_NAME="d7dtiurw"
 CLOUDINARY_API_KEY="598914546743518"
 CLOUDINARY_API_SECRET="GxBW2UtKsSr2nDDc0WwztUWU3w8"
+
+
+
+
+local
+
+# ========== AMBIENTE ==========
+ENVIRONMENT="development"
+PORT="8000"
+BASE_URL="http://localhost:8000"
+
+# ========== BANCO LOCAL ==========
+DATABASE_URL="postgresql+asyncpg://postgres:12345@localhost:5432/stockbot_db"
+
+# ========== CORS ==========
+ALLOWED_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
+
+# ========== JWT ==========
+JWT_SECRET="stockbot-dev-secret-2026-local"
+JWT_ALGORITHM="HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES="10080"
+
+# ========== TELEGRAM - pode deixar vazio em dev ==========
+TELEGRAM_BOT_TOKEN=""
+
+# ========== CLOUDINARY - pode deixar vazio em dev ==========
+CLOUDINARY_CLOUD_NAME=""
+CLOUDINARY_API_KEY=""
+CLOUDINARY_API_SECRET=""
+
+# ========== BOT / OUTROS ==========
+BOT_URL="http://localhost:8000"
+TIMEZONE="Africa/Luanda"

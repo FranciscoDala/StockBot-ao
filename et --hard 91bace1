@@ -1,0 +1,166 @@
+[33mbaf1fca[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m upadate site 4
+[33m440f4bd[m upadate site 3
+[33m45429bb[m upadate site 2
+[33mb8b92df[m upadate site 1
+[33m954ba23[m upadate site
+[33m575885b[m upadate senha
+[33m91bace1[m update whatsapp 1
+[33mf3ff580[m update whatsapp
+[33md5fca0a[m v9: sem getChat
+[33me5ff655[m v8: sem getChat
+[33m5ee7178[m v7: sem getChat
+[33m543d17c[m v6: sem getChat
+[33mab06931[m v5: sem getChat
+[33m21cf27d[m v4: sem getChat
+[33m3004cbf[m fix: index 2
+[33m35fc6e6[m v4: sem getChat
+[33m57daebb[m v3: sem getChat
+[33mf031616[m fix: index 1
+[33m5b5bca6[m fix: index
+[33m7fd2e58[m fix: update separados whatsapp!
+[33ma8efc40[m fix: whatsApp update
+[33mfa2753b[m fix: update separados!
+[33m9af4f99[m fix: volta pro bot com puppeteer
+[33m7602b21[m fix: usar chrome do puppeteer
+[33mf4f5e38[m Ajuste para bot no Railway 1
+[33mcc44366[m Ajuste para bot no Railway
+[33md4b18b6[m Ajuste para bot no Railway
+[33mc30e70a[m vendas whatsaap 3
+[33med62320[m vendas whatsaap 2
+[33m6b4f3f8[m vendas whatsaap 1
+[33mb3cc601[m vendas whatsaap
+[33m3393016[m vendas
+[33mb2996ff[m carrinho update
+[33m841fe34[m user delete
+[33m9b0faf8[m user edit
+[33m7243d5c[m user loja 1
+[33m6b531cf[m loja edit
+[33m6d2daf3[m user loja
+[33m216ece3[m lojas new
+[33me517b7d[m loja get
+[33mf7e50ac[m user
+[33mff4edf1[m update
+[33mf68ce34[m usuario loja
+[33m385db1f[m update
+[33m083bf7b[m minhas loja id
+[33mf839967[m minhas lojas temp 2
+[33mc6404c6[m minhas lojas temp 1
+[33ma10dabf[m minhas lojas temp
+[33mbe0be57[m minhas lojas 1
+[33m930e4f3[m minhas lojas
+[33m0736c8e[m login ajuste
+[33m29cfe37[m login
+[33ma6ad5fd[m New Uploads
+[33m001a3a5[m update Last
+[33me962eda[m cloudinary URL
+[33m988738c[m cloudinary teste
+[33mb31e8ce[m cloudinary img 1
+[33m22b3d2d[m cloudinary img
+[33m2678569[m fix: update
+[33m20cc61c[m cloudinary new
+[33md1e8b09[m cloudinary
+[33mc2966cc[m Produto img
+[33m125ebe4[m Produto POST new
+[33me35d2f9[m Produto POST
+[33m7892993[m Upload New 2
+[33m9e97550[m Upload New 1
+[33m133edab[m Upload New
+[33md8019a7[m update new
+[33m695c914[m update main and loja
+[33m0d66fee[m update main
+[33m4a8f3ae[m token new 1
+[33me86269e[m token new
+[33m702ab75[m token 9
+[33m3591414[m token 8
+[33mc7dbc53[m token 7
+[33mf0de75a[m token 6
+[33m12b03ac[m token 5
+[33md633707[m token 4
+[33med0cf3c[m token 3
+[33mba5bd01[m token 2
+[33m19f28c3[m token 1
+[33m501c282[m token
+[33m4849131[m admin
+[33mab9c9fc[m role
+[33mbfb6705[m passlib
+[33mc2c4cd9[m NEXT_PUBLIC_API_URL
+[33maf42ff6[m ajuste new
+[33medabd27[m new
+[33m03ff22f[m ajuste
+[33m7ccb749[m api.ts ajustado
+[33mf34e644[m ajuste do main.py
+[33mb511b61[m ajuste do main.py
+[33m3eeb7ca[m main.py
+[33me1adc4f[m ajuste das CORS
+[33ma2e4168[m package.json
+[33m99548c8[m pnpm run dev
+[33mf855bbf[m railway.toml
+[33me01bebe[m fix: atualiza lock
+[33m995d998[m railway two
+[33mec5c623[m site
+[33m5e21a4f[m package.json
+[33m401aec8[m railway.json
+[33m811f845[m package.json
+[33mee63017[m Commit
+[33m5b7edd4[m Commit
+[33m981b4fa[m Commit
+[33m9d07e70[m Commit
+[33m4d4e88e[m Commit
+[33mc1941ed[m Commit
+[33m3b49071[m Commit
+[33m22336ee[m Commit
+[33me65512b[m Commit
+[33m146b827[m Commit
+[33m2e52fdb[m Commit
+[33m7beb547[m chore: retrigger build
+[33m3c1c51c[m Commit
+[33m81680db[m Commit
+[33ma2ef1e3[m Commit
+[33m2de4956[m Commit
+[33me01bd6d[m Commit
+[33m8d1ae87[m Commit
+[33ma39c6e8[m Commit
+[33me05b3e9[m Commit
+[33m3ee8f02[m Commit
+[33meb34338[m Commit
+[33mc647d5e[m Commit
+[33m85e041c[m Commit
+[33mcf23f60[m Commit
+[33m5601335[m Commit
+[33md8daf41[m Commit
+[33mdecc106[m Commit
+[33m1621315[m fix: lock novo
+[33m1080de6[m new new
+[33m3006ffe[m new new
+[33m5642ab7[m new
+[33m7563bf8[m fix: força npm no railway
+[33mbadf881[m fix: npm no railway
+[33mde7ec7e[m fix: força npm no railway
+[33mfe751d6[m update main
+[33mf4075c3[m new env 1
+[33m3ecfdad[m new env
+[33mff0accf[m new env
+[33mccb4a80[m new
+[33m4dad99c[m fix: asyncpg >=0.29.0 para py3.13
+[33m4ae6133[m fix: asyncpg 0.29.0 sem comentario
+[33m90994f3[m fix: fixar asyncpg 0.29.0
+[33m3db5fea[m fix: adicionar qrcode e pillow
+[33m6553a75[m fix: adicionar passlib
+[33medc4859[m fix: adicionar email-validator
+[33m79b98ed[m update site
+[33m8b7b606[m update site
+[33mac52de8[m remover Dockerfile vazio
+[33m90c6ccd[m new
+[33m33f717e[m new
+[33m0aeb000[m update new 1
+[33mbb7cbdb[m update new
+[33m3576c22[m update
+[33mf018d01[m update site
+[33m1fb3b78[m atualizar o app
+[33ma72be7c[m apps/web e arquivos
+[33m144aa79[m novo
+[33m9c812e6[m atualizar o app
+[33mac9948b[m atualizar o env.exemplo
+[33m39b83f0[m atualizar o codigo
+[33m1527118[m REDME.md
+[33m57803d3[m chore: init StockBot AO v1 - estrutura escalável

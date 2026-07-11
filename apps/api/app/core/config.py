@@ -14,14 +14,14 @@ def parse_cors(v: str) -> List[str]:
 class Settings(BaseSettings):
     # SERVER
     PORT: int = 8000
-    BASE_URL: str = ""
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000,https://stockbot-ao-production.up.railway.app"
+    BASE_URL: str = "https://gentle-playfulness-production-d333.up.railway.app"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,https://stockbot-ao-production.up.railway.app"
 
     @property
     def ALLOWED_ORIGINS_LIST(self) -> List[str]:
         return parse_cors(self.ALLOWED_ORIGINS)
 
-    # DATABASE
+    # DATABASE - Neon Pooler precisa de ssl e connection timeout
     DATABASE_URL: str = "postgresql+asyncpg://postgres:12345@localhost:5432/stockbot_db"
 
     # AUTH
@@ -33,9 +33,9 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str | None = None
 
     # CLOUDINARY
-    CLOUDINARY_CLOUD_NAME: str
-    CLOUDINARY_API_KEY: str
-    CLOUDINARY_API_SECRET: str
+    CLOUDINARY_CLOUD_NAME: str = ""
+    CLOUDINARY_API_KEY: str = ""
+    CLOUDINARY_API_SECRET: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -46,5 +46,6 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-print(f"DEBUG CONFIG LOADED: DB={settings.DATABASE_URL}")
+print(f"DEBUG CONFIG LOADED: DB={settings.DATABASE_URL[:30]}...")
 print(f"DEBUG CORS: {settings.ALLOWED_ORIGINS_LIST}")
+print(f"DEBUG BASE_URL: {settings.BASE_URL}")

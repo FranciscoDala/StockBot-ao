@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 from typing import List
+import re # <- AJUSTE 1: faltava
 
 from app.db.session import get_db
 from app.schemas.usuario import UserRead
@@ -15,8 +16,6 @@ from app.core.security import get_password_hash, verify_password
 from app.models.role import UserRole
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
-
-
 
 @router.post("", response_model=UsuarioLojaOut, status_code=status.HTTP_201_CREATED)
 async def criar_usuario(
@@ -39,8 +38,8 @@ async def criar_usuario(
     # 2. GERA EMAIL AUTOMATICO: primeiroNomeUsuario@primeiroNomeLoja.ao
     nome_usuario = body.nome.split()[0].lower()
     nome_loja = loja.nome.split()[0].lower()
-    nome_usuario = re.sub(r'[^a-z0-9]', '', nome_usuario)
-    nome_loja = re.sub(r'[^a-z0-9]', '', nome_loja)
+    nome_usuario = re.sub(r'[^a-z0-9]', '', nome_usuario) # <- AJUSTE 2
+    nome_loja = re.sub(r'[^a-z0-9]', '', nome_loja) # <- AJUSTE 2
     email_gerado = f"{nome_usuario}@{nome_loja}.ao"
 
     # 3. Verifica se email já existe. Se existir adiciona numero
@@ -81,10 +80,6 @@ async def criar_usuario(
         id=novo_user.id, nome=novo_user.nome, email=novo_user.email,
         telefone=vinculo.telefone, role=vinculo.role, is_active=vinculo.is_active, loja_id=vinculo.loja_id
     )
-
-
-
-
 
 @router.get("/me", response_model=UserRead)
 async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):

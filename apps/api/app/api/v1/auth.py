@@ -4,7 +4,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
 from pydantic import BaseModel
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
+from datetime import timedelta
 
 from app.db.session import get_db
 from app.core.security import verify_password, create_access_token
@@ -34,12 +35,15 @@ async def get_current_user_temp(
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id: str = payload.get("sub")
         role: str = payload.get("role")
-        if user_id is None or role!= "multi_loja":
+        if user_id is None or role!= UserRole.MULTI_LOJA.value: # CORRECAO 1: MAIUSCULO
             raise credentials_exception
-    except JWTError:
+        user_id_uuid = UUID(user_id)
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="token expirado", headers={"WWW-Authenticate": "Bearer"})
+    except (JWTError, ValueError):
         raise credentials_exception
 
-    stmt = select(Usuario).where(Usuario.id == UUID(user_id))
+    stmt = select(Usuario).where(Usuario.id == user_id_uuid)
     user = (await db.execute(stmt)).scalar_one_or_none()
     if user is None:
         raise credentials_exception
@@ -52,8 +56,8 @@ def build_user_response(user: Usuario, membro: UsuarioLoja | None = None, all_me
     base = userread.model_validate(user).model_dump()
 
     if user.is_superuser:
-        base["nivel"] = "admin"
-        base["role"] = "admin"
+        base["nivel"] = UserRole.ADMIN.value # CORRECAO 2: MAIUSCULO
+        base["role"] = UserRole.ADMIN.value # CORRECAO 2: MAIUSCULO
         base["loja_id"] = None
         base["loja"] = None
         return base
@@ -66,14 +70,14 @@ def build_user_response(user: Usuario, membro: UsuarioLoja | None = None, all_me
     else:
         roles = [m.role for m in all_membros] if all_membros else []
         if UserRole.DONO in roles:
-            base["nivel"] = "dono"
-            base["role"] = "dono"
+            base["nivel"] = UserRole.DONO.value # CORRECAO 3: MAIUSCULO
+            base["role"] = UserRole.DONO.value # CORRECAO 3: MAIUSCULO
         elif UserRole.GERENTE in roles:
-            base["nivel"] = "gerente"
-            base["role"] = "gerente"
+            base["nivel"] = UserRole.GERENTE.value # CORRECAO 3: MAIUSCULO
+            base["role"] = UserRole.GERENTE.value # CORRECAO 3: MAIUSCULO
         else:
-            base["nivel"] = "funcionario"
-            base["role"] = "funcionario"
+            base["nivel"] = UserRole.VENDEDOR.value # CORRECAO 3: MAIUSCULO
+            base["role"] = UserRole.VENDEDOR.value # CORRECAO 3: MAIUSCULO
         base["loja_id"] = None
         base["loja"] = None
     return base
@@ -91,34 +95,31 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="usuario nao verificado")
 
     if user.is_superuser:
-        token = create_access_token({"sub": str(user.id), "role": "admin"})
+        token = create_access_token({"sub": str(user.id), "role": UserRole.ADMIN.value}) # CORRECAO 4
         user_data = build_user_response(user, membro=None)
         return {"access_token": token, "token_type": "bearer", "user": user_data, "need_selection": False, "lojas": []}
 
-    # 1. FILTRA APENAS LOJAS ATIVAS E NAO DELETADAS
     stmt = select(UsuarioLoja).options(selectinload(UsuarioLoja.loja)).where(
         UsuarioLoja.usuario_id == user.id,
         UsuarioLoja.is_active == True,
         UsuarioLoja.loja.has(is_active=True),
-        UsuarioLoja.loja.has(deleted_at=None) # <- ADICIONADO: barra loja excluida
+        UsuarioLoja.loja.has(deleted_at=None)
     )
     membros = (await db.execute(stmt)).scalars().all()
 
     if not membros:
-        raise HTTPException(status_code=403, detail="Usuário sem loja vinculada") # <- BARRA AQUI
+        raise HTTPException(status_code=403, detail="Usuário sem loja vinculada")
 
-    # 2. SE SO TEM 1 LOJA, JA LOGA DIRETO NELA. NAO MANDA PRO MULTI_LOJA
     if len(membros) == 1:
         m = membros[0]
         token = create_access_token({"sub": str(user.id), "loja_id": str(m.loja_id), "role": m.role.value})
         user_data = build_user_response(user, membro=m)
         return {"access_token": token, "token_type": "bearer", "user": user_data, "need_selection": False, "lojas": []}
 
-    # 3. SE TEM + DE 1 LOJA AI SIM MANDA PRA SELECAO
     roles = [m.role for m in membros]
     tem_cargo_gestao = UserRole.DONO in roles or UserRole.GERENTE in roles
 
-    token = create_access_token({"sub": str(user.id), "role": "multi_loja"}, expires_delta=5) # 5 min
+    token = create_access_token({"sub": str(user.id), "role": UserRole.MULTI_LOJA.value}, expires_delta=timedelta(minutes=5)) # CORRECAO 5
     user_data = build_user_response(user, membro=None, all_membros=membros)
     lojas_out = [LojaSelectOut(id=m.loja.id, nome=m.loja.nome, slug=m.loja.slug, role=Role(m.role.value)) for m in membros]
 
@@ -139,7 +140,7 @@ async def select_loja(body: SelectLojaIn, db: AsyncSession = Depends(get_db), cu
         UsuarioLoja.loja_id == body.loja_id,
         UsuarioLoja.is_active == True,
         UsuarioLoja.loja.has(is_active=True),
-        UsuarioLoja.loja.has(deleted_at=None) # <- ADICIONADO: barra loja excluida
+        UsuarioLoja.loja.has(deleted_at=None)
     )
     membro = (await db.execute(stmt)).scalar_one_or_none()
     if not membro:
