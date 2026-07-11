@@ -295,12 +295,13 @@ export default function LojaPage() {
                         {activeTab === "equipa" && podeGerenciar && <EquipaTab equipa={equipa} isAdmin={podeGerenciar} isDono={["DONO", "ADMIN"].includes(user?.nivel!)} lojaId={lojaId} onAdd={handleAddUserClick} onEdit={handleEditUserClick} onDelete={handleDeleteUserClick} onView={handleViewUserClick} />}
                         {!["dados", "venda", "produtos", "equipa"].includes(activeTab) && (<div className="bg-neutral-900 p-6 rounded-xl text-center text-gray-400">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>)}
                     </div>
+
                     <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v); }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
                     <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v); }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
                     <PermissaoModal open={showPermissaoModal} onClose={() => setShowPermissaoModal(false)} onConfirm={executarAcaoComSenha} loading={saving} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} />
                     <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
                     <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
-                    <ConfirmarModal open={showConfirmarModal} onClose={() => setShowConfirmarModal(false)} onConfirm={handleConfirmarRemocao} titulo="Remover Item" mensagem={`Remover ${itemParaRemover?.nome} do carrinho?`} />
+                    <ConfirmarModal open={showConfirmarModal} onClose={() => setShowConfirmarModal(false)} onConfirm={handleConfirmarRemocao} titulo="Remover Item" descricao={`Remover ${itemParaRemover?.nome} do carrinho?`} />
                     <VendaSucessoModal open={showVendaSucessoModal} onClose={() => setShowVendaSucessoModal(false)} venda={vendaConcluida} formatCurrency={formatCurrency} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} />
                 </div>
             )}
