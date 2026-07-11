@@ -40,13 +40,13 @@ export type Loja = { id: string; nome: string; slug: string; is_active: boolean;
 export const formatCurrency = (value: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(value);
 const formatError = (data: any): string => { if (!data) return "Erro desconhecido"; if (typeof data.detail === 'string') return data.detail; if (Array.isArray(data.detail)) return data.detail.map((d: any) => d.msg).join(", "); return "Erro ao processar requisição"; }
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
 const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; Secure; SameSite=None`; };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
-    const res = await fetch(url, {...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`,...options.headers }, credentials: 'include', cache: "no-store" });
+    const res = await fetch(url, { ...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, ...options.headers }, credentials: 'include', cache: "no-store" });
     if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorText = await res.text(); try { throw new Error(formatError(JSON.parse(errorText))) } catch { throw new Error(errorText || res.statusText) } }
     if (res.status === 204) return true;
     return await res.json();
@@ -110,17 +110,17 @@ export default function LojaPage() {
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
 
     const fetchLoja = useCallback(async (currentToken: string) => {
-        if (!currentToken ||!lojaId) return;
+        if (!currentToken || !lojaId) return;
         try { const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}`, currentToken); setLoja(data); } catch (e) { console.error(e); setLoja(null); }
     }, [lojaId]);
 
     const fetchEquipa = async (currentToken: string) => {
-        if (!currentToken ||!lojaId) return;
-        try { const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken); setEquipa(Array.isArray(data)? data : []); } catch { setEquipa([]) }
+        if (!currentToken || !lojaId) return;
+        try { const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken); setEquipa(Array.isArray(data) ? data : []); } catch { setEquipa([]) }
     };
 
     const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => {
-        if (!currentToken ||!lojaId) { setProdutos([]); return; }
+        if (!currentToken || !lojaId) { setProdutos([]); return; }
         try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch { setProdutos([]); toast.error("Erro ao validar produtos"); }
     }, []);
 
@@ -129,10 +129,10 @@ export default function LojaPage() {
         const currentToken = getCookie("token");
         const userStr = getCookie("user");
         setToken(currentToken || null);
-        if (!currentToken ||!userStr) { handleSair(); return; }
+        if (!currentToken || !userStr) { handleSair(); return; }
         try {
             const userData: userread = JSON.parse(userStr);
-            if (userData.loja_id!== lojaId) { toast.error("Acesso negado"); handleSair(); return; }
+            if (userData.loja_id !== lojaId) { toast.error("Acesso negado"); handleSair(); return; }
             setUser(userData);
             const loadData = async () => {
                 setLoading(true);
@@ -144,15 +144,15 @@ export default function LojaPage() {
     }, [router, lojaId, fetchProdutos, fetchLoja]);
 
     useEffect(() => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
         const socket = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
         socket.onopen = () => { console.log("WS Conectado"); setWs(socket); };
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
             if (data.tipo === "stock.updated") {
-                setProdutos(prev => prev.map(p => String(p.id) === String(data.produto_id)? {...p, estoque: data.novo_estoque } : p));
-                setCarrinho(prev => prev.map(item => String(item.id) === String(data.produto_id)? {...item, estoque: data.novo_estoque } : item).filter(item => item.quantidade <= item.estoque && item.quantidade > 0));
+                setProdutos(prev => prev.map(p => String(p.id) === String(data.produto_id) ? { ...p, estoque: data.novo_estoque } : p));
+                setCarrinho(prev => prev.map(item => String(item.id) === String(data.produto_id) ? { ...item, estoque: data.novo_estoque } : item).filter(item => item.quantidade <= item.estoque && item.quantidade > 0));
                 toast.info(`Estoque: ${data.nome_produto} = ${data.novo_estoque}`);
             }
         };
@@ -163,45 +163,45 @@ export default function LojaPage() {
     const getPreco = (item: CarrinhoItem) => item.preco || 0;
     const subtotal = useMemo(() => carrinho.reduce((acc, item) => acc + (getPreco(item) * item.quantidade), 0), [carrinho]);
     const totalItens = useMemo(() => carrinho.reduce((acc, item) => acc + item.quantidade, 0), [carrinho]);
-    const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
-    const podeFinalizar = useMemo(() => carrinho.length > 0 && (formaPagamento!== "Dinheiro" || Number(valorRecebido) >= subtotal), [carrinho, formaPagamento, valorRecebido, subtotal]);
+    const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal ? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
+    const podeFinalizar = useMemo(() => carrinho.length > 0 && (formaPagamento !== "Dinheiro" || Number(valorRecebido) >= subtotal), [carrinho, formaPagamento, valorRecebido, subtotal]);
 
     const adicionarAoCarrinho = (produto: ProdutoType) => {
-        if ((produto.estoque?? 0) <= 0) { toast.error("Produto sem estoque"); return; }
+        if ((produto.estoque ?? 0) <= 0) { toast.error("Produto sem estoque"); return; }
         setCarrinho(prev => {
             const itemExistente = prev.find(item => String(item.id) === String(produto.id));
             if (itemExistente) {
-                if (itemExistente.quantidade + 1 > (produto.estoque?? 0)) { toast.warning("Estoque máximo atingido"); return prev; }
-                return prev.map(item => String(item.id) === String(produto.id)? {...item, quantidade: item.quantidade + 1 } : item);
+                if (itemExistente.quantidade + 1 > (produto.estoque ?? 0)) { toast.warning("Estoque máximo atingido"); return prev; }
+                return prev.map(item => String(item.id) === String(produto.id) ? { ...item, quantidade: item.quantidade + 1 } : item);
             }
-            return [...prev, {...produto, quantidade: 1 }];
+            return [...prev, { ...produto, quantidade: 1 }];
         });
     };
     const confirmarRemoverItem = (item: CarrinhoItem) => { setItemParaRemover(item); setShowConfirmarModal(true); };
-    const handleConfirmarRemocao = () => { if (itemParaRemover) { setCarrinho(prev => prev.filter(i => i.id!== itemParaRemover.id)); toast.success("Removido"); } setShowConfirmarModal(false); setItemParaRemover(null); };
+    const handleConfirmarRemocao = () => { if (itemParaRemover) { setCarrinho(prev => prev.filter(i => i.id !== itemParaRemover.id)); toast.success("Removido"); } setShowConfirmarModal(false); setItemParaRemover(null); };
     const handleFinalizar = useCallback(() => { if (!podeFinalizar) return; setShowConfirmarFinalizar(true); }, [podeFinalizar]);
 
     const executarFinalizarVenda = async () => {
         if (!token) return; setLoadingVenda(true); setShowConfirmarFinalizar(false);
         try {
-            const payload = { total: Number(subtotal), total_itens: Number(totalItens), forma_pagamento: formaPagamento, valor_pago: formaPagamento === "Dinheiro"? Number(valorRecebido) : Number(subtotal), troco: Number(troco), loja_id: user?.loja_id || "", itens: carrinho.map(i => ({ produto_id: String(i.id), quantidade: Number(i.quantidade), preco_unitario: Number(getPreco(i)), subtotal: Number(getPreco(i) * i.quantidade) })) };
+            const payload = { total: Number(subtotal), total_itens: Number(totalItens), forma_pagamento: formaPagamento, valor_pago: formaPagamento === "Dinheiro" ? Number(valorRecebido) : Number(subtotal), troco: Number(troco), loja_id: user?.loja_id || "", itens: carrinho.map(i => ({ produto_id: String(i.id), quantidade: Number(i.quantidade), preco_unitario: Number(getPreco(i)), subtotal: Number(getPreco(i) * i.quantidade) })) };
             const vendaSalva = await fetchComAuth(`${API_URL}/vendas/`, token, { method: "POST", body: JSON.stringify(payload) });
-            const vendaParaModal: Venda = {...payload, id: vendaSalva.id, data_venda: new Date().toISOString(), itens: payload.itens.map(i => ({...i, nome: carrinho.find(c => String(c.id) === i.produto_id)?.nome })) };
+            const vendaParaModal: Venda = { ...payload, id: vendaSalva.id, data_venda: new Date().toISOString(), itens: payload.itens.map(i => ({ ...i, nome: carrinho.find(c => String(c.id) === i.produto_id)?.nome })) };
             setVendaConcluida(VendaSchema.parse(vendaParaModal)); setShowVendaSucessoModal(true); setCarrinho([]); setValorRecebido(""); fetchProdutos(token, user?.loja_id || "");
         } catch (err: any) { toast.error(err.message); setShowConfirmarFinalizar(true); } finally { setLoadingVenda(false); }
     };
 
-    const openModal = (type: 'user' | 'produto', data: any = null) => { setErrorMsg(""); setModalType(type); if (type === 'user') { setEditingUser(data); setFormDataUser({ nome: data?.nome || "", email: data?.email || "", senha: "", telefone: data?.telefone || "", role: data?.role || "VENDEDOR", is_active: data?.is_active?? true }); } else { setEditingProduto(data); setFormDataProduto({...formDataProduto,...data, loja_id: data?.loja_id || user?.loja_id || "" }); } setShowModal(true); };
+    const openModal = (type: 'user' | 'produto', data: any = null) => { setErrorMsg(""); setModalType(type); if (type === 'user') { setEditingUser(data); setFormDataUser({ nome: data?.nome || "", email: data?.email || "", senha: "", telefone: data?.telefone || "", role: data?.role || "VENDEDOR", is_active: data?.is_active ?? true }); } else { setEditingProduto(data); setFormDataProduto({ ...formDataProduto, ...data, loja_id: data?.loja_id || user?.loja_id || "" }); } setShowModal(true); };
     const handleAddUserClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'user' }); openModal('user'); }
-    const handleEditUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', data: u }); openModal('user', {...u, telefone: u.telefone?? undefined }); }
+    const handleEditUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', data: u }); openModal('user', { ...u, telefone: u.telefone ?? undefined }); }
     const handleDeleteUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', data: u }); setShowPermissaoModal(true); }
-    const handleViewUserClick = async (u: UsuarioLojaPage) => { if (!token ||!lojaId) return; try { const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${u.id}/detalhes`, token); if (data) { setDetalhesUser(data); setShowDetalhesModal(true); } } catch {} }
+    const handleViewUserClick = async (u: UsuarioLojaPage) => { if (!token || !lojaId) return; try { const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${u.id}/detalhes`, token); if (data) { setDetalhesUser(data); setShowDetalhesModal(true); } } catch { } }
     const handleAddProdutoClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'produto' }); openModal('produto'); }
     const handleEditProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'editar', entidade: 'produto', data: p }); openModal('produto', p); }
     const handleDeleteProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'apagar', entidade: 'produto', data: p }); setShowPermissaoModal(true); }
 
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!acaoPendente ||!token) return;
+        if (!acaoPendente || !token) return;
         setSaving(true);
         setShowPermissaoModal(false);
         const { tipo, entidade, data } = acaoPendente;
@@ -226,7 +226,7 @@ export default function LojaPage() {
                 const loja_id = user?.loja_id || ""
                 const produtoData = data as ProdutoType | null;
                 const dadosAtuais = data || formDataProduto;
-                const payload: any = {...dadosAtuais, senha_dono, senha_confirmacao: senha_dono, loja_id: produtoData? produtoData.loja_id : loja_id }
+                const payload: any = { ...dadosAtuais, senha_dono, senha_confirmacao: senha_dono, loja_id: produtoData ? produtoData.loja_id : loja_id }
                 if (tipo === 'editar' && (!payload.codigo_barras || String(payload.codigo_barras).trim() === "")) { delete payload.codigo_barras; }
                 if (tipo === 'adicionar') { await fetchComAuth(`${API_URL}/produtos`, token, { method: "POST", body: JSON.stringify(payload) }); await fetchProdutos(token, loja_id); }
                 if (tipo === 'editar' && editingProduto) { await fetchComAuth(`${API_URL}/produtos/${editingProduto.id}`, token, { method: "PATCH", body: JSON.stringify(payload) }); await fetchProdutos(token, editingProduto.loja_id || loja_id); }
@@ -250,15 +250,15 @@ export default function LojaPage() {
 
     const handleSave = async (payload: any) => {
         if (payload && typeof payload.preventDefault === 'function') payload.preventDefault();
-        const data = payload?.target? formDataProduto : payload;
-        if (!token ||!lojaId) return;
+        const data = payload?.target ? formDataProduto : payload;
+        if (!token || !lojaId) return;
         setSaving(true);
         setErrorMsg("");
         try {
             if (modalType === 'user') {
                 if (!formDataUser.nome.trim()) { setErrorMsg("Nome é obrigatório"); setSaving(false); return; }
                 if (!formDataUser.email.trim()) { setErrorMsg("Email é obrigatório"); setSaving(false); return; }
-                if (!editingUser &&!formDataUser.senha.trim()) { setErrorMsg("Senha é obrigatória"); setSaving(false); return; }
+                if (!editingUser && !formDataUser.senha.trim()) { setErrorMsg("Senha é obrigatória"); setSaving(false); return; }
                 if (!editingUser) { setShowModal(false); setAcaoPendente({ tipo: 'adicionar', entidade: 'user' }); setShowPermissaoModal(true); setSaving(false); return; }
                 else { setShowModal(false); setShowPermissaoModal(true); setSaving(false); return; }
             }
@@ -266,7 +266,7 @@ export default function LojaPage() {
                 const dadosParaValidar = data || formDataProduto;
                 if (!dadosParaValidar.nome.trim()) { setErrorMsg("Nome é obrigatório"); setSaving(false); return; }
                 if (dadosParaValidar.preco <= 0) { setErrorMsg("Preço deve ser maior que 0"); setSaving(false); return; }
-                setShowModal(false); setAcaoPendente({ tipo: editingProduto? 'editar' : 'adicionar', entidade: 'produto', data: data }); setShowPermissaoModal(true); setSaving(false); return;
+                setShowModal(false); setAcaoPendente({ tipo: editingProduto ? 'editar' : 'adicionar', entidade: 'produto', data: data }); setShowPermissaoModal(true); setSaving(false); return;
             }
         } catch (err: any) { setErrorMsg(err.message); setSaving(false); }
     };
@@ -276,7 +276,7 @@ export default function LojaPage() {
     return (
         <>
             <Toaster position="top-center" richColors theme="dark" />
-            {activeTab === "venda"? (
+            {activeTab === "venda" ? (
                 <div className="fixed inset-0 z-40 bg-black">
                     <VendaTab produtos={produtos} carrinho={carrinho} busca={busca} setBusca={setBusca} formaPagamento={formaPagamento} setFormaPagamento={setFormaPagamento} valorRecebido={valorRecebido} setValorRecebido={setValorRecebido} subtotal={subtotal} totalItens={totalItens} troco={troco} podeFinalizar={podeFinalizar} adicionarAoCarrinho={adicionarAoCarrinho} confirmarRemoverItem={confirmarRemoverItem} handleFinalizar={handleFinalizar} showConfirmarModal={showConfirmarModal} setShowConfirmarModal={setShowConfirmarModal} itemParaRemover={itemParaRemover} handleConfirmarRemocao={handleConfirmarRemocao} showConfirmarFinalizar={showConfirmarFinalizar} setShowConfirmarFinalizar={setShowConfirmarFinalizar} executarFinalizarVenda={executarFinalizarVenda} loadingVenda={loadingVenda} formatCurrency={formatCurrency} onClose={() => { setActiveTab(initialTabs[0].id); setCarrinho([]); }} token={token} lojaId={lojaId} nomeLoja={loja?.nome || "PDV"} />
                 </div>
@@ -285,19 +285,19 @@ export default function LojaPage() {
                     <div className="max-w-7xl mx-auto">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
                             <div className="flex items-center gap-3"><Store className="h-14 w-14 text-green-500" /><div><h1 className="text-3xl font-bold">{loja?.nome || "Carregando..."}</h1><p className="text-sm text-gray-400">{loja?.endereco}</p></div></div>
-                            <div className="flex gap-2"><span className={`px-3 py-1 rounded-full text-xs ${loja?.is_active? "bg-green-600" : "bg-gray-600"}`}>{loja?.is_active? "ativa" : "inativa"}</span><button onClick={handleSair} className="px-4 py-2 bg-red-600 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut size={16} /> Sair</button></div>
+                            <div className="flex gap-2"><span className={`px-3 py-1 rounded-full text-xs ${loja?.is_active ? "bg-green-600" : "bg-gray-600"}`}>{loja?.is_active ? "ativa" : "inativa"}</span><button onClick={handleSair} className="px-4 py-2 bg-red-600 rounded-lg text-sm font-bold flex items-center gap-2"><LogOut size={16} /> Sair</button></div>
                         </div>
                         <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg mb-6 overflow-x-auto">
-                            {initialTabs.map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium ${activeTab === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}><tab.icon size={16} /> {tab.label}</button>))}
+                            {initialTabs.map((tab) => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium ${activeTab === tab.id ? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}><tab.icon size={16} /> {tab.label}</button>))}
                         </div>
                         {activeTab === "dados" && podeGerenciar && <DadosTab loja={loja} user={user} />}
-                        {activeTab === "produtos" && (podeEstoque || podeGerenciar) && <ProdutosTab produtos={produtos} isAdmin={podeGerenciar} isDono={["DONO", "ADMIN"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeGerenciar? handleAddProdutoClick : () => toast.error("Sem permissão")} onEdit={podeGerenciar? handleEditProdutoClick : () => toast.error("Sem permissão")} onDelete={podeGerenciar? handleDeleteProdutoClick : () => toast.error("Sem permissão")} formatCurrency={formatCurrency} />}
+                        {activeTab === "produtos" && (podeEstoque || podeGerenciar) && <ProdutosTab produtos={produtos} isAdmin={podeGerenciar} isDono={["DONO", "ADMIN"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeGerenciar ? handleAddProdutoClick : () => toast.error("Sem permissão")} onEdit={podeGerenciar ? handleEditProdutoClick : () => toast.error("Sem permissão")} onDelete={podeGerenciar ? handleDeleteProdutoClick : () => toast.error("Sem permissão")} formatCurrency={formatCurrency} />}
                         {activeTab === "equipa" && podeGerenciar && <EquipaTab equipa={equipa} isAdmin={podeGerenciar} isDono={["DONO", "ADMIN"].includes(user?.nivel!)} lojaId={lojaId} onAdd={handleAddUserClick} onEdit={handleEditUserClick} onDelete={handleDeleteUserClick} onView={handleViewUserClick} />}
                         {!["dados", "venda", "produtos", "equipa"].includes(activeTab) && (<div className="bg-neutral-900 p-6 rounded-xl text-center text-gray-400">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>)}
                     </div>
                     <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v); }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
                     <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v); }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
-                    <PermissaoModal open={showPermissaoModal} onClose={() => setShowPermissaoModal(false)} onConfirm={executarAcaoComSenha} loading={saving} />
+                    <PermissaoModal open={showPermissaoModal} onClose={() => setShowPermissaoModal(false)} onConfirm={executarAcaoComSenha} loading={saving} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} />
                     <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
                     <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
                     <ConfirmarModal open={showConfirmarModal} onClose={() => setShowConfirmarModal(false)} onConfirm={handleConfirmarRemocao} titulo="Remover Item" mensagem={`Remover ${itemParaRemover?.nome} do carrinho?`} />
@@ -306,4 +306,4 @@ export default function LojaPage() {
             )}
         </>
     );
-} // <- ESSA CHAVE AQUI QUE FALTAVA
+}
