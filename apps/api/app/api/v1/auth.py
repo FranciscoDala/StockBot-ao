@@ -56,31 +56,43 @@ def build_user_response(user: Usuario, membro: UsuarioLoja | None = None, all_me
     base = userread.model_validate(user).model_dump()
 
     if user.is_superuser:
-        base["nivel"] = UserRole.ADMIN.value # CORRECAO 2: MAIUSCULO
-        base["role"] = UserRole.ADMIN.value # CORRECAO 2: MAIUSCULO
+        base["nivel"] = UserRole.ADMIN.value
+        base["role"] = UserRole.ADMIN.value
         base["loja_id"] = None
         base["loja"] = None
         return base
 
     if membro:
+        # USUARIO COM 1 LOJA - ENTRA DIRETO
         base["nivel"] = membro.role.value
         base["role"] = membro.role.value
         base["loja_id"] = str(membro.loja_id)
         base["loja"] = {"id": str(membro.loja.id), "nome": membro.loja.nome, "slug": membro.loja.slug, "is_active": membro.loja.is_active}
     else:
+        # USUARIO COM 2+ LOJAS - TELA DE SELECAO
         roles = [m.role for m in all_membros] if all_membros else []
+
+        # Pega o maior cargo pra mostrar no card de seleção
         if UserRole.DONO in roles:
-            base["nivel"] = UserRole.DONO.value # CORRECAO 3: MAIUSCULO
-            base["role"] = UserRole.DONO.value # CORRECAO 3: MAIUSCULO
+            base["nivel"] = UserRole.DONO.value
+            base["role"] = UserRole.DONO.value
         elif UserRole.GERENTE in roles:
-            base["nivel"] = UserRole.GERENTE.value # CORRECAO 3: MAIUSCULO
-            base["role"] = UserRole.GERENTE.value # CORRECAO 3: MAIUSCULO
+            base["nivel"] = UserRole.GERENTE.value
+            base["role"] = UserRole.GERENTE.value
+        elif UserRole.CAIXA in roles:
+            base["nivel"] = UserRole.CAIXA.value # <- CORRIGIDO
+            base["role"] = UserRole.CAIXA.value # <- CORRIGIDO
+        elif UserRole.ESTOQUISTA in roles:
+            base["nivel"] = UserRole.ESTOQUISTA.value # <- CORRIGIDO
+            base["role"] = UserRole.ESTOQUISTA.value # <- CORRIGIDO
         else:
-            base["nivel"] = UserRole.VENDEDOR.value # CORRECAO 3: MAIUSCULO
-            base["role"] = UserRole.VENDEDOR.value # CORRECAO 3: MAIUSCULO
+            base["nivel"] = UserRole.VENDEDOR.value
+            base["role"] = UserRole.VENDEDOR.value
+
         base["loja_id"] = None
         base["loja"] = None
     return base
+
 
 # ROTA: POST /login
 @router.post("/login", response_model=LoginResponse)

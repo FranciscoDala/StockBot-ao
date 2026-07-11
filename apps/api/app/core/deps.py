@@ -53,13 +53,13 @@ async def get_current_membership(
 
     # REGRA ADMIN
     if user.is_superuser:
-        if role_str!= "admin":
+        if role_str!= UserRole.ADMIN.value: # CORRIGIDO: MAIUSCULO
             raise credentials_exception
-        return {"user": user, "loja_id": None, "role": UserRole.DONO, "loja": None}
+        return {"user": user, "loja_id": None, "role": UserRole.ADMIN, "loja": None}
 
-    # REGRA TOKEN TEMPORARIO MULTI_LOJA - BARRAR AQUI
-    if role_str == "multi_loja":
-        raise HTTPException(status_code=403, detail="Selecione uma loja primeiro")
+    # REGRA TOKEN TEMPORARIO MULTI_LOJA - AGORA LIBERA EM VEZ DE BARRAR
+    if role_str == UserRole.MULTI_LOJA.value: # CORRIGIDO: MAIUSCULO
+        return {"user": user, "loja_id": None, "role": UserRole.MULTI_LOJA, "loja": None}
 
     # REGRA USUARIO NORMAL: OBRIGATORIO TER LOJA VINCULADA
     if not all([loja_id_str, role_str]):
@@ -85,16 +85,16 @@ async def get_current_membership(
     loja = membro.loja
     if not loja:
         raise HTTPException(status_code=403, detail="Loja nao encontrada")
-
     if not loja.is_active:
         raise HTTPException(status_code=403, detail="Loja desativada")
-
-    if hasattr(loja, 'deleted_at') and loja.deleted_at is not None: # <- BARRAR LOJA DELETADA
+    if hasattr(loja, 'deleted_at') and loja.deleted_at is not None:
         raise HTTPException(status_code=403, detail="Loja excluida")
 
     return {"user": user, "loja_id": loja_id, "role": role, "loja": loja}
 
 async def get_current_user(m: Membership = Depends(get_current_membership)) -> Usuario:
+    if m["loja_id"] is None and not m["user"].is_superuser:
+        raise HTTPException(status_code=403, detail="Selecione uma loja primeiro")
     return m["user"]
 
 async def get_current_active_user(m: Membership = Depends(get_current_membership)) -> Usuario:
@@ -103,7 +103,7 @@ async def get_current_active_user(m: Membership = Depends(get_current_membership
 async def get_current_admin(token: str = Depends(oauth2_scheme)) -> dict:
     try:
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
-        if payload.get("role")!= "admin":
+        if payload.get("role")!= UserRole.ADMIN.value: # CORRIGIDO: MAIUSCULO
             raise HTTPException(status_code=403, detail="Apenas super admin")
         return payload
     except JWTError:
@@ -137,14 +137,12 @@ async def verificar_acesso_loja(
 ):
     if current_user.is_superuser:
         return True
-
     stmt = select(UsuarioLoja).where(
         UsuarioLoja.usuario_id == current_user.id,
         UsuarioLoja.loja_id == loja_id,
         UsuarioLoja.is_active == True
     )
     membro = (await db.execute(stmt)).scalar_one_or_none()
-
     if not membro:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -152,7 +150,7 @@ async def verificar_acesso_loja(
         )
     return True
 
-# ADICIONADO: Valida apenas o token, não exige loja_id. Para usar com temp_token
+# ACEITA MULTI_LOJA. USAR NAS ROTAS DE SELECAO
 async def get_current_user_temp(
     token: str = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
@@ -166,7 +164,7 @@ async def get_current_user_temp(
         payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_id_str: str = payload.get("sub")
         role: str = payload.get("role")
-        if not user_id_str or role!= "multi_loja":
+        if not user_id_str or role!= UserRole.MULTI_LOJA.value: # CORRIGIDO: MAIUSCULO
             raise credentials_exception
         user_id = UUID(user_id_str)
     except ExpiredSignatureError:

@@ -5,28 +5,28 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Toaster, toast } from "sonner"; // <- adicionei toast
+import { Toaster, toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window!== 'undefined' && window.location.hostname === 'localhost'
-  ? "http://127.0.0.1:8000/api/v1"
-    : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
+    (typeof window!== 'undefined' && window.location.hostname === 'localhost'
+       ? "http://127.0.0.1:8000/api/v1"
+        : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
 
 const MENSAGEM_LOJA_DESATIVADA = "a sua loja foi desativada, vá até o escritório ou entra em contacto com o admin da stocckbot.\n\ncontacto:\ne-mail: stockbot26@gmail.com\nwhatsapp: +244930438947";
 
 const ROUTES = {
     ADMIN: "/admin",
-    VENDEDOR: "/loja",
     LOGIN: "/login",
-    SELECT_LOJA_GESTOR: "/admin/selecionar-loja", // <- MUDANÇA 1: era "/escolher-loja"
-    SELECT_LOJA_FUNC: "/admin/selecionar-loja" // <- MUDANÇA 2: era "/select-loja"
+    SELECT_LOJA_GESTOR: "/admin/selecionar-loja",
+    SELECT_LOJA_FUNC: "/admin/selecionar-loja"
 };
 
-type LojaSelectOut = { id: string; nome: string; slug: string; role: "dono" | "gerente" | "vendedor" };
+// CORRIGIDO: TUDO MAIUSCULO IGUAL BACKEND
+type LojaSelectOut = { id: string; nome: string; slug: string; role: "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA" };
 type UserData = {
     id: string; nome: string; email: string; is_superuser?: boolean;
-    nivel?: "admin" | "gerente" | "vendedor" | "dono";
-    role?: "admin" | "gerente" | "dono" | "funcionario" | "multi_loja"; // <- NOVO: campo role
+    nivel?: "ADMIN" | "GERENTE" | "VENDEDOR" | "DONO" | "CAIXA" | "ESTOQUISTA";
+    role?: "ADMIN" | "GERENTE" | "DONO" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA" | "MULTI_LOJA";
     loja_id?: string | null;
     loja?: { id: string; nome: string; slug: string } | null;
 };
@@ -39,12 +39,6 @@ type LoginResponse = {
     lojas: LojaSelectOut[];
 };
 
-// ===== FUNÇÕES MANUAIS DE COOKIE =====
-/**
- * FUNÇÃO: setCookie
- * Salva um cookie no navegador
- */
-
 const setCookie = (name: string, value: string, days = 7) => {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     const isProd = process.env.NODE_ENV === 'production';
@@ -53,10 +47,6 @@ const setCookie = (name: string, value: string, days = 7) => {
     document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${secure}${sameSite}`;
 };
 
-/**
- * FUNÇÃO: getCookie
- * Lê um cookie do navegador
- */
 const getCookie = (name: string): string | undefined => {
     return document.cookie.split('; ').reduce((r, v) => {
         const parts = v.split('=');
@@ -64,27 +54,18 @@ const getCookie = (name: string): string | undefined => {
     }, '');
 };
 
-/**
- * FUNÇÃO: deleteCookie
- * Apaga um cookie
- */
 const deleteCookie = (name: string) => {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax`;
 };
 
-/**
- * FUNÇÃO: clearAllAuthCookies
- * Limpa todos cookies de autenticação
- */
 const clearAllAuthCookies = () => {
     deleteCookie('token');
     deleteCookie('user');
-    deleteCookie('role'); // <- NOVO
+    deleteCookie('role');
     deleteCookie('temp_token');
     deleteCookie('lojas_temp');
     deleteCookie('user_temp');
 }
-// ======================================
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -96,24 +77,13 @@ export default function LoginPage() {
     const router = useRouter();
     const redirectedRef = useRef(false);
 
-    /**
-     * FUNÇÃO: safeRedirect
-     * Redireciona o usuário dependendo do nivel/role
-     */
+    // TODOS vão pra /loja/[id] se já tiver loja
     const safeRedirect = (user: UserData) => {
-        if (user.is_superuser || user.nivel === "admin") return router.replace(ROUTES.ADMIN);
-        if (user.nivel === "vendedor") return router.replace(ROUTES.VENDEDOR);
-        if (user.nivel === "dono" || user.nivel === "gerente") return router.replace(ROUTES.SELECT_LOJA_GESTOR); // <- MUDANÇA 3: era SELECT_LOJA_ADMIN
-
-        setError("Erro no servidor: usuario sem nivel. Fala com o dev.");
-        clearAllAuthCookies();
-        setChecking(false);
+        if (user.is_superuser || user.nivel === "ADMIN") return router.replace(ROUTES.ADMIN);
+        if (user.loja_id) return router.replace(`/loja/${user.loja_id}`);
+        return router.replace(ROUTES.SELECT_LOJA_GESTOR);
     };
 
-    /**
-     * HOOK: useEffect
-     * Roda ao carregar a página. Se já tem token, redireciona
-     */
     useEffect(() => {
         if (redirectedRef.current) return;
         const token = getCookie("token");
@@ -131,26 +101,17 @@ export default function LoginPage() {
         setChecking(false);
     }, [router]);
 
-    /**
-     * FUNÇÃO: handleLogin
-     * Roda quando o usuário clica em "entrar"
-     * Faz 3 cenários: admin direto, 1 loja direto, multi-loja seleciona
-     */
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
-
         clearAllAuthCookies();
 
         try {
             const res = await fetch(`${API_URL}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    username: email, // <- MUDEI: era email
-                    password: password // <- MUDEI: era senha
-                })
+                body: JSON.stringify({ username: email, password: password })
             });
 
             if (!res.ok) {
@@ -160,58 +121,55 @@ export default function LoginPage() {
 
             const data: LoginResponse = await res.json();
 
-            // CORREÇÃO: agora o backend sempre retorna user
-            if (!data.user) throw new Error("Backend não retornou dados do usuário");
-
             // REGRA 0: MULTI-LOJA - PRECISA ESCOLHER PRIMEIRO
             if (data.need_selection && data.lojas.length > 0) {
-                setCookie('temp_token', data.access_token, 1 / 24 / 6); // 10 min
-                setCookie('role', 'multi_loja', 1 / 24 / 6); // <- NOVO: salva role temporário
+                setCookie('temp_token', data.access_token, 1 / 24 / 6);
+                setCookie('role', 'MULTI_LOJA', 1 / 24 / 6);
                 setCookie('lojas_temp', JSON.stringify(data.lojas), 1 / 24 / 6);
                 setCookie('user_temp', JSON.stringify(data.user), 1 / 24 / 6);
                 redirectedRef.current = true;
-
-                const isGestor = data.user.nivel === "dono" || data.user.nivel === "gerente" || data.user.is_superuser;
-                return router.replace(isGestor? ROUTES.SELECT_LOJA_GESTOR : ROUTES.SELECT_LOJA_FUNC); // <- MUDANÇA 4: era SELECT_LOJA_ADMIN
+                const isGestor = data.user?.nivel === "DONO" || data.user?.nivel === "GERENTE" || data.user?.is_superuser;
+                return router.replace(isGestor? ROUTES.SELECT_LOJA_GESTOR : ROUTES.SELECT_LOJA_FUNC);
             }
 
-            // REGRA 1: ADMIN SEMPRE VAI DIRETO
-            if (data.user.is_superuser || data.user.nivel === "admin") {
+            if (!data.user) throw new Error("Backend não retornou dados do usuário");
+
+            // REGRA 1: ADMIN
+            if (data.user.is_superuser || data.user.nivel === "ADMIN") {
                 setCookie('token', data.access_token, 7);
-                setCookie('role', 'admin', 7); // <- NOVO: salva role
+                setCookie('role', 'ADMIN', 7);
                 setCookie('user', JSON.stringify(data.user), 7);
                 redirectedRef.current = true;
                 return router.replace(ROUTES.ADMIN);
             }
 
-            // REGRA 2: VENDEDOR VAI DIRETO
-            if (data.user.nivel === "vendedor") {
+            // REGRA 2: FUNCIONARIO: VENDEDOR, CAIXA, ESTOQUISTA
+            if (["VENDEDOR", "CAIXA", "ESTOQUISTA"].includes(data.user.nivel!)) {
                 setCookie('token', data.access_token, 7);
-                setCookie('role', 'funcionario', 7); // <- NOVO: salva role
+                setCookie('role', data.user.nivel!, 7);
                 setCookie('user', JSON.stringify(data.user), 7);
                 redirectedRef.current = true;
-                return router.replace(ROUTES.VENDEDOR);
+                return router.replace(`/loja/${data.user.loja_id}`);
             }
 
-            // REGRA 3: DONO/GERENTE COM 1 LOJA JA VEM SELECIONADA
-            if (data.user.nivel === "dono" || data.user.nivel === "gerente") {
+            // REGRA 3: DONO/GERENTE COM 1 LOJA
+            if (data.user.nivel === "DONO" || data.user.nivel === "GERENTE") {
                 setCookie('token', data.access_token, 7);
-                setCookie('role', data.user.nivel, 7); // <- NOVO: salva role
+                setCookie('role', data.user.nivel, 7);
                 setCookie('user', JSON.stringify(data.user), 7);
                 redirectedRef.current = true;
-                return router.replace(`/loja/${data.user.loja?.id}`); // <- MUDANÇA 5: era.slug
+                return router.replace(`/loja/${data.user.loja_id}`);
             }
 
             // FALLBACK
             setCookie('token', data.access_token, 7);
-            setCookie('role', data.user.role || 'funcionario', 7); // <- NOVO: salva role
+            setCookie('role', data.user.role || 'VENDEDOR', 7);
             setCookie('user', JSON.stringify(data.user), 7);
             redirectedRef.current = true;
             safeRedirect(data.user);
 
         } catch (err: any) {
             const msg = String(err.message || err).toLowerCase();
-
             if (msg.includes("loja foi desativada")) {
                 setLojaBloqueadaOpen(true);
             } else if (msg.includes("sem loja vinculada")) {

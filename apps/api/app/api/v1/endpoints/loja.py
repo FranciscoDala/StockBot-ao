@@ -6,12 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from api.app.db.session import get_db
-from api.app.core.deps import get_current_user
+from api.app.core.deps import get_current_membership, get_current_user # <- IMPORT CORRIGIDO
 from api.app.crud import crud_documento, loja
 from api.app.schemas.documento import DocumentoOut, DocumentoCreate
 from api.app.models.usuario import Usuario
 from api.app.models.loja import Loja
 from api.app.models.usuario_loja import UsuarioLoja
+from api.app.models.role import UserRole
 from pathlib import Path
 
 router = APIRouter()
@@ -20,8 +21,9 @@ UPLOAD_DIR = Path("uploads/lojas")
 @router.get("/minhas")
 async def listar_minhas_lojas(
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    m = Depends(get_current_membership) # <- USA MEMBERSHIP PRA ACEITAR MULTI_LOJA
 ):
+    current_user = m["user"]
     if current_user.is_superuser:
         stmt = select(Loja).where(Loja.is_active == True).order_by(Loja.nome)
         result = await db.execute(stmt)
@@ -50,14 +52,18 @@ async def check_loja_permission(db: AsyncSession, user: Usuario, loja_id: UUID):
 async def listar_documentos(
     loja_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    m = Depends(get_current_membership) # <- USA MEMBERSHIP PRA VALIDAR LOJA
 ):
+    current_user = m["user"]
+    # se já tiver loja no token, valida se é a mesma
+    if m["loja_id"] and m["loja_id"]!= loja_id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Sem permissão para esta loja")
+
     stmt = select(Loja).where(Loja.id == loja_id)
     loja_db = (await db.execute(stmt)).scalar_one_or_none()
-
     if not loja_db:
         raise HTTPException(status_code=404, detail="Loja não encontrada")
-    if not await check_loja_permission(db, current_user, loja_id): # CORRECAO
+    if not await check_loja_permission(db, current_user, loja_id):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     docs = await crud_documento.get_by_loja(db, loja_id=loja_id)
@@ -69,14 +75,17 @@ async def upload_documento(
     tipo: str = Form(...),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user)
+    m = Depends(get_current_membership) # <- USA MEMBERSHIP PRA VALIDAR LOJA
 ):
+    current_user = m["user"]
+    if m["loja_id"] and m["loja_id"]!= loja_id and not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Sem permissão para esta loja")
+
     stmt = select(Loja).where(Loja.id == loja_id)
     loja_db = (await db.execute(stmt)).scalar_one_or_none()
-
     if not loja_db:
         raise HTTPException(status_code=404, detail="Loja não encontrada")
-    if not await check_loja_permission(db, current_user, loja_id): # CORRECAO
+    if not await check_loja_permission(db, current_user, loja_id):
         raise HTTPException(status_code=403, detail="Sem permissão")
 
     loja_dir = UPLOAD_DIR / str(loja_id)
