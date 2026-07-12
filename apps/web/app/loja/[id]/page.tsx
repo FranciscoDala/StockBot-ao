@@ -92,10 +92,11 @@ export default function LojaPage() {
         if (!currentToken || !lojaId) return;
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
-            const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data) ? data.map((u: any) => ({
-                ...u,
-                role: String(u.role).toUpperCase() as UserRole // <- FORÇA VIRAR MAIUSCULO
-            })) : [];
+            const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
+                ? data
+                    .filter((u: any) => u.role !== "ADMIN") // <- TIRA O ADMIN DA LISTA
+                    .map((u: any) => ({ ...u, role: String(u.role).toUpperCase() as UserRole }))
+                : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
     };
