@@ -1,22 +1,16 @@
 "use client";
 import { Plus, Eye, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { UsuarioLoja } from "../modals/UserModal"; // <- type do Modal
+import type { UsuarioLoja, UsuarioLojaPage } from "../../page"; // <- 1. IMPORTA DO PAI
 
-type UsuarioLojaPage = {
-    id: string;
-    nome: string;
-    email: string;
-    telefone?: string | null; // <- ACEITA NULL
-    role: "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
-    is_active: boolean;
-}
+// 2. APAGA esse type daqui. Usa o do page
+// type UsuarioLojaPage = { ... }
 
 interface Props {
-    equipa: UsuarioLojaPage[];
+    equipa: UsuarioLojaPage[]; // <- agora é o mesmo do page
     isAdmin: boolean;
     isDono: boolean;
-    lojaId?: string; // <- ADICIONEI PRA PADRONIZAR
+    lojaId?: string;
     onAdd: () => void;
     onEdit: (u: UsuarioLojaPage) => void;
     onDelete: (u: UsuarioLojaPage) => void;
