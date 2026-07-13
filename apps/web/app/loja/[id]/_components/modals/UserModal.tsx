@@ -11,7 +11,6 @@ type FormDataType = {
   nome: string;
   email: string;
   senha?: string; // senha nova do usuario
-  senha_dono?: string; // <- ADICIONADO
   telefone: string;
   role: UserRole;
   is_active: boolean
@@ -32,7 +31,7 @@ interface Props {
 export function UserModal({ open, onOpenChange, editingUser, formData, setFormData, onSave, saving, errorMsg, lojaNome }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full sm:max-w-[600px] bg-black/95 border-white/10 p-0 flex-col max-h- text-white" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+            <DialogContent className="w-full sm:max-w-[600px] bg-black/95 border-white/10 p-0 flex-col max-h-[90vh] text-white" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
                         <DialogTitle className="text-base sm:text-lg">{editingUser? "Editar" : "Adicionar"} Membro</DialogTitle>
@@ -65,7 +64,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             </div>
                         )}
 
-                        {editingUser && ( // <- ADICIONADO
+                        {editingUser && ( // <- Agora só senha nova
                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                 <Label className="text-xs sm:text-right">Nova Senha</Label>
                                 <Input type="password" value={formData.senha || ""} onChange={e => setFormData({...formData, senha: e.target.value})} className="sm:col-span-3 bg-background text-xs" placeholder="deixe em branco para não alterar" />
@@ -93,13 +92,6 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 {!editingUser && <option value="DONO">Dono</option>}
                             </select>
                         </div>
-
-                        {editingUser && ( // <- ADICIONADO: Confirmação do admin
-                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4 border-t border-white/10 pt-3 mt-1">
-                                <Label className="text-xs sm:text-right text-yellow-400">Sua Senha *</Label>
-                                <Input type="password" value={formData.senha_dono || ""} onChange={e => setFormData({...formData, senha_dono: e.target.value})} className="sm:col-span-3 bg-background text-xs" required placeholder="Confirme com sua senha" />
-                            </div>
-                        )}
                     </div>
 
                     <DialogFooter className="p-4 sm:p-6 pt-4 bg-background shrink-0 border-t border-white/10 flex-col sm:flex-row gap-2">

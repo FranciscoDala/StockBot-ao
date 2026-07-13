@@ -17,6 +17,7 @@ from app.models.role import UserRole
 
 router = APIRouter(prefix="/usuarios", tags=["usuarios"])
 
+
 @router.post("", response_model=UsuarioLojaOut, status_code=status.HTTP_201_CREATED)
 async def criar_usuario(
     body: UsuarioLojaCreateIn,
@@ -27,22 +28,31 @@ async def criar_usuario(
     current_user: Usuario = m["user"]
     current_role: UserRole = m["role"]
 
+    # 1. REGRA DE PERMISSÃO
     if current_role == UserRole.GERENTE and body.role!= UserRole.VENDEDOR:
         raise HTTPException(status_code=403, detail="gerente só pode criar vendedor")
 
-    # 1. BUSCA NOME DA LOJA
+    if current_role == UserRole.DONO and body.role == UserRole.DONO:
+        raise HTTPException(status_code=403, detail="não é possível criar outro dono")
+
+    # 2. BUSCA NOME DA LOJA
     loja = await db.get(Loja, loja_id)
     if not loja:
         raise HTTPException(status_code=404, detail="Loja não encontrada")
 
-    # 2. GERA EMAIL AUTOMATICO: primeiroNomeUsuario@primeiroNomeLoja.ao
+    # 3. GERA EMAIL AUTOMATICO: primeiroNomeUsuario@primeiroNomeLoja.ao
     nome_usuario = body.nome.split()[0].lower()
     nome_loja = loja.nome.split()[0].lower()
     nome_usuario = re.sub(r'[^a-z0-9]', '', nome_usuario)
     nome_loja = re.sub(r'[^a-z0-9]', '', nome_loja)
+
+    # fallback se nome ficar vazio depois do regex
+    if not nome_usuario: nome_usuario = "usuario"
+    if not nome_loja: nome_loja = "loja"
+
     email_gerado = f"{nome_usuario}@{nome_loja}.ao"
 
-    # 3. Verifica se email já existe. Se existir adiciona numero
+    # 4. Verifica se email já existe. Se existir adiciona numero
     contador = 1
     email_final = email_gerado
     while True:
@@ -51,8 +61,14 @@ async def criar_usuario(
             break
         email_final = f"{nome_usuario}{contador}@{nome_loja}.ao"
         contador += 1
+        if contador > 100: # trava de segurança
+            raise HTTPException(status_code=400, detail="não foi possível gerar email único")
 
-    # 4. Cria Usuario na tabela global
+    # 5. Valida se senha e confirmação batem - redundância com o schema mas garante
+    if body.senha!= body.senha_confirmacao:
+        raise HTTPException(status_code=400, detail="as senhas não coincidem")
+
+    # 6. Cria Usuario na tabela global
     novo_user = Usuario(
         nome=body.nome,
         email=email_final,
@@ -63,7 +79,7 @@ async def criar_usuario(
     db.add(novo_user)
     await db.flush()
 
-    # 5. Cria o vinculo UsuarioLoja
+    # 7. Cria o vinculo UsuarioLoja
     vinculo = UsuarioLoja(
         usuario_id=novo_user.id,
         loja_id=loja_id,
@@ -77,9 +93,15 @@ async def criar_usuario(
     await db.refresh(novo_user)
 
     return UsuarioLojaOut(
-        id=novo_user.id, nome=novo_user.nome, email=novo_user.email,
-        telefone=vinculo.telefone, role=vinculo.role, is_active=vinculo.is_active, loja_id=vinculo.loja_id
+        id=novo_user.id,
+        nome=novo_user.nome,
+        email=novo_user.email,
+        telefone=vinculo.telefone,
+        role=vinculo.role,
+        is_active=vinculo.is_active,
+        loja_id=vinculo.loja_id
     )
+
 
 @router.get("/me", response_model=UserRead)
 async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):
