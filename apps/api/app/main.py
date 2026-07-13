@@ -198,7 +198,7 @@ from app.api.v1 import documentos as documentos_router
 from app.api.v1 import websocket as websocket_router
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
-api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuarios"])
+api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuario"]) # <- MUDEI AQUI: "usuario" singular
 api_v1_router.include_router(admin_loja_router.router, prefix="/lojas", tags=["lojas"])
 api_v1_router.include_router(usuarios_router.router, prefix="") # <- 2. ADICIONADO
 api_v1_router.include_router(company_router.router, prefix="/company", tags=["company"])
