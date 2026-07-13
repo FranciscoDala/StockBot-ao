@@ -88,9 +88,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-               ? data
-                   .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-                   .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+              ? data
+                  .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+                  .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -147,7 +147,6 @@ export default function LojaPage() {
         setShowModal(true);
     };
 
-    // AJUSTADO: AGORA PASSA A DESCRICAO
     const handleAddUserClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'user', descricao: 'Tem certeza que deseja adicionar este novo membro?' }); openModal('user'); }
     const handleEditUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', descricao: `Tem certeza que deseja salvar as alterações de ${u.nome}?`, data: u }); openModal('user', {...u, telefone: u.telefone?? undefined }); }
     const handleDeleteUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', descricao: `Tem certeza que deseja apagar o membro ${u.nome}? Esta ação não pode ser desfeita.`, data: u }); setShowPermissaoModal(true); }
@@ -159,20 +158,21 @@ export default function LojaPage() {
     const executarAcaoComSenha = async (senha_dono: string) => {
         if (!acaoPendente ||!token) return; setSaving(true); setShowPermissaoModal(false); const { tipo, entidade, data } = acaoPendente; try {
             if (entidade === 'user') {
-                if (tipo === 'adicionar') { await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, token, { method: "POST", body: JSON.stringify({...formDataUser, senha: formDataUser.senha, senha_confirmacao: formDataUser.senha }) }); await fetchEquipa(token); toast.success("Adicionado!"); }
-                if (tipo === 'editar' && data) { await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${(data as UsuarioLojaPage).id}`, token, { method: "PUT", body: JSON.stringify({...formDataUser, senha_dono: senha_dono, senha_confirmacao: senha_dono }) }); await fetchEquipa(token); toast.success("Atualizado!"); }
-                if (tipo === 'apagar' && data) { await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${(data as UsuarioLojaPage).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono: senha_dono, senha_confirmacao: senha_dono }) }); await fetchEquipa(token); toast.success("Removido!"); }
+                // CORRIGIDO: ADICIONADO senha_dono NO POST
+                if (tipo === 'adicionar') { await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, token, { method: "POST", body: JSON.stringify({...formDataUser, senha: formDataUser.senha, senha_confirmacao: formDataUser.senha, senha_dono: senha_dono }) }); await fetchEquipa(token); toast.success("Adicionado!"); }
+                if (tipo === 'editar' && data) { await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${(data as UsuarioLojaPage).id}`, token, { method: "PUT", body: JSON.stringify({...formDataUser, senha_dono: senha_dono }) }); await fetchEquipa(token); toast.success("Atualizado!"); }
+                if (tipo === 'apagar' && data) { await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${(data as UsuarioLojaPage).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono: senha_dono }) }); await fetchEquipa(token); toast.success("Removido!"); }
             }
             if (entidade === 'produto') {
-                const loja_id = user?.loja_id || ""; const payload = {...(data || formDataProduto), senha_dono, senha_confirmacao: senha_dono, loja_id: (data as ProdutoType)?.loja_id || loja_id };
+                const loja_id = user?.loja_id || ""; const payload = {...(data || formDataProduto), senha_dono, loja_id: (data as ProdutoType)?.loja_id || loja_id };
                 if (tipo === 'editar' &&!payload.codigo_barras) delete payload.codigo_barras;
                 if (tipo === 'adicionar') { await fetchComAuth(`${API_URL}/produtos`, token, { method: "POST", body: JSON.stringify(payload) }); }
                 if (tipo === 'editar' && editingProduto) { await fetchComAuth(`${API_URL}/produtos/${editingProduto.id}`, token, { method: "PATCH", body: JSON.stringify(payload) }); }
-                if (tipo === 'apagar' && editingProduto) { await fetchComAuth(`${API_URL}/produtos/${editingProduto.id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono, loja_id: editingProduto.loja_id }) }); }
+                if (tipo === 'apagar' && editingProduto) { await fetchComAuth(`${API_URL}/produtos/${editingProduto.id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, loja_id: editingProduto.loja_id }) }); }
                 await fetchProdutos(token, loja_id);
             }
             setShowModal(false); toast.success("Sucesso!")
-        } catch (err: any) { setErroMsgPermissao(err.message.includes("senha")? "Senha incorreta" : err.message.includes("403")? "Sem permissão" : err.message); setShowErroModal(true); if (acaoPendente?.tipo === 'editar') setShowModal(true); } finally { setAcaoPendente(null); setSaving(false); }
+        } catch (err: any) { console.error("ERRO BACKEND:", err); setErroMsgPermissao(err.message); setShowErroModal(true); if (acaoPendente?.tipo === 'editar') setShowModal(true); } finally { setAcaoPendente(null); setSaving(false); }
     }
 
     const handleSave = async (payload: any) => {
