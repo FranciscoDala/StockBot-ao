@@ -72,7 +72,15 @@ export default function LojaPage() {
     const [showModal, setShowModal] = useState(false); const [modalType, setModalType] = useState<'user' | 'produto'>('user'); const [saving, setSaving] = useState(false); const [errorMsg, setErrorMsg] = useState("");
     const [showPermissaoModal, setShowPermissaoModal] = useState(false); const [showErroModal, setShowErroModal] = useState(false); const [erroMsgPermissao, setErroMsgPermissao] = useState(""); const [showDetalhesModal, setShowDetalhesModal] = useState(false);
     const [showConfirmarModal, setShowConfirmarModal] = useState(false); const [itemParaRemover, setItemParaRemover] = useState<CarrinhoItem | null>(null); const [busca, setBusca] = useState(""); const [formaPagamento, setFormaPagamento] = useState("Dinheiro"); const [valorRecebido, setValorRecebido] = useState(""); const [showConfirmarFinalizar, setShowConfirmarFinalizar] = useState(false); const [loadingVenda, setLoadingVenda] = useState(false);
-    const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar' | 'adicionar', entidade: 'user' | 'produto', data?: UsuarioLojaPage | ProdutoType } | null>(null);
+
+    const [acaoPendente, setAcaoPendente] = useState<{
+        tipo: 'editar' | 'apagar' | 'adicionar';
+        entidade: 'user' | 'produto';
+        descricao: string; // <- ADICIONA ISSO
+        data?: UsuarioLojaPage | ProdutoType;
+    } | null>(null);
+
+
     const [showVendaSucessoModal, setShowVendaSucessoModal] = useState(false); const [vendaConcluida, setVendaConcluida] = useState<Venda | null>(null); const [ws, setWs] = useState<WebSocket | null>(null);
 
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
