@@ -161,10 +161,6 @@ async def atualizar_usuario(
     admin: Usuario = m["user"]
     role_atual: UserRole = m["role"]
 
-    # 1. Valida senha do admin/dono
-    if not body.senha_dono or not verify_password(body.senha_dono, admin.senha_hash):
-        raise HTTPException(status_code=403, detail="senha do administrador incorreta")
-
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
         Usuario.id == user_id, UsuarioLoja.loja_id == loja_id
     )
@@ -175,6 +171,12 @@ async def atualizar_usuario(
     u, ul = res
     if role_atual == UserRole.GERENTE and ul.role in [UserRole.GERENTE, UserRole.DONO]:
         raise HTTPException(status_code=403, detail="gerente não pode editar gerente ou dono")
+
+    # 1. Só valida senha do admin se for mexer em dados sensíveis
+    dados_sensiveis = any([body.role, body.email, body.senha])
+    if dados_sensiveis:
+        if not body.senha_dono or not verify_password(body.senha_dono, admin.senha_hash):
+            raise HTTPException(status_code=403, detail="senha do administrador incorreta para esta ação")
 
     # 2. Atualiza campos
     if body.nome is not None:
@@ -196,6 +198,7 @@ async def atualizar_usuario(
 
     await db.commit()
     await db.refresh(u)
+    await db.refresh(ul) # <- ADICIONADO: precisa dar refresh no vinculo tbm
     return UsuarioLojaOut(
         id=u.id, nome=u.nome, email=u.email,
         telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
