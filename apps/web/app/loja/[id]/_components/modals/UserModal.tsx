@@ -5,21 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
-import type { UsuarioLoja, UserRole } from "../page"; // <- SÓ TEM ISSO. NADA MAIS DE TYPE AQUI
+import type { UsuarioLoja, UserRole } from "../../page"; // <- CORRIGIDO AQUI
 
 type FormDataType = {
   nome: string;
   email: string;
   senha?: string;
   telefone: string;
-  role: UserRole; // <- vem do page
+  role: UserRole;
   is_active: boolean
 };
 
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
-    editingUser: UsuarioLoja | null; // <- vem do page
+    editingUser: UsuarioLoja | null;
     formData: FormDataType;
     setFormData: (d: any) => void;
     onSave: (e: React.FormEvent) => void;
@@ -31,7 +31,7 @@ interface Props {
 export function UserModal({ open, onOpenChange, editingUser, formData, setFormData, onSave, saving, errorMsg, lojaNome }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-full sm:max-w-[600px] bg-black/95 border-white/10 p-0 flex-col max-h-[90vh] text-white" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+            <DialogContent className="w-full sm:max-w-[600px] bg-black/95 border-white/10 p-0 flex-col max-h- text-white" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
                         <DialogTitle className="text-base sm:text-lg">{editingUser? "Editar" : "Adicionar"} Membro</DialogTitle>
