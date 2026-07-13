@@ -38,14 +38,14 @@ const deleteCookie = (name: string) => { if (typeof window === "undefined") retu
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`,...options.headers }, credentials: 'include', cache: "no-store" });
-    if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorText = await res.text(); try { throw new Error(formatError(JSON.parse(errorText))); } catch { throw new Error(errorText || res.statusText); } }
+    if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorData = await res.json().catch(() => ({})); console.error("API ERROR:", res.status, errorData); throw new Error(errorData.detail || res.statusText); } // <- LOG MELHORADO
     if (res.status === 204) { return true; } return await res.json();
 }
 
 export default function LojaPage() {
     const router = useRouter(); const params = useParams(); const lojaId = params.id as string;
     const [isClient, setIsClient] = useState(false); const [user, setUser] = useState<userread | null>(null); const [token, setToken] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [loja, setLoja] = useState<Loja | null>(null);
-    const [menuMobileOpen, setMenuMobileOpen] = useState(false); // <- NOVO
+    const [menuMobileOpen, setMenuMobileOpen] = useState(false);
 
     const podeEditarApagar = ["DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerTudo = ["ADMIN", "DONO", "GERENTE"].includes(user?.nivel!);
@@ -89,9 +89,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-               ? data
-                   .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-                   .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+              ? data
+                  .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+                  .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -184,7 +184,11 @@ export default function LojaPage() {
     const handleSave = async (payload: any) => {
         if (payload?.preventDefault) payload.preventDefault(); const data = payload?.target? formDataProduto : payload; if (!token ||!lojaId) return; setSaving(true); setErrorMsg("");
         try {
-            if (modalType === 'user') { if (!formDataUser.nome.trim() ||!formDataUser.email.trim()) { setErrorMsg("Preencha nome e email"); setSaving(false); return; } if (!editingUser &&!formDataUser.senha.trim()) { setErrorMsg("Senha obrigatória"); setSaving(false); return; } setShowModal(false); setAcaoPendente({ tipo: editingUser? 'editar' : 'adicionar', entidade: 'user', descricao: editingUser? 'Editar membro' : 'Adicionar membro' }); setShowPermissaoModal(true); setSaving(false); return; }
+            if (modalType === 'user') {
+                if (!formDataUser.nome.trim()) { setErrorMsg("Preencha o nome"); setSaving(false); return; } // <- REMOVIDO email
+                if (!editingUser &&!formDataUser.senha.trim()) { setErrorMsg("Senha obrigatória"); setSaving(false); return; }
+                setShowModal(false); setAcaoPendente({ tipo: editingUser? 'editar' : 'adicionar', entidade: 'user', descricao: editingUser? 'Editar membro' : 'Adicionar membro' }); setShowPermissaoModal(true); setSaving(false); return;
+            }
             if (modalType === 'produto') { if (!data.nome.trim() || data.preco <= 0) { setErrorMsg("Nome e preco > 0"); setSaving(false); return; } setShowModal(false); setAcaoPendente({ tipo: editingProduto? 'editar' : 'adicionar', entidade: 'produto', descricao: editingProduto? 'Editar produto' : 'Adicionar produto', data: data }); setShowPermissaoModal(true); setSaving(false); return; }
         } catch (err: any) { setErrorMsg(err.message); setSaving(false); }
     };
@@ -195,9 +199,8 @@ export default function LojaPage() {
         <Toaster position="top-center" richColors theme="dark" />
         {activeTab === "venda"? <div className="fixed inset-0 z-40 bg-black"><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV" }} /></div> :
             <div className="min-h-screen bg-black text-white">
-                <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6"> {/* <- WRAPPER RESPONSIVO */}
+                <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
-                    {/* HEADER RESPONSIVO */}
                     <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                             <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-neutral-800 flex items-center justify-center text-lg sm:text-xl font-bold text-green-500 shrink-0"><Store /></div>
@@ -215,7 +218,6 @@ export default function LojaPage() {
                         </div>
                     </div>
 
-                    {/* TABS COM SCROLL HORIZONTAL NO MOBILE */}
                     <div className="mb-4 sm:mb-6">
                         <div className="bg-neutral-900 p-1 rounded-lg overflow-x-auto scrollbar-hide">
                             <div className="flex gap-1 w-max min-w-full">
@@ -233,7 +235,6 @@ export default function LojaPage() {
                         </div>
                     </div>
 
-                    {/* CONTEUDO */}
                     <div className="pb-8">
                         {activeTab === "dados" && <DadosTab loja={loja} user={user} />}
                         {activeTab === "produtos" && (podeVerVendas || podeVerEstoque) && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} formatCurrency={formatCurrency} />}
@@ -242,7 +243,6 @@ export default function LojaPage() {
                     </div>
                 </div>
 
-                {/* MODALS */}
                 <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
                 <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
                 <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />

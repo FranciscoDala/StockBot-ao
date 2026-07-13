@@ -28,32 +28,6 @@ class AdminAuth(BaseModel):
 class AcaoSensivelAuth(BaseModel):
     senha_dono: str = Field(..., min_length=1)
 
-class UsuarioLojaUpdateWithAuth(UsuarioLojaUpdateIn):
-    senha_dono: str = Field(..., min_length=1)
-    senha_confirmacao: str = Field(..., min_length=1)
-
-    @field_validator('role', mode='before') # <- ADICIONADO
-    @classmethod
-    def normalize_role(cls, v):
-        if isinstance(v, str):
-            return v.lower()
-        return v
-
-class UsuarioLojaCreateWithAuth(BaseModel):
-    nome: str
-    telefone: Optional[str] = None
-    role: UserRole
-    is_active: bool = True
-    senha_dono: str = Field(..., min_length=1)
-    senha_confirmacao: str = Field(..., min_length=1)
-
-    @field_validator('role', mode='before') # <- ADICIONADO
-    @classmethod
-    def normalize_role(cls, v):
-        if isinstance(v, str):
-            return v.lower()
-        return v
-
 class LojaUpdateInWithAuth(LojaUpdateIn, AdminAuth):
     dono: Optional[DonoUpdateIn] = None
 
@@ -67,18 +41,6 @@ def slugify(text: str) -> str:
     text = re.sub(r'[^a-z0-9\s-]', '', text)
     text = re.sub(r'[\s-]+', '-', text).strip('-') # <- troquei. por -
     return text
-
-def gerar_email_temp(nome_usuario: str, nome_loja: str) -> str:
-    def limpar(s: str) -> str:
-        s = unicodedata.normalize('NFKD', s).encode('ASCII', 'ignore').decode('ASCII')
-        s = s.lower().strip()
-        s = re.sub(r'[^a-z0-9]', '', s)
-        return s
-    primeiro_nome_user = limpar(nome_usuario.split(" ")[0])
-    primeiro_nome_loja = limpar(nome_loja.split(" ")[0])
-    if not primeiro_nome_user: primeiro_nome_user = "user"
-    if not primeiro_nome_loja: primeiro_nome_loja = "empresa"
-    return f"{primeiro_nome_user}@{primeiro_nome_loja}.com"
 
 async def get_admin_db(db: AsyncSession, admin_token: dict | object) -> Usuario:
     admin_email_raw = admin_token.get("email") if isinstance(admin_token, dict) else getattr(admin_token, "email", None)
@@ -102,13 +64,6 @@ async def verify_admin_password(db: AsyncSession, admin_token: dict | object, se
     if not senha: raise HTTPException(status_code=403, detail="Senha não informada")
     admin_db = await get_admin_db(db, admin_token)
     if not verify_password(senha, admin_db.senha_hash): raise HTTPException(status_code=403, detail="Senha do ADMIN incorreta")
-
-async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str, senha_confirmacao: str):
-    if not senha or not senha_confirmacao: raise HTTPException(status_code=403, detail="Senha do dono não informada")
-    if senha!= senha_confirmacao: raise HTTPException(status_code=403, detail="Senha e confirmação não conferem")
-    dono, membro_dono = await get_dono_loja(db, loja_id)
-    if not dono: raise HTTPException(status_code=404, detail="Dono da loja não encontrado")
-    if not verify_password(senha, dono.senha_hash): raise HTTPException(status_code=403, detail="Senha do DONO incorreta")
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id).where(UsuarioLoja.loja_id == loja_id).where(UsuarioLoja.role == UserRole.DONO).where(UsuarioLoja.is_active == True))
@@ -310,116 +265,3 @@ async def apagar_loja(loja_id: UUID, body: AdminAuth, db: AsyncSession = Depends
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao apagar loja: {e}")
-
-# ROTAS DE USUARIO AJUSTADAS PARA USAR loja_id
-@router.get("/id/{loja_id}/usuarios", response_model=List[UsuarioLojaOut])
-async def listar_usuarios_loja(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = await db.get(Loja, loja_id)
-    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
-    await verificar_acesso_loja(loja.id, db, current_user)
-    stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id).where(UsuarioLoja.loja_id == loja.id)
-    result = (await db.execute(stmt)).all()
-    return [map_usuario_loja_out(u, ul) for u, ul in result]
-
-@router.post("/id/{loja_id}/usuarios", response_model=UsuarioLojaOut, status_code=201)
-async def adicionar_usuario_loja(loja_id: UUID, body: UsuarioLojaCreateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = await db.get(Loja, loja_id)
-    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
-    await verificar_acesso_loja(loja.id, db, current_user)
-    await verify_dono_password(db, loja.id, body.senha_dono, body.senha_confirmacao)
-
-    if not current_user.is_superuser:
-        membro_admin = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.role.in_([UserRole.DONO, UserRole.GERENTE])))).scalar_one_or_none()
-        if not membro_admin: raise HTTPException(status_code=403, detail="Sem permissão para adicionar membros")
-
-    email_temp = gerar_email_temp(body.nome, loja.nome)
-    i = 1
-    while (await db.execute(select(Usuario).where(Usuario.email == email_temp))).scalar_one_or_none():
-        primeiro_nome = body.nome.split(" ")[0].lower()
-        email_temp = f"{slugify(primeiro_nome)}.{i}@{slugify(loja.nome.split(' ')[0])}.com"
-        i += 1
-
-    usuario = Usuario(nome=body.nome, email=email_temp, telefone=body.telefone, senha_hash=get_password_hash("temp123"), is_active=body.is_active)
-    db.add(usuario)
-    await db.flush()
-    novo_membro = UsuarioLoja(loja_id=loja.id, usuario_id=usuario.id, role=body.role, is_active=body.is_active) # <- já vem minusculo
-    db.add(novo_membro)
-    await db.commit()
-    await db.refresh(novo_membro)
-    await db.refresh(usuario)
-    return map_usuario_loja_out(usuario, novo_membro)
-
-@router.patch("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut)
-@router.put("/id/{loja_id}/usuarios/{usuario_id}", response_model=UsuarioLojaOut) # <- ADICIONADO PUT
-async def atualizar_usuario_loja(loja_id: UUID, usuario_id: UUID, body: UsuarioLojaUpdateWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = await db.get(Loja, loja_id)
-    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
-    await verificar_acesso_loja(loja.id, db, current_user)
-    await verify_dono_password(db, loja.id, body.senha_dono, body.senha_confirmacao)
-
-    if not current_user.is_superuser:
-        membro_admin = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.role.in_([UserRole.DONO, UserRole.GERENTE])))).scalar_one_or_none()
-        if not membro_admin: raise HTTPException(status_code=403, detail="Sem permissão para editar membros")
-
-    membro = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == usuario_id))).scalar_one_or_none()
-    if not membro: raise HTTPException(status_code=404, detail="Membro não encontrado nesta loja")
-    if membro.role == UserRole.DONO: raise HTTPException(status_code=403, detail="Não é possível editar o DONO da loja")
-
-    usuario = await db.get(Usuario, usuario_id)
-    if not usuario: raise HTTPException(status_code=404, detail="Usuario não encontrado")
-
-    membro.role = body.role # <- já vem minusculo do validator
-    membro.is_active = body.is_active
-    usuario.nome = body.nome
-    usuario.telefone = body.telefone
-    usuario.is_active = body.is_active
-
-    db.add(membro)
-    db.add(usuario)
-    await db.commit()
-    await db.refresh(membro)
-    await db.refresh(usuario)
-    return map_usuario_loja_out(usuario, membro)
-
-@router.delete("/id/{loja_id}/usuarios/{usuario_id}", status_code=204)
-async def remover_usuario_loja(loja_id: UUID, usuario_id: UUID, body: AcaoSensivelAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = await db.get(Loja, loja_id)
-    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
-    await verificar_acesso_loja(loja.id, db, current_user)
-    await verify_dono_password(db, loja.id, body.senha_dono, body.senha_dono)
-
-    membro_admin = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.role.in_([UserRole.DONO, UserRole.GERENTE])))).scalar_one_or_none()
-    if not membro_admin and not current_user.is_superuser: raise HTTPException(status_code=403, detail="Sem permissão para remover membros")
-
-    membro = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == usuario_id))).scalar_one_or_none()
-    if not membro: raise HTTPException(status_code=404, detail="Membro não encontrado nesta loja")
-    if membro.role == UserRole.DONO: raise HTTPException(status_code=403, detail="Não é possível remover o DONO da loja")
-
-    usuario = await db.get(Usuario, usuario_id)
-    if not usuario: raise HTTPException(status_code=404, detail="Usuario não encontrado")
-
-    try:
-        await db.delete(membro)
-        count_lojas = (await db.execute(select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.usuario_id == usuario_id))).scalar_one()
-        if count_lojas <= 1 and not usuario.is_superuser:
-            await db.delete(usuario)
-        await db.commit()
-    except Exception as e:
-        await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao remover: {e}")
-
-@router.get("/id/{loja_id}/usuarios/{usuario_id}/detalhes")
-async def get_detalhes_usuario(loja_id: UUID, usuario_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    loja = await db.get(Loja, loja_id)
-    if not loja or loja.deleted_at: raise HTTPException(status_code=404, detail="Loja não encontrada")
-    await verificar_acesso_loja(loja.id, db, current_user)
-    usuario = await db.get(Usuario, usuario_id)
-    membro = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.usuario_id == usuario_id))).scalar_one_or_none()
-    if not usuario or not membro: raise HTTPException(status_code=404, detail="Membro não encontrado")
-
-    historico = [{"acao": "Login no sistema", "data": datetime.now().isoformat()}]
-    return {
-        "id": usuario.id, "nome": usuario.nome, "email": usuario.email, "telefone": usuario.telefone,
-        "role": membro.role, "is_active": membro.is_active, "vendas_total": 0,
-        "ultimas_vendas": [], "historico_atividades": historico
-    }

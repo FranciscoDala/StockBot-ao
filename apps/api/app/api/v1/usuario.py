@@ -11,18 +11,18 @@ from app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, U
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.loja import Loja
-from app.core.deps import require_role, get_current_loja_id, get_current_user
+from app.core.deps import require_role, get_current_user # <- REMOVIDO get_current_loja_id
 from app.core.security import get_password_hash, verify_password
 from app.models.role import UserRole
 
-router = APIRouter(prefix="/usuarios", tags=["usuarios"])
-
+# <- MUDEI AQUI: Agora bate com o frontend
+router = APIRouter(prefix="/lojas/id/{loja_id}/usuarios", tags=["usuarios"])
 
 @router.post("", response_model=UsuarioLojaOut, status_code=status.HTTP_201_CREATED)
 async def criar_usuario(
+    loja_id: UUID, # <- AGORA VEM DA URL
     body: UsuarioLojaCreateIn,
     db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
     current_user: Usuario = m["user"]
@@ -102,15 +102,14 @@ async def criar_usuario(
         loja_id=vinculo.loja_id
     )
 
-
 @router.get("/me", response_model=UserRead)
 async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):
     return UserRead.model_validate(current_user)
 
 @router.get("", response_model=List[UsuarioLojaOut])
 async def listar_usuarios(
+    loja_id: UUID, # <- AGORA VEM DA URL
     db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
     current_role: UserRole = m["role"]
@@ -132,9 +131,9 @@ async def listar_usuarios(
 
 @router.get("/{user_id}", response_model=UsuarioLojaOut)
 async def ler_usuario(
+    loja_id: UUID, # <- AGORA VEM DA URL
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
@@ -153,10 +152,10 @@ async def ler_usuario(
 
 @router.put("/{user_id}", response_model=UsuarioLojaOut)
 async def atualizar_usuario(
+    loja_id: UUID, # <- AGORA VEM DA URL
     user_id: UUID,
     body: UsuarioLojaUpdateIn,
     db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
     admin: Usuario = m["user"]
@@ -204,9 +203,9 @@ async def atualizar_usuario(
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def deletar_usuario(
+    loja_id: UUID, # <- AGORA VEM DA URL
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
     stmt = select(UsuarioLoja).where(UsuarioLoja.usuario_id == user_id, UsuarioLoja.loja_id == loja_id)
