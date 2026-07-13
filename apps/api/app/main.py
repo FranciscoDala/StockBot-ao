@@ -186,9 +186,8 @@ async def read_me(current_user: Usuario = Depends(get_current_user)):
     return current_user
 
 from app.api.v1 import auth as auth_router
-from app.api.v1 import usuario as usuario_router
+from app.api.v1 import usuario as usuario_router # <- AQUI JÁ TEM TUDO: perfil + equipe da loja
 from app.api.v1 import loja as admin_loja_router
-from app.api.v1 import usuarios as usuarios_router # <- 1. ADICIONADO
 from app.api.v1 import company as company_router
 from app.api.v1 import users as users_router
 from app.api.v1 import produto as produto_router
@@ -198,9 +197,8 @@ from app.api.v1 import documentos as documentos_router
 from app.api.v1 import websocket as websocket_router
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
-api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuario"]) # <- MUDEI AQUI: "usuario" singular
+api_v1_router.include_router(usuario_router.router, prefix="") # <- MUDEI: prefix vazio pq ele já tem /lojas/id/{id}/usuarios
 api_v1_router.include_router(admin_loja_router.router, prefix="/lojas", tags=["lojas"])
-api_v1_router.include_router(usuarios_router.router, prefix="") # <- 2. ADICIONADO
 api_v1_router.include_router(company_router.router, prefix="/company", tags=["company"])
 api_v1_router.include_router(users_router.router, prefix="/users", tags=["users"])
 api_v1_router.include_router(produto_router.router, prefix="/produtos", tags=["produtos"])
