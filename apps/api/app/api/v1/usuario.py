@@ -11,22 +11,25 @@ from app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, U
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.loja import Loja
-from app.core.deps import require_role, get_current_user # <- REMOVIDO get_current_loja_id
+from app.core.deps import require_role, get_current_user
 from app.core.security import get_password_hash, verify_password
 from app.models.role import UserRole
 
-# <- MUDEI AQUI: Agora bate com o frontend
 router = APIRouter(prefix="/lojas/id/{loja_id}/usuarios", tags=["usuarios"])
 
 @router.post("", response_model=UsuarioLojaOut, status_code=status.HTTP_201_CREATED)
 async def criar_usuario(
-    loja_id: UUID, # <- AGORA VEM DA URL
+    loja_id: UUID,
     body: UsuarioLojaCreateIn,
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
     current_user: Usuario = m["user"]
     current_role: UserRole = m["role"]
+
+    # 0. VALIDA SENHA DO DONO SEMPRE
+    if not body.senha_dono or not verify_password(body.senha_dono, current_user.senha_hash):
+        raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
 
     # 1. REGRA DE PERMISSÃO
     if current_role == UserRole.GERENTE and body.role!= UserRole.VENDEDOR:
@@ -46,13 +49,12 @@ async def criar_usuario(
     nome_usuario = re.sub(r'[^a-z0-9]', '', nome_usuario)
     nome_loja = re.sub(r'[^a-z0-9]', '', nome_loja)
 
-    # fallback se nome ficar vazio depois do regex
     if not nome_usuario: nome_usuario = "usuario"
     if not nome_loja: nome_loja = "loja"
 
     email_gerado = f"{nome_usuario}@{nome_loja}.ao"
 
-    # 4. Verifica se email já existe. Se existir adiciona numero
+    # 4. Verifica se email já existe
     contador = 1
     email_final = email_gerado
     while True:
@@ -61,10 +63,10 @@ async def criar_usuario(
             break
         email_final = f"{nome_usuario}{contador}@{nome_loja}.ao"
         contador += 1
-        if contador > 100: # trava de segurança
+        if contador > 100:
             raise HTTPException(status_code=400, detail="não foi possível gerar email único")
 
-    # 5. Valida se senha e confirmação batem - redundância com o schema mas garante
+    # 5. Valida se senha e confirmação batem
     if body.senha!= body.senha_confirmacao:
         raise HTTPException(status_code=400, detail="as senhas não coincidem")
 
@@ -108,7 +110,7 @@ async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):
 
 @router.get("", response_model=List[UsuarioLojaOut])
 async def listar_usuarios(
-    loja_id: UUID, # <- AGORA VEM DA URL
+    loja_id: UUID,
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
@@ -131,7 +133,7 @@ async def listar_usuarios(
 
 @router.get("/{user_id}", response_model=UsuarioLojaOut)
 async def ler_usuario(
-    loja_id: UUID, # <- AGORA VEM DA URL
+    loja_id: UUID,
     user_id: UUID,
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
@@ -150,7 +152,6 @@ async def ler_usuario(
         telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
     )
 
-
 @router.put("/{user_id}", response_model=UsuarioLojaOut)
 async def atualizar_usuario(
     loja_id: UUID,
@@ -161,6 +162,10 @@ async def atualizar_usuario(
 ):
     admin: Usuario = m["user"]
     role_atual: UserRole = m["role"]
+
+    # 0. VALIDA SENHA DO DONO SEMPRE PRA EDITAR
+    if not body.senha_dono or not verify_password(body.senha_dono, admin.senha_hash):
+        raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
 
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
         Usuario.id == user_id, UsuarioLoja.loja_id == loja_id
@@ -173,13 +178,7 @@ async def atualizar_usuario(
     if role_atual == UserRole.GERENTE and ul.role in [UserRole.GERENTE, UserRole.DONO]:
         raise HTTPException(status_code=403, detail="gerente não pode editar gerente ou dono")
 
-    # 1. Só valida senha do admin se for mexer em dados sensíveis
-    dados_sensiveis = any([body.role, body.email, body.senha])
-    if dados_sensiveis:
-        if not body.senha_dono or not verify_password(body.senha_dono, admin.senha_hash):
-            raise HTTPException(status_code=403, detail="senha do administrador incorreta para esta ação")
-
-    # 2. Atualiza campos
+    # 1. Atualiza campos
     if body.nome is not None: u.nome = body.nome
     if body.email is not None and body.email!= u.email:
         result = await db.execute(select(Usuario).where(Usuario.email == body.email, Usuario.id!= u.id))
@@ -200,24 +199,30 @@ async def atualizar_usuario(
         telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
     )
 
-
-
-
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def deletar_usuario(
-    loja_id: UUID, # <- AGORA VEM DA URL
+    loja_id: UUID,
     user_id: UUID,
+    body: dict, # <- AGORA RECEBE BODY COM SENHA
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
+    admin: Usuario = m["user"]
+    role_atual: UserRole = m["role"]
+
+    # 0. VALIDA SENHA DO DONO SEMPRE PRA APAGAR
+    senha_dono = body.get("senha_dono")
+    if not senha_dono or not verify_password(senha_dono, admin.senha_hash):
+        raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
+
     stmt = select(UsuarioLoja).where(UsuarioLoja.usuario_id == user_id, UsuarioLoja.loja_id == loja_id)
     vinculo = (await db.execute(stmt)).scalar_one_or_none()
     if not vinculo:
         raise HTTPException(status_code=404, detail="usuario não encontrado nesta loja")
 
-    if vinculo.usuario_id == m["user"].id:
+    if vinculo.usuario_id == admin.id:
         raise HTTPException(status_code=400, detail="você não pode se remover")
-    if m["role"] == UserRole.GERENTE and vinculo.role in [UserRole.GERENTE, UserRole.DONO]:
+    if role_atual == UserRole.GERENTE and vinculo.role in [UserRole.GERENTE, UserRole.DONO]:
         raise HTTPException(status_code=403, detail="gerente não pode remover gerente ou dono")
 
     vinculo.is_active = False # Soft delete
