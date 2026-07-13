@@ -5,7 +5,7 @@ from app.models.role import UserRole
 
 class UsuarioLojaCreateIn(BaseModel):
     nome: str = Field(min_length=2)
-    # email: EmailStr <- REMOVIDO
+    # email: EmailStr <- REMOVIDO, é automático
     senha: str = Field(min_length=6)
     senha_confirmacao: str = Field(min_length=6)
     telefone: Optional[str] = None
@@ -20,10 +20,13 @@ class UsuarioLojaCreateIn(BaseModel):
 
 class UsuarioLojaUpdateIn(BaseModel):
     nome: Optional[str] = Field(None, min_length=2)
+    email: Optional[EmailStr] = None # <- ADICIONADO: pode editar email
     telefone: Optional[str] = None
     role: Optional[UserRole] = None
     is_active: Optional[bool] = None
-    senha_confirmacao: str = Field(min_length=6) # <- senha do admin pra confirmar ação
+    senha: Optional[str] = Field(None, min_length=6) # <- ADICIONADO: nova senha do usuario
+    senha_dono: Optional[str] = Field(None, min_length=6) # <- ADICIONADO: senha do admin
+    senha_confirmacao: Optional[str] = Field(None, min_length=6) # <- AGORA OPCIONAL
 
 class UsuarioLojaOut(BaseModel):
     id: UUID

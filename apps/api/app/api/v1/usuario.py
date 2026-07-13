@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
 from typing import List
-import re # <- AJUSTE 1: faltava
+import re
 
 from app.db.session import get_db
 from app.schemas.usuario import UserRead
@@ -38,8 +38,8 @@ async def criar_usuario(
     # 2. GERA EMAIL AUTOMATICO: primeiroNomeUsuario@primeiroNomeLoja.ao
     nome_usuario = body.nome.split()[0].lower()
     nome_loja = loja.nome.split()[0].lower()
-    nome_usuario = re.sub(r'[^a-z0-9]', '', nome_usuario) # <- AJUSTE 2
-    nome_loja = re.sub(r'[^a-z0-9]', '', nome_loja) # <- AJUSTE 2
+    nome_usuario = re.sub(r'[^a-z0-9]', '', nome_usuario)
+    nome_loja = re.sub(r'[^a-z0-9]', '', nome_loja)
     email_gerado = f"{nome_usuario}@{nome_loja}.ao"
 
     # 3. Verifica se email já existe. Se existir adiciona numero
@@ -52,11 +52,11 @@ async def criar_usuario(
         email_final = f"{nome_usuario}{contador}@{nome_loja}.ao"
         contador += 1
 
-    # 4. Cria Usuario na tabela global - JÁ ESTAVA CERTO
+    # 4. Cria Usuario na tabela global
     novo_user = Usuario(
         nome=body.nome,
-        email=email_final, # <- USA O GERADO
-        senha_hash=get_password_hash(body.senha), # <- HASH CORRETO
+        email=email_final,
+        senha_hash=get_password_hash(body.senha),
         telefone=body.telefone,
         is_active=True
     )
@@ -73,7 +73,7 @@ async def criar_usuario(
     )
     db.add(vinculo)
     await db.commit()
-    await db.refresh(vinculo) # <- CORRIGIDO
+    await db.refresh(vinculo)
     await db.refresh(novo_user)
 
     return UsuarioLojaOut(
@@ -140,9 +140,8 @@ async def atualizar_usuario(
     admin: Usuario = m["user"]
     role_atual: UserRole = m["role"]
 
-    # Confirma senha do admin/dono que está fazendo a ação
-    senha_admin = getattr(body, 'senha_dono', getattr(body, 'senha_confirmacao', None))
-    if not senha_admin or not verify_password(senha_admin, admin.senha_hash):
+    # 1. Valida senha do admin/dono
+    if not body.senha_dono or not verify_password(body.senha_dono, admin.senha_hash):
         raise HTTPException(status_code=403, detail="senha do administrador incorreta")
 
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
@@ -156,17 +155,23 @@ async def atualizar_usuario(
     if role_atual == UserRole.GERENTE and ul.role in [UserRole.GERENTE, UserRole.DONO]:
         raise HTTPException(status_code=403, detail="gerente não pode editar gerente ou dono")
 
-    if body.nome is not None: u.nome = body.nome
+    # 2. Atualiza campos
+    if body.nome is not None:
+        u.nome = body.nome
+    if body.email is not None and body.email!= u.email:
+        result = await db.execute(select(Usuario).where(Usuario.email == body.email, Usuario.id!= u.id))
+        if result.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Este email já está em uso")
+        u.email = body.email
     if body.telefone is not None:
         u.telefone = body.telefone
         ul.telefone = body.telefone
-    if body.role is not None: ul.role = body.role
-    if body.is_active is not None: ul.is_active = body.is_active
-
-    # CORRIGIDO: Se veio senha nova, faz hash
-    senha_nova = getattr(body, 'senha', None)
-    if senha_nova:
-        u.senha_hash = get_password_hash(senha_nova)
+    if body.role is not None:
+        ul.role = body.role
+    if body.is_active is not None:
+        ul.is_active = body.is_active
+    if body.senha: # Troca senha se veio preenchida
+        u.senha_hash = get_password_hash(body.senha)
 
     await db.commit()
     await db.refresh(u)
@@ -192,6 +197,6 @@ async def deletar_usuario(
     if m["role"] == UserRole.GERENTE and vinculo.role in [UserRole.GERENTE, UserRole.DONO]:
         raise HTTPException(status_code=403, detail="gerente não pode remover gerente ou dono")
 
-    vinculo.is_active = False # <- Soft delete
+    vinculo.is_active = False # Soft delete
     await db.commit()
     return
