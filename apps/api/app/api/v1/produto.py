@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException, Body # <- ADICIONEI Body
+from fastapi import APIRouter, Depends, status, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
@@ -8,14 +8,14 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.db.session import get_db
-from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate # <- CORRIGIDO
+from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate
 from app.schemas.usuario import Role
 from app.core.deps import get_current_user, require_role
 from app.models.produto import Produto
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
 from app.models.loja import Loja
-from app.models.usuario import Usuario # <- MOVI PRA CIMA
+from app.models.usuario import Usuario
 from app.core.security import verify_password
 import qrcode
 import io
@@ -30,7 +30,7 @@ class ProdutoCreateWithAuth(ProdutoCreate):
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
-class ProdutoUpdateWithAuth(ProdutoUpdate): # <- CORRIGIDO: herdava de si mesmo
+class ProdutoUpdateWithAuth(ProdutoUpdate):
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
@@ -64,8 +64,8 @@ def to_schema(produto: Produto) -> ProdutoOut:
         id=produto.id, loja_id=produto.loja_id, nome=produto.nome, descricao=produto.descricao,
         categoria_id=produto.categoria_id, marca=produto.marca, imagem_url=produto.imagem_url,
         sku=produto.sku, codigo_barras=produto.codigo_barras, codigo_qr=produto.codigo_qr, ncm=produto.ncm,
-        preco=float(produto.preco_venda) if produto.preco_venda else 0.0, # <- CORRIGIDO
-        preco_custo=float(produto.preco_compra) if produto.preco_compra else 0.0, # <- CORRIGIDO
+        preco=float(produto.preco_venda) if produto.preco_venda else 0.0,
+        preco_custo=float(produto.preco_compra) if produto.preco_compra else 0.0,
         preco_promocao=float(produto.preco_promocao) if produto.preco_promocao else None,
         custo_medio=float(produto.custo_medio) if produto.custo_medio else 0.0,
         estoque=float(produto.estoque),
@@ -172,7 +172,7 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     loja_id = produto_db.loja_id
 
-    await verify_dono_password(db, loja_id, produto_update.senha_dono, produto_update.senha_confirmacao) # <- JÁ ESTAVA
+    await verify_dono_password(db, loja_id, produto_update.senha_dono, produto_update.senha_confirmacao)
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
 
     print(f"\n--- PATCH PRODUTO {produto_id} ---")
@@ -218,15 +218,15 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     print("--- FIM PATCH ---\n")
     return to_schema(produto_db)
 
-@router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))]) # <- MUDEI: GERENTE TAMBEM PODE
+@router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def apagar_produto(
     produto_id: UUID,
-    payload: dict = Body(...), # <- CORRIGIDO: usa Body
+    payload: dict = Body(...),
     db: AsyncSession = Depends(get_db)
 ):
     loja_id = payload.get("loja_id")
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório")
-    await verify_dono_password(db, loja_id, payload.get("senha_dono"), payload.get("senha_dono"))
+    await verify_dono_password(db, loja_id, payload.get("senha_dono"), payload.get("senha_confirmacao")) # <- CORRIGIDO AQUI
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     produto_db.deleted_at = datetime.utcnow()
     await db.commit()

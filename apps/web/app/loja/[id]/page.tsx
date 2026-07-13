@@ -162,62 +162,71 @@ export default function LojaPage() {
         const { tipo, entidade, data } = acaoPendente;
 
         try {
-            if (entidade === 'user') { // REGRA: USUARIO SEMPRE PEDE SENHA
+            if (entidade === 'user') {
                 const baseUrl = `${API_URL}/lojas/id/${lojaId}/usuarios`;
                 if (tipo === 'adicionar') {
-                    await fetchComAuth(baseUrl, token, { method: "POST", body: JSON.stringify({ ...formDataUser, senha_confirmacao: formDataUser.senha, senha_dono }) });
+                    await fetchComAuth(baseUrl, token, { method: "POST", body: JSON.stringify({ ...formDataUser, senha_confirmacao: formDataUser.senha, senha_dono, senha_confirmacao_dono: senha_dono }) });
                     await fetchEquipa(token);
                     toast.success("Membro adicionado!");
                 }
                 if (tipo === 'editar' && data) {
-                    const payload: any = { senha_dono };
+                    const payload: any = { senha_dono, senha_confirmacao: senha_dono }; // <- ADICIONEI
                     if (formDataUser.nome) payload.nome = formDataUser.nome;
                     if (formDataUser.telefone) payload.telefone = formDataUser.telefone;
                     if (formDataUser.role) payload.role = formDataUser.role;
                     payload.is_active = formDataUser.is_active;
-                    if (formDataUser.senha) { payload.senha = formDataUser.senha; }
+                    if (formDataUser.senha) { payload.senha = formDataUser.senha; payload.senha_confirmacao = formDataUser.senha; }
                     await fetchComAuth(`${baseUrl}/${(data as UsuarioLojaPage).id}`, token, { method: "PUT", body: JSON.stringify(payload) });
                     await fetchEquipa(token);
                     toast.success("Membro atualizado!");
                 }
                 if (tipo === 'apagar' && data) {
-                    await fetchComAuth(`${baseUrl}/${(data as UsuarioLojaPage).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono }) });
+                    await fetchComAuth(`${baseUrl}/${(data as UsuarioLojaPage).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono }) }); // <- ADICIONEI
                     await fetchEquipa(token);
                     toast.success("Membro removido!");
                 }
             }
 
-            if (entidade === 'produto') { // REGRA: PRODUTO TAMBEM SEMPRE PEDE SENHA
+            if (entidade === 'produto') {
                 const baseUrl = `${API_URL}/produtos`;
                 const loja_id = user?.loja_id || "";
-                const payload = { ...(data || formDataProduto), senha_dono, loja_id: (data as ProdutoType)?.loja_id || loja_id };
 
-                if (tipo === 'editar' && !payload.codigo_barras) delete payload.codigo_barras; // evita mandar campo vazio
+                // MONTA O PAYLOAD CERTO PRO BACK
+                let payload: any = {
+                    ...(data || formDataProduto),
+                    senha_dono,
+                    senha_confirmacao: senha_dono, // <- ADICIONEI
+                    loja_id: (data as ProdutoType)?.loja_id || loja_id
+                };
 
                 if (tipo === 'adicionar') {
+                    delete payload.id; // <- TIRA ID NO CREATE
                     await fetchComAuth(baseUrl, token, { method: "POST", body: JSON.stringify(payload) });
                 }
                 if (tipo === 'editar' && editingProduto) {
+                    if (!payload.codigo_barras) delete payload.codigo_barras; // <- NAO MANDA VAZIO
+                    if (!payload.imagem_url) delete payload.imagem_url; // <- NAO APAGA IMAGEM
                     await fetchComAuth(`${baseUrl}/${editingProduto.id}`, token, { method: "PATCH", body: JSON.stringify(payload) });
                 }
-                if (tipo === 'apagar' && editingProduto) {
-                    await fetchComAuth(`${baseUrl}/${editingProduto.id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, loja_id: editingProduto.loja_id }) });
+                if (tipo === 'apagar' && data) { // <- USEI DATA EM VEZ DE editingProduto
+                    await fetchComAuth(`${baseUrl}/${(data as ProdutoType).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono, loja_id: (data as ProdutoType).loja_id }) });
                 }
                 await fetchProdutos(token, loja_id);
+                toast.success("Produto salvo!");
             }
 
-            setShowPermissaoModal(false); // SÓ FECHA SE DER CERTO
+            setShowPermissaoModal(false);
             setShowModal(false);
             setAcaoPendente(null);
-            toast.success("Ação executada com sucesso!");
         } catch (err: any) {
             console.error("ERRO BACKEND:", err);
             setErroMsgPermissao(err.message);
-            setShowErroModal(true); // MOSTRA ERRO E MANTEM O MODAL ABERTO
+            setShowErroModal(true);
         } finally {
             setSaving(false);
         }
     }
+
 
     const handleSave = async (payload: any) => {
         if (payload?.preventDefault) payload.preventDefault(); const data = payload?.target ? formDataProduto : payload; if (!token || !lojaId) return; setSaving(true); setErrorMsg("");
