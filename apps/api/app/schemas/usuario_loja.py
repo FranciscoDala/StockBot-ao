@@ -9,7 +9,8 @@ class UsuarioLojaCreateIn(BaseModel):
     senha_confirmacao: str = Field(min_length=6)
     telefone: Optional[str] = None
     role: UserRole = UserRole.VENDEDOR
-    senha_dono: str = Field(min_length=6) # <- OBRIGATORIO
+    senha_dono: str = Field(min_length=1) # <- diminui pra 1 pq pode ser "1234"
+    senha_confirmacao_dono: str = Field(min_length=1) # <- ADICIONEI PRA BATER COM O FRONT
 
     @field_validator('senha_confirmacao')
     def passwords_match(cls, v, info):
@@ -18,21 +19,31 @@ class UsuarioLojaCreateIn(BaseModel):
             raise ValueError('as senhas não coincidem')
         return v
 
+    @field_validator('senha_confirmacao_dono')
+    def dono_passwords_match(cls, v, info):
+        senha_dono = info.data.get('senha_dono')
+        if senha_dono and v!= senha_dono:
+            raise ValueError('senha do dono e confirmação não conferem')
+        return v
+
 class UsuarioLojaUpdateIn(BaseModel):
     nome: Optional[str] = Field(None, min_length=2)
     email: Optional[EmailStr] = None
     telefone: Optional[str] = None
     role: Optional[UserRole] = None
-    is_active: Optional[bool] = None # <- AQUI ERA SÓ "Optional". CORRIGI
+    is_active: Optional = None
     senha: Optional[str] = Field(None, min_length=6)
-    senha_dono: str = Field(min_length=6) # <- OBRIGATORIO
-    senha_confirmacao: Optional[str] = Field(None, min_length=6)
+    senha_dono: str = Field(min_length=1) # <- OBRIGATORIO
+    senha_confirmacao: str = Field(min_length=1) # <- OBRIGATORIO PRA BATER COM O FRONT
 
     @field_validator('senha_confirmacao')
     def passwords_match_update(cls, v, info):
         senha = info.data.get('senha')
-        if senha and v and v!= senha:
+        senha_dono = info.data.get('senha_dono')
+        if senha and v!= senha:
             raise ValueError('as senhas não coincidem')
+        if senha_dono and v!= senha_dono and not senha: # se só mandou senha_dono
+             pass # deixa passar
         return v
 
 class UsuarioLojaOut(BaseModel):

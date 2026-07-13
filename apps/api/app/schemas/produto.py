@@ -50,7 +50,7 @@ class ProdutoBase(BaseModel):
 class ProdutoCreate(ProdutoBase):
     loja_id: UUID
 
-class ProdutoUpdate(BaseModel):
+class ProdutoUpdate(BaseModel): # <- TUDO OPTIONAL PRA NAO ZERAR O DB
     nome: Optional[str] = Field(None, min_length=2, max_length=150)
     descricao: Optional[str] = None
     sku: Optional[str] = Field(None, max_length=50)
@@ -74,16 +74,13 @@ class ProdutoUpdate(BaseModel):
     fornecedor_id: Optional[UUID] = None
     is_active: Optional[bool] = None
 
-class ProdutoUpdateWithAuth(ProdutoUpdate):
-    senha_dono: str = Field(..., min_length=6)
-    loja_id: UUID
+class ProdutoCreateWithAuth(ProdutoCreate): # <- HERDA DO CREATE
+    senha_dono: str = Field(..., min_length=1)
+    senha_confirmacao: str = Field(..., min_length=1)
 
-    @field_validator("senha_dono")
-    @classmethod
-    def senha_nao_vazia(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("senha_dono é obrigatória")
-        return v
+class ProdutoUpdateWithAuth(ProdutoUpdate): # <- HERDA DO UPDATE
+    senha_dono: str = Field(..., min_length=1)
+    senha_confirmacao: str = Field(..., min_length=1)
 
 class ProdutoOut(BaseModel):
     id: UUID
@@ -108,8 +105,8 @@ class ProdutoOut(BaseModel):
     peso_kg: Optional[float] = None
     localizacao: Optional[str] = None
 
-    categoria_id: Optional[UUID] = None # <- só o id
-    fornecedor_id: Optional[UUID] = None # <- só o id
+    categoria_id: Optional[UUID] = None
+    fornecedor_id: Optional[UUID] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

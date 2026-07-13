@@ -17,6 +17,14 @@ from app.models.role import UserRole
 
 router = APIRouter(prefix="/lojas/id/{loja_id}/usuarios", tags=["usuarios"])
 
+def _check_dono_password(admin: Usuario, senha_dono: str, senha_confirmacao: str):
+    if not senha_dono or not senha_confirmacao:
+        raise HTTPException(status_code=403, detail="Senha do administrador e confirmação obrigatórias")
+    if senha_dono!= senha_confirmacao:
+        raise HTTPException(status_code=403, detail="Senha e confirmação não conferem")
+    if not verify_password(senha_dono, admin.senha_hash):
+        raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
+
 @router.post("", response_model=UsuarioLojaOut, status_code=status.HTTP_201_CREATED)
 async def criar_usuario(
     loja_id: UUID,
@@ -28,8 +36,7 @@ async def criar_usuario(
     current_role: UserRole = m["role"]
 
     # 0. VALIDA SENHA DO DONO SEMPRE
-    if not body.senha_dono or not verify_password(body.senha_dono, current_user.senha_hash):
-        raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
+    _check_dono_password(current_user, body.senha_dono, body.senha_confirmacao)
 
     # 1. REGRA DE PERMISSÃO
     if current_role == UserRole.GERENTE and body.role!= UserRole.VENDEDOR:
@@ -150,8 +157,7 @@ async def atualizar_usuario(
     role_atual: UserRole = m["role"]
 
     # 0. VALIDA SENHA DO DONO SEMPRE PRA EDITAR
-    if not body.senha_dono or not verify_password(body.senha_dono, admin.senha_hash):
-        raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
+    _check_dono_password(admin, body.senha_dono, body.senha_confirmacao)
 
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
         Usuario.id == user_id, UsuarioLoja.loja_id == loja_id
@@ -164,8 +170,8 @@ async def atualizar_usuario(
     if role_atual == UserRole.GERENTE and ul.role in [UserRole.GERENTE, UserRole.DONO]:
         raise HTTPException(status_code=403, detail="gerente não pode editar gerente ou dono")
 
-    # 1. Atualiza campos
-    if body.nome is not None: u.nome = body.nome
+    # 1. Atualiza campos APENAS SE VIERAM
+    if body.nome is not None and body.nome.strip(): u.nome = body.nome
     if body.email is not None and body.email!= u.email:
         result = await db.execute(select(Usuario).where(Usuario.email == body.email, Usuario.id!= u.id))
         if result.scalar_one_or_none(): raise HTTPException(status_code=400, detail="Este email já está em uso")
@@ -173,9 +179,9 @@ async def atualizar_usuario(
     if body.telefone is not None:
         u.telefone = body.telefone
         ul.telefone = body.telefone
-    if body.role is not None: ul.role = body.role
+    if body.role is not None: ul.role = body.role # <- AGORA VAI MUDAR O CARGO
     if body.is_active is not None: ul.is_active = body.is_active
-    if body.senha: u.senha_hash = get_password_hash(body.senha)
+    if body.senha and body.senha.strip(): u.senha_hash = get_password_hash(body.senha)
 
     await db.commit()
     await db.refresh(u)
@@ -186,7 +192,7 @@ async def atualizar_usuario(
 async def deletar_usuario(
     loja_id: UUID,
     user_id: UUID,
-    senha_dono: str = Body(embed=True), # <- CORRIGIDO: assim o FastAPI pega do JSON
+    payload: dict = Body(...), # <- CORRIGIDO: pega json normal
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
@@ -194,8 +200,7 @@ async def deletar_usuario(
     role_atual: UserRole = m["role"]
 
     # 0. VALIDA SENHA DO DONO SEMPRE PRA APAGAR
-    if not senha_dono or not verify_password(senha_dono, admin.senha_hash):
-        raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
+    _check_dono_password(admin, payload.get("senha_dono"), payload.get("senha_confirmacao"))
 
     stmt = select(UsuarioLoja).where(UsuarioLoja.usuario_id == user_id, UsuarioLoja.loja_id == loja_id)
     vinculo = (await db.execute(stmt)).scalar_one_or_none()
