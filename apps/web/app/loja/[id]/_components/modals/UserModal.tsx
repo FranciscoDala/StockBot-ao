@@ -5,32 +5,21 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
-
-export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA";
-
-export type UsuarioLoja = {
-  id: string;
-  nome: string;
-  email: string;
-  telefone?: string;
-  role: UserRole;
-  is_active: boolean;
-  vendas_total?: number;
-}
+import type { UsuarioLoja, UserRole } from "../page"; // <- SÓ TEM ISSO. NADA MAIS DE TYPE AQUI
 
 type FormDataType = {
   nome: string;
   email: string;
-  senha?: string; // <- só usado pra criar
+  senha?: string;
   telefone: string;
-  role: UserRole;
+  role: UserRole; // <- vem do page
   is_active: boolean
 };
 
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
-    editingUser: UsuarioLoja | null;
+    editingUser: UsuarioLoja | null; // <- vem do page
     formData: FormDataType;
     setFormData: (d: any) => void;
     onSave: (e: React.FormEvent) => void;
@@ -68,7 +57,6 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             )}
                         </div>
 
-                        {/* SÓ APARECE AO CRIAR */}
                         {!editingUser && (
                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                 <Label className="text-xs sm:text-right">Senha Temp *</Label>
@@ -93,6 +81,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 <option value="VENDEDOR">Vendedor</option>
                                 <option value="CAIXA">Caixa</option>
                                 <option value="ESTOQUISTA">Estoquista</option>
+                                <option value="ADMIN">Admin</option>
                                 {!editingUser && <option value="DONO">Dono</option>}
                             </select>
                         </div>
