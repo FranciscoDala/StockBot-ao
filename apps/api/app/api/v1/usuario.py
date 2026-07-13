@@ -150,9 +150,10 @@ async def ler_usuario(
         telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
     )
 
+
 @router.put("/{user_id}", response_model=UsuarioLojaOut)
 async def atualizar_usuario(
-    loja_id: UUID, # <- AGORA VEM DA URL
+    loja_id: UUID,
     user_id: UUID,
     body: UsuarioLojaUpdateIn,
     db: AsyncSession = Depends(get_db),
@@ -179,30 +180,28 @@ async def atualizar_usuario(
             raise HTTPException(status_code=403, detail="senha do administrador incorreta para esta ação")
 
     # 2. Atualiza campos
-    if body.nome is not None:
-        u.nome = body.nome
+    if body.nome is not None: u.nome = body.nome
     if body.email is not None and body.email!= u.email:
         result = await db.execute(select(Usuario).where(Usuario.email == body.email, Usuario.id!= u.id))
-        if result.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Este email já está em uso")
+        if result.scalar_one_or_none(): raise HTTPException(status_code=400, detail="Este email já está em uso")
         u.email = body.email
     if body.telefone is not None:
         u.telefone = body.telefone
         ul.telefone = body.telefone
-    if body.role is not None:
-        ul.role = body.role
-    if body.is_active is not None:
-        ul.is_active = body.is_active
-    if body.senha: # Troca senha se veio preenchida
-        u.senha_hash = get_password_hash(body.senha)
+    if body.role is not None: ul.role = body.role
+    if body.is_active is not None: ul.is_active = body.is_active
+    if body.senha: u.senha_hash = get_password_hash(body.senha)
 
     await db.commit()
     await db.refresh(u)
-    await db.refresh(ul) # <- ADICIONADO: precisa dar refresh no vinculo tbm
+    await db.refresh(ul)
     return UsuarioLojaOut(
         id=u.id, nome=u.nome, email=u.email,
         telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
     )
+
+
+
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def deletar_usuario(
