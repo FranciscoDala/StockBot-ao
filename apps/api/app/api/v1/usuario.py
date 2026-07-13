@@ -52,11 +52,11 @@ async def criar_usuario(
         email_final = f"{nome_usuario}{contador}@{nome_loja}.ao"
         contador += 1
 
-    # 4. Cria Usuario na tabela global
+    # 4. Cria Usuario na tabela global - JÁ ESTAVA CERTO
     novo_user = Usuario(
         nome=body.nome,
         email=email_final, # <- USA O GERADO
-        senha_hash=get_password_hash(body.senha),
+        senha_hash=get_password_hash(body.senha), # <- HASH CORRETO
         telefone=body.telefone,
         is_active=True
     )
@@ -141,7 +141,8 @@ async def atualizar_usuario(
     role_atual: UserRole = m["role"]
 
     # Confirma senha do admin/dono que está fazendo a ação
-    if not verify_password(body.senha_confirmacao, admin.senha_hash):
+    senha_admin = getattr(body, 'senha_dono', getattr(body, 'senha_confirmacao', None))
+    if not senha_admin or not verify_password(senha_admin, admin.senha_hash):
         raise HTTPException(status_code=403, detail="senha do administrador incorreta")
 
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
@@ -161,6 +162,11 @@ async def atualizar_usuario(
         ul.telefone = body.telefone
     if body.role is not None: ul.role = body.role
     if body.is_active is not None: ul.is_active = body.is_active
+
+    # CORRIGIDO: Se veio senha nova, faz hash
+    senha_nova = getattr(body, 'senha', None)
+    if senha_nova:
+        u.senha_hash = get_password_hash(senha_nova)
 
     await db.commit()
     await db.refresh(u)
