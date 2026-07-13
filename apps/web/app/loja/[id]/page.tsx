@@ -38,7 +38,7 @@ const deleteCookie = (name: string) => { if (typeof window === "undefined") retu
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`,...options.headers }, credentials: 'include', cache: "no-store" });
-    if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorData = await res.json().catch(() => ({})); console.error("API ERROR:", res.status, errorData); throw new Error(errorData.detail || res.statusText); } // <- LOG MELHORADO
+    if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorData = await res.json().catch(() => ({})); console.error("API ERROR:", res.status, errorData); throw new Error(errorData.detail || res.statusText); }
     if (res.status === 204) { return true; } return await res.json();
 }
 
@@ -89,9 +89,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-              ? data
-                  .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-                  .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+             ? data
+                 .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+                 .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -185,7 +185,7 @@ export default function LojaPage() {
         if (payload?.preventDefault) payload.preventDefault(); const data = payload?.target? formDataProduto : payload; if (!token ||!lojaId) return; setSaving(true); setErrorMsg("");
         try {
             if (modalType === 'user') {
-                if (!formDataUser.nome.trim()) { setErrorMsg("Preencha o nome"); setSaving(false); return; } // <- REMOVIDO email
+                if (!formDataUser.nome.trim()) { setErrorMsg("Preencha o nome"); setSaving(false); return; }
                 if (!editingUser &&!formDataUser.senha.trim()) { setErrorMsg("Senha obrigatória"); setSaving(false); return; }
                 setShowModal(false); setAcaoPendente({ tipo: editingUser? 'editar' : 'adicionar', entidade: 'user', descricao: editingUser? 'Editar membro' : 'Adicionar membro' }); setShowPermissaoModal(true); setSaving(false); return;
             }
@@ -196,6 +196,11 @@ export default function LojaPage() {
     if (!isClient || loading) return <div className="flex items-center justify-center min-h-screen bg-black"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div></div>;
 
     return <>
+        <style jsx global>{`
+         .scrollbar-hide::-webkit-scrollbar { display: none; }
+         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        `}</style> {/* <- ADICIONADO: esconde o scroll */}
+
         <Toaster position="top-center" richColors theme="dark" />
         {activeTab === "venda"? <div className="fixed inset-0 z-40 bg-black"><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV" }} /></div> :
             <div className="min-h-screen bg-black text-white">
@@ -219,7 +224,7 @@ export default function LojaPage() {
                     </div>
 
                     <div className="mb-4 sm:mb-6">
-                        <div className="bg-neutral-900 p-1 rounded-lg overflow-x-auto scrollbar-hide">
+                        <div className="bg-neutral-900 p-1 rounded-lg overflow-x-auto scrollbar-hide touch-pan-x"> {/* <- ADICIONADO touch-pan-x */}
                             <div className="flex gap-1 w-max min-w-full">
                                 {initialTabs.map(tab => (
                                     <button

@@ -188,23 +188,25 @@ async def read_me(current_user: Usuario = Depends(get_current_user)):
 from app.api.v1 import auth as auth_router
 from app.api.v1 import usuario as usuario_router
 from app.api.v1 import loja as admin_loja_router
+from app.api.v1 import usuarios as usuarios_router # <- 1. ADICIONADO
 from app.api.v1 import company as company_router
 from app.api.v1 import users as users_router
 from app.api.v1 import produto as produto_router
 from app.api.v1 import venda as venda_router
 from app.api.v1 import webhook as webhook_router
 from app.api.v1 import documentos as documentos_router
-from app.api.v1 import websocket as websocket_router # <- 1. IMPORTA O WEBSOCKET
+from app.api.v1 import websocket as websocket_router
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="/usuarios", tags=["usuarios"])
 api_v1_router.include_router(admin_loja_router.router, prefix="/lojas", tags=["lojas"])
+api_v1_router.include_router(usuarios_router.router, prefix="") # <- 2. ADICIONADO
 api_v1_router.include_router(company_router.router, prefix="/company", tags=["company"])
 api_v1_router.include_router(users_router.router, prefix="/users", tags=["users"])
 api_v1_router.include_router(produto_router.router, prefix="/produtos", tags=["produtos"])
 api_v1_router.include_router(venda_router.router, prefix="/vendas", tags=["vendas"])
 api_v1_router.include_router(webhook_router.router, prefix="/webhook", tags=["whatsapp"])
 api_v1_router.include_router(documentos_router.router, prefix="/kyc", tags=["kyc"])
-api_v1_router.include_router(websocket_router.router) # <- 2. REGISTRA O WEBSOCKET
+api_v1_router.include_router(websocket_router.router)
 
 app.include_router(api_v1_router)
