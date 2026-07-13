@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
@@ -34,7 +34,6 @@ async def criar_usuario(
     # 1. REGRA DE PERMISSÃO
     if current_role == UserRole.GERENTE and body.role!= UserRole.VENDEDOR:
         raise HTTPException(status_code=403, detail="gerente só pode criar vendedor")
-
     if current_role == UserRole.DONO and body.role == UserRole.DONO:
         raise HTTPException(status_code=403, detail="não é possível criar outro dono")
 
@@ -94,15 +93,7 @@ async def criar_usuario(
     await db.refresh(vinculo)
     await db.refresh(novo_user)
 
-    return UsuarioLojaOut(
-        id=novo_user.id,
-        nome=novo_user.nome,
-        email=novo_user.email,
-        telefone=vinculo.telefone,
-        role=vinculo.role,
-        is_active=vinculo.is_active,
-        loja_id=vinculo.loja_id
-    )
+    return UsuarioLojaOut.model_validate({**novo_user.__dict__, **vinculo.__dict__, "loja_id": vinculo.loja_id})
 
 @router.get("/me", response_model=UserRead)
 async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):
@@ -125,10 +116,8 @@ async def listar_usuarios(
 
     result = await db.execute(stmt)
     return [
-        UsuarioLojaOut(
-            id=u.id, nome=u.nome, email=u.email,
-            telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
-        ) for u, ul in result.all()
+        UsuarioLojaOut.model_validate({**u.__dict__, **ul.__dict__, "loja_id": ul.loja_id})
+        for u, ul in result.all()
     ]
 
 @router.get("/{user_id}", response_model=UsuarioLojaOut)
@@ -147,10 +136,7 @@ async def ler_usuario(
     if not res:
         raise HTTPException(status_code=404, detail="usuario não encontrado na loja")
     u, ul = res
-    return UsuarioLojaOut(
-        id=u.id, nome=u.nome, email=u.email,
-        telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
-    )
+    return UsuarioLojaOut.model_validate({**u.__dict__, **ul.__dict__, "loja_id": ul.loja_id})
 
 @router.put("/{user_id}", response_model=UsuarioLojaOut)
 async def atualizar_usuario(
@@ -194,16 +180,13 @@ async def atualizar_usuario(
     await db.commit()
     await db.refresh(u)
     await db.refresh(ul)
-    return UsuarioLojaOut(
-        id=u.id, nome=u.nome, email=u.email,
-        telefone=ul.telefone, role=ul.role, is_active=ul.is_active, loja_id=ul.loja_id
-    )
+    return UsuarioLojaOut.model_validate({**u.__dict__, **ul.__dict__, "loja_id": ul.loja_id})
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def deletar_usuario(
     loja_id: UUID,
     user_id: UUID,
-    body: dict, # <- AGORA RECEBE BODY COM SENHA
+    senha_dono: str = Body(embed=True), # <- CORRIGIDO: assim o FastAPI pega do JSON
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
@@ -211,7 +194,6 @@ async def deletar_usuario(
     role_atual: UserRole = m["role"]
 
     # 0. VALIDA SENHA DO DONO SEMPRE PRA APAGAR
-    senha_dono = body.get("senha_dono")
     if not senha_dono or not verify_password(senha_dono, admin.senha_hash):
         raise HTTPException(status_code=403, detail="Senha do administrador incorreta")
 

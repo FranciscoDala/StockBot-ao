@@ -9,6 +9,7 @@ class UsuarioLojaCreateIn(BaseModel):
     senha_confirmacao: str = Field(min_length=6)
     telefone: Optional[str] = None
     role: UserRole = UserRole.VENDEDOR
+    senha_dono: str = Field(min_length=6) # <- OBRIGATORIO
 
     @field_validator('senha_confirmacao')
     def passwords_match(cls, v, info):
@@ -22,9 +23,9 @@ class UsuarioLojaUpdateIn(BaseModel):
     email: Optional[EmailStr] = None
     telefone: Optional[str] = None
     role: Optional[UserRole] = None
-    is_active: Optional[bool] = None
-    senha: Optional[str] = Field(None, min_length=6) # nova senha do usuario
-    senha_dono: Optional[str] = Field(None, min_length=6) # <- MUDEI: agora é opcional
+    is_active: Optional[bool] = None # <- AQUI ERA SÓ "Optional". CORRIGI
+    senha: Optional[str] = Field(None, min_length=6)
+    senha_dono: str = Field(min_length=6) # <- OBRIGATORIO
     senha_confirmacao: Optional[str] = Field(None, min_length=6)
 
     @field_validator('senha_confirmacao')

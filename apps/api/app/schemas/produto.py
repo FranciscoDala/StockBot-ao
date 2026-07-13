@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, computed_field
+from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
 from typing import Optional
 from datetime import datetime
 from decimal import Decimal
@@ -75,8 +75,15 @@ class ProdutoUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class ProdutoUpdateWithAuth(ProdutoUpdate):
-    senha_dono: str
+    senha_dono: str = Field(..., min_length=6)
     loja_id: UUID
+
+    @field_validator("senha_dono")
+    @classmethod
+    def senha_nao_vazia(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("senha_dono é obrigatória")
+        return v
 
 class ProdutoOut(BaseModel):
     id: UUID

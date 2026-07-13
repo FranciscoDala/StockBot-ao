@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Body # <- ADICIONEI Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
@@ -146,22 +146,18 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
     await db.refresh(novo)
     return to_schema(novo)
 
-
 @router.get("", response_model=list[ProdutoOut], dependencies=[Depends(get_current_user)])
 async def listar_produtos(loja_id: UUID, db: AsyncSession = Depends(get_db)):
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
 
-    # ANTES:.order_by(Produto.nome)
-    # DEPOIS: mais novos primeiro
     stmt = select(Produto).where(
         Produto.loja_id == loja_id,
         Produto.deleted_at.is_(None)
-    ).order_by(Produto.created_at.desc()) # <- MUDOU AQUI
+    ).order_by(Produto.created_at.desc())
 
     result = await db.execute(stmt)
     produtos = result.scalars().all()
     return [to_schema(p) for p in produtos]
-
 
 @router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
 async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Depends(get_db)):
@@ -169,19 +165,14 @@ async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Dep
     produto = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     return to_schema(produto)
 
-
-
-
-
 @router.patch("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithAuth, db: AsyncSession = Depends(get_db)):
-    # PEGA O PRODUTO PRIMEIRO PRA SABER A LOJA
     produto_db = await db.get(Produto, produto_id)
     if not produto_db or produto_db.deleted_at:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
-    loja_id = produto_db.loja_id # <- CORRETO: pega do banco
+    loja_id = produto_db.loja_id
 
-    await verify_dono_password(db, loja_id, produto_update.senha_dono, produto_update.senha_confirmacao)
+    await verify_dono_password(db, loja_id, produto_update.senha_dono, produto_update.senha_confirmacao) # <- JÁ ESTAVA
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
 
     print(f"\n--- PATCH PRODUTO {produto_id} ---")
@@ -214,7 +205,7 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
 
     for key, value in update_data.items():
         if key == 'imagem_url' and value == "":
-            continue # <- não apaga imagem se vier vazio
+            continue
         setattr(produto_db, key, value)
 
     if 'nome' in update_data or 'sku' in update_data:
@@ -227,15 +218,15 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     print("--- FIM PATCH ---\n")
     return to_schema(produto_db)
 
-
-
-
-
-@router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO))])
-async def apagar_produto(body: dict, produto_id: UUID, db: AsyncSession = Depends(get_db)):
-    loja_id = body.get("loja_id")
+@router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))]) # <- MUDEI: GERENTE TAMBEM PODE
+async def apagar_produto(
+    produto_id: UUID,
+    payload: dict = Body(...), # <- CORRIGIDO: usa Body
+    db: AsyncSession = Depends(get_db)
+):
+    loja_id = payload.get("loja_id")
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório")
-    await verify_dono_password(db, loja_id, body.get("senha_dono"), body.get("senha_dono"))
+    await verify_dono_password(db, loja_id, payload.get("senha_dono"), payload.get("senha_dono"))
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     produto_db.deleted_at = datetime.utcnow()
     await db.commit()
