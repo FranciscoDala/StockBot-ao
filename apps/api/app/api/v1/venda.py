@@ -135,16 +135,17 @@ async def get_vendas(
     return vendas_response
 
 
-@router.get("/{venda_id}/imprimir", response_class=HTMLResponse, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))]) # <- ROTA NOVA
+@router.get("/{venda_id}/imprimir", response_class=HTMLResponse) # <- TIREI O DEPENDS
 async def imprimir_venda(
     venda_id: UUID,
     db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id)
+    loja_id: UUID = Depends(get_current_loja_id) # <- mantém isso pra segurança
 ):
     # Busca a venda com itens e loja
     stmt = select(Venda).options(
         selectinload(Venda.itens).selectinload(ItemVenda.produto),
-        selectinload(Venda.loja)
+        selectinload(Venda.loja),
+        selectinload(Venda.usuario) # <- adiciona isso pra não dar erro no venda.usuario.nome
     ).where(Venda.id == venda_id, Venda.loja_id == loja_id)
 
     result = await db.execute(stmt)
@@ -181,7 +182,7 @@ async def imprimir_venda(
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
            .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
            .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
-            @media print {{ body {{ margin: 0; }}
+            @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
     <body onload="window.print()">
