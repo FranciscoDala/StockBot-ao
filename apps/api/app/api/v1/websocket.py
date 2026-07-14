@@ -14,14 +14,16 @@ async def websocket_endpoint(websocket: WebSocket, loja_id: str):
         return
 
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        # CORRECAO AQUI: usa settings.JWT_SECRET e settings.JWT_ALGORITHM
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
         user_loja_id: str = payload.get("loja_id")
 
         if user_loja_id!= loja_id:
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
 
-    except JWTError:
+    except JWTError as e:
+        print("JWT Error WS:", e) # pra debuggar
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 

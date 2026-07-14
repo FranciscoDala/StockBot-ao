@@ -64,15 +64,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-            .filter(v => v.status?.toLowerCase().trim() === "concluida")
-            .map(v => ({
+           .filter(v => v.status?.toLowerCase().trim() === "concluida")
+           .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                    ...item,
+                   ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -90,7 +90,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
         if (!token ||!lojaId) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
-        ws.current = new WebSocket(`${WS_URL}/api/v1/ws/lojas/${lojaId}?token=${token}`);
+        // CORRIGIDO: tirei o /api/v1 duplicado
+        ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
 
         ws.current.onopen = () => {
             setWsConectado(true)
@@ -173,10 +174,10 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-              .scrollbar-hide::-webkit-scrollbar {
+             .scrollbar-hide::-webkit-scrollbar {
                     display: none;
                 }
-              .scrollbar-hide {
+             .scrollbar-hide {
                     -ms-overflow-style: none;
                     scrollbar-width: none;
                 }
