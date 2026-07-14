@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
+from sqlalchemy import select
 from datetime import date
 from typing import List
 from uuid import UUID
@@ -8,11 +10,12 @@ import asyncio
 from app.core.deps import get_current_user, require_role, get_current_loja_id
 from app.schemas.usuario import Role
 from app.models.usuario import Usuario
+from app.models.venda import Venda, ItemVenda
+from app.models.produto import Produto
 from app.db.session import get_db
 from app.schemas.venda import VendaCreate, VendaRead
-from app.services.venda import criar_venda, listar_vendas, estornar_venda_service
+from app.services.venda import criar_venda, estornar_venda_service
 from app.services.whatsapp import enviar_msg_venda
-
 from app.websocket.manager import manager
 
 router = APIRouter()
@@ -30,7 +33,6 @@ async def criar_venda_endpoint(
     # 1. DISPARA WS PRA CADA PRODUTO DA VENDA
     if venda and venda.itens:
         for item in venda.itens:
-            # FIX: item pode vir como dict ou Pydantic. Suporta os 2
             if isinstance(item, dict):
                 produto_id = item.get("produto_id")
                 nome_produto = item.get("nome_produto")
@@ -65,12 +67,33 @@ async def get_vendas(
     data_inicio: date | None = Query(None),
     data_fim: date | None = Query(None),
     vendedor_id: UUID | None = Query(None),
-    page: int = Query(1, ge=1), # <- NOVO
-    limit: int = Query(5000, ge=1, le=5000) # <- LIMITE MAX
+    page: int = Query(1, ge=1),
+    limit: int = Query(5000, ge=1, le=5000)
 ):
     loja_id_usar = loja_id_param or loja_id_token
-    offset = (page - 1) * limit # <- CALCULA OFFSET
-    return await listar_vendas(db, current_user, loja_id_usar, data_inicio, data_fim, vendedor_id, limit, offset) # <- PASSA OFFSET
+    offset = (page - 1) * limit
+
+    # QUERY COM JOINEDLOAD PRA VIR ITENS + PRODUTO JUNTO
+    query = (
+        select(Venda)
+       .options(joinedload(Venda.itens).joinedload(ItemVenda.produto))
+       .where(Venda.loja_id == loja_id_usar)
+       .order_by(Venda.data_venda.desc())
+       .limit(limit)
+       .offset(offset)
+    )
+
+    if data_inicio:
+        query = query.where(Venda.data_venda >= data_inicio)
+    if data_fim:
+        query = query.where(Venda.data_venda <= data_fim)
+    if vendedor_id:
+        query = query.where(Venda.usuario_id == vendedor_id)
+
+    result = await db.execute(query)
+    vendas = result.scalars().unique().all()
+
+    return vendas
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
@@ -79,7 +102,6 @@ async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: 
     # DISPARA WS PRA DEVOLVER O ESTOQUE
     if itens_estornados:
         for item in itens_estornados:
-            # FIX: suporta dict
             if isinstance(item, dict):
                 produto_id = item.get("produto_id")
                 nome = item.get("nome")

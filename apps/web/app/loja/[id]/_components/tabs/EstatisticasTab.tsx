@@ -1,8 +1,17 @@
 "use client"
 import { useEffect, useState, useMemo } from "react"
-import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw } from "lucide-react"
+import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+
+type ItemVenda = {
+    id: string
+    produto_id: string
+    nome_produto: string
+    quantidade: number
+    preco_unitario: number
+    subtotal: number
+}
 
 type VendaAPI = {
     id: string | number
@@ -11,6 +20,7 @@ type VendaAPI = {
     forma_pagamento: string
     data_venda: string
     status: string
+    itens: ItemVenda[] // <- AGORA VEM DO BACKEND
 }
 
 type Venda = {
@@ -19,6 +29,7 @@ type Venda = {
     total: number
     formaPagamento: string
     itens: number
+    detalhes: ItemVenda[] // <- DETALHES DOS PRODUTOS
 }
 
 type Stats = {
@@ -36,6 +47,7 @@ type Props = {
 export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const [vendas, setVendas] = useState<Venda[]>([])
     const [loading, setLoading] = useState(true)
+    const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null) // <- STATE DO MODAL
 
     useEffect(() => {
         if (!token || !lojaId) return;
@@ -45,20 +57,25 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const buscarVendas = async () => {
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, { // <- / ADICIONADA AQUI
+            const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
             })
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluida") // <- FILTRO MAIS SEGURO
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
                 .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
-                    itens: Number(v.total_itens)
+                    itens: Number(v.total_itens),
+                    detalhes: (v.itens || []).map(item => ({
+                        ...item,
+                        preco_unitario: Number(item.preco_unitario),
+                        subtotal: Number(item.subtotal)
+                    }))
                 }))
             setVendas(vendasFormatadas)
         } catch (e) {
@@ -135,9 +152,13 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
                 ) : (
                     <div className="space-y-2 max-h-[350px] md:max-h-[400px] overflow-y-auto">
                         {vendasHoje.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(v => (
-                            <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-2 text-sm">
+                            <div
+                                key={v.id}
+                                onClick={() => setVendaSelecionada(v)} // <- CLICAVEL
+                                className="flex justify-between items-center border-b border-neutral-800 pb-2 text-sm hover:bg-neutral-800/50 p-2 rounded-lg cursor-pointer transition"
+                            >
                                 <div>
-                                    <p className="font-medium text-sm">{new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
+                                    <p className="font-medium text-sm">#{v.id.slice(0,8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
                                     <p className="text-xs text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
                                 </div>
                                 <p className="font-bold text-green-500 text-sm md:text-base">{formatCurrency(v.total)}</p>
@@ -146,6 +167,56 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
                     </div>
                 )}
             </div>
+
+            {/* MODAL DETALHES DA VENDA */}
+            {vendaSelecionada && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
+                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center p-4 border-b border-neutral-800">
+                            <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3>
+                            <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
+                        </div>
+
+                        <div className="p-4 space-y-3 overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <p className="text-gray-400">Data</p>
+                                    <p className="font-medium">{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400">Pagamento</p>
+                                    <p className="font-medium">{vendaSelecionada.formaPagamento}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400">Qtd Itens</p>
+                                    <p className="font-medium">{vendaSelecionada.itens}</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-400">Total</p>
+                                    <p className="font-bold text-green-500">{formatCurrency(vendaSelecionada.total)}</p>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-neutral-800 pt-3">
+                                <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16}/> Produtos Vendidos</h4>
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                    {vendaSelecionada.detalhes.length > 0 ? vendaSelecionada.detalhes.map((item) => (
+                                        <div key={item.id} className="flex justify-between items-center text-sm bg-neutral-800 p-3 rounded-lg">
+                                            <div className="flex-1">
+                                                <p className="font-medium">{item.nome_produto}</p>
+                                                <p className="text-xs text-gray-400">{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
+                                            </div>
+                                            <p className="font-semibold text-green-500">{formatCurrency(item.subtotal)}</p>
+                                        </div>
+                                    )) : (
+                                        <p className="text-gray-400 text-center py-4 text-sm">Nenhum item encontrado</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
