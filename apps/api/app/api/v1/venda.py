@@ -60,12 +60,15 @@ async def criar_venda_endpoint(
 async def get_vendas(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
-    loja_id: UUID = Depends(get_current_loja_id),
+    loja_id_param: UUID | None = Query(None, alias="loja_id"),
+    loja_id_token: UUID = Depends(get_current_loja_id),
     data_inicio: date | None = Query(None),
     data_fim: date | None = Query(None),
-    vendedor_id: UUID | None = Query(None)
+    vendedor_id: UUID | None = Query(None),
+    limit: int = Query(5000)
 ):
-    return await listar_vendas(db, current_user, loja_id, data_inicio, data_fim, vendedor_id)
+    loja_id_usar = loja_id_param or loja_id_token
+    return await listar_vendas(db, current_user, loja_id_usar, data_inicio, data_fim, vendedor_id, limit)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):

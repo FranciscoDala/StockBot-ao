@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from uuid import UUID
-from datetime import date
+from datetime import date, datetime
 from fastapi import HTTPException
 from decimal import Decimal
 
@@ -25,7 +25,7 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
             forma_pagamento=venda_in.forma_pagamento,
             valor_recebido=venda_in.valor_recebido,
             troco=venda_in.troco,
-            status='concluida'
+            status='CONCLUIDA' # <- PADRONIZADO
         )
         db.add(nova_venda)
         await db.flush() # pra pegar o id
@@ -98,8 +98,54 @@ async def listar_venda_por_id(db: AsyncSession, venda_id: UUID, loja_id: UUID):
         ]
     })
 
-async def listar_vendas(db: AsyncSession, current_user: Usuario, loja_id: UUID, data_inicio: date | None, data_fim: date | None, vendedor_id: UUID | None):
-    pass
+async def listar_vendas(
+    db: AsyncSession,
+    current_user: Usuario,
+    loja_id: UUID,
+    data_inicio: date | None,
+    data_fim: date | None,
+    vendedor_id: UUID | None,
+    limit: int = 5000 # <- ADICIONADO
+):
+    stmt = select(Venda).options(
+        selectinload(Venda.itens).selectinload(ItemVenda.produto),
+        selectinload(Venda.usuario)
+    ).where(Venda.loja_id == loja_id)
+
+    if data_inicio:
+        # converte date pra datetime inicio do dia
+        inicio_dt = datetime.combine(data_inicio, datetime.min.time())
+        stmt = stmt.where(Venda.created_at >= inicio_dt)
+
+    if data_fim:
+        # converte date pra datetime fim do dia
+        fim_dt = datetime.combine(data_fim, datetime.max.time())
+        stmt = stmt.where(Venda.created_at <= fim_dt)
+
+    if vendedor_id:
+        stmt = stmt.where(Venda.usuario_id == vendedor_id)
+
+    stmt = stmt.order_by(Venda.created_at.desc()).limit(limit) # <- ORDENAR + LIMIT
+
+    result = await db.execute(stmt)
+    vendas = result.scalars().all()
+
+    # Converte pra VendaRead
+    vendas_read: list[VendaRead] = []
+    for venda in vendas:
+        vendas_read.append(VendaRead.model_validate({
+            **venda.__dict__,
+            "nome_vendedor": venda.usuario.nome if venda.usuario else "Sistema",
+            "data_venda": venda.created_at,
+            "itens": [
+                ItemVendaRead.model_validate({
+                    **item.__dict__,
+                    "nome_produto": item.produto.nome
+                }) for item in venda.itens
+            ]
+        }))
+
+    return vendas_read
 
 async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID):
     itens_para_broadcast = [] # <- 3. GUARDA OS DADOS PRA DEVOLVER
@@ -108,7 +154,7 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
     venda = (await db.execute(stmt_venda)).scalar_one_or_none()
     if not venda:
         raise HTTPException(status_code=404, detail="Venda não encontrada")
-    if venda.status == 'estornada':
+    if venda.status == 'ESTORNADA': # <- PADRONIZADO
         raise HTTPException(status_code=400, detail="Venda já estornada")
 
     # 4. DEVOLVE ESTOQUE
@@ -125,7 +171,7 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
                 "novo_estoque": produto.estoque
             })
 
-    venda.status = 'estornada'
+    venda.status = 'ESTORNADA' # <- PADRONIZADO
     db.add(venda)
     await db.commit()
 
