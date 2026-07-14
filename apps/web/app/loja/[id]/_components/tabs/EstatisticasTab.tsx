@@ -64,15 +64,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-             .filter(v => v.status?.toLowerCase().trim() === "concluida")
-             .map(v => ({
+            .filter(v => v.status?.toLowerCase().trim() === "concluida")
+            .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                     ...item,
+                    ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -173,19 +173,19 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-               .scrollbar-hide::-webkit-scrollbar {
+              .scrollbar-hide::-webkit-scrollbar {
                     display: none;
                 }
-               .scrollbar-hide {
-                    -ms-overflow-style: none; /* IE e Edge */
-                    scrollbar-width: none; /* Firefox */
+              .scrollbar-hide {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
                 }
             `}</style>
 
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
-                    {wsConectado? <Wifi size={16} className="text-green-500" title="Tempo real ativo" /> : <WifiOff size={16} className="text-red-500" title="Desconectado" />}
+                    {wsConectado? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
                 </div>
                 <button onClick={buscarVendas} className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-neutral-800 rounded-lg text-xs md:text-sm hover:bg-neutral-700 transition">
                     <RefreshCw size={14} /> Atualizar
@@ -226,7 +226,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
 
             {vendaSelecionada && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
-                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h- flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h- flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-neutral-800">
                             <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3>
                             <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
