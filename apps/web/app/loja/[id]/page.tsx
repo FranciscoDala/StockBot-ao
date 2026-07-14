@@ -72,7 +72,7 @@ export default function LojaPage() {
     const [detalhesUser, setDetalhesUser] = useState<any>(null); const [produtos, setProdutos] = useState<ProdutoType[]>([]); const [vendas, setVendas] = useState<Venda[]>([]); const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]); const [editingProduto, setEditingProduto] = useState<ProdutoType | null>(null);
     const [formDataProduto, setFormDataProduto] = useState<any>({ nome: "", sku: "", preco: 0, preco_custo: 0, estoque: 0, estoque_minimo: 5, is_active: true, loja_id: "", descricao: "", codigo_barras: null, marca: "", categoria_id: null, unidade: "UN", localizacao: "", fornecedor_id: null, data_validade: "", ncm: "", peso_kg: 0, imagem_url: "" });
     const [showModal, setShowModal] = useState(false); const [modalType, setModalType] = useState<'user' | 'produto'>('user'); const [saving, setSaving] = useState(false); const [errorMsg, setErrorMsg] = useState("");
-    const [showPermissaoModal, setShowPermissaoModal] = = useState(false); const [showErroModal, setShowErroModal] = useState(false); const [erroMsgPermissao, setErroMsgPermissao] = useState(""); const [showDetalhesModal, setShowDetalhesModal] = useState(false);
+    const [showPermissaoModal, setShowPermissaoModal] = useState(false); const [showErroModal, setShowErroModal] = useState(false); const [erroMsgPermissao, setErroMsgPermissao] = useState(""); const [showDetalhesModal, setShowDetalhesModal] = useState(false);
     const [showConfirmarModal, setShowConfirmarModal] = useState(false); const [itemParaRemover, setItemParaRemover] = useState<CarrinhoItem | null>(null); const [busca, setBusca] = useState(""); const [formaPagamento, setFormaPagamento] = useState("Dinheiro"); const [valorRecebido, setValorRecebido] = useState(""); const [showConfirmarFinalizar, setShowConfirmarFinalizar] = useState(false); const [loadingVenda, setLoadingVenda] = useState(false);
 
     const [acaoPendente, setAcaoPendente] = useState<{
@@ -91,9 +91,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-           ? data
-               .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-               .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+          ? data
+              .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+              .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -195,7 +195,7 @@ export default function LojaPage() {
                 const loja_id = user?.loja_id || "";
 
                 let payload: any = {
-               ...(data || formDataProduto),
+              ...(data || formDataProduto),
                     senha_dono,
                     senha_confirmacao: senha_dono,
                     loja_id: (data as ProdutoType)?.loja_id || loja_id
@@ -336,4 +336,6 @@ export default function LojaPage() {
 
             </div>
         }
-        <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} formatCurrency={formatCurrency} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""}
+        <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} formatCurrency={formatCurrency} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} />
+    </>;
+}
