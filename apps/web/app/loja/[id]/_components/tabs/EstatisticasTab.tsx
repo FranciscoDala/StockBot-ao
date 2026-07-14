@@ -1,8 +1,9 @@
 "use client"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useRef } from "react"
 import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
 
 type ItemVenda = {
     id: string
@@ -20,7 +21,7 @@ type VendaAPI = {
     forma_pagamento: string
     data_venda: string
     status: string
-    itens: ItemVenda[] // <- AGORA VEM DO BACKEND
+    itens: ItemVenda[]
 }
 
 type Venda = {
@@ -29,7 +30,7 @@ type Venda = {
     total: number
     formaPagamento: string
     itens: number
-    detalhes: ItemVenda[] // <- DETALHES DOS PRODUTOS
+    detalhes: ItemVenda[]
 }
 
 type Stats = {
@@ -47,12 +48,56 @@ type Props = {
 export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const [vendas, setVendas] = useState<Venda[]>([])
     const [loading, setLoading] = useState(true)
-    const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null) // <- STATE DO MODAL
+    const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
+    const ws = useRef<WebSocket | null>(null)
 
     useEffect(() => {
-        if (!token || !lojaId) return;
+        if (!token ||!lojaId) return;
         buscarVendas()
+        conectarWebSocket()
+
+        return () => {
+            ws.current?.close()
+        }
     }, [token, lojaId])
+
+    const conectarWebSocket = () => {
+        if (!token) return;
+        ws.current = new WebSocket(`${WS_URL}/api/v1/ws/lojas/${lojaId}?token=${token}`);
+
+        ws.current.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            // 1. ATUALIZA ESTOQUE - se tiver outro componente ouvindo
+            if (data.tipo === 'stock.updated') {
+                // Pode emitir evento global aqui se precisar
+            }
+
+            // 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
+            if (data.tipo === 'stats.updated') {
+                setVendas(prev => {
+                    if (data.acao === 'add') {
+                        // Cria uma venda "fake" só pra atualizar os contadores
+                        // O ideal seria dar um fetch, mas pra ser instantâneo fazemos assim
+                        const novaVenda: Venda = {
+                            id: `temp-${Date.now()}`,
+                            data: new Date().toISOString(),
+                            total: data.valor_venda,
+                            formaPagamento: 'N/A',
+                            itens: data.total_itens,
+                            detalhes: []
+                        }
+                        return [novaVenda,...prev]
+                    } else if (data.acao === 'remove') {
+                        // Remove a última venda do dia
+                        return prev.slice(1)
+                    }
+                    return prev
+                })
+            }
+        }
+        ws.current.onclose = () => setTimeout(conectarWebSocket, 3000) // reconecta
+    }
 
     const buscarVendas = async () => {
         setLoading(true)
@@ -63,16 +108,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluida")
-                .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
+               .filter(v => v.status?.toLowerCase().trim() === "concluida")
+               .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                        ...item,
+                       ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -105,7 +150,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const calcularStats = (lista: Venda[]): Stats => {
         const total = lista.reduce((acc, v) => acc + v.total, 0)
         const qtdVendas = lista.length
-        const ticketMedio = qtdVendas > 0 ? total / qtdVendas : 0
+        const ticketMedio = qtdVendas > 0? total / qtdVendas : 0
         return { total, qtdVendas, ticketMedio }
     }
 
@@ -147,14 +192,14 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
                     <ShoppingBag size={16} className="text-green-500" />
                     <h3 className="font-bold text-base md:text-lg">Vendas Hoje - {vendasHoje.length}</h3>
                 </div>
-                {vendasHoje.length === 0 ? (
+                {vendasHoje.length === 0? (
                     <p className="text-gray-400 text-center py-6 text-sm">Nenhuma venda hoje ainda</p>
                 ) : (
                     <div className="space-y-2 max-h-[350px] md:max-h-[400px] overflow-y-auto">
                         {vendasHoje.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(v => (
                             <div
                                 key={v.id}
-                                onClick={() => setVendaSelecionada(v)} // <- CLICAVEL
+                                onClick={() => setVendaSelecionada(v)}
                                 className="flex justify-between items-center border-b border-neutral-800 pb-2 text-sm hover:bg-neutral-800/50 p-2 rounded-lg cursor-pointer transition"
                             >
                                 <div>
@@ -168,10 +213,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
                 )}
             </div>
 
-            {/* MODAL DETALHES DA VENDA */}
             {vendaSelecionada && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
-                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-neutral-800">
                             <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3>
                             <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
@@ -179,28 +223,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
 
                         <div className="p-4 space-y-3 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div>
-                                    <p className="text-gray-400">Data</p>
-                                    <p className="font-medium">{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400">Pagamento</p>
-                                    <p className="font-medium">{vendaSelecionada.formaPagamento}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400">Qtd Itens</p>
-                                    <p className="font-medium">{vendaSelecionada.itens}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400">Total</p>
-                                    <p className="font-bold text-green-500">{formatCurrency(vendaSelecionada.total)}</p>
-                                </div>
+                                <div><p className="text-gray-400">Data</p><p className="font-medium">{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p></div>
+                                <div><p className="text-gray-400">Pagamento</p><p className="font-medium">{vendaSelecionada.formaPagamento}</p></div>
+                                <div><p className="text-gray-400">Qtd Itens</p><p className="font-medium">{vendaSelecionada.itens}</p></div>
+                                <div><p className="text-gray-400">Total</p><p className="font-bold text-green-500">{formatCurrency(vendaSelecionada.total)}</p></div>
                             </div>
 
                             <div className="border-t border-neutral-800 pt-3">
                                 <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16}/> Produtos Vendidos</h4>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                                    {vendaSelecionada.detalhes.length > 0 ? vendaSelecionada.detalhes.map((item) => (
+                                    {vendaSelecionada.detalhes.length > 0? vendaSelecionada.detalhes.map((item) => (
                                         <div key={item.id} className="flex justify-between items-center text-sm bg-neutral-800 p-3 rounded-lg">
                                             <div className="flex-1">
                                                 <p className="font-medium">{item.nome_produto}</p>

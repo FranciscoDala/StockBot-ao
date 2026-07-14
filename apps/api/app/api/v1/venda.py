@@ -32,6 +32,7 @@ async def criar_venda_endpoint(
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
     if venda and venda.itens:
+        # 1. ATUALIZA ESTOQUE
         for item in venda.itens:
             if isinstance(item, dict):
                 produto_id = item.get("produto_id")
@@ -46,6 +47,17 @@ async def criar_venda_endpoint(
                 str(loja_id),
                 {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
             )
+
+        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL - NOVO
+        await manager.broadcast_to_loja(
+            str(loja_id),
+            {
+                "tipo": "stats.updated",
+                "valor_venda": float(venda.total),
+                "total_itens": venda.total_itens,
+                "acao": "add"
+            }
+        )
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
@@ -68,14 +80,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-  .options(
+ .options(
        joinedload(Venda.usuario),
        joinedload(Venda.itens).joinedload(ItemVenda.produto)
    )
-  .where(Venda.loja_id == loja_id_usar)
-  .order_by(Venda.created_at.desc())
-  .limit(limit)
-  .offset(offset)
+ .where(Venda.loja_id == loja_id_usar)
+ .order_by(Venda.created_at.desc())
+ .limit(limit)
+ .offset(offset)
     )
 
     if data_inicio:
@@ -88,7 +100,6 @@ async def get_vendas(
     result = await db.execute(query)
     vendas_db = result.scalars().unique().all()
 
-    # MAPEAMENTO MANUAL PRA NAO QUEBRAR O PYDANTIC
     vendas_response = []
     for v in vendas_db:
         itens = []
@@ -115,7 +126,7 @@ async def get_vendas(
             "valor_recebido": v.valor_recebido,
             "troco": v.troco,
             "status": v.status,
-            "data_venda": v.created_at, # <- AQUI ESTA O TRUQUE
+            "data_venda": v.created_at,
             "itens": itens
         })
 
@@ -124,15 +135,35 @@ async def get_vendas(
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
     itens_estornados = await estornar_venda_service(db=db, venda_id=id, loja_id=loja_id)
+
+    valor_estornado = 0
+    total_itens_estornados = 0
+
     if itens_estornados:
         for item in itens_estornados:
             if isinstance(item, dict):
                 produto_id = item.get("produto_id")
                 nome = item.get("nome")
                 novo_estoque = item.get("novo_estoque")
+                valor_estornado += float(item.get("subtotal", 0))
+                total_itens_estornados += item.get("quantidade", 0)
             else:
                 produto_id = item.produto_id
                 nome = item.nome
                 novo_estoque = item.novo_estoque
+                valor_estornado += float(item.subtotal)
+                total_itens_estornados += item.quantidade
+
             await manager.broadcast_to_loja(str(loja_id),{"tipo": "stock.updated","produto_id": str(produto_id),"nome_produto": nome,"novo_estoque": novo_estoque})
+
+    # ATUALIZA ESTATISTICAS DO ESTORNO
+    await manager.broadcast_to_loja(
+        str(loja_id),
+        {
+            "tipo": "stats.updated",
+            "valor_venda": -valor_estornado,
+            "total_itens": -total_itens_estornados,
+            "acao": "remove"
+        }
+    )
     return None
