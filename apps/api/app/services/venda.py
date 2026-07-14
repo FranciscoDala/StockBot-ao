@@ -25,7 +25,7 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
             forma_pagamento=venda_in.forma_pagamento,
             valor_recebido=venda_in.valor_recebido,
             troco=venda_in.troco,
-            status='CONCLUIDA' # <- PADRONIZADO
+            status='concluida' # <- MINUSCULO
         )
         db.add(nova_venda)
         await db.flush() # pra pegar o id
@@ -105,7 +105,8 @@ async def listar_vendas(
     data_inicio: date | None,
     data_fim: date | None,
     vendedor_id: UUID | None,
-    limit: int = 5000 # <- ADICIONADO
+    limit: int = 5000,
+    offset: int = 0 # <- NOVO
 ):
     stmt = select(Venda).options(
         selectinload(Venda.itens).selectinload(ItemVenda.produto),
@@ -125,7 +126,7 @@ async def listar_vendas(
     if vendedor_id:
         stmt = stmt.where(Venda.usuario_id == vendedor_id)
 
-    stmt = stmt.order_by(Venda.created_at.desc()).limit(limit) # <- ORDENAR + LIMIT
+    stmt = stmt.order_by(Venda.created_at.desc()).limit(limit).offset(offset) # <- ADICIONADO OFFSET
 
     result = await db.execute(stmt)
     vendas = result.scalars().all()
@@ -154,7 +155,7 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
     venda = (await db.execute(stmt_venda)).scalar_one_or_none()
     if not venda:
         raise HTTPException(status_code=404, detail="Venda não encontrada")
-    if venda.status == 'ESTORNADA': # <- PADRONIZADO
+    if venda.status == 'estornada': # <- MINUSCULO
         raise HTTPException(status_code=400, detail="Venda já estornada")
 
     # 4. DEVOLVE ESTOQUE
@@ -171,7 +172,7 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
                 "novo_estoque": produto.estoque
             })
 
-    venda.status = 'ESTORNADA' # <- PADRONIZADO
+    venda.status = 'estornada' # <- MINUSCULO
     db.add(venda)
     await db.commit()
 

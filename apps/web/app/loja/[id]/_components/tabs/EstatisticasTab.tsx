@@ -10,6 +10,7 @@ type VendaAPI = {
     total_itens: number
     forma_pagamento: string
     data_venda: string
+    status: string // <- ADICIONADO
 }
 
 type Venda = {
@@ -44,20 +45,22 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const buscarVendas = async () => {
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/vendas?loja_id=${lojaId}&limit=1000`, {
+            const res = await fetch(`${API_URL}/vendas?loja_id=${lojaId}&limit=5000`, { // <- 5000 PRA PEGAR TUDO
                 headers: { "Authorization": `Bearer ${token}` }
             })
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            // Converte pro formato que usamos no front
-            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : []).map(v => ({
-                id: String(v.id),
-                data: v.data_venda,
-                total: Number(v.total),
-                formaPagamento: v.forma_pagamento,
-                itens: Number(v.total_itens)
-            }))
+            // Converte e FILTRA SÓ CONCLUIDAS
+            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
+                .filter(v => v.status === "concluida") // <- FILTRO CRÍTICO
+                .map(v => ({
+                    id: String(v.id),
+                    data: v.data_venda,
+                    total: Number(v.total),
+                    formaPagamento: v.forma_pagamento,
+                    itens: Number(v.total_itens)
+                }))
             setVendas(vendasFormatadas)
         } catch (e) {
             console.error(e)
@@ -103,45 +106,45 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const statsMes = useMemo(() => calcularStats(vendasMes), [vendasMes])
 
     if (loading) return (
-        <div className="flex items-center justify-center py-20">
-            <RefreshCw className="animate-spin text-green-500" size={32} />
+        <div className="flex items-center justify-center py-10 md:py-20"> {/* <- MENOR NO MOBILE */}
+            <RefreshCw className="animate-spin text-green-500" size={28} /> {/* <- MENOR */}
         </div>
     )
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6 p-2 md:p-0"> {/* <- PADDING MENOR NO MOBILE */}
             {/* HEADER + ATUALIZAR */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold">Estatísticas</h2>
-                <button onClick={buscarVendas} className="flex items-center gap-2 px-3 py-2 bg-neutral-800 rounded-lg text-sm hover:bg-neutral-700 transition">
-                    <RefreshCw size={16} /> Atualizar
+            <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2> {/* <- FONTE MENOR */}
+                <button onClick={buscarVendas} className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-neutral-800 rounded-lg text-xs md:text-sm hover:bg-neutral-700 transition">
+                    <RefreshCw size={14} /> Atualizar
                 </button>
             </div>
 
             {/* CARDS RESUMO */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <CardStats titulo="Hoje" stats={statsHoje} icon={<CalendarDays size={20} />} color="green" formatCurrency={formatCurrency} />
-                <CardStats titulo="Esta Semana" stats={statsSemana} icon={<TrendingUp size={20} />} color="blue" formatCurrency={formatCurrency} />
-                <CardStats titulo="Este Mês" stats={statsMes} icon={<DollarSign size={20} />} color="purple" formatCurrency={formatCurrency} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4"> {/* <- 1 COLUNA NO MOBILE */}
+                <CardStats titulo="Hoje" stats={statsHoje} icon={<CalendarDays size={18} />} color="green" formatCurrency={formatCurrency} />
+                <CardStats titulo="Semana" stats={statsSemana} icon={<TrendingUp size={18} />} color="blue" formatCurrency={formatCurrency} /> {/* <- TEXTO MENOR */}
+                <CardStats titulo="Mês" stats={statsMes} icon={<DollarSign size={18} />} color="purple" formatCurrency={formatCurrency} /> {/* <- TEXTO MENOR */}
             </div>
 
             {/* DETALHES DE HOJE */}
-            <div className="bg-neutral-900 rounded-xl shadow p-4">
-                <div className="flex items-center gap-2 mb-4">
-                    <ShoppingBag size={18} className="text-green-500" />
-                    <h3 className="font-bold text-lg">Vendas de Hoje - {vendasHoje.length}</h3>
+            <div className="bg-neutral-900 rounded-xl shadow p-3 md:p-4"> {/* <- PADDING MENOR */}
+                <div className="flex items-center gap-2 mb-3">
+                    <ShoppingBag size={16} className="text-green-500" /> {/* <- ICON MENOR */}
+                    <h3 className="font-bold text-base md:text-lg">Vendas Hoje - {vendasHoje.length}</h3> {/* <- FONTE MENOR */}
                 </div>
                 {vendasHoje.length === 0 ? (
-                    <p className="text-gray-400 text-center py-8">Nenhuma venda hoje ainda</p>
+                    <p className="text-gray-400 text-center py-6 text-sm">Nenhuma venda hoje ainda</p> {/* <- FONTE MENOR */}
                 ) : (
-                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                    <div className="space-y-2 max-h-[350px] md:max-h-[400px] overflow-y-auto"> {/* <- ALTURA MENOR NO MOBILE */}
                         {vendasHoje.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(v => (
-                            <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-3">
+                            <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-2 text-sm"> {/* <- FONTE MENOR */}
                                 <div>
-                                    <p className="font-medium">{new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
-                                    <p className="text-sm text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
+                                    <p className="font-medium text-sm">{new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
+                                    <p className="text-xs text-gray-400">{v.itens} itens • {v.formaPagamento}</p> {/* <- FONTE MENOR */}
                                 </div>
-                                <p className="font-bold text-green-500">{formatCurrency(v.total)}</p>
+                                <p className="font-bold text-green-500 text-sm md:text-base">{formatCurrency(v.total)}</p> {/* <- FONTE MENOR */}
                             </div>
                         ))}
                     </div>
@@ -171,15 +174,15 @@ function CardStats({
     }
 
     return (
-        <div className="bg-neutral-900 rounded-xl shadow p-4">
-            <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-400">{titulo}</p>
+        <div className="bg-neutral-900 rounded-xl shadow p-3 md:p-4"> {/* <- PADDING MENOR */}
+            <div className="flex items-center justify-between mb-1.5">
+                <p className="text-xs md:text-sm text-gray-400">{titulo}</p> {/* <- FONTE MENOR */}
                 <div className={colors[color]}>{icon}</div>
             </div>
-            <p className={`text-2xl font-bold ${colors[color]}`}>{formatCurrency(stats.total)}</p>
-            <div className="text-sm mt-3 space-y-1 text-gray-300">
+            <p className={`text-xl md:text-2xl font-bold ${colors[color]}`}>{formatCurrency(stats.total)}</p> {/* <- FONTE MENOR */}
+            <div className="text-xs md:text-sm mt-2 space-y-1 text-gray-300"> {/* <- FONTE MENOR */}
                 <p>Vendas: <span className="font-semibold text-white">{stats.qtdVendas}</span></p>
-                <p>Ticket Médio: <span className="font-semibold text-white">{formatCurrency(stats.ticketMedio)}</span></p>
+                <p>Ticket: <span className="font-semibold text-white">{formatCurrency(stats.ticketMedio)}</span></p> {/* <- "Ticket" pra caber */}
             </div>
         </div>
     )

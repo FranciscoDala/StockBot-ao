@@ -65,10 +65,12 @@ async def get_vendas(
     data_inicio: date | None = Query(None),
     data_fim: date | None = Query(None),
     vendedor_id: UUID | None = Query(None),
-    limit: int = Query(5000)
+    page: int = Query(1, ge=1), # <- NOVO
+    limit: int = Query(5000, ge=1, le=5000) # <- LIMITE MAX
 ):
     loja_id_usar = loja_id_param or loja_id_token
-    return await listar_vendas(db, current_user, loja_id_usar, data_inicio, data_fim, vendedor_id, limit)
+    offset = (page - 1) * limit # <- CALCULA OFFSET
+    return await listar_vendas(db, current_user, loja_id_usar, data_inicio, data_fim, vendedor_id, limit, offset) # <- PASSA OFFSET
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
