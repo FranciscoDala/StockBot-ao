@@ -69,7 +69,7 @@ export default function LojaPage() {
 
     const [equipa, setEquipa] = useState<UsuarioLojaPage[]>([]); const [editingUser, setEditingUser] = useState<UsuarioLoja | null>(null);
     const [formDataUser, setFormDataUser] = useState({ nome: "", email: "", senha: "", telefone: "", role: "VENDEDOR" as UserRole, is_active: true });
-    const [detalhesUser, setDetalhesUser] = useState<any>(null); const [produtos, setProdutos] = useState<ProdutoType[]>([]); const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]); const [editingProduto, setEditingProduto] = useState<ProdutoType | null>(null);
+    const [detalhesUser, setDetalhesUser] = useState<any>(null); const [produtos, setProdutos] = useState<ProdutoType[]>([]); const [vendas, setVendas] = useState<Venda[]>([]); const [carrinho, setCarrinho] = useState<CarrinhoItem[]>([]); const [editingProduto, setEditingProduto] = useState<ProdutoType | null>(null);
     const [formDataProduto, setFormDataProduto] = useState<any>({ nome: "", sku: "", preco: 0, preco_custo: 0, estoque: 0, estoque_minimo: 5, is_active: true, loja_id: "", descricao: "", codigo_barras: null, marca: "", categoria_id: null, unidade: "UN", localizacao: "", fornecedor_id: null, data_validade: "", ncm: "", peso_kg: 0, imagem_url: "" });
     const [showModal, setShowModal] = useState(false); const [modalType, setModalType] = useState<'user' | 'produto'>('user'); const [saving, setSaving] = useState(false); const [errorMsg, setErrorMsg] = useState("");
     const [showPermissaoModal, setShowPermissaoModal] = useState(false); const [showErroModal, setShowErroModal] = useState(false); const [erroMsgPermissao, setErroMsgPermissao] = useState(""); const [showDetalhesModal, setShowDetalhesModal] = useState(false);
@@ -91,25 +91,26 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-              ? data
-                  .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-                  .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+               ? data
+                   .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+                   .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
     };
 
     const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken ||!lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { console.error(e); setProdutos([]); toast.error("Erro ao validar produtos"); } }, []);
+    const fetchVendas = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken ||!lojaId) { setVendas([]); return; } try { const data = await fetchComAuth(`${API_URL}/vendas?loja_id=${lojaId}`, currentToken); setVendas(z.array(VendaSchema).parse(data)); } catch (e) { console.error(e); setVendas([]); } }, []);
     const fetchLoja = useCallback(async (currentToken: string) => { if (!currentToken ||!lojaId) return; try { setLoja(await fetchComAuth(`${API_URL}/lojas/id/${lojaId}`, currentToken)); } catch (e) { console.error("Erro ao buscar loja:", e); setLoja(null); } }, [lojaId]);
 
     useEffect(() => {
         setIsClient(true); const currentToken = getCookie("token"); const userStr = getCookie("user"); setToken(currentToken || null);
         if (!currentToken ||!userStr) { handleSair(); return; } try {
             const userData: userread = JSON.parse(userStr); if (userData.loja_id!== lojaId) { handleSair(); return; } setUser(userData);
-            const loadData = async () => { setLoading(true); await Promise.all([fetchLoja(currentToken), fetchEquipa(currentToken), fetchProdutos(currentToken, userData.loja_id || "")]); setLoading(false); }
+            const loadData = async () => { setLoading(true); await Promise.all([fetchLoja(currentToken), fetchEquipa(currentToken), fetchProdutos(currentToken, userData.loja_id || ""), fetchVendas(currentToken, userData.loja_id || "")]); setLoading(false); }
             loadData();
         } catch (err) { handleSair(); }
-    }, [router, lojaId, fetchProdutos, fetchLoja]);
+    }, [router, lojaId, fetchProdutos, fetchLoja, fetchVendas]);
 
     useEffect(() => {
         if (!token ||!lojaId) return; const WS_URL = process.env.NEXT_PUBLIC_WS_URL; const socket = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`); socket.onopen = () => setWs(socket);
@@ -139,7 +140,7 @@ export default function LojaPage() {
             const payload = { total: Number(subtotal), total_itens: Number(totalItens), forma_pagamento: formaPagamento, valor_pago: formaPagamento === "Dinheiro"? Number(valorRecebido) : Number(subtotal), troco: Number(troco), loja_id: user?.loja_id || "", itens: itensPayload };
             const vendaSalva = await fetchComAuth(`${API_URL}/vendas/`, token, { method: "POST", body: JSON.stringify(payload) });
             const vendaParaModal: Venda = { id: vendaSalva.id,...payload, data_venda: vendaSalva.data_venda || new Date().toISOString(), itens: itensPayload.map(i => ({...i, nome: carrinho.find(c => String(c.id) === i.produto_id)?.nome })) };
-            setVendaConcluida(VendaSchema.parse(vendaParaModal)); setShowVendaSucessoModal(true); setCarrinho([]); setValorRecebido(""); fetchProdutos(token, user?.loja_id || "");
+            setVendaConcluida(VendaSchema.parse(vendaParaModal)); setShowVendaSucessoModal(true); setCarrinho([]); setValorRecebido(""); fetchProdutos(token, user?.loja_id || ""); fetchVendas(token, user?.loja_id || "");
         } catch (err: any) { toast.error(err.message || "Erro ao finalizar"); setShowConfirmarFinalizar(true); } finally { setLoadingVenda(false); }
     };
 
@@ -194,7 +195,7 @@ export default function LojaPage() {
                 const loja_id = user?.loja_id || "";
 
                 let payload: any = {
-                  ...(data || formDataProduto),
+                   ...(data || formDataProduto),
                     senha_dono,
                     senha_confirmacao: senha_dono,
                     loja_id: (data as ProdutoType)?.loja_id || loja_id
@@ -244,8 +245,8 @@ export default function LojaPage() {
 
     return <>
         <style jsx global>{`
-   .scrollbar-hide::-webkit-scrollbar { display: none; }
-   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
 
         <Toaster position="top-center" richColors theme="dark" />
@@ -292,7 +293,9 @@ export default function LojaPage() {
                         {activeTab === "produtos" && (podeVerVendas || podeVerEstoque) && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} formatCurrency={formatCurrency} />}
                         {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")} onView={handleViewUserClick} />}
                         {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} formatCurrency={formatCurrency} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} />}
-                        {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={[]} produtos={produtos} formatCurrency={formatCurrency} />}
+
+                        {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={vendas} produtos={produtos} formatCurrency={formatCurrency} />}
+
                         {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
 
