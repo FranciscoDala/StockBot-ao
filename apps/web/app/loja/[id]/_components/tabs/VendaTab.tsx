@@ -90,7 +90,7 @@ export function VendaTab({
     lojaId // <- ADICIONEI
 }: Props) {
 
-    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
+    const getPreco = (item: CarrinhoItem) => item.preco_venda ?? item.preco ?? 0;
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -153,7 +153,7 @@ export function VendaTab({
 
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
-                            const preco = p.preco_venda?? p.preco?? 0;
+                            const preco = p.preco_venda ?? p.preco ?? 0;
                             return (
                                 <button
                                     key={p.id}
@@ -162,8 +162,8 @@ export function VendaTab({
                                     className="bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden text-left transition-all hover:border-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
                                 >
                                     <div className="relative w-full aspect-square bg-neutral-900">
-                                        {p.imagem_url? (
-                                            <img src={p.imagem_url.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
+                                        {p.imagem_url ? (
+                                            <img src={p.imagem_url.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">Sem Img</div>
                                         )}
@@ -243,7 +243,7 @@ export function VendaTab({
                             disabled={!podeFinalizar || loadingVenda}
                             className="bg-green-600 hover:bg-green-700 w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loadingVenda? "Finalizando..." : "Finalizar Venda"}
+                            {loadingVenda ? "Finalizando..." : "Finalizar Venda"}
                         </Button>
                     </div>
                 </div>
@@ -307,12 +307,11 @@ export function VendaTab({
                             disabled={!podeFinalizar || loadingVenda}
                             className="bg-green-600 hover:bg-green-700 w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {loadingVenda? "Finalizando..." : "Finalizar [Enter]"}
+                            {loadingVenda ? "Finalizando..." : "Finalizar [Enter]"}
                         </Button>
                     </div>
                 </div>
             </div>
-
             <ConfirmarModal
                 open={showConfirmarModal}
                 onClose={() => setShowConfirmarModal(false)}
@@ -321,6 +320,7 @@ export function VendaTab({
                 descricao={`Tem certeza que deseja remover "${itemParaRemover?.nome}" do carrinho? Essa ação não pode ser desfeita.`}
                 textoConfirmar="Remover"
                 loading={false}
+                tipo="venda" // <- MUDEI PRA VENDA. NÃO PEDE SENHA
             />
 
             <ConfirmarModal
@@ -331,6 +331,7 @@ export function VendaTab({
                 descricao={`Deseja finalizar a venda no valor de ${formatCurrency(subtotal)} via ${formaPagamento}?`}
                 textoConfirmar="Sim, Finalizar"
                 loading={loadingVenda}
+                tipo="venda" // <- NÃO PEDE SENHA
             />
         </div>
     )
