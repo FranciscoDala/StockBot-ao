@@ -69,8 +69,8 @@ async def get_vendas(
     query = (
         select(Venda)
   .options(
-       joinedload(Venda.usuario), # <- ESSENCIAL PRA NOME_VENDEDOR
-       joinedload(Venda.itens).joinedload(ItemVenda.produto) # <- ESSENCIAL PRA NOME_PRODUTO
+       joinedload(Venda.usuario),
+       joinedload(Venda.itens).joinedload(ItemVenda.produto)
    )
   .where(Venda.loja_id == loja_id_usar)
   .order_by(Venda.created_at.desc())
@@ -86,8 +86,40 @@ async def get_vendas(
         query = query.where(Venda.usuario_id == vendedor_id)
 
     result = await db.execute(query)
-    vendas = result.scalars().unique().all()
-    return vendas
+    vendas_db = result.scalars().unique().all()
+
+    # MAPEAMENTO MANUAL PRA NAO QUEBRAR O PYDANTIC
+    vendas_response = []
+    for v in vendas_db:
+        itens = []
+        for i in v.itens:
+            itens.append({
+                "id": i.id,
+                "venda_id": i.venda_id,
+                "produto_id": i.produto_id,
+                "loja_id": i.loja_id,
+                "nome_produto": i.produto.nome if i.produto else "Produto Removido",
+                "quantidade": i.quantidade,
+                "preco_unitario": i.preco_unitario,
+                "subtotal": i.subtotal,
+            })
+
+        vendas_response.append({
+            "id": v.id,
+            "loja_id": v.loja_id,
+            "usuario_id": v.usuario_id,
+            "nome_vendedor": v.usuario.nome if v.usuario else "Sistema",
+            "total": v.total,
+            "total_itens": v.total_itens,
+            "forma_pagamento": v.forma_pagamento,
+            "valor_recebido": v.valor_recebido,
+            "troco": v.troco,
+            "status": v.status,
+            "data_venda": v.created_at, # <- AQUI ESTA O TRUQUE
+            "itens": itens
+        })
+
+    return vendas_response
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
