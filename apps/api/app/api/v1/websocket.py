@@ -1,4 +1,6 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
+from jose import jwt, JWTError
+from app.core.config import settings
 from app.websocket.manager import manager
 
 router = APIRouter()
@@ -6,7 +8,22 @@ router = APIRouter()
 @router.websocket("/ws/lojas/{loja_id}")
 async def websocket_endpoint(websocket: WebSocket, loja_id: str):
     token = websocket.query_params.get("token")
-    # TODO: valida o token aqui. Se inválido: await websocket.close()
+
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_loja_id: str = payload.get("loja_id")
+
+        if user_loja_id!= loja_id:
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+
+    except JWTError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
 
     await manager.connect(websocket, loja_id)
     try:

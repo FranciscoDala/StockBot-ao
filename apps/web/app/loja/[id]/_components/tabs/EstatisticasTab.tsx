@@ -1,6 +1,6 @@
 "use client"
-import { useEffect, useState, useMemo, useRef } from "react"
-import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package } from "lucide-react"
+import { useEffect, useState, useMemo, useRef, useCallback } from "react"
+import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
@@ -49,57 +49,12 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const [vendas, setVendas] = useState<Venda[]>([])
     const [loading, setLoading] = useState(true)
     const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
+    const [wsConectado, setWsConectado] = useState(false)
     const ws = useRef<WebSocket | null>(null)
+    const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
-    useEffect(() => {
+    const buscarVendas = useCallback(async () => {
         if (!token ||!lojaId) return;
-        buscarVendas()
-        conectarWebSocket()
-
-        return () => {
-            ws.current?.close()
-        }
-    }, [token, lojaId])
-
-    const conectarWebSocket = () => {
-        if (!token) return;
-        ws.current = new WebSocket(`${WS_URL}/api/v1/ws/lojas/${lojaId}?token=${token}`);
-
-        ws.current.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-
-            // 1. ATUALIZA ESTOQUE - se tiver outro componente ouvindo
-            if (data.tipo === 'stock.updated') {
-                // Pode emitir evento global aqui se precisar
-            }
-
-            // 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
-            if (data.tipo === 'stats.updated') {
-                setVendas(prev => {
-                    if (data.acao === 'add') {
-                        // Cria uma venda "fake" só pra atualizar os contadores
-                        // O ideal seria dar um fetch, mas pra ser instantâneo fazemos assim
-                        const novaVenda: Venda = {
-                            id: `temp-${Date.now()}`,
-                            data: new Date().toISOString(),
-                            total: data.valor_venda,
-                            formaPagamento: 'N/A',
-                            itens: data.total_itens,
-                            detalhes: []
-                        }
-                        return [novaVenda,...prev]
-                    } else if (data.acao === 'remove') {
-                        // Remove a última venda do dia
-                        return prev.slice(1)
-                    }
-                    return prev
-                })
-            }
-        }
-        ws.current.onclose = () => setTimeout(conectarWebSocket, 3000) // reconecta
-    }
-
-    const buscarVendas = async () => {
         setLoading(true)
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
@@ -109,27 +64,70 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().trim() === "concluida")
-               .map(v => ({
+             .filter(v => v.status?.toLowerCase().trim() === "concluida")
+             .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                       ...item,
+                     ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
                 }))
             setVendas(vendasFormatadas)
         } catch (e) {
-            console.error(e)
+            console.error("Erro buscar vendas:", e)
             setVendas([])
         } finally {
             setLoading(false)
         }
-    }
+    }, [token, lojaId])
+
+    const conectarWebSocket = useCallback(() => {
+        if (!token ||!lojaId) return;
+        if (ws.current?.readyState === WebSocket.OPEN) return;
+
+        ws.current = new WebSocket(`${WS_URL}/api/v1/ws/lojas/${lojaId}?token=${token}`);
+
+        ws.current.onopen = () => {
+            setWsConectado(true)
+            if(reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+        }
+
+        ws.current.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.tipo === 'stats.updated') {
+                    buscarVendas()
+                }
+            } catch (e) {
+                console.error("Erro ao ler WS", e)
+            }
+        }
+
+        ws.current.onclose = () => {
+            setWsConectado(false)
+            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000)
+        }
+
+        ws.current.onerror = () => {
+            ws.current?.close()
+        }
+
+    }, [token, lojaId, buscarVendas])
+
+    useEffect(() => {
+        buscarVendas()
+        conectarWebSocket()
+
+        return () => {
+            if(reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+            ws.current?.close()
+        }
+    }, [buscarVendas, conectarWebSocket])
 
     const hoje = new Date()
     const inicioSemana = useMemo(() => {
@@ -174,8 +172,21 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
 
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
+            <style jsx global>{`
+               .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                }
+               .scrollbar-hide {
+                    -ms-overflow-style: none; /* IE e Edge */
+                    scrollbar-width: none; /* Firefox */
+                }
+            `}</style>
+
             <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
+                    {wsConectado? <Wifi size={16} className="text-green-500" title="Tempo real ativo" /> : <WifiOff size={16} className="text-red-500" title="Desconectado" />}
+                </div>
                 <button onClick={buscarVendas} className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-neutral-800 rounded-lg text-xs md:text-sm hover:bg-neutral-700 transition">
                     <RefreshCw size={14} /> Atualizar
                 </button>
@@ -195,7 +206,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
                 {vendasHoje.length === 0? (
                     <p className="text-gray-400 text-center py-6 text-sm">Nenhuma venda hoje ainda</p>
                 ) : (
-                    <div className="space-y-2 max-h-[350px] md:max-h-[400px] overflow-y-auto">
+                    <div className="space-y-2 max-h-[350px] md:max-h-[400px] overflow-y-auto scrollbar-hide">
                         {vendasHoje.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(v => (
                             <div
                                 key={v.id}
@@ -215,13 +226,13 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
 
             {vendaSelecionada && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
-                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h- flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-neutral-800">
                             <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3>
                             <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
                         </div>
 
-                        <div className="p-4 space-y-3 overflow-y-auto">
+                        <div className="p-4 space-y-3 overflow-y-auto scrollbar-hide">
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div><p className="text-gray-400">Data</p><p className="font-medium">{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p></div>
                                 <div><p className="text-gray-400">Pagamento</p><p className="font-medium">{vendaSelecionada.formaPagamento}</p></div>
@@ -231,7 +242,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
 
                             <div className="border-t border-neutral-800 pt-3">
                                 <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16}/> Produtos Vendidos</h4>
-                                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                                     {vendaSelecionada.detalhes.length > 0? vendaSelecionada.detalhes.map((item) => (
                                         <div key={item.id} className="flex justify-between items-center text-sm bg-neutral-800 p-3 rounded-lg">
                                             <div className="flex-1">
