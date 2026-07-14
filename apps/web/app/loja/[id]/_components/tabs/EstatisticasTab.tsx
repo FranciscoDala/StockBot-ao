@@ -60,7 +60,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
     const buscarVendas = useCallback(async () => {
-        if (!token || !lojaId) return;
+        if (!token ||!lojaId) return;
         setLoading(true)
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
@@ -69,16 +69,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluida")
-                .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
+               .filter(v => v.status?.toLowerCase().trim() === "concluida")
+               .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                        ...item,
+                       ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -93,7 +93,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     }, [token, lojaId])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token || !lojaId) return;
+        if (!token ||!lojaId) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -153,15 +153,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-            .header { text-align: center; margin-bottom: 5px; }
-            .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-            .header p { margin: 1px 0; font-size: 10px; }
-            .info p { margin: 1px 0; }
+           .header { text-align: center; margin-bottom: 5px; }
+           .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+           .header p { margin: 1px 0; font-size: 10px; }
+           .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-            .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-            .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+           .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+           .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -218,7 +218,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const calcularStats = (lista: Venda[]): Stats => {
         const total = lista.reduce((acc, v) => acc + v.total, 0)
         const qtdVendas = lista.length
-        const ticketMedio = qtdVendas > 0 ? total / qtdVendas : 0
+        const ticketMedio = qtdVendas > 0? total / qtdVendas : 0
         return { total, qtdVendas, ticketMedio }
     }
 
@@ -258,7 +258,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-            ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+           ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -278,15 +278,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-          .scrollbar-hide::-webkit-scrollbar { display: none; }
-          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+         .scrollbar-hide::-webkit-scrollbar { display: none; }
+         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
             {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
-                    {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
+                    {wsConectado? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
                 </div>
                 <div className="flex gap-2">
                     <button onClick={exportarCSV} className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold">
@@ -306,7 +306,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label className="text-xs text-gray-400">Período</label>
-                        <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="w-full mt-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
+                        <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
                             <option value="7">Últimos 7 dias</option>
                             <option value="15">Últimos 15 dias</option>
                             <option value="30">Últimos 30 dias</option>
@@ -332,7 +332,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     { id: "produtos", label: "Top Produtos", icon: Package },
                     { id: "pagamentos", label: "Pagamentos", icon: PieChart }
                 ].map(tab => (
-                    <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id ? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                    <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
                         <tab.icon size={14} /> {tab.label}
                     </button>
                 ))}
@@ -354,7 +354,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Vendas Realizadas"
-                            stats={{ ...statsPeriodo, total: statsPeriodo.qtdVendas }}
+                            stats={{...statsPeriodo, total: statsPeriodo.qtdVendas }}
                             icon={<ShoppingBag size={16} />}
                             cor="blue"
                             descricao="Pedidos concluídos"
@@ -362,7 +362,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Ticket Médio"
-                            stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
+                            stats={{...statsPeriodo, total: statsPeriodo.ticketMedio }}
                             icon={<TrendingUp size={16} />}
                             cor="purple"
                             descricao="Valor por venda"
@@ -371,7 +371,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Itens Vendidos"
-                            stats={{ ...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
+                            stats={{...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
                             icon={<Package size={16} />}
                             cor="orange"
                             descricao="Unidades no período"
@@ -379,38 +379,48 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                     </div>
 
-                    {/* GRAFICO BARRAS */}
+                    {/* GRAFICO LINHA COM PICOS */}
                     <div className="bg-neutral-900 rounded-xl p-4">
                         <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
 
-                        {/* GRAFICO BARRAS */}
-                        <div className="bg-neutral-900 rounded-xl p-4">
-                            <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
-
-                            {vendasPorDia.length === 0 ? (
-                                <div className="h-40 flex items-center justify-center">
-                                    <p className="text-gray-400 text-sm">Sem vendas no período selecionado</p>
-                                </div>
-                            ) : (
-                                <div className="flex items-end gap-2 h-40">
-                                    {vendasPorDia.map((d, i) => {
+                        {vendasPorDia.length === 0? (
+                            <div className="h-40 flex items-center justify-center">
+                                <p className="text-gray-400 text-sm">Sem vendas no período selecionado</p>
+                            </div>
+                        ) : (
+                            <div className="relative h-40">
+                                <svg className="w-full h-full">
+                                    {(() => {
                                         const max = Math.max(...vendasPorDia.map(x => x.total), 1)
-                                        const height = max > 0 ? (d.total / max) * 100 : 5 // minimo 5% pra aparecer
+                                        const points = vendasPorDia.map((d, i) => {
+                                            const x = (i / (vendasPorDia.length - 1)) * 100
+                                            const y = 100 - (d.total / max) * 90
+                                            return `${x},${y}`
+                                        }).join(' ')
                                         return (
-                                            <div key={i} className="flex-1 flex-col items-center gap-1">
-                                                <div
-                                                    className="w-full bg-green-600 rounded-t hover:bg-green-500 transition-all"
-                                                    style={{ height: `${height}%`, minHeight: '4px' }}
-                                                    title={`${d.dia}: ${formatCurrency(d.total)}`}
-                                                ></div>
-                                                <p className="text-xs text-gray-400">{d.dia.split('/')[0]}</p>
-                                            </div>
+                                            <>
+                                                <polyline
+                                                    fill="none"
+                                                    stroke="#22c55e"
+                                                    strokeWidth="3"
+                                                    points={points}
+                                                />
+                                                {vendasPorDia.map((d, i) => {
+                                                    const x = (i / (vendasPorDia.length - 1)) * 100
+                                                    const y = 100 - (d.total / max) * 90
+                                                    return (
+                                                        <g key={i}>
+                                                            <circle cx={`${x}%`} cy={`${y}%`} r="4" fill="#22c55e" />
+                                                            <text x={`${x}%`} y="98%" textAnchor="middle" fontSize="10" fill="#9ca3af">{d.dia.split('/')[0]}</text>
+                                                        </g>
+                                                    )
+                                                })}
+                                            </>
                                         )
-                                    })}
-                                </div>
-                            )}
-                        </div>
-
+                                    })()}
+                                </svg>
+                            </div>
+                        )}
                     </div>
 
                     {/* TABELA VENDAS */}
