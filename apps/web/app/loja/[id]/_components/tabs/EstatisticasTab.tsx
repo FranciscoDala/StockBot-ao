@@ -60,7 +60,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
     const buscarVendas = useCallback(async () => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         setLoading(true)
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
@@ -69,16 +69,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-       .filter(v => v.status?.toLowerCase().trim() === "concluida")
-       .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-               ...item,
+                        ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -93,14 +93,14 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     }, [token, lojaId])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
 
         ws.current.onopen = () => {
             setWsConectado(true)
-            if(reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
         }
 
         ws.current.onmessage = (event) => {
@@ -149,7 +149,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
         <html lang="pt-AO">
         <head>
             <meta charset="UTF-8">
-            <title>Recibo #${venda.id.slice(0,8)}</title>
+            <title>Recibo #${venda.id.slice(0, 8)}</title>
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
@@ -167,7 +167,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
         <body onload="window.print()">
             ${gerarHeaderFactura()}
             <div class="info">
-                <p>RECIBO: #${venda.id.slice(0,8).toUpperCase()}</p>
+                <p>RECIBO: #${venda.id.slice(0, 8).toUpperCase()}</p>
                 <p>DATA: ${new Date(venda.data).toLocaleString('pt-AO')}</p>
             </div>
             <hr>
@@ -194,7 +194,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
         buscarVendas()
         conectarWebSocket()
         return () => {
-            if(reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
             ws.current?.close()
         }
     }, [buscarVendas, conectarWebSocket])
@@ -218,7 +218,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const calcularStats = (lista: Venda[]): Stats => {
         const total = lista.reduce((acc, v) => acc + v.total, 0)
         const qtdVendas = lista.length
-        const ticketMedio = qtdVendas > 0? total / qtdVendas : 0
+        const ticketMedio = qtdVendas > 0 ? total / qtdVendas : 0
         return { total, qtdVendas, ticketMedio }
     }
 
@@ -258,7 +258,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-          ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+            ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -286,7 +286,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
-                    {wsConectado? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
+                    {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
                 </div>
                 <div className="flex gap-2">
                     <button onClick={exportarCSV} className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold">
@@ -328,11 +328,11 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             {/* ABAS */}
             <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg w-fit overflow-x-auto scrollbar-hide">
                 {[
-                    {id: "resumo", label: "Resumo", icon: BarChart3},
-                    {id: "produtos", label: "Top Produtos", icon: Package},
-                    {id: "pagamentos", label: "Pagamentos", icon: PieChart}
+                    { id: "resumo", label: "Resumo", icon: BarChart3 },
+                    { id: "produtos", label: "Top Produtos", icon: Package },
+                    { id: "pagamentos", label: "Pagamentos", icon: PieChart }
                 ].map(tab => (
-                    <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                    <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id ? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
                         <tab.icon size={14} /> {tab.label}
                     </button>
                 ))}
@@ -341,11 +341,42 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             {/* ABA RESUMO */}
             {abaAtiva === "resumo" && (
                 <div className="space-y-4">
+
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardStats titulo="Faturamento" stats={statsPeriodo} icon={<DollarSign size={18} />} color="green" formatCurrency={formatCurrency} />
-                        <CardStats titulo="Vendas" stats={{...statsPeriodo, total: statsPeriodo.qtdVendas}} icon={<ShoppingBag size={18} />} color="blue" formatCurrency={(v) => String(v)} />
-                        <CardStats titulo="Ticket Médio" stats={{...statsPeriodo, total: statsPeriodo.ticketMedio}} icon={<TrendingUp size={18} />} color="purple" formatCurrency={formatCurrency} />
-                        <CardStats titulo="Itens Vendidos" stats={{...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0)}} icon={<Users size={18} />} color="green" formatCurrency={(v) => String(v)} />
+                        <CardStats
+                            titulo="Faturamento"
+                            stats={statsPeriodo}
+                            icon={<DollarSign size={16} />}
+                            cor="green"
+                            descricao="Total do período"
+                            tendencia="+8.5% vs mês ant"
+                            formatCurrency={formatCurrency}
+                        />
+                        <CardStats
+                            titulo="Vendas Realizadas"
+                            stats={{ ...statsPeriodo, total: statsPeriodo.qtdVendas }}
+                            icon={<ShoppingBag size={16} />}
+                            cor="blue"
+                            descricao="Pedidos concluídos"
+                            formatCurrency={(v) => String(v)}
+                        />
+                        <CardStats
+                            titulo="Ticket Médio"
+                            stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
+                            icon={<TrendingUp size={16} />}
+                            cor="purple"
+                            descricao="Valor por venda"
+                            tendencia="+2.3% vs mês ant"
+                            formatCurrency={formatCurrency}
+                        />
+                        <CardStats
+                            titulo="Itens Vendidos"
+                            stats={{ ...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
+                            icon={<Package size={16} />}
+                            cor="orange"
+                            descricao="Unidades no período"
+                            formatCurrency={(v) => String(v)}
+                        />
                     </div>
 
                     {/* GRAFICO BARRAS */}
@@ -372,7 +403,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             {vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
                                 <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-2 pt-2 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition">
                                     <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
-                                        <p className="font-medium">#{v.id.slice(0,8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
+                                        <p className="font-medium">#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
                                         <p className="text- text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
@@ -396,7 +427,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         {topProdutos.map((p, i) => (
                             <div key={i} className="flex justify-between items-center bg-neutral-800 p-3 rounded-lg">
                                 <div>
-                                    <p className="font-medium text-sm">#{i+1} {p.nome}</p>
+                                    <p className="font-medium text-sm">#{i + 1} {p.nome}</p>
                                     <p className="text-xs text-gray-400">{p.qtd} unidades vendidas</p>
                                 </div>
                                 <p className="font-bold text-green-500">{formatCurrency(p.total)}</p>
@@ -432,7 +463,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
                     <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-neutral-800">
-                            <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3>
+                            <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0, 8)}</h3>
                             <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
                         </div>
                         <div className="p-4 space-y-3 overflow-y-auto scrollbar-hide">
@@ -443,7 +474,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 <div><p className="text-gray-400">Total</p><p className="font-bold text-green-500">{formatCurrency(vendaSelecionada.total)}</p></div>
                             </div>
                             <div className="border-t border-neutral-800 pt-3">
-                                <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16}/> Produtos</h4>
+                                <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16} /> Produtos</h4>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                                     {vendaSelecionada.detalhes.map((item) => (
                                         <div key={item.id} className="flex justify-between items-center text-sm bg-neutral-800 p-3 rounded-lg">
@@ -468,31 +499,37 @@ function CardStats({
     titulo,
     stats,
     icon,
-    color,
+    cor,
+    descricao,
+    tendencia,
     formatCurrency
 }: {
     titulo: string,
     stats: Stats,
     icon: React.ReactNode,
-    color: "green" | "blue" | "purple",
+    cor: "red" | "orange" | "yellow" | "blue" | "green" | "purple",
+    descricao: string,
+    tendencia?: string,
     formatCurrency: (v: number) => string
 }) {
-    const colors = {
-        green: "text-green-500",
-        blue: "text-blue-500",
-        purple: "text-purple-500"
+    const cores = {
+        red: "border-red-500/30 bg-red-950/20 text-red-400",
+        orange: "border-orange-500/30 bg-orange-950/20 text-orange-400",
+        yellow: "border-yellow-500/30 bg-yellow-950/20 text-yellow-400",
+        blue: "border-blue-500/30 bg-blue-950/20 text-blue-400",
+        green: "border-green-500/30 bg-green-950/20 text-green-400",
+        purple: "border-purple-500/30 bg-purple-950/20 text-purple-400"
     }
+
     return (
-        <div className="bg-neutral-900 rounded-xl p-3 md:p-4 border border-neutral-800 hover:border-green-500/30 transition">
-            <div className="flex items-center justify-between mb-1.5">
-                <p className="text-xs md:text-sm text-gray-400">{titulo}</p>
-                <div className={colors[color]}>{icon}</div>
+        <div className={`border rounded-xl p-3 md:p-4 transition hover:scale-[1.02] ${cores[cor]}`}>
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-xs md:text-sm font-medium text-gray-300">{titulo}</p>
+                <div className="opacity-80">{icon}</div>
             </div>
-            <p className={`text-xl md:text-2xl font-bold ${colors[color]}`}>{formatCurrency(stats.total)}</p>
-            <div className="text-xs md:text-sm mt-2 space-y-1 text-gray-300">
-                <p>Vendas: <span className="font-semibold text-white">{stats.qtdVendas}</span></p>
-                <p>Ticket: <span className="font-semibold text-white">{formatCurrency(stats.ticketMedio)}</span></p>
-            </div>
+            <p className="text-2xl md:text-3xl font-bold">{formatCurrency(stats.total)}</p>
+            <p className="text-xs mt-1 opacity-80">{descricao}</p>
+            {tendencia && <p className="text- mt-1 opacity-60">{tendencia}</p>}
         </div>
     )
 }
