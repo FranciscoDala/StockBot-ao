@@ -10,7 +10,7 @@ import asyncio
 from app.core.deps import get_current_user, require_role, get_current_loja_id
 from app.schemas.usuario import Role
 from app.models.usuario import Usuario
-from app.models.venda import Venda # <- REMOVIDO ItemVenda
+from app.models.venda import Venda, ItensVenda # <- CORRIGIDO: ItensVenda com S
 from app.models.produto import Produto
 from app.db.session import get_db
 from app.schemas.venda import VendaCreate, VendaRead
@@ -73,10 +73,10 @@ async def get_vendas(
     loja_id_usar = loja_id_param or loja_id_token
     offset = (page - 1) * limit
 
-    # QUERY COM JOINEDLOAD USANDO STRING PRA NAO DAR ERRO DE IMPORT
+    # QUERY COM JOINEDLOAD CORRETO
     query = (
         select(Venda)
-      .options(joinedload(Venda.itens).joinedload("produto")) # <- MUDANÇA AQUI
+      .options(joinedload(Venda.itens).joinedload(ItensVenda.produto)) # <- CORRIGIDO
       .where(Venda.loja_id == loja_id_usar)
       .order_by(Venda.data_venda.desc())
       .limit(limit)
