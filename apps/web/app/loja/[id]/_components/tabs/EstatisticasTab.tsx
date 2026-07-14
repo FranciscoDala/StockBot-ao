@@ -1,7 +1,6 @@
 "use client"
 import { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer } from "lucide-react"
-import { useImpressaoFactura } from "@/hooks/useImpressaoFactura"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
@@ -44,16 +43,16 @@ type Props = {
     lojaId: string
     token: string | null
     formatCurrency: (v: number) => string
+    nomeLoja?: string // <- ADICIONADO pra aparecer no cabeçalho da factura
 }
 
-export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
+export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MINHA LOJA" }: Props) {
     const [vendas, setVendas] = useState<Venda[]>([])
     const [loading, setLoading] = useState(true)
     const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
     const [wsConectado, setWsConectado] = useState(false)
     const ws = useRef<WebSocket | null>(null)
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
-    const { imprimir } = useImpressaoFactura()
 
     const buscarVendas = useCallback(async () => {
         if (!token ||!lojaId) return;
@@ -66,15 +65,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-         .filter(v => v.status?.toLowerCase().trim() === "concluida")
-         .map(v => ({
+          .filter(v => v.status?.toLowerCase().trim() === "concluida")
+          .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                 ...item,
+                  ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -120,6 +119,64 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
         }
 
     }, [token, lojaId, buscarVendas])
+
+    const handleImprimir = (venda: Venda) => { // <- ALTERADO: agora imprime direto
+        const itensHtml = venda.detalhes.map((item: ItemVenda) => `
+            <tr>
+                <td>${item.nome_produto}</td>
+                <td style="text-align:center">${item.quantidade}</td>
+                <td style="text-align:right">${formatCurrency(item.preco_unitario)}</td>
+                <td style="text-align:right">${formatCurrency(item.subtotal)}</td>
+            </tr>
+        `).join('');
+
+        const html = `
+        <!DOCTYPE html>
+        <html lang="pt-AO">
+        <head>
+            <meta charset="UTF-8">
+            <title>Factura #${venda.id.slice(0,8)}</title>
+            <style>
+                body { font-family: 'Arial', sans-serif; padding: 10px; max-width: 80mm; margin: auto; font-size: 11px; color: #000; background: #fff; }
+               .header { text-align: center; margin-bottom: 10px; }
+               .header h1 { margin: 0; font-size: 16px; }
+               .info p { margin: 2px 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+                th, td { padding: 3px 0; border-bottom: 1px dashed #ccc; font-size: 11px; }
+               .total { text-align: right; font-size: 14px; font-weight: bold; margin-top: 8px; }
+               .footer { text-align: center; margin-top: 15px; font-size: 10px; }
+                @media print { body { margin: 0; } }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>${nomeLoja}</h1>
+                <p>FACTURA RECIBO</p>
+            </div>
+            <div class="info">
+                <p><b>Nº:</b> ${venda.id.slice(0,8)}</p>
+                <p><b>Data:</b> ${new Date(venda.data).toLocaleString('pt-AO')}</p>
+                <p><b>Pagamento:</b> ${venda.formaPagamento}</p>
+            </div>
+            <table>
+                <thead><tr><th>Produto</th><th>Qtd</th><th>Preço</th><th>Total</th></tr></thead>
+                <tbody>${itensHtml}</tbody>
+            </table>
+            <div class="total">TOTAL: ${formatCurrency(venda.total)}</div>
+            <div class="footer"><p>Obrigado pela preferência!</p></div>
+        </body>
+        </html>
+        `;
+
+        const printWindow = window.open('', '_blank', 'width=300,height=600');
+        if (printWindow) {
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.focus();
+            setTimeout(() => printWindow.print(), 250);
+            setTimeout(() => printWindow.close(), 1000);
+        }
+    }
 
     useEffect(() => {
         buscarVendas()
@@ -175,8 +232,13 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-           .scrollbar-hide::-webkit-scrollbar { display: none; }
-           .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+            .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                }
+            .scrollbar-hide {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
             `}</style>
 
             <div className="flex items-center justify-between gap-2">
@@ -207,21 +269,20 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
                         {vendasHoje.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(v => (
                             <div
                                 key={v.id}
-                                onClick={() => setVendaSelecionada(v)}
-                                className="flex justify-between items-center border-b border-neutral-800 pb-1.5 pt-1.5 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition cursor-pointer" // <- text-xs e padding menor
+                                className="flex justify-between items-center border-b border-neutral-800 pb-1.5 pt-1.5 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition"
                             >
-                                <div className="flex-1 min-w-0">
+                                <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
                                     <p className="font-medium text-xs">#{v.id.slice(0,8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
-                                    <p className="text-[10px] text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
+                                    <p className="text- text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                     <p className="font-bold text-green-500 text-xs">{formatCurrency(v.total)}</p>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); imprimir(v.id) }} // <- stopPropagation pra não abrir o modal
-                                        className="p-1.5 rounded-md hover:bg-green-600/20 transition text-gray-300 hover:text-green-400" // <- mais visível
+                                        onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} // <- AGORA IMPRIME DIRETO
+                                        className="p-1.5 rounded-md hover:bg-green-600/20 transition text-gray-300 hover:text-green-400"
                                         title="Imprimir Factura"
                                     >
-                                        <Printer size={14} /> {/* <- ícone menor */}
+                                        <Printer size={14} />
                                     </button>
                                 </div>
                             </div>
@@ -232,7 +293,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
 
             {vendaSelecionada && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
-                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h- flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-neutral-800">
                             <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3>
                             <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
