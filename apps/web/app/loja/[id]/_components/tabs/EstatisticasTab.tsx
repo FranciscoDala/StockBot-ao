@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useMemo, useRef, useCallback } from "react"
-import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer } from "lucide-react"
+import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer, Filter, Download, BarChart3, PieChart, Users } from "lucide-react"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
@@ -43,9 +43,9 @@ type Props = {
     lojaId: string
     token: string | null
     formatCurrency: (v: number) => string
-    nomeLoja?: string // <- ADICIONADO pra aparecer no cabeçalho da factura
-    nifLoja?: string // <- ADICIONADO
-    enderecoLoja?: string // <- ADICIONADO
+    nomeLoja?: string
+    nifLoja?: string
+    enderecoLoja?: string
 }
 
 export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MINHA LOJA", nifLoja = "NIF: 000", enderecoLoja = "Endereço: Luanda" }: Props) {
@@ -53,6 +53,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const [loading, setLoading] = useState(true)
     const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
     const [wsConectado, setWsConectado] = useState(false)
+    const [abaAtiva, setAbaAtiva] = useState<"resumo" | "produtos" | "pagamentos">("resumo")
+    const [filtroPeriodo, setFiltroPeriodo] = useState("30")
+    const [filtroForma, setFiltroForma] = useState("TODAS")
     const ws = useRef<WebSocket | null>(null)
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
@@ -67,15 +70,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-         .filter(v => v.status?.toLowerCase().trim() === "concluida")
-         .map(v => ({
+       .filter(v => v.status?.toLowerCase().trim() === "concluida")
+       .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                 ...item,
+               ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -122,7 +125,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
     }, [token, lojaId, buscarVendas])
 
-    const gerarHeaderFactura = () => ` // <- HEADER UNICO IGUAL AO VENDA
+    const gerarHeaderFactura = () => `
         <div class="header">
             <h1>${nomeLoja.toUpperCase()}</h1>
             <p>${nifLoja}</p>
@@ -150,15 +153,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-              .header { text-align: center; margin-bottom: 5px; }
-              .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-              .header p { margin: 1px 0; font-size: 10px; }
-              .info p { margin: 1px 0; }
+            .header { text-align: center; margin-bottom: 5px; }
+            .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+            .header p { margin: 1px 0; font-size: 10px; }
+            .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-              .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-              .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+            .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+            .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -190,7 +193,6 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     useEffect(() => {
         buscarVendas()
         conectarWebSocket()
-
         return () => {
             if(reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
             ws.current?.close()
@@ -198,20 +200,20 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     }, [buscarVendas, conectarWebSocket])
 
     const hoje = new Date()
-    const inicioSemana = useMemo(() => {
-        const d = new Date(hoje)
-        d.setDate(hoje.getDate() - hoje.getDay())
-        d.setHours(0, 0, 0, 0)
+    const diasAtras = useMemo(() => {
+        const d = new Date()
+        d.setDate(hoje.getDate() - Number(filtroPeriodo))
         return d
-    }, [])
-    const inicioMes = useMemo(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1), [])
+    }, [filtroPeriodo, hoje])
 
-    const filtrarPorPeriodo = (inicio: Date, fim: Date) => {
+    const vendasFiltradas = useMemo(() => {
         return vendas.filter(v => {
             const dataVenda = new Date(v.data)
-            return dataVenda >= inicio && dataVenda <= fim
+            const passaData = dataVenda >= diasAtras
+            const passaForma = filtroForma === "TODAS" || v.formaPagamento === filtroForma
+            return passaData && passaForma
         })
-    }
+    }, [vendas, diasAtras, filtroForma])
 
     const calcularStats = (lista: Venda[]): Stats => {
         const total = lista.reduce((acc, v) => acc + v.total, 0)
@@ -220,17 +222,52 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
         return { total, qtdVendas, ticketMedio }
     }
 
-    const vendasHoje = useMemo(() => filtrarPorPeriodo(
-        new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()),
-        new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59)
-    ), [vendas, hoje])
+    const statsPeriodo = useMemo(() => calcularStats(vendasFiltradas), [vendasFiltradas])
 
-    const vendasSemana = useMemo(() => filtrarPorPeriodo(inicioSemana, hoje), [vendas, inicioSemana, hoje])
-    const vendasMes = useMemo(() => filtrarPorPeriodo(inicioMes, hoje), [vendas, inicioMes, hoje])
+    const topProdutos = useMemo(() => {
+        const contagem: Record<string, { nome: string; qtd: number; total: number }> = {};
+        vendasFiltradas.forEach(v => {
+            v.detalhes.forEach(it => {
+                if (!contagem[it.produto_id]) {
+                    contagem[it.produto_id] = { nome: it.nome_produto, qtd: 0, total: 0 };
+                }
+                contagem[it.produto_id].qtd += it.quantidade;
+                contagem[it.produto_id].total += it.subtotal;
+            });
+        });
+        return Object.values(contagem).sort((a, b) => b.total - a.total).slice(0, 10);
+    }, [vendasFiltradas]);
 
-    const statsHoje = useMemo(() => calcularStats(vendasHoje), [vendasHoje])
-    const statsSemana = useMemo(() => calcularStats(vendasSemana), [vendasSemana])
-    const statsMes = useMemo(() => calcularStats(vendasMes), [vendasMes])
+    const vendasPorPagamento = useMemo(() => {
+        const grupos: Record<string, number> = {};
+        vendasFiltradas.forEach(v => {
+            grupos[v.formaPagamento] = (grupos[v.formaPagamento] || 0) + v.total;
+        });
+        return Object.entries(grupos).map(([forma, total]) => ({ forma, total }));
+    }, [vendasFiltradas]);
+
+    const vendasPorDia = useMemo(() => {
+        const dias: Record<string, number> = {};
+        vendasFiltradas.forEach(v => {
+            const dia = new Date(v.data).toLocaleDateString('pt-AO')
+            dias[dia] = (dias[dia] || 0) + v.total;
+        });
+        return Object.entries(dias).slice(-7).map(([dia, total]) => ({ dia, total }));
+    }, [vendasFiltradas]);
+
+    const exportarCSV = () => {
+        const linhas = [
+            ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
+          ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+        ]
+        const csv = linhas.map(l => l.join(",")).join("\n")
+        const blob = new Blob([csv], { type: "text/csv" })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `estatisticas-${hoje.toISOString().split('T')[0]}.csv`
+        a.click()
+    }
 
     if (loading) return (
         <div className="flex items-center justify-center py-10 md:py-20">
@@ -241,73 +278,163 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-            .scrollbar-hide::-webkit-scrollbar {
-                    display: none;
-                }
-            .scrollbar-hide {
-                    -ms-overflow-style: none;
-                    scrollbar-width: none;
-                }
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
-            <div className="flex items-center justify-between gap-2">
+            {/* HEADER */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
                     {wsConectado? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
                 </div>
-                <button onClick={buscarVendas} className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-neutral-800 rounded-lg text-xs md:text-sm hover:bg-neutral-700 transition">
-                    <RefreshCw size={14} /> Atualizar
-                </button>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                <CardStats titulo="Hoje" stats={statsHoje} icon={<CalendarDays size={18} />} color="green" formatCurrency={formatCurrency} />
-                <CardStats titulo="Semana" stats={statsSemana} icon={<TrendingUp size={18} />} color="blue" formatCurrency={formatCurrency} />
-                <CardStats titulo="Mês" stats={statsMes} icon={<DollarSign size={18} />} color="purple" formatCurrency={formatCurrency} />
-            </div>
-
-            <div className="bg-neutral-900 rounded-xl shadow p-3 md:p-4">
-                <div className="flex items-center gap-2 mb-3">
-                    <ShoppingBag size={16} className="text-green-500" />
-                    <h3 className="font-bold text-base md:text-lg">Vendas Hoje - {vendasHoje.length}</h3>
+                <div className="flex gap-2">
+                    <button onClick={exportarCSV} className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold">
+                        <Download size={14} /> Exportar
+                    </button>
+                    <button onClick={buscarVendas} className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800 rounded-lg text-xs hover:bg-neutral-700 transition">
+                        <RefreshCw size={14} /> Atualizar
+                    </button>
                 </div>
-                {vendasHoje.length === 0? (
-                    <p className="text-gray-400 text-center py-6 text-sm">Nenhuma venda hoje ainda</p>
-                ) : (
-                    <div className="space-y-1 max-h-[350px] md:max-h-[400px] overflow-y-auto scrollbar-hide">
-                        {vendasHoje.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(v => (
-                            <div
-                                key={v.id}
-                                className="flex justify-between items-center border-b border-neutral-800 pb-1.5 pt-1.5 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition"
-                            >
-                                <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
-                                    <p className="font-medium text-xs">#{v.id.slice(0,8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
-                                    <p className="text- text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
+            </div>
+
+            {/* FILTROS */}
+            <div className="bg-neutral-900 border-neutral-800 rounded-xl p-3 md:p-4">
+                <div className="flex items-center gap-2 mb-3 text-gray-300">
+                    <Filter size={16} /> <span className="text-sm font-medium">Filtros</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label className="text-xs text-gray-400">Período</label>
+                        <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="w-full mt-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="15">Últimos 15 dias</option>
+                            <option value="30">Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs text-gray-400">Forma de Pagamento</label>
+                        <select value={filtroForma} onChange={(e) => setFiltroForma(e.target.value)} className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
+                            <option value="TODAS">Todas</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="TPA">TPA</option>
+                            <option value="Transferencia">Transferência</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            {/* ABAS */}
+            <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg w-fit overflow-x-auto scrollbar-hide">
+                {[
+                    {id: "resumo", label: "Resumo", icon: BarChart3},
+                    {id: "produtos", label: "Top Produtos", icon: Package},
+                    {id: "pagamentos", label: "Pagamentos", icon: PieChart}
+                ].map(tab => (
+                    <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                        <tab.icon size={14} /> {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* ABA RESUMO */}
+            {abaAtiva === "resumo" && (
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                        <CardStats titulo="Faturamento" stats={statsPeriodo} icon={<DollarSign size={18} />} color="green" formatCurrency={formatCurrency} />
+                        <CardStats titulo="Vendas" stats={{...statsPeriodo, total: statsPeriodo.qtdVendas}} icon={<ShoppingBag size={18} />} color="blue" formatCurrency={(v) => String(v)} />
+                        <CardStats titulo="Ticket Médio" stats={{...statsPeriodo, total: statsPeriodo.ticketMedio}} icon={<TrendingUp size={18} />} color="purple" formatCurrency={formatCurrency} />
+                        <CardStats titulo="Itens Vendidos" stats={{...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0)}} icon={<Users size={18} />} color="green" formatCurrency={(v) => String(v)} />
+                    </div>
+
+                    {/* GRAFICO BARRAS */}
+                    <div className="bg-neutral-900 rounded-xl p-4">
+                        <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
+                        <div className="flex items-end gap-2 h-40">
+                            {vendasPorDia.map((d, i) => {
+                                const max = Math.max(...vendasPorDia.map(x => x.total), 1)
+                                const height = (d.total / max) * 100
+                                return (
+                                    <div key={i} className="flex-1 flex-col items-center gap-1">
+                                        <div className="w-full bg-green-600 rounded-t" style={{ height: `${height}%` }}></div>
+                                        <p className="text- text-gray-400">{d.dia.split('/')[0]}</p>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* TABELA VENDAS */}
+                    <div className="bg-neutral-900 rounded-xl p-3 md:p-4">
+                        <h3 className="font-bold mb-3">Últimas Vendas - {vendasFiltradas.length}</h3>
+                        <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-hide">
+                            {vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
+                                <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-2 pt-2 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition">
+                                    <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
+                                        <p className="font-medium">#{v.id.slice(0,8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
+                                        <p className="text- text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <p className="font-bold text-green-500">{formatCurrency(v.total)}</p>
+                                        <button onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} className="p-1.5 rounded-md hover:bg-green-600/20 transition text-gray-300 hover:text-green-400" title="Imprimir">
+                                            <Printer size={14} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <p className="font-bold text-green-500 text-xs">{formatCurrency(v.total)}</p>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleImprimir(v) }}
-                                        className="p-1.5 rounded-md hover:bg-green-600/20 transition text-gray-300 hover:text-green-400"
-                                        title="Imprimir Factura"
-                                    >
-                                        <Printer size={14} />
-                                    </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ABA PRODUTOS */}
+            {abaAtiva === "produtos" && (
+                <div className="bg-neutral-900 rounded-xl p-4">
+                    <h3 className="font-bold mb-4">Top 10 Produtos Mais Vendidos</h3>
+                    <div className="space-y-2">
+                        {topProdutos.map((p, i) => (
+                            <div key={i} className="flex justify-between items-center bg-neutral-800 p-3 rounded-lg">
+                                <div>
+                                    <p className="font-medium text-sm">#{i+1} {p.nome}</p>
+                                    <p className="text-xs text-gray-400">{p.qtd} unidades vendidas</p>
+                                </div>
+                                <p className="font-bold text-green-500">{formatCurrency(p.total)}</p>
+                            </div>
+                        ))}
+                        {topProdutos.length === 0 && <p className="text-gray-400 text-center py-8">Sem vendas no período</p>}
+                    </div>
+                </div>
+            )}
+
+            {/* ABA PAGAMENTOS */}
+            {abaAtiva === "pagamentos" && (
+                <div className="bg-neutral-900 rounded-xl p-4">
+                    <h3 className="font-bold mb-4">Faturamento por Forma de Pagamento</h3>
+                    <div className="space-y-3">
+                        {vendasPorPagamento.map((p, i) => (
+                            <div key={i}>
+                                <div className="flex justify-between mb-1">
+                                    <p className="text-sm font-medium">{p.forma}</p>
+                                    <p className="text-sm font-bold">{formatCurrency(p.total)}</p>
+                                </div>
+                                <div className="w-full bg-neutral-800 rounded-full h-2">
+                                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${(p.total / statsPeriodo.total) * 100}%` }}></div>
                                 </div>
                             </div>
                         ))}
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
+            {/* MODAL DETALHES */}
             {vendaSelecionada && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
-                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h- flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex justify-between items-center p-4 border-b border-neutral-800">
                             <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3>
                             <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
                         </div>
-
                         <div className="p-4 space-y-3 overflow-y-auto scrollbar-hide">
                             <div className="grid grid-cols-2 gap-3 text-sm">
                                 <div><p className="text-gray-400">Data</p><p className="font-medium">{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p></div>
@@ -315,11 +442,10 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 <div><p className="text-gray-400">Qtd Itens</p><p className="font-medium">{vendaSelecionada.itens}</p></div>
                                 <div><p className="text-gray-400">Total</p><p className="font-bold text-green-500">{formatCurrency(vendaSelecionada.total)}</p></div>
                             </div>
-
                             <div className="border-t border-neutral-800 pt-3">
-                                <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16}/> Produtos Vendidos</h4>
+                                <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16}/> Produtos</h4>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
-                                    {vendaSelecionada.detalhes.length > 0? vendaSelecionada.detalhes.map((item) => (
+                                    {vendaSelecionada.detalhes.map((item) => (
                                         <div key={item.id} className="flex justify-between items-center text-sm bg-neutral-800 p-3 rounded-lg">
                                             <div className="flex-1">
                                                 <p className="font-medium">{item.nome_produto}</p>
@@ -327,9 +453,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                             </div>
                                             <p className="font-semibold text-green-500">{formatCurrency(item.subtotal)}</p>
                                         </div>
-                                    )) : (
-                                        <p className="text-gray-400 text-center py-4 text-sm">Nenhum item encontrado</p>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -358,9 +482,8 @@ function CardStats({
         blue: "text-blue-500",
         purple: "text-purple-500"
     }
-
     return (
-        <div className="bg-neutral-900 rounded-xl shadow p-3 md:p-4">
+        <div className="bg-neutral-900 rounded-xl p-3 md:p-4 border border-neutral-800 hover:border-green-500/30 transition">
             <div className="flex items-center justify-between mb-1.5">
                 <p className="text-xs md:text-sm text-gray-400">{titulo}</p>
                 <div className={colors[color]}>{icon}</div>
