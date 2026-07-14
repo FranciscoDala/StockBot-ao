@@ -4,13 +4,13 @@ from sqlalchemy import ForeignKey, Numeric, DateTime, func, String, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
-from  app.db.base import BaseModel
+from app.db.base import BaseModel
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
-    from  app.models.loja import Loja
-    from  app.models.usuario import Usuario
-    from  app.models.itens_venda import ItemVenda
+    from app.models.loja import Loja
+    from app.models.usuario import Usuario
+    from app.models.itens_venda import ItemVenda
 
 class Venda(BaseModel):
     __tablename__ = "vendas"
@@ -20,7 +20,6 @@ class Venda(BaseModel):
     usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True)
     total: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
 
-    # NOVOS CAMPOS
     total_itens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     forma_pagamento: Mapped[str] = mapped_column(String(50), nullable=False, default='Dinheiro')
     valor_recebido: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
@@ -32,3 +31,12 @@ class Venda(BaseModel):
     loja: Mapped["Loja"] = relationship(back_populates="vendas")
     usuario: Mapped["Usuario"] = relationship(back_populates="vendas")
     itens: Mapped[List["ItemVenda"]] = relationship(back_populates="venda", cascade="all, delete-orphan")
+
+    # CAMPOS PRA Pydantic VendaRead
+    @property
+    def nome_vendedor(self) -> str:
+        return self.usuario.nome if self.usuario else "Sistema"
+
+    @property
+    def data_venda(self) -> datetime:
+        return self.created_at

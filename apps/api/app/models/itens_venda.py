@@ -3,13 +3,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, Integer, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from  app.db.base import BaseModel
+from app.db.base import BaseModel
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from  app.models.venda import Venda
-    from  app.models.produto import Produto
-    from  app.models.loja import Loja
+    from app.models.venda import Venda
+    from app.models.produto import Produto
+    from app.models.loja import Loja
 
 class ItemVenda(BaseModel):
     __tablename__ = "itens_venda"
@@ -25,4 +25,9 @@ class ItemVenda(BaseModel):
 
     venda: Mapped["Venda"] = relationship(back_populates="itens")
     produto: Mapped["Produto"] = relationship(back_populates="itens_venda")
-    loja: Mapped["Loja"] = relationship() # <- FK já resolve o join
+    loja: Mapped["Loja"] = relationship()
+
+    # CAMPO PRA Pydantic ItemVendaRead
+    @property
+    def nome_produto(self) -> str:
+        return self.produto.nome if self.produto else "Produto Removido"
