@@ -33,6 +33,17 @@ export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: 
 export type userread = { id: string; nome: string; email: string; nivel: UserRole; loja?: Loja | null; loja_id?: string | null; }
 export type Loja = { id: string; nome: string; slug: string; is_active: boolean; created_at: string; endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null; }
 
+// Tipo que o RiscoTab espera
+type VendaParaRisco = {
+    id: string
+    data: string
+    total: number
+    formaPagamento: string
+    itens: number
+    detalhes: ItemVenda[]
+    status?: string
+}
+
 const formatError = (data: any): string => { if (!data) return "Erro desconhecido"; if (typeof data.detail === 'string') return data.detail; if (Array.isArray(data.detail)) return data.detail.map((d: any) => d.msg).join(", "); return "Erro ao processar requisição"; }
 export const formatCurrency = (value: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(value);
 const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
@@ -91,9 +102,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-               ? data
-                   .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-                   .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+            ? data
+                .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+                .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -195,7 +206,7 @@ export default function LojaPage() {
                 const loja_id = user?.loja_id || "";
 
                 let payload: any = {
-                   ...(data || formDataProduto),
+                ...(data || formDataProduto),
                     senha_dono,
                     senha_confirmacao: senha_dono,
                     loja_id: (data as ProdutoType)?.loja_id || loja_id
@@ -241,12 +252,23 @@ export default function LojaPage() {
         } catch (err: any) { setErrorMsg(err.message); setSaving(false); }
     };
 
+    // Mapeia Venda do backend para o formato que RiscoTab espera
+    const vendasParaRisco: VendaParaRisco[] = useMemo(() => vendas.map(v => ({
+        id: String(v.id),
+        data: v.data_venda || new Date().toISOString(),
+        total: v.total,
+        formaPagamento: v.forma_pagamento,
+        itens: v.total_itens,
+        detalhes: v.itens || [],
+        status: "concluida"
+    })), [vendas]);
+
     if (!isClient || loading) return <div className="flex items-center justify-center min-h-screen bg-black"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div></div>;
 
     return <>
         <style jsx global>{`
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
 
         <Toaster position="top-center" richColors theme="dark" />
@@ -294,7 +316,7 @@ export default function LojaPage() {
                         {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")} onView={handleViewUserClick} />}
                         {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} formatCurrency={formatCurrency} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} />}
 
-                        {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={vendas} produtos={produtos} formatCurrency={formatCurrency} />}
+                        {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={vendasParaRisco} produtos={produtos} formatCurrency={formatCurrency} />}
 
                         {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
