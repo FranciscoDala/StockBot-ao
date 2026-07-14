@@ -45,14 +45,14 @@ export function EstatisticasTab({ lojaId, token, formatCurrency }: Props) {
     const buscarVendas = async () => {
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/vendas?loja_id=${lojaId}&limit=5000`, {
+            const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, { // <- / ADICIONADA AQUI
                 headers: { "Authorization": `Bearer ${token}` }
             })
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
-                .filter(v => v.status === "concluida")
+                .filter(v => v.status?.toLowerCase().trim() === "concluida") // <- FILTRO MAIS SEGURO
                 .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
