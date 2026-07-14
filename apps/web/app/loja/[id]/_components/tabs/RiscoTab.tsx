@@ -218,14 +218,14 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
 
                                 <div className="flex justify-between items-center bg-neutral-800 p-3 rounded-lg">
                                     <div>
-                                        <p className="font-medium text-sm">Vendas com Desconto >20%</p>
+                                        <p className="font-medium text-sm">Vendas com Desconto &gt;20%</p>
                                         <p className="text-xs text-gray-400">Risco de margem</p>
                                     </div>
                                     <span className="font-bold text-lg text-orange-500">{vendasComDesconto.length}</span>
                                 </div>
 
                                 {vendasCanceladas.slice(0, 3).map(v => (
-                                    <div key={v.id} className="flex justify-between items-center bg-red-950/20 p-2 rounded-lg text-xs border border-red-500/20">
+                                    <div key={v.id} className="flex justify-between items-center bg-red-950/20 p-2 rounded-lg text-xs border-red-500/20">
                                         <p>#{v.id.slice(0,8)} Cancelada</p>
                                         <p className="font-bold text-red-400">{formatCurrency(v.total)}</p>
                                     </div>
@@ -242,7 +242,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                             </h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                 {produtosValidade.map(p => (
-                                    <div key={p.id} className="bg-orange-950/20 border border-orange-500/20 p-2 rounded-lg text-xs">
+                                    <div key={p.id} className="bg-orange-950/20 border-orange-500/20 p-2 rounded-lg text-xs">
                                         <p className="font-medium truncate">{p.nome}</p>
                                         <p className="text-gray-400">Vence: {new Date(p.data_validade!).toLocaleDateString('pt-AO')}</p>
                                         <p className="font-bold">Est: {p.estoque}</p>
