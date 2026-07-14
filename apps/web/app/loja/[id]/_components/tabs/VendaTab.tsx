@@ -1,128 +1,118 @@
-"use client"
-import { useEffect, useState, useMemo, useRef, useCallback } from "react"
-import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer } from "lucide-react"
+"use client";
+import { useMemo, useEffect, useCallback } from "react";
+import { Search, ShoppingCart, CreditCard, Banknote, Smartphone, ArrowLeft, PackageX, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
-type ItemVenda = {
-    id: string
-    produto_id: string
-    nome_produto: string
-    quantidade: number
-    preco_unitario: number
-    subtotal: number
+interface Produto {
+    id: string;
+    nome: string;
+    sku: string;
+    preco_venda?: number;
+    preco: number;
+    preco_custo: number;
+    estoque: number;
+    estoque_minimo: number;
+    unidade: string;
+    imagem_url?: string;
+    is_active: boolean;
+    loja_id: string;
+    descricao?: string;
+    codigo_barras?: string | null;
+    marca?: string;
+    categoria_id?: string | number | null;
+    localizacao?: string;
+    fornecedor_id?: string | number | null;
+    data_validade?: string;
+    ncm?: string;
+    peso_kg?: number | null;
 }
 
-type VendaAPI = {
-    id: string | number
-    total: number
-    total_itens: number
-    forma_pagamento: string
-    data_venda: string
-    status: string
-    itens: ItemVenda[]
+interface CarrinhoItem extends Produto {
+    quantidade: number;
 }
 
-type Venda = {
-    id: string
-    data: string
-    total: number
-    formaPagamento: string
-    itens: number
-    detalhes: ItemVenda[]
+interface ItemVenda {
+    id: string;
+    nome_produto: string;
+    quantidade: number;
+    preco_unitario: number;
+    subtotal: number;
 }
 
-type Stats = {
-    total: number
-    qtdVendas: number
-    ticketMedio: number
+interface Props {
+    produtos: Produto[];
+    carrinho: CarrinhoItem[];
+    busca: string;
+    setBusca: (v: string) => void;
+    formaPagamento: string;
+    setFormaPagamento: (v: string) => void;
+    valorRecebido: string;
+    setValorRecebido: (v: string) => void;
+    subtotal: number;
+    totalItens: number;
+    troco: number;
+    podeFinalizar: boolean;
+    adicionarAoCarrinho: (p: Produto) => void;
+    confirmarRemoverItem: (item: CarrinhoItem) => void;
+    handleFinalizar: () => void;
+    showConfirmarModal: boolean;
+    setShowConfirmarModal: (v: boolean) => void;
+    itemParaRemover: CarrinhoItem | null;
+    handleConfirmarRemocao: () => void;
+    showConfirmarFinalizar: boolean;
+    setShowConfirmarFinalizar: (v: boolean) => void;
+    executarFinalizarVenda: () => void;
+    loadingVenda: boolean;
+    formatCurrency: (v: number) => string;
+    onClose: () => void;
+    token: string | null;
+    nomeLoja: string;
+    nifLoja?: string;
+    enderecoLoja?: string;
+    lojaId?: string;
+    vendaAtual?: { // <- ADICIONADO PRA IMPRIMIR DEPOIS DE FINALIZAR
+        id: string;
+        data: string;
+        total: number;
+        formaPagamento: string;
+        itens: number;
+        detalhes: ItemVenda[];
+    } | null
 }
 
-type Props = {
-    lojaId: string
-    token: string | null
-    formatCurrency: (v: number) => string
-    nomeLoja: string // <- AGORA OBRIGATORIO
-    nifLoja?: string // <- ADICIONA
-    enderecoLoja?: string // <- ADICIONA
-}
+export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
+    produtos,
+    carrinho,
+    busca, setBusca,
+    formaPagamento, setFormaPagamento,
+    valorRecebido, setValorRecebido,
+    subtotal, totalItens, troco, podeFinalizar,
+    adicionarAoCarrinho,
+    confirmarRemoverItem,
+    handleFinalizar,
+    showConfirmarModal, setShowConfirmarModal,
+    itemParaRemover,
+    handleConfirmarRemocao,
+    showConfirmarFinalizar, setShowConfirmarFinalizar,
+    executarFinalizarVenda,
+    loadingVenda,
+    formatCurrency,
+    onClose,
+    nomeLoja,
+    nifLoja = "NIF: 000",
+    enderecoLoja = "Endereço: Luanda",
+    vendaAtual // <- PRA IMPRIMIR
+}: Props) {
 
-export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja, nifLoja = "NIF: 000000000", enderecoLoja = "Endereço: Luanda" }: Props) {
-    const [vendas, setVendas] = useState<Venda[]>([])
-    const [loading, setLoading] = useState(true)
-    const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
-    const [wsConectado, setWsConectado] = useState(false)
-    const ws = useRef<WebSocket | null>(null)
-    const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
+    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
 
-    const buscarVendas = useCallback(async () => {
-        if (!token ||!lojaId) return;
-        setLoading(true)
-        try {
-            const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            })
-            if (!res.ok) throw new Error("Erro ao buscar vendas")
-            const data: VendaAPI[] = await res.json()
-
-            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-         .filter(v => v.status?.toLowerCase().trim() === "concluida")
-         .map(v => ({
-                    id: String(v.id),
-                    data: v.data_venda,
-                    total: Number(v.total),
-                    formaPagamento: v.forma_pagamento,
-                    itens: Number(v.total_itens),
-                    detalhes: (v.itens || []).map(item => ({
-                 ...item,
-                        preco_unitario: Number(item.preco_unitario),
-                        subtotal: Number(item.subtotal)
-                    }))
-                }))
-            setVendas(vendasFormatadas)
-        } catch (e) {
-            console.error("Erro buscar vendas:", e)
-            setVendas([])
-        } finally {
-            setLoading(false)
-        }
-    }, [token, lojaId])
-
-    const conectarWebSocket = useCallback(() => {
-        if (!token ||!lojaId) return;
-        if (ws.current?.readyState === WebSocket.OPEN) return;
-
-        ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
-
-        ws.current.onopen = () => {
-            setWsConectado(true)
-            if(reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
-        }
-
-        ws.current.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.tipo === 'stats.updated') {
-                    buscarVendas()
-                }
-            } catch (e) {
-                console.error("Erro ao ler WS", e)
-            }
-        }
-
-        ws.current.onclose = () => {
-            setWsConectado(false)
-            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000)
-        }
-
-        ws.current.onerror = () => {
-            ws.current?.close()
-        }
-
-    }, [token, lojaId, buscarVendas])
-
-    const gerarHeaderFactura = () => ` // <- HEADER UNICO
+    const gerarHeaderFactura = () => `
         <div class="header">
             <h1>${nomeLoja.toUpperCase()}</h1>
             <p>${nifLoja}</p>
@@ -131,7 +121,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja, nifLo
         <hr>
     `
 
-    const handleImprimir = (venda: Venda) => {
+    const handleImprimir = useCallback((venda: any) => {
         const itensHtml = venda.detalhes.map((item: ItemVenda) => `
             <tr>
                 <td>${item.nome_produto}</td>
@@ -150,15 +140,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja, nifLo
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-              .header { text-align: center; margin-bottom: 5px; }
-              .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-              .header p { margin: 1px 0; font-size: 10px; }
-              .info p { margin: 1px 0; }
+             .header { text-align: center; margin-bottom: 5px; }
+             .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+             .header p { margin: 1px 0; font-size: 10px; }
+             .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-              .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-              .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+             .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+             .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -185,70 +175,255 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja, nifLo
             printWindow.document.close();
             printWindow.focus();
         }
-    }
+    }, [formatCurrency, gerarHeaderFactura]);
 
     useEffect(() => {
-        buscarVendas()
-        conectarWebSocket()
-        return () => {
-            if(reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
-            ws.current?.close()
+        if(vendaAtual){ // <- IMPRIME AUTOMATICO AO FINALIZAR
+            handleImprimir(vendaAtual)
         }
-    }, [buscarVendas, conectarWebSocket])
+    }, [vendaAtual, handleImprimir]);
 
-    const hoje = new Date()
-    const inicioSemana = useMemo(() => { const d = new Date(hoje); d.setDate(hoje.getDate() - hoje.getDay()); d.setHours(0, 0, 0, 0); return d }, [])
-    const inicioMes = useMemo(() => new Date(hoje.getFullYear(), hoje.getMonth(), 1), [])
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+            }
+            if (e.key === 'Enter' && carrinho.length > 0 && podeFinalizar) {
+                e.preventDefault();
+                e.stopPropagation();
+                handleFinalizar();
+            }
+            if (e.key === 'F2') {
+                e.preventDefault();
+                document.getElementById('busca-produto')?.focus();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [carrinho, onClose, handleFinalizar, podeFinalizar]);
 
-    const filtrarPorPeriodo = (inicio: Date, fim: Date) => vendas.filter(v => { const dataVenda = new Date(v.data); return dataVenda >= inicio && dataVenda <= fim })
-    const calcularStats = (lista: Venda[]): Stats => { const total = lista.reduce((acc, v) => acc + v.total, 0); const qtdVendas = lista.length; const ticketMedio = qtdVendas > 0? total / qtdVendas : 0; return { total, qtdVendas, ticketMedio } }
-
-    const vendasHoje = useMemo(() => filtrarPorPeriodo( new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()), new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), 23, 59, 59) ), [vendas, hoje])
-    const vendasSemana = useMemo(() => filtrarPorPeriodo(inicioSemana, hoje), [vendas, inicioSemana, hoje])
-    const vendasMes = useMemo(() => filtrarPorPeriodo(inicioMes, hoje), [vendas, inicioMes, hoje])
-    const statsHoje = useMemo(() => calcularStats(vendasHoje), [vendasHoje])
-    const statsSemana = useMemo(() => calcularStats(vendasSemana), [vendasSemana])
-    const statsMes = useMemo(() => calcularStats(vendasMes), [vendasMes])
-
-    if (loading) return ( <div className="flex items-center justify-center py-10 md:py-20"> <RefreshCw className="animate-spin text-green-500" size={28} /> </div> )
+    const produtosFiltrados = useMemo(() => {
+        return produtos.filter(p =>
+            p.is_active &&
+            (p.nome.toLowerCase().includes(busca.toLowerCase()) ||
+                p.sku.toLowerCase().includes(busca.toLowerCase()))
+        );
+    }, [produtos, busca]);
 
     return (
-        <div className="space-y-4 md:space-y-6 p-2 md:p-0">
-            <style jsx global>{`.scrollbar-hide::-webkit-scrollbar { display: none; } .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
-            <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2"> <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2> {wsConectado? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />} </div>
-                <button onClick={buscarVendas} className="flex items-center gap-1.5 px-2.5 py-1.5 md:px-3 md:py-2 bg-neutral-800 rounded-lg text-xs md:text-sm hover:bg-neutral-700 transition"> <RefreshCw size={14} /> Atualizar </button>
+        <div className="flex flex-col min-h-screen bg-[#0a0a0a] text-white">
+            <div className="flex items-center justify-between p-3 bg-neutral-950 border-b border-neutral-800 sticky top-0 z-20">
+                <Button variant="ghost" onClick={onClose} className="hover:bg-neutral-800 gap-2 h-9">
+                    <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
+                </Button>
+                <h2 className="font-bold text-base truncate max-w-[200px]">{nomeLoja}</h2>
+                <div className="text-xs text-gray-400 hidden lg:block">F2: Buscar | ESC: Sair</div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                <CardStats titulo="Hoje" stats={statsHoje} icon={<CalendarDays size={18} />} color="green" formatCurrency={formatCurrency} />
-                <CardStats titulo="Semana" stats={statsSemana} icon={<TrendingUp size={18} />} color="blue" formatCurrency={formatCurrency} />
-                <CardStats titulo="Mês" stats={statsMes} icon={<DollarSign size={18} />} color="purple" formatCurrency={formatCurrency} />
-            </div>
-            <div className="bg-neutral-900 rounded-xl shadow p-3 md:p-4">
-                <div className="flex items-center gap-2 mb-3"> <ShoppingBag size={16} className="text-green-500" /> <h3 className="font-bold text-base md:text-lg">Vendas Hoje - {vendasHoje.length}</h3> </div>
-                {vendasHoje.length === 0? ( <p className="text-gray-400 text-center py-6 text-sm">Nenhuma venda hoje ainda</p> ) : (
-                    <div className="space-y-1 max-h-[350px] md:max-h-[400px] overflow-y-auto scrollbar-hide">
-                        {vendasHoje.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).map(v => (
-                            <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-1.5 pt-1.5 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition" >
-                                <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
-                                    <p className="font-medium text-xs">#{v.id.slice(0,8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
-                                    <p className="text- text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                    <p className="font-bold text-green-500 text-xs">{formatCurrency(v.total)}</p>
-                                    <button onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} className="p-1.5 rounded-md hover:bg-green-600/20 transition text-gray-300 hover:text-green-400" title="Imprimir Factura" > <Printer size={14} /> </button>
-                                </div>
-                            </div>
-                        ))}
+            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1">
+                <div className="lg:col-span-2 p-3">
+                    <div className="relative mb-3 sticky top-12 bg-[#0a0a0a] z-10 pb-2">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                        <Input
+                            id="busca-produto"
+                            placeholder="Buscar produto... [F2]"
+                            className="pl-9 bg-neutral-950 border-neutral-800 h-10 text-sm focus:border-green-500"
+                            value={busca}
+                            onChange={(e) => setBusca(e.target.value)}
+                            autoFocus
+                        />
                     </div>
-                )}
+
+                    {produtosFiltrados.length === 0 && (
+                        <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                            <PackageX size={40} />
+                            <p className="mt-2 text-sm">Nenhum produto encontrado</p>
+                        </div>
+                    )}
+
+                    <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
+                        {produtosFiltrados.map(p => {
+                            const preco = p.preco_venda?? p.preco?? 0;
+                            return (
+                                <button
+                                    key={p.id}
+                                    onClick={() => adicionarAoCarrinho(p)}
+                                    disabled={p.estoque <= 0}
+                                    className="bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden text-left transition-all hover:border-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
+                                >
+                                    <div className="relative w-full aspect-square bg-neutral-900">
+                                        {p.imagem_url? (
+                                            <img src={p.imagem_url.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">Sem Img</div>
+                                        )}
+                                        {p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1">0</Badge>)}
+                                        {p.estoque > 0 && (<Badge className="absolute top-1 right-1 bg-green-600 text-white border-none text-[9px] px-1.5">{p.estoque}</Badge>)}
+                                    </div>
+                                    <div className="p-2">
+                                        <h4 className="font-semibold text-xs truncate">{p.nome}</h4>
+                                        <div className="flex justify-between items-center mt-1">
+                                            <span className="font-bold text-green-400 text-xs">{formatCurrency(preco)}</span>
+                                        </div>
+                                    </div>
+                                </button>
+                            )
+                        })}
+                    </div>
+
+                    {/* MOBILE CARRINHO */}
+                    <div className="lg:hidden mt-4">
+                        <h3 className="font-bold text-sm flex items-center gap-2 mb-2">
+                            <ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}
+                        </h3>
+                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 bg-neutral-950 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                            {carrinho.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-24 text-gray-500">
+                                    <ShoppingCart size={24} />
+                                    <p className="mt-1 text-xs">Adiciona produtos na lista para fazer venda</p>
+                                </div>
+                            )}
+                            {carrinho.map(item => {
+                                const preco = getPreco(item);
+                                return (
+                                    <div
+                                        key={item.id}
+                                        onClick={() => confirmarRemoverItem(item)}
+                                        className="flex items-center gap-2 p-2 bg-neutral-900 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
+                                    >
+                                        <span className="text-xs font-bold w-8 text-center">{item.quantidade}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-semibold truncate">{item.nome}</p>
+                                            <p className="text-xs font-bold text-green-400">{formatCurrency(preco)}</p>
+                                        </div>
+                                        <p className="text-xs font-bold text-green-400">{formatCurrency(preco * item.quantidade)}</p>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* MOBILE PAGAMENTO */}
+                    <div className="lg:hidden py-3 space-y-2 border-t border-neutral-800 bg-neutral-950 sticky bottom-0">
+                        <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                            <SelectTrigger className="bg-neutral-900 border-neutral-800 h-10 text-sm">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-neutral-900 border-neutral-800">
+                                <SelectItem value="Dinheiro"><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
+                                <SelectItem value="TPA"><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
+                                <SelectItem value="Transferencia"><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {formaPagamento === "Dinheiro" && (
+                            <Input type="number" placeholder="Valor Recebido" className="bg-neutral-900 border-neutral-800 h-10 text-sm" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                        )}
+                        {formaPagamento === "Dinheiro" && troco > 0 && (
+                            <div className="flex justify-between text-xs font-semibold text-amber-400"><span>Troco</span><span>{formatCurrency(troco)}</span></div>
+                        )}
+
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-400">Total</span>
+                            <span className="font-bold text-green-400 text-lg">{formatCurrency(subtotal)}</span>
+                        </div>
+
+                        <Button
+                            onClick={handleFinalizar}
+                            disabled={!podeFinalizar || loadingVenda}
+                            className="bg-green-600 hover:bg-green-700 w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loadingVenda? "Finalizando..." : "Finalizar Venda"}
+                        </Button>
+                    </div>
+                </div>
+
+                {/* DESKTOP CARRINHO */}
+                <div className="bg-neutral-950 border-t lg:border-t-0 lg:border-l border-neutral-800 hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0">
+                    <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b border-neutral-800">
+                        <ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}
+                    </h3>
+
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        {carrinho.length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                                <ShoppingCart size={32} />
+                                <p className="mt-2 text-xs">Vazio</p>
+                            </div>
+                        )}
+                        {carrinho.map(item => {
+                            const preco = getPreco(item);
+                            return (
+                                <div
+                                    key={item.id}
+                                    onClick={() => confirmarRemoverItem(item)}
+                                    className="bg-neutral-900 p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
+                                >
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="min-w-0">
+                                            <p className="font-semibold text-xs truncate">{item.nome}</p>
+                                            <p className="text-xs font-bold text-green-400">{formatCurrency(preco)} x {item.quantidade}</p>
+                                        </div>
+                                        <span className="text-sm font-bold">{item.quantidade}</span>
+                                    </div>
+                                    <div className="flex justify-end mt-1">
+                                        <p className="font-bold text-sm text-green-400">{formatCurrency(preco * item.quantidade)}</p>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+
+                    <div className="border-t border-neutral-800 p-3 space-y-2 bg-neutral-950 mt-auto">
+                        <div className="flex justify-between text-xs"><span className="text-gray-400">Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span></div>
+                        <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold text-green-400">{formatCurrency(subtotal)}</span></div>
+
+                        <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                            <SelectTrigger className="bg-neutral-900 border-neutral-800 h-9 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectContent className="bg-neutral-900 border-neutral-800">
+                                <SelectItem value="Dinheiro"><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
+                                <SelectItem value="TPA"><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
+                                <SelectItem value="Transferencia"><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        {formaPagamento === "Dinheiro" && (
+                            <Input type="number" placeholder="Valor Recebido" className="bg-neutral-900 border-neutral-800 h-9 text-sm" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                        )}
+                        {formaPagamento === "Dinheiro" && troco > 0 && (<div className="flex justify-between text-xs font-semibold text-amber-400"><span>Troco</span><span>{formatCurrency(troco)}</span></div>)}
+
+                        <Button
+                            onClick={handleFinalizar}
+                            disabled={!podeFinalizar || loadingVenda}
+                            className="bg-green-600 hover:bg-green-700 w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {loadingVenda? "Finalizando..." : "Finalizar [Enter]"}
+                        </Button>
+                    </div>
+                </div>
             </div>
-            {vendaSelecionada && ( <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}> <div className="bg-neutral-900 rounded-2xl shadow-2xl w-full max-w-lg max-h- flex-col" onClick={e => e.stopPropagation()}> <div className="flex justify-between items-center p-4 border-b border-neutral-800"> <h3 className="font-bold text-lg">Venda #{vendaSelecionada.id.slice(0,8)}</h3> <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button> </div> <div className="p-4 space-y-3 overflow-y-auto scrollbar-hide"> <div className="grid grid-cols-2 gap-3 text-sm"> <div><p className="text-gray-400">Data</p><p className="font-medium">{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p></div> <div><p className="text-gray-400">Pagamento</p><p className="font-medium">{vendaSelecionada.formaPagamento}</p></div> <div><p className="text-gray-400">Qtd Itens</p><p className="font-medium">{vendaSelecionada.itens}</p></div> <div><p className="text-gray-400">Total</p><p className="font-bold text-green-500">{formatCurrency(vendaSelecionada.total)}</p></div> </div> <div className="border-t border-neutral-800 pt-3"> <h4 className="font-semibold mb-3 flex items-center gap-2"><Package size={16}/> Produtos Vendidos</h4> <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide"> {vendaSelecionada.detalhes.length > 0? vendaSelecionada.detalhes.map((item) => ( <div key={item.id} className="flex justify-between items-center text-sm bg-neutral-800 p-3 rounded-lg"> <div className="flex-1"> <p className="font-medium">{item.nome_produto}</p> <p className="text-xs text-gray-400">{item.quantidade}x {formatCurrency(item.preco_unitario)}</p> </div> <p className="font-semibold text-green-500">{formatCurrency(item.subtotal)}</p> </div> )) : ( <p className="text-gray-400 text-center py-4 text-sm">Nenhum item encontrado</p> )} </div> </div> </div> </div> </div> )}
+            <ConfirmarModal
+                open={showConfirmarModal}
+                onClose={() => setShowConfirmarModal(false)}
+                onConfirm={handleConfirmarRemocao}
+                titulo="Confirmar Remoção"
+                descricao={`Tem certeza que deseja remover "${itemParaRemover?.nome}" do carrinho? Essa ação não pode ser desfeita.`}
+                textoConfirmar="Remover"
+                loading={false}
+                tipo="venda"
+            />
+
+            <ConfirmarModal
+                open={showConfirmarFinalizar}
+                onClose={() => setShowConfirmarFinalizar(false)}
+                onConfirm={executarFinalizarVenda}
+                titulo="Finalizar Venda"
+                descricao={`Deseja finalizar a venda no valor de ${formatCurrency(subtotal)} via ${formaPagamento}?`}
+                textoConfirmar="Sim, Finalizar"
+                loading={loadingVenda}
+                tipo="venda"
+            />
         </div>
     )
-}
-
-function CardStats({ titulo, stats, icon, color, formatCurrency }: { titulo: string, stats: Stats, icon: React.ReactNode, color: "green" | "blue" | "purple", formatCurrency: (v: number) => string }) {
-    const colors = { green: "text-green-500", blue: "text-blue-500", purple: "text-purple-500" }
-    return ( <div className="bg-neutral-900 rounded-xl shadow p-3 md:p-4"> <div className="flex items-center justify-between mb-1.5"> <p className="text-xs md:text-sm text-gray-400">{titulo}</p> <div className={colors[color]}>{icon}</div> </div> <p className={`text-xl md:text-2xl font-bold ${colors[color]}`}>{formatCurrency(stats.total)}</p> <div className="text-xs md:text-sm mt-2 space-y-1 text-gray-300"> <p>Vendas: <span className="font-semibold text-white">{stats.qtdVendas}</span></p> <p>Ticket: <span className="font-semibold text-white">{formatCurrency(stats.ticketMedio)}</span></p> </div> </div> )
 }

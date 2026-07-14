@@ -44,9 +44,11 @@ type Props = {
     token: string | null
     formatCurrency: (v: number) => string
     nomeLoja?: string // <- ADICIONADO pra aparecer no cabeçalho da factura
+    nifLoja?: string // <- ADICIONADO
+    enderecoLoja?: string // <- ADICIONADO
 }
 
-export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MINHA LOJA" }: Props) {
+export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MINHA LOJA", nifLoja = "NIF: 000", enderecoLoja = "Endereço: Luanda" }: Props) {
     const [vendas, setVendas] = useState<Venda[]>([])
     const [loading, setLoading] = useState(true)
     const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
@@ -65,15 +67,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-          .filter(v => v.status?.toLowerCase().trim() === "concluida")
-          .map(v => ({
+         .filter(v => v.status?.toLowerCase().trim() === "concluida")
+         .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                  ...item,
+                 ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -120,7 +122,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
     }, [token, lojaId, buscarVendas])
 
-    const handleImprimir = (venda: Venda) => { // <- ALTERADO: agora imprime direto
+    const gerarHeaderFactura = () => ` // <- HEADER UNICO IGUAL AO VENDA
+        <div class="header">
+            <h1>${nomeLoja.toUpperCase()}</h1>
+            <p>${nifLoja}</p>
+            <p>${enderecoLoja}</p>
+        </div>
+        <hr>
+    `
+
+    const handleImprimir = (venda: Venda) => {
         const itensHtml = venda.detalhes.map((item: ItemVenda) => `
             <tr>
                 <td>${item.nome_produto}</td>
@@ -135,46 +146,44 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
         <html lang="pt-AO">
         <head>
             <meta charset="UTF-8">
-            <title>Factura #${venda.id.slice(0,8)}</title>
+            <title>Recibo #${venda.id.slice(0,8)}</title>
             <style>
-                body { font-family: 'Arial', sans-serif; padding: 10px; max-width: 80mm; margin: auto; font-size: 11px; color: #000; background: #fff; }
-               .header { text-align: center; margin-bottom: 10px; }
-               .header h1 { margin: 0; font-size: 16px; }
-               .info p { margin: 2px 0; }
-                table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-                th, td { padding: 3px 0; border-bottom: 1px dashed #ccc; font-size: 11px; }
-               .total { text-align: right; font-size: 14px; font-weight: bold; margin-top: 8px; }
-               .footer { text-align: center; margin-top: 15px; font-size: 10px; }
-                @media print { body { margin: 0; } }
+                @page { size: 80mm auto; margin: 5mm; }
+                body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
+              .header { text-align: center; margin-bottom: 5px; }
+              .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+              .header p { margin: 1px 0; font-size: 10px; }
+              .info p { margin: 1px 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                th, td { padding: 2px 0; font-size: 11px; }
+                hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
+              .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+              .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
-        <body>
-            <div class="header">
-                <h1>${nomeLoja}</h1>
-                <p>FACTURA RECIBO</p>
-            </div>
+        <body onload="window.print()">
+            ${gerarHeaderFactura()}
             <div class="info">
-                <p><b>Nº:</b> ${venda.id.slice(0,8)}</p>
-                <p><b>Data:</b> ${new Date(venda.data).toLocaleString('pt-AO')}</p>
-                <p><b>Pagamento:</b> ${venda.formaPagamento}</p>
+                <p>RECIBO: #${venda.id.slice(0,8).toUpperCase()}</p>
+                <p>DATA: ${new Date(venda.data).toLocaleString('pt-AO')}</p>
             </div>
-            <table>
-                <thead><tr><th>Produto</th><th>Qtd</th><th>Preço</th><th>Total</th></tr></thead>
-                <tbody>${itensHtml}</tbody>
-            </table>
-            <div class="total">TOTAL: ${formatCurrency(venda.total)}</div>
-            <div class="footer"><p>Obrigado pela preferência!</p></div>
+            <hr>
+            <table><tbody>${itensHtml}</tbody></table>
+            <hr>
+            <p>ITENS: ${venda.itens}</p>
+            <div class="total"><span>TOTAL</span><span>${formatCurrency(venda.total)}</span></div>
+            <hr>
+            <p style="text-align:center">Tipo de Pagamento: ${venda.formaPagamento}</p>
+            <div class="footer"><p>Obrigado e volte sempre!</p></div>
         </body>
         </html>
         `;
 
-        const printWindow = window.open('', '_blank', 'width=300,height=600');
+        const printWindow = window.open('', '_blank', 'width=400,height=700');
         if (printWindow) {
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.focus();
-            setTimeout(() => printWindow.print(), 250);
-            setTimeout(() => printWindow.close(), 1000);
         }
     }
 
@@ -278,7 +287,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 <div className="flex items-center gap-2 shrink-0">
                                     <p className="font-bold text-green-500 text-xs">{formatCurrency(v.total)}</p>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} // <- AGORA IMPRIME DIRETO
+                                        onClick={(e) => { e.stopPropagation(); handleImprimir(v) }}
                                         className="p-1.5 rounded-md hover:bg-green-600/20 transition text-gray-300 hover:text-green-400"
                                         title="Imprimir Factura"
                                     >
