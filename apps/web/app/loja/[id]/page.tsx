@@ -300,7 +300,7 @@ export default function LojaPage() {
                 <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
                 <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
                 <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
-
+                    
                 <ConfirmarModal
                     open={showConfirmarModal}
                     onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }}
@@ -308,9 +308,9 @@ export default function LojaPage() {
                     titulo="Remover do Carrinho"
                     descricao={`Deseja remover ${itemParaRemover?.nome} do carrinho?`}
                     loading={false}
-                    tipo="venda" // <- ADICIONA AQUI. NÃO PEDE SENHA
+                    tipo="venda"
                 />
-                
+
             </div>
         }
         <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} formatCurrency={formatCurrency} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} />
