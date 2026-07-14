@@ -11,7 +11,7 @@ from app.core.deps import get_current_user, require_role, get_current_loja_id
 from app.schemas.usuario import Role
 from app.models.usuario import Usuario
 from app.models.venda import Venda
-from app.models.itens_venda import ItemVenda # <- ADICIONADO
+from app.models.itens_venda import ItemVenda
 from app.models.produto import Produto
 from app.db.session import get_db
 from app.schemas.venda import VendaCreate, VendaRead
@@ -74,20 +74,19 @@ async def get_vendas(
     loja_id_usar = loja_id_param or loja_id_token
     offset = (page - 1) * limit
 
-    # QUERY CORRIGIDA COM CLASSES E NAO STRING
     query = (
         select(Venda)
-     .options(joinedload(Venda.itens).joinedload(ItemVenda.produto))
-     .where(Venda.loja_id == loja_id_usar)
-     .order_by(Venda.data_venda.desc())
-     .limit(limit)
-     .offset(offset)
+   .options(joinedload(Venda.itens).joinedload(ItemVenda.produto))
+   .where(Venda.loja_id == loja_id_usar)
+   .order_by(Venda.created_at.desc())
+   .limit(limit)
+   .offset(offset)
     )
 
     if data_inicio:
-        query = query.where(Venda.data_venda >= data_inicio)
+        query = query.where(Venda.created_at >= data_inicio)
     if data_fim:
-        query = query.where(Venda.data_venda <= data_fim)
+        query = query.where(Venda.created_at <= data_fim)
     if vendedor_id:
         query = query.where(Venda.usuario_id == vendedor_id)
 
