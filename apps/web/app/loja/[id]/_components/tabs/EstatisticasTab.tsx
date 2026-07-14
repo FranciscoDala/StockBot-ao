@@ -382,18 +382,35 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     {/* GRAFICO BARRAS */}
                     <div className="bg-neutral-900 rounded-xl p-4">
                         <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
-                        <div className="flex items-end gap-2 h-40">
-                            {vendasPorDia.map((d, i) => {
-                                const max = Math.max(...vendasPorDia.map(x => x.total), 1)
-                                const height = (d.total / max) * 100
-                                return (
-                                    <div key={i} className="flex-1 flex-col items-center gap-1">
-                                        <div className="w-full bg-green-600 rounded-t" style={{ height: `${height}%` }}></div>
-                                        <p className="text- text-gray-400">{d.dia.split('/')[0]}</p>
-                                    </div>
-                                )
-                            })}
+
+                        {/* GRAFICO BARRAS */}
+                        <div className="bg-neutral-900 rounded-xl p-4">
+                            <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
+
+                            {vendasPorDia.length === 0 ? (
+                                <div className="h-40 flex items-center justify-center">
+                                    <p className="text-gray-400 text-sm">Sem vendas no período selecionado</p>
+                                </div>
+                            ) : (
+                                <div className="flex items-end gap-2 h-40">
+                                    {vendasPorDia.map((d, i) => {
+                                        const max = Math.max(...vendasPorDia.map(x => x.total), 1)
+                                        const height = max > 0 ? (d.total / max) * 100 : 5 // minimo 5% pra aparecer
+                                        return (
+                                            <div key={i} className="flex-1 flex-col items-center gap-1">
+                                                <div
+                                                    className="w-full bg-green-600 rounded-t hover:bg-green-500 transition-all"
+                                                    style={{ height: `${height}%`, minHeight: '4px' }}
+                                                    title={`${d.dia}: ${formatCurrency(d.total)}`}
+                                                ></div>
+                                                <p className="text-xs text-gray-400">{d.dia.split('/')[0]}</p>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
+
                     </div>
 
                     {/* TABELA VENDAS */}
@@ -495,6 +512,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     )
 }
 
+
 function CardStats({
     titulo,
     stats,
@@ -524,12 +542,12 @@ function CardStats({
     return (
         <div className={`border rounded-xl p-3 md:p-4 transition hover:scale-[1.02] ${cores[cor]}`}>
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium text-gray-300">{titulo}</p>
-                <div className="opacity-80">{icon}</div>
+                <p className="text-xs md:text-sm font-medium text-gray-300 truncate">{titulo}</p>
+                <div className="opacity-80 shrink-0">{icon}</div>
             </div>
-            <p className="text-2xl md:text-3xl font-bold">{formatCurrency(stats.total)}</p>
-            <p className="text-xs mt-1 opacity-80">{descricao}</p>
-            {tendencia && <p className="text- mt-1 opacity-60">{tendencia}</p>}
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{formatCurrency(stats.total)}</p>
+            <p className="text- xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
+            {tendencia && <p className="text- xs md:text-xs mt-1 opacity-60 truncate">{tendencia}</p>}
         </div>
     )
 }
