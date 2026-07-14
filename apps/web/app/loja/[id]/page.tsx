@@ -9,7 +9,7 @@ import { ProdutosTab } from "./_components/tabs/ProdutosTab";
 import { EquipaTab } from "./_components/tabs/EquipaTab";
 import { VendaTab } from "./_components/tabs/VendaTab";
 import { EstatisticasTab } from "./_components/tabs/EstatisticasTab";
-import { RiscoTab } from "./_components/tabs/RiscoTab"; // <- ADICIONADO
+import { RiscoTab } from "./_components/tabs/RiscoTab";
 import { PermissaoModal } from "./_components/modals/PermissaoModal";
 import { ErroModal } from "./_components/modals/ErroModal";
 import { DetalhesModal } from "./_components/modals/DetalhesModal";
@@ -62,7 +62,7 @@ export default function LojaPage() {
         { id: "fornecedores", label: "Fornecedores", icon: Truck, show: podeVerTudo },
         { id: "documentos", label: "Documentos", icon: FileText, show: podeVerTudo },
         { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: true },
-        { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo }, // <- JÁ EXISTIA
+        { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo },
     ];
     const initialTabs = allTabs.filter(t => t.show);
     const [activeTab, setActiveTab] = useState(initialTabs[0]?.id || "dados");
@@ -91,9 +91,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-               ? data
-                   .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-                   .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+              ? data
+                  .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+                  .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -194,7 +194,7 @@ export default function LojaPage() {
                 const loja_id = user?.loja_id || "";
 
                 let payload: any = {
-                   ...(data || formDataProduto),
+                  ...(data || formDataProduto),
                     senha_dono,
                     senha_confirmacao: senha_dono,
                     loja_id: (data as ProdutoType)?.loja_id || loja_id
@@ -244,12 +244,12 @@ export default function LojaPage() {
 
     return <>
         <style jsx global>{`
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+   .scrollbar-hide::-webkit-scrollbar { display: none; }
+   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
 
         <Toaster position="top-center" richColors theme="dark" />
-        {activeTab === "venda"? <div className="fixed inset-0 z-40 bg-black"><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} /></div> : // <- ADICIONADO NIF/ENDERECO
+        {activeTab === "venda"? <div className="fixed inset-0 z-40 bg-black"><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} /></div> :
             <div className="min-h-screen bg-black text-white">
                 <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
@@ -291,9 +291,9 @@ export default function LojaPage() {
                         {activeTab === "dados" && <DadosTab loja={loja} user={user} />}
                         {activeTab === "produtos" && (podeVerVendas || podeVerEstoque) && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} formatCurrency={formatCurrency} />}
                         {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")} onView={handleViewUserClick} />}
-                        {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} formatCurrency={formatCurrency} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} />} // <- ADICIONADO PROPS
-                        {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={[]} produtos={produtos} formatCurrency={formatCurrency} />} // <- ADICIONADO ABA RISCO
-                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>} // <- ADICIONADO "risco"
+                        {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} formatCurrency={formatCurrency} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} />}
+                        {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={[]} produtos={produtos} formatCurrency={formatCurrency} />}
+                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
 
                 </div>
