@@ -140,8 +140,8 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
     const exportarCSV = () => {
         const linhas = [
             ["Tipo", "Produto", "Estoque", "Minimo"],
-           ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
-           ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
+          ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
+          ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -178,7 +178,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label className="text-xs text-gray-400">Período de Análise</label>
-                        <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="w-full mt-1 bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
+                        <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
                             <option value="7">Últimos 7 dias</option>
                             <option value="15">Últimos 15 dias</option>
                             <option value="30">Últimos 30 dias</option>
@@ -202,17 +202,19 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                 </div>
             </div>
 
-            {/* ABAS */}
-            <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg w-fit">
-                {[
-                    {id: "estoque", label: "Estoque", icon: PackageX},
-                    {id: "financeiro", label: "Financeiro", icon: TrendingDown},
-                    {id: "operacional", label: "Operacional", icon: BarChart3}
-                ].map(tab => (
-                    <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
-                        <tab.icon size={14} /> {tab.label}
-                    </button>
-                ))}
+            {/* ABAS - AGORA COM SCROLL HORIZONTAL */}
+            <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg w-max min-w-full">
+                    {[
+                        {id: "estoque", label: "Estoque", icon: PackageX},
+                        {id: "financeiro", label: "Financeiro", icon: TrendingDown},
+                        {id: "operacional", label: "Operacional", icon: BarChart3}
+                    ].map(tab => (
+                        <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                            <tab.icon size={14} /> {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* CONTEUDO POR ABA */}
@@ -248,7 +250,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                                 <h3 className="font-bold text-base mb-3 flex items-center gap-2"><Flame size={16} className="text-orange-500" /> Próximos do Vencimento</h3>
                                 <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto scrollbar-hide">
                                     {produtosValidade.map(p => (
-                                        <div key={p.id} className="bg-orange-950/20 border border-orange-500/20 p-3 rounded-lg text-xs">
+                                        <div key={p.id} className="bg-orange-950/20 border-orange-500/20 p-3 rounded-lg text-xs">
                                             <p className="font-medium truncate">{p.nome}</p>
                                             <p className="text-gray-400">Vence: {new Date(p.data_validade!).toLocaleDateString('pt-AO')}</p>
                                             <p className="font-bold mt-1">Est: {p.estoque} un</p>
@@ -297,8 +299,8 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
             )}
 
             <style jsx global>{`
-               .scrollbar-hide::-webkit-scrollbar { display: none; }
-               .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+              .scrollbar-hide::-webkit-scrollbar { display: none; }
+              .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     )

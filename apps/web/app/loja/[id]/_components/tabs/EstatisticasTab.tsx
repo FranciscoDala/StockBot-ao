@@ -70,15 +70,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().trim() === "concluida")
-               .map(v => ({
+             .filter(v => v.status?.toLowerCase().trim() === "concluida")
+             .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                       ...item,
+                     ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -153,15 +153,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-           .header { text-align: center; margin-bottom: 5px; }
-           .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-           .header p { margin: 1px 0; font-size: 10px; }
-           .info p { margin: 1px 0; }
+         .header { text-align: center; margin-bottom: 5px; }
+         .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+         .header p { margin: 1px 0; font-size: 10px; }
+         .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-           .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-           .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+         .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+         .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -258,7 +258,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-           ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+         ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -278,8 +278,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-         .scrollbar-hide::-webkit-scrollbar { display: none; }
-         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+       .scrollbar-hide::-webkit-scrollbar { display: none; }
+       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
             {/* HEADER */}
@@ -325,17 +325,19 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 </div>
             </div>
 
-            {/* ABAS */}
-            <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg w-fit overflow-x-auto scrollbar-hide">
-                {[
-                    { id: "resumo", label: "Resumo", icon: BarChart3 },
-                    { id: "produtos", label: "Top Produtos", icon: Package },
-                    { id: "pagamentos", label: "Pagamentos", icon: PieChart }
-                ].map(tab => (
-                    <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
-                        <tab.icon size={14} /> {tab.label}
-                    </button>
-                ))}
+            {/* ABAS COM SCROLL-X INVISIVEL */}
+            <div className="overflow-x-auto scrollbar-hide">
+                <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg w-max min-w-full">
+                    {[
+                        { id: "resumo", label: "Resumo", icon: BarChart3 },
+                        { id: "produtos", label: "Top Produtos", icon: Package },
+                        { id: "pagamentos", label: "Pagamentos", icon: PieChart }
+                    ].map(tab => (
+                        <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                            <tab.icon size={14} /> {tab.label}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* ABA RESUMO */}
@@ -431,7 +433,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-2 pt-2 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition">
                                     <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
                                         <p className="font-medium">#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
-                                        <p className="text- text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
+                                        <p className="text-xs text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <p className="font-bold text-green-500">{formatCurrency(v.total)}</p>
@@ -522,7 +524,6 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     )
 }
 
-
 function CardStats({
     titulo,
     stats,
@@ -556,8 +557,8 @@ function CardStats({
                 <div className="opacity-80 shrink-0">{icon}</div>
             </div>
             <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{formatCurrency(stats.total)}</p>
-            <p className="text- xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
-            {tendencia && <p className="text- xs md:text-xs mt-1 opacity-60 truncate">{tendencia}</p>}
+            <p className="text-xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
+            {tendencia && <p className="text-xs md:text-xs mt-1 opacity-60 truncate">{tendencia}</p>}
         </div>
     )
 }
