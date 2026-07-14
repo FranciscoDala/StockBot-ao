@@ -1,19 +1,22 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2 } from "lucide-react";
 
+type TipoAcao = 'delete' | 'edit' | 'venda' | 'create'; // <- ADICIONEI
+
 interface Props {
     open: boolean;
     onClose: () => void;
-    onConfirm: (senha: string) => void; // <- AGORA RECEBE SENHA
+    onConfirm: (senha?: string) => void; // <- AGORA SENHA É OPCIONAL
     titulo: string;
     descricao: string;
     loading: boolean;
     textoConfirmar?: string;
+    tipo: TipoAcao; // <- PRECISAMOS SABER O TIPO DA AÇÃO
 }
 
 export function ConfirmarModal({
@@ -23,16 +26,27 @@ export function ConfirmarModal({
     titulo,
     descricao,
     loading,
-    textoConfirmar = "Confirmar Ação"
+    textoConfirmar = "Confirmar Ação",
+    tipo // <- RECEBE O TIPO
 }: Props) {
     const [senha, setSenha] = useState("");
 
+    // 1. SÓ PRECISA DE SENHA PRA EDITAR E DELETAR
+    const precisaDeSenha = tipo === 'edit' || tipo === 'delete';
+
+    // limpa senha ao abrir/fechar
+    useEffect(() => {
+        if (!open) setSenha("");
+    }, [open]);
+
     const handleConfirm = () => {
-        onConfirm(senha);
-        setSenha(""); // limpa ao confirmar
+        if (precisaDeSenha && senha.length < 4) {
+            return; // não deixa confirmar sem senha
+        }
+        onConfirm(precisaDeSenha? senha : undefined); // <- só manda senha se precisar
+        setSenha("");
     }
 
-    // limpa senha ao fechar
     const handleClose = () => {
         setSenha("");
         onClose();
@@ -57,24 +71,26 @@ export function ConfirmarModal({
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* BODY - INPUT SENHA */}
-                <div className="px-4 pb-2">
-                    <div className="grid gap-2">
-                        <Label htmlFor="senha-dono" className="text-xs text-gray-300">Digite a senha do Dono para confirmar</Label>
-                        <Input
-                            id="senha-dono"
-                            type="password"
-                            value={senha}
-                            onChange={(e) => setSenha(e.target.value)}
-                            className="bg-neutral-800 border-neutral-700 text-white h-9"
-                            placeholder="******"
-                            disabled={loading}
-                            autoFocus
-                        />
+                {/* BODY - INPUT SENHA SÓ APARECE SE PRECISAR */}
+                {precisaDeSenha && (
+                    <div className="px-4 pb-2">
+                        <div className="grid gap-2">
+                            <Label htmlFor="senha-dono" className="text-xs text-gray-300">Digite a senha do Dono para confirmar</Label>
+                            <Input
+                                id="senha-dono"
+                                type="password"
+                                value={senha}
+                                onChange={(e) => setSenha(e.target.value)}
+                                className="bg-neutral-800 border-neutral-700 text-white h-9"
+                                placeholder="******"
+                                disabled={loading}
+                                autoFocus
+                            />
+                        </div>
                     </div>
-                </div>
+                )}
 
-                {/* FOOTER - COM 1 LINHA IGUAL A PRINT */}
+                {/* FOOTER */}
                 <DialogFooter className="p-4 bg-neutral-900/30 border-t border-neutral-800 flex-row justify-end gap-3">
                     <Button
                         variant="ghost"
@@ -86,7 +102,7 @@ export function ConfirmarModal({
                     </Button>
                     <Button
                         onClick={handleConfirm}
-                        disabled={loading || senha.length < 4} // <- só ativa com senha
+                        disabled={loading || (precisaDeSenha && senha.length < 4)} // <- só valida senha se precisar
                         className="gap-2 bg-amber-500 hover:bg-amber-600 text-black font-bold h-9"
                     >
                         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
