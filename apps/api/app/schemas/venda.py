@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -25,17 +25,21 @@ class ItemVendaRead(BaseModel):
     venda_id: UUID
     produto_id: UUID
     loja_id: UUID
-    nome_produto: str # <- VAI VIR DO joinedload
     quantidade: int
     preco_unitario: Decimal
     subtotal: Decimal
+
+    @computed_field
+    @property
+    def nome_produto(self) -> str:
+        return self.produto.nome if hasattr(self, 'produto') and self.produto else "Produto Removido"
+
     model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})
 
 class VendaRead(BaseModel):
     id: UUID
     loja_id: UUID
-    usuario_id: UUID
-    nome_vendedor: str
+    usuario_id: Optional[UUID]
     total: Decimal
     total_itens: int
     forma_pagamento: str
@@ -43,5 +47,11 @@ class VendaRead(BaseModel):
     troco: Decimal
     status: str
     data_venda: datetime
-    itens: List[ItemVendaRead] = [] # <- DEFAULT VAZIO PRA NAO QUEBRAR
+    itens: List[ItemVendaRead] = []
+
+    @computed_field
+    @property
+    def nome_vendedor(self) -> str:
+        return self.usuario.nome if hasattr(self, 'usuario') and self.usuario else "Sistema"
+
     model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})

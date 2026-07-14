@@ -31,12 +31,3 @@ class Venda(BaseModel):
     loja: Mapped["Loja"] = relationship(back_populates="vendas")
     usuario: Mapped["Usuario"] = relationship(back_populates="vendas")
     itens: Mapped[List["ItemVenda"]] = relationship(back_populates="venda", cascade="all, delete-orphan")
-
-    # CAMPOS PRA Pydantic VendaRead
-    @property
-    def nome_vendedor(self) -> str:
-        return self.usuario.nome if self.usuario else "Sistema"
-
-    @property
-    def data_venda(self) -> datetime:
-        return self.created_at

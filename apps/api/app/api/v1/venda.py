@@ -31,7 +31,6 @@ async def criar_venda_endpoint(
 ):
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
-    # 1. DISPARA WS PRA CADA PRODUTO DA VENDA
     if venda and venda.itens:
         for item in venda.itens:
             if isinstance(item, dict):
@@ -45,18 +44,11 @@ async def criar_venda_endpoint(
 
             await manager.broadcast_to_loja(
                 str(loja_id),
-                {
-                    "tipo": "stock.updated",
-                    "produto_id": str(produto_id),
-                    "nome_produto": nome_produto,
-                    "novo_estoque": novo_estoque
-                }
+                {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
             )
 
-    # 2. DISPARA WHATSAPP EM BACKGROUND PRA NAO TRAVAR
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
-
     return venda
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
@@ -76,11 +68,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-   .options(joinedload(Venda.itens).joinedload(ItemVenda.produto))
-   .where(Venda.loja_id == loja_id_usar)
-   .order_by(Venda.created_at.desc())
-   .limit(limit)
-   .offset(offset)
+  .options(
+       joinedload(Venda.usuario), # <- ESSENCIAL PRA NOME_VENDEDOR
+       joinedload(Venda.itens).joinedload(ItemVenda.produto) # <- ESSENCIAL PRA NOME_PRODUTO
+   )
+  .where(Venda.loja_id == loja_id_usar)
+  .order_by(Venda.created_at.desc())
+  .limit(limit)
+  .offset(offset)
     )
 
     if data_inicio:
@@ -92,14 +87,11 @@ async def get_vendas(
 
     result = await db.execute(query)
     vendas = result.scalars().unique().all()
-
     return vendas
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
     itens_estornados = await estornar_venda_service(db=db, venda_id=id, loja_id=loja_id)
-
-    # DISPARA WS PRA DEVOLVER O ESTOQUE
     if itens_estornados:
         for item in itens_estornados:
             if isinstance(item, dict):
@@ -110,14 +102,5 @@ async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: 
                 produto_id = item.produto_id
                 nome = item.nome
                 novo_estoque = item.novo_estoque
-
-            await manager.broadcast_to_loja(
-                str(loja_id),
-                {
-                    "tipo": "stock.updated",
-                    "produto_id": str(produto_id),
-                    "nome_produto": nome,
-                    "novo_estoque": novo_estoque
-                }
-            )
+            await manager.broadcast_to_loja(str(loja_id),{"tipo": "stock.updated","produto_id": str(produto_id),"nome_produto": nome,"novo_estoque": novo_estoque})
     return None

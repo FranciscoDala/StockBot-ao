@@ -26,8 +26,3 @@ class ItemVenda(BaseModel):
     venda: Mapped["Venda"] = relationship(back_populates="itens")
     produto: Mapped["Produto"] = relationship(back_populates="itens_venda")
     loja: Mapped["Loja"] = relationship()
-
-    # CAMPO PRA Pydantic ItemVendaRead
-    @property
-    def nome_produto(self) -> str:
-        return self.produto.nome if self.produto else "Produto Removido"
