@@ -315,8 +315,8 @@ export default function LojaPage() {
 
                         {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} formatCurrency={formatCurrency} />}
 
-                        {activeTab === "fornecedores" && podeVerTudo && <FornecedoresTab />} // NOVO
-                        {activeTab === "documentos" && podeVerTudo && <DocumentosTab loja={loja} />} // NOVO
+                        {activeTab === "fornecedores" && podeVerTudo && <FornecedoresTab />}
+                        {activeTab === "documentos" && podeVerTudo && <DocumentosTab loja={loja} />}
 
                         {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
@@ -341,7 +341,7 @@ export default function LojaPage() {
 
             </div>
         }
-        
+
         <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} formatCurrency={formatCurrency} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} />
     </>;
 }
