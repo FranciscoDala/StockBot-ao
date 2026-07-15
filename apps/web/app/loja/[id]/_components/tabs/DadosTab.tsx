@@ -1,9 +1,10 @@
 "use client";
-import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Ban, AlertTriangle } from "lucide-react";
+import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Ban, Wifi, WifiOff } from "lucide-react";
 import { Loja, userread, formatCurrency } from "../../page";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
 
 type ItemVenda = {
     id: string
@@ -37,86 +38,127 @@ export function DadosTab({
 }) {
     const [kpis, setKpis] = useState({
         vendaDiaria: 0,
-        saidaDiaria: 0, // <- se tu não tem saída ainda, deixa 0 por enquanto
+        saidaDiaria: 0,
         totalVendasMes: 0,
         totalProdutos: 0,
-        estoqueZerado: 0,
-        riscoRuptura: 0
+        estoqueZerado: 0
     });
     const [loading, setLoading] = useState(true);
+    const [wsConectado, setWsConectado] = useState(false); // <- NOVO
+    const ws = useRef<WebSocket | null>(null);
+    const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
+    const carregarKPIs = useCallback(async () => { // <- useCallback pra WS chamar
         if (!lojaId || !token) return;
+        setLoading(true);
+        try {
+            // 1. BUSCA VENDAS
+            const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
+            const data: VendaAPI[] = await resVendas.json();
+            const vendas = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({
+                    ...v,
+                    total: Number(v.total),
+                    data_venda: new Date(v.data_venda)
+                }));
 
-        const carregarKPIs = async () => {
-            setLoading(true);
+            // 2. FILTRA HOJE
+            const hoje = new Date();
+            const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje);
+
+            // 3. FILTRA ÚLTIMOS 30 DIAS
+            const inicioMes = new Date();
+            inicioMes.setDate(hoje.getDate() - 30);
+            const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
+
+            // 4. BUSCA ESTOQUE
+            let estoqueZerado = 0;
+            let totalProdutos = 0;
             try {
-                // 1. BUSCA VENDAS IGUAL ESTATISTICASTAB
-                const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
+                const resEstoque = await fetch(`${API_URL}/lojas/${lojaId}/dashboard/estoque-alertas`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
-                if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
-                const data: VendaAPI[] = await resVendas.json();
-                const vendas = (Array.isArray(data) ? data : [])
-                    .filter(v => v.status?.toLowerCase().trim() === "concluida")
-                    .map(v => ({
-                        ...v,
-                        total: Number(v.total),
-                        data_venda: new Date(v.data_venda)
-                    }));
+                if(resEstoque.ok){
+                    const resEstoqueJson = await resEstoque.json();
+                    estoqueZerado = resEstoqueJson.estoque_zerado || 0;
+                    totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
+                }
+            } catch {}
 
-                // 2. FILTRA HOJE
-                const hoje = new Date();
-                const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-                const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje);
+            setKpis({
+                vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
+                saidaDiaria: 0, // <- liga com rota de despesas depois
+                totalProdutos: totalProdutos,
+                totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
+                estoqueZerado: estoqueZerado
+            })
+        } catch (error) {
+            console.error("Erro ao carregar KPIs", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [lojaId, token])
 
-                // 3. FILTRA ÚLTIMOS 30 DIAS
-                const inicioMes = new Date();
-                inicioMes.setDate(hoje.getDate() - 30);
-                const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
+    // WEBSOCKET TEMPO REAL
+    const conectarWebSocket = useCallback(() => {
+        if (!token || !lojaId) return;
+        if (ws.current?.readyState === WebSocket.OPEN) return;
 
-                // 4. BUSCA ESTOQUE - SE TIVER ROTA
-                let estoqueZerado = 0;
-                let riscoRuptura = 0;
-                let totalProdutos = 0;
-                try {
-                    const resEstoque = await fetch(`${API_URL}/lojas/${lojaId}/dashboard/estoque-alertas`, {
-                        headers: { "Authorization": `Bearer ${token}` }
-                    });
-                    if(resEstoque.ok){
-                        const resEstoqueJson = await resEstoque.json();
-                        estoqueZerado = resEstoqueJson.estoque_zerado || 0;
-                        riscoRuptura = resEstoqueJson.risco_ruptura || 0;
-                        totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
-                    }
-                } catch {}
+        ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
 
-                setKpis({
-                    vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
-                    saidaDiaria: 0, // <- aqui tu liga com a rota de despesas quando tiver
-                    totalProdutos: totalProdutos,
-                    totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
-                    estoqueZerado: estoqueZerado,
-                    riscoRuptura: riscoRuptura
-                })
-            } catch (error) {
-                console.error("Erro ao carregar KPIs", error);
-            } finally {
-                setLoading(false);
+        ws.current.onopen = () => {
+            setWsConectado(true)
+            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+        }
+
+        ws.current.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.tipo === 'stats.updated') { // <- quando vender, recarrega
+                    carregarKPIs()
+                }
+            } catch (e) {
+                console.error("Erro ao ler WS", e)
             }
         }
-        carregarKPIs();
-    }, [lojaId, token])
+
+        ws.current.onclose = () => {
+            setWsConectado(false)
+            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000) // reconecta em 3s
+        }
+
+        ws.current.onerror = () => {
+            ws.current?.close()
+        }
+
+    }, [token, lojaId, carregarKPIs])
+
+    useEffect(() => {
+        carregarKPIs()
+        conectarWebSocket()
+        return () => {
+            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+            ws.current?.close()
+        }
+    }, [carregarKPIs, conectarWebSocket])
 
     const saldoDia = kpis.vendaDiaria - kpis.saidaDiaria;
 
     return (
         <div className="space-y-6">
-            {/* HEADER PADRONIZADO */}
+            {/* HEADER PADRONIZADO COM STATUS WS */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold">Dados</h2>
-                    <p className="text-xs sm:text-sm text-gray-400">Visão geral da loja</p>
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                        Dados
+                        {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-400">Visão geral da loja em tempo real</p>
                 </div>
                 <button className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs sm:text-sm font-bold transition">
                     <Edit size={14} />
@@ -124,8 +166,8 @@ export function DadosTab({
                 </button>
             </div>
 
-            {/* 5 CARDS KPI ESTILO IMAGEM */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+            {/* 4 CARDS KPI - lg:grid-cols-4 */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
                 {/* Card 1: Venda Diária */}
                 <div className="bg-gradient-to-br from-green-950/40 to-neutral-900 p-4 rounded-xl border-green-900/30">
@@ -167,16 +209,6 @@ export function DadosTab({
                     </div>
                     <p className="text-2xl font-bold text-rose-400">{loading ? "..." : kpis.estoqueZerado}</p>
                     <p className="text-xs text-rose-400/70 mt-1">Não consegue vender</p>
-                </div>
-
-                {/* Card 5: Risco Ruptura */}
-                <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 rounded-xl border-amber-900/30">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-gray-300 font-medium">Risco Ruptura</p>
-                        <AlertTriangle size={16} className="text-amber-500" />
-                    </div>
-                    <p className="text-2xl font-bold text-amber-400">{loading ? "..." : kpis.riscoRuptura}</p>
-                    <p className="text-xs text-amber-400/70 mt-1">Abaixo do mínimo</p>
                 </div>
             </div>
 
