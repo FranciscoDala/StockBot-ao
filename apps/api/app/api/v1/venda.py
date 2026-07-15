@@ -1,253 +1,270 @@
-from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
-from fastapi.responses import HTMLResponse # <- ADICIONADO
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload # <- ADICIONADO selectinload
-from sqlalchemy import select
-from datetime import date
-from typing import List
-from uuid import UUID
-import asyncio
+"use client";
+import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, Ban, Wifi, WifiOff, ShoppingBag, Package } from "lucide-react";
+import { Loja, userread, formatCurrency } from "../../page";
+import { useEffect, useState, useRef, useCallback } from "react";
 
-from app.core.deps import get_current_user, require_role, get_current_loja_id
-from app.schemas.usuario import Role
-from app.models.usuario import Usuario
-from app.models.venda import Venda
-from app.models.itens_venda import ItemVenda
-from app.models.produto import Produto
-from app.models.loja import Loja # <- ADICIONADO
-from app.db.session import get_db
-from app.schemas.venda import VendaCreate, VendaRead
-from app.services.venda import criar_venda, estornar_venda_service
-from app.services.whatsapp import enviar_msg_venda
-from app.websocket.manager import manager
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
 
-router = APIRouter()
+type ItemVenda = {
+    id: string
+    produto_id: string
+    nome_produto: string
+    quantidade: number
+    preco_unitario: number
+    subtotal: number
+}
 
-@router.post("/", response_model=VendaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
-async def criar_venda_endpoint(
-    venda_in: VendaCreate,
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
-    loja_id: UUID = Depends(get_current_loja_id)
-):
-    venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
+type VendaAPI = {
+    id: string | number
+    total: number
+    total_itens: number
+    forma_pagamento: string
+    data_venda: string
+    status: string
+    itens: ItemVenda[]
+}
 
-    if venda and venda.itens:
-        # 1. ATUALIZA ESTOQUE
-        for item in venda.itens:
-            if isinstance(item, dict):
-                produto_id = item.get("produto_id")
-                nome_produto = item.get("nome_produto")
-                novo_estoque = item.get("estoque_atual")
-            else:
-                produto_id = item.produto_id
-                nome_produto = item.nome_produto
-                novo_estoque = item.estoque_atual
+type Stats = {
+    total: number
+    qtdVendas: number
+    ticketMedio: number
+}
 
-            await manager.broadcast_to_loja(
-                str(loja_id),
-                {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
-            )
+export function DadosTab({
+    loja,
+    user,
+    lojaId,
+    token
+}: {
+    loja: Loja | null | undefined;
+    user: userread | null;
+    lojaId?: string;
+    token?: string | null;
+}) {
+    const [kpis, setKpis] = useState({
+        vendaDiaria: 0,
+        saidaDiaria: 0,
+        totalVendasMes: 0,
+        totalProdutos: 0,
+        estoqueZerado: 0,
+        qtdVendasHoje: 0
+    });
+    const [loading, setLoading] = useState(true);
+    const [wsConectado, setWsConectado] = useState(false);
+    const ws = useRef<WebSocket | null>(null);
+    const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL - NOVO
-        await manager.broadcast_to_loja(
-            str(loja_id),
-            {
-                "tipo": "stats.updated",
-                "valor_venda": float(venda.total),
-                "total_itens": venda.total_itens,
-                "acao": "add"
-            }
-        )
-
-    if venda:
-        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
-    return venda
-
-@router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
-async def get_vendas(
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
-    loja_id_param: UUID | None = Query(None, alias="loja_id"),
-    loja_id_token: UUID = Depends(get_current_loja_id),
-    data_inicio: date | None = Query(None),
-    data_fim: date | None = Query(None),
-    vendedor_id: UUID | None = Query(None),
-    page: int = Query(1, ge=1),
-    limit: int = Query(5000, ge=1, le=5000)
-):
-    loja_id_usar = loja_id_param or loja_id_token
-    offset = (page - 1) * limit
-
-    query = (
-        select(Venda)
-.options(
-       joinedload(Venda.usuario),
-       joinedload(Venda.itens).joinedload(ItemVenda.produto)
-   )
-.where(Venda.loja_id == loja_id_usar)
-.order_by(Venda.created_at.desc())
-.limit(limit)
-.offset(offset)
-    )
-
-    if data_inicio:
-        query = query.where(Venda.created_at >= data_inicio)
-    if data_fim:
-        query = query.where(Venda.created_at <= data_fim)
-    if vendedor_id:
-        query = query.where(Venda.usuario_id == vendedor_id)
-
-    result = await db.execute(query)
-    vendas_db = result.scalars().unique().all()
-
-    vendas_response = []
-    for v in vendas_db:
-        itens = []
-        for i in v.itens:
-            itens.append({
-                "id": i.id,
-                "venda_id": i.venda_id,
-                "produto_id": i.produto_id,
-                "loja_id": i.loja_id,
-                "nome_produto": i.produto.nome if i.produto else "Produto Removido",
-                "quantidade": i.quantidade,
-                "preco_unitario": i.preco_unitario,
-                "subtotal": i.subtotal,
-            })
-
-        vendas_response.append({
-            "id": v.id,
-            "loja_id": v.loja_id,
-            "usuario_id": v.usuario_id,
-            "nome_vendedor": v.usuario.nome if v.usuario else "Sistema",
-            "total": v.total,
-            "total_itens": v.total_itens,
-            "forma_pagamento": v.forma_pagamento,
-            "valor_recebido": v.valor_recebido,
-            "troco": v.troco,
-            "status": v.status,
-            "data_venda": v.created_at,
-            "itens": itens
-        })
-
-    return vendas_response
-
-
-@router.get("/{venda_id}/imprimir", response_class=HTMLResponse) # <- TIREI O DEPENDS
-async def imprimir_venda(
-    venda_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id) # <- mantém isso pra segurança
-):
-    # Busca a venda com itens e loja
-    stmt = select(Venda).options(
-        selectinload(Venda.itens).selectinload(ItemVenda.produto),
-        selectinload(Venda.loja),
-        selectinload(Venda.usuario) # <- adiciona isso pra não dar erro no venda.usuario.nome
-    ).where(Venda.id == venda_id, Venda.loja_id == loja_id)
-
-    result = await db.execute(stmt)
-    venda = result.scalar_one_or_none()
-
-    if not venda:
-        raise HTTPException(status_code=404, detail="Venda não encontrada")
-
-    # Monta HTML da factura
-    itens_html = ""
-    for item in venda.itens:
-        nome = item.produto.nome if item.produto else "Produto Removido"
-        itens_html += f"""
-        <tr>
-            <td>{nome}</td>
-            <td style="text-align:center">{item.quantidade}</td>
-            <td style="text-align:right">{item.preco_unitario:.2f} KZ</td>
-            <td style="text-align:right">{item.subtotal:.2f} KZ</td>
-        </tr>
-        """
-
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="pt-AO">
-    <head>
-        <meta charset="UTF-8">
-        <title>Factura #{str(venda.id)[:8]}</title>
-        <style>
-            body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-           .header {{ text-align: center; margin-bottom: 15px; }}
-           .header h1 {{ margin: 0; font-size: 18px; }}
-           .info p {{ margin: 2px 0; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-            th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-           .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-           .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
-            @media print {{ body {{ margin: 0; }} }}
-        </style>
-    </head>
-    <body onload="window.print()">
-        <div class="header">
-            <h1>{venda.loja.nome if venda.loja else 'MINHA LOJA'}</h1>
-            <p>FACTURA RECIBO</p>
-        </div>
-        <div class="info">
-            <p><b>Nº:</b> {str(venda.id)[:8]}</p>
-            <p><b>Data:</b> {venda.created_at.strftime('%d/%m/%Y %H:%M')}</p>
-            <p><b>Vendedor:</b> {venda.usuario.nome if venda.usuario else 'Sistema'}</p>
-            <p><b>Pagamento:</b> {venda.forma_pagamento}</p>
-        </div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Produto</th><th>Qtd</th><th>Preço</th><th>Total</th>
-                </tr>
-            </thead>
-            <tbody>
-                {itens_html}
-            </tbody>
-        </table>
-        <div class="total">TOTAL: {venda.total:.2f} KZ</div>
-        <div class="footer">
-            <p>Obrigado pela preferência!</p>
-        </div>
-    </body>
-    </html>
-    """
-    return HTMLResponse(content=html_content)
-
-
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
-async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
-    itens_estornados = await estornar_venda_service(db=db, venda_id=id, loja_id=loja_id)
-
-    valor_estornado = 0
-    total_itens_estornados = 0
-
-    if itens_estornados:
-        for item in itens_estornados:
-            if isinstance(item, dict):
-                produto_id = item.get("produto_id")
-                nome = item.get("nome")
-                novo_estoque = item.get("novo_estoque")
-                valor_estornado += float(item.get("subtotal", 0))
-                total_itens_estornados += item.get("quantidade", 0)
-            else:
-                produto_id = item.produto_id
-                nome = item.nome
-                novo_estoque = item.novo_estoque
-                valor_estornado += float(item.subtotal)
-                total_itens_estornados += item.quantidade
-
-            await manager.broadcast_to_loja(str(loja_id),{"tipo": "stock.updated","produto_id": str(produto_id),"nome_produto": nome,"novo_estoque": novo_estoque})
-
-    # ATUALIZA ESTATISTICAS DO ESTORNO
-    await manager.broadcast_to_loja(
-        str(loja_id),
-        {
-            "tipo": "stats.updated",
-            "valor_venda": -valor_estornado,
-            "total_itens": -total_itens_estornados,
-            "acao": "remove"
+    const carregarKPIs = useCallback(async () => {
+        if (!lojaId || !token) {
+            setLoading(false);
+            return;
         }
+        setLoading(true);
+        try {
+            // 1. BUSCA VENDAS - COM BARRA NO FINAL PRA EVITAR 307
+            const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
+            const data: VendaAPI[] = await resVendas.json();
+
+            // AGORA FILTRA POR "concluido" IGUAL ESTA NO DB
+            const vendas = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluido")
+                .map(v => ({
+                    ...v,
+                    total: Number(v.total) || 0,
+                    data_venda: new Date(v.data_venda)
+                }));
+
+            // 2. FILTRA HOJE
+            const hoje = new Date();
+            const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje);
+
+            // 3. FILTRA ÚLTIMOS 30 DIAS
+            const inicioMes = new Date();
+            inicioMes.setDate(hoje.getDate() - 30);
+            const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
+
+            // 4. BUSCA ESTOQUE
+            let estoqueZerado = 0;
+            let totalProdutos = 0;
+            try {
+                const resEstoque = await fetch(`${API_URL}/lojas/${lojaId}/dashboard/estoque-alertas`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if(resEstoque.ok){
+                    const resEstoqueJson = await resEstoque.json();
+                    estoqueZerado = resEstoqueJson.estoque_zerado || 0;
+                    totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
+                }
+            } catch {}
+
+            const vendaDiaria = vendasHoje.reduce((acc, v) => acc + v.total, 0);
+            const totalVendasMes = vendasMes.reduce((acc, v) => acc + v.total, 0);
+            const qtdVendasHoje = vendasHoje.length;
+            const ticketMedio = qtdVendasHoje > 0 ? vendaDiaria / qtdVendasHoje : 0;
+
+            setKpis({
+                vendaDiaria: vendaDiaria,
+                saidaDiaria: 0,
+                totalProdutos: totalProdutos,
+                totalVendasMes: totalVendasMes,
+                estoqueZerado: estoqueZerado,
+                qtdVendasHoje: qtdVendasHoje
+            })
+        } catch (error) {
+            console.error("Erro ao carregar KPIs", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [lojaId, token])
+
+    // WEBSOCKET TEMPO REAL
+    const conectarWebSocket = useCallback(() => {
+        if (!token || !lojaId) return;
+        if (ws.current?.readyState === WebSocket.OPEN) return;
+
+        ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
+
+        ws.current.onopen = () => {
+            setWsConectado(true)
+            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+        }
+
+        ws.current.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.tipo === 'stats.updated') {
+                    carregarKPIs()
+                }
+            } catch (e) {
+                console.error("Erro ao ler WS", e)
+            }
+        }
+
+        ws.current.onclose = () => {
+            setWsConectado(false)
+            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000)
+        }
+
+        ws.current.onerror = () => {
+            ws.current?.close()
+        }
+
+    }, [token, lojaId, carregarKPIs])
+
+    useEffect(() => {
+        carregarKPIs()
+        conectarWebSocket()
+        return () => {
+            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current)
+            ws.current?.close()
+        }
+    }, [carregarKPIs, conectarWebSocket])
+
+    const saldoDia = kpis.vendaDiaria - kpis.saidaDiaria;
+    const ticketMedio = kpis.qtdVendasHoje > 0 ? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                        Dados
+                        {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-400">Visão geral da loja em tempo real</p>
+                </div>
+                <button className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs sm:text-sm font-bold transition">
+                    <Edit size={14} />
+                    Editar
+                </button>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <CardStats
+                    titulo="Faturamento Hoje"
+                    stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    icon={<DollarSign size={16} />}
+                    cor="green"
+                    descricao="Entradas de hoje"
+                    formatCurrency={formatCurrency}
+                />
+                <CardStats
+                    titulo="Vendas Hoje"
+                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    icon={<ShoppingBag size={16} />}
+                    cor="blue"
+                    descricao="Pedidos concluídos"
+                    formatCurrency={(v) => String(v)}
+                />
+                <CardStats
+                    titulo="Ticket Médio"
+                    stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    icon={<TrendingUp size={16} />}
+                    cor="purple"
+                    descricao="Valor por venda"
+                    formatCurrency={formatCurrency}
+                />
+                <CardStats
+                    titulo="Estoque Zerado"
+                    stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }}
+                    icon={<Ban size={16} />}
+                    cor="red"
+                    descricao="Não consegue vender"
+                    formatCurrency={(v) => String(v)}
+                />
+            </div>
+
+
+            <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <p className="text-xs text-gray-300 font-medium">Resumo do Mês</p>
+                        <p className="text-3xl font-bold text-amber-400 mt-1">{loading ? "..." : formatCurrency(kpis.totalVendasMes)}</p>
+                        <p className="text-xs text-amber-400/70 mt-1">Total vendido nos últimos 30 dias</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     )
-    return None
+}
+
+function CardStats({
+    titulo,
+    stats,
+    icon,
+    cor,
+    descricao,
+    formatCurrency
+}: {
+    titulo: string,
+    stats: Stats,
+    icon: React.ReactNode,
+    cor: "red" | "orange" | "yellow" | "blue" | "green" | "purple",
+    descricao: string,
+    formatCurrency: (v: number) => string
+}) {
+    const cores = {
+        red: "border-red-500/30 bg-red-950/20 text-red-400",
+        orange: "border-orange-500/30 bg-orange-950/20 text-orange-400",
+        yellow: "border-yellow-500/30 bg-yellow-950/20 text-yellow-400",
+        blue: "border-blue-500/30 bg-blue-950/20 text-blue-400",
+        green: "border-green-500/30 bg-green-950/20 text-green-400",
+        purple: "border-purple-500/30 bg-purple-950/20 text-purple-400"
+    }
+
+    return (
+        <div className={`border rounded-xl p-3 md:p-4 transition hover:scale-[1.02] ${cores[cor]}`}>
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-xs md:text-sm font-medium text-gray-300 truncate">{titulo}</p>
+                <div className="opacity-80 shrink-0">{icon}</div>
+            </div>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{formatCurrency(stats.total)}</p>
+            <p className="text-xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
+        </div>
+    )
+}
