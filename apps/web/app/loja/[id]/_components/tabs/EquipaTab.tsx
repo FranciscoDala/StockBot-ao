@@ -36,8 +36,8 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
                     <p className="text-xs sm:text-sm text-gray-400">Gerencie os membros da loja</p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={onAdd} className="bg-green-600 hover:bg-green-700 flex items-center gap-2">
-                        <Plus size={16} /> Adicionar Membro
+                    <Button onClick={onAdd} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold transition w-full sm:w-auto">
+                        <Plus size={14} /> Adicionar Membro
                     </Button>
                 )}
             </div>

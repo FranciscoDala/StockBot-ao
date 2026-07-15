@@ -68,9 +68,11 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     <p className="text-xs sm:text-sm text-gray-400">{kpis.totalProdutos} produtos cadastrados</p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={onAdd} className="bg-green-600 hover:bg-green-700 flex items-center gap-2">
-                        <Plus size={16} /> Novo Produto
+                    <Button onClick={onAdd} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold transition w-full sm:w-auto">
+                        <Plus size={14} /> Novo Produto
                     </Button>
+
+
                 )}
             </div>
 
@@ -150,11 +152,11 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
 
                                             <div className="space-y-2 text-sm flex-1">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-gray-400">Preço</span>
+                                                    <span className="text-gray-400">P.Unitário</span>
                                                     <span className="font-bold text-green-400 text-base">{formatCurrency(preco)}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-gray-400">Qtd</span>
+                                                    <span className="text-gray-400">Quantidade</span>
                                                     <div className={`flex items-center gap-1.5 font-bold ${status.color}`}>
                                                         {status.icon}
                                                         <span>{p.estoque} {p.unidade}</span>

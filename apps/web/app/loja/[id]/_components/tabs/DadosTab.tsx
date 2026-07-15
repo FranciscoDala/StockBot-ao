@@ -173,7 +173,7 @@ export function DadosTab({
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-400">Visão geral da loja em tempo real</p>
                 </div>
-                <button className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs sm:text-sm font-bold transition">
+                <button className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold transition w-full sm:w-auto">
                     <Edit size={14} />
                     Editar
                 </button>
