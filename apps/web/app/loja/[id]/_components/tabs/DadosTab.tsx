@@ -62,16 +62,16 @@ export function DadosTab({
         }
         setLoading(true);
         try {
-            // 1. BUSCA VENDAS
+            // 1. BUSCA VENDAS - COM BARRA NO FINAL PRA EVITAR 307
             const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
             const data: VendaAPI[] = await resVendas.json();
 
-            // ACEITA VARIOS STATUS PRA NÃO ZERAR
+            // AGORA FILTRA POR "concluido" IGUAL ESTA NO DB
             const vendas = (Array.isArray(data) ? data : [])
-                .filter(v => ["concluida", "pago", "finalizada"].includes(v.status?.toLowerCase().trim()))
+                .filter(v => v.status?.toLowerCase().trim() === "concluido")
                 .map(v => ({
                     ...v,
                     total: Number(v.total) || 0,
@@ -170,7 +170,6 @@ export function DadosTab({
 
     return (
         <div className="space-y-6">
-            {/* HEADER PADRONIZADO COM STATUS WS */}
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
@@ -185,7 +184,6 @@ export function DadosTab({
                 </button>
             </div>
 
-            {/* 4 CARDS KPI IGUAL ESTATISTICAS TAB */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <CardStats
                     titulo="Faturamento Hoje"
@@ -221,38 +219,7 @@ export function DadosTab({
                 />
             </div>
 
-            {/* GRID DE INFORMAÇÕES PADRONIZADO - SEM ALTERAR NADA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
-                    <h3 className="font-semibold mb-4 text-sm sm:text-base">Informações Base</h3>
-                    <div className="space-y-3">
-                        <div><p className="text-xs text-gray-400">ID</p><p className="text-sm text-white break-all">{lojaId || "-"}</p></div>
-                        <div><p className="text-xs text-gray-400">Slug</p><p className="text-sm text-white break-all">{loja?.slug || "-"}</p></div>
-                        <div><p className="text-xs text-gray-400">NIF</p><p className="text-sm text-white">{loja?.nif || "-"}</p></div>
-                        <div><p className="text-xs text-gray-400">Ano Fundação</p><p className="text-sm text-white">{loja?.ano_fundacao || "-"}</p></div>
-                    </div>
-                </div>
 
-                <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base"><User size={16} /> Responsável</h3>
-                    <div className="space-y-3">
-                        <div><p className="text-xs text-gray-400">Nome</p><p className="text-sm text-white truncate">{user?.nome}</p></div>
-                        <div><p className="text-xs text-gray-400">Email</p><p className="text-sm text-white truncate">{user?.email}</p></div>
-                        <div><p className="text-xs text-gray-400">Nível</p><span className="text-xs px-2 py-1 bg-green-600 rounded-full font-medium">{user?.nivel}</span></div>
-                    </div>
-                </div>
-
-                <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base"><MapPin size={16} /> Localização</h3>
-                    <div className="space-y-3">
-                        <div><p className="text-xs text-gray-400">Endereço</p><p className="text-sm text-white">{loja?.endereco || "não informada"}</p></div>
-                        <div><p className="text-xs text-gray-400">Telefone</p><p className="text-sm text-white">{loja?.telefone || "-"}</p></div>
-                        <div><p className="text-xs text-gray-400">Status</p><span className={`text-xs px-2 py-1 rounded-full font-medium ${loja?.is_active ? "bg-green-600" : "bg-gray-600"}`}>{loja?.is_active ? "Ativa" : "Inativa"}</span></div>
-                    </div>
-                </div>
-            </div>
-
-            {/* RESUMO MENSAL ESTILO IMAGEM */}
             <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30">
                 <div className="flex items-center justify-between">
                     <div>
@@ -266,7 +233,6 @@ export function DadosTab({
     )
 }
 
-// COMPONENTE IGUAL DO ESTATISTICASTAB
 function CardStats({
     titulo,
     stats,
