@@ -1,5 +1,5 @@
 "use client";
-import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Ban, Wifi, WifiOff } from "lucide-react";
+import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, Ban, Wifi, WifiOff, ShoppingBag, Package } from "lucide-react";
 import { Loja, userread, formatCurrency } from "../../page";
 import { useEffect, useState, useRef, useCallback } from "react";
 
@@ -25,6 +25,12 @@ type VendaAPI = {
     itens: ItemVenda[]
 }
 
+type Stats = {
+    total: number
+    qtdVendas: number
+    ticketMedio: number
+}
+
 export function DadosTab({
     loja,
     user,
@@ -41,15 +47,19 @@ export function DadosTab({
         saidaDiaria: 0,
         totalVendasMes: 0,
         totalProdutos: 0,
-        estoqueZerado: 0
+        estoqueZerado: 0,
+        qtdVendasHoje: 0
     });
     const [loading, setLoading] = useState(true);
-    const [wsConectado, setWsConectado] = useState(false); // <- NOVO
+    const [wsConectado, setWsConectado] = useState(false);
     const ws = useRef<WebSocket | null>(null);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    const carregarKPIs = useCallback(async () => { // <- useCallback pra WS chamar
-        if (!lojaId || !token) return;
+    const carregarKPIs = useCallback(async () => {
+        if (!lojaId || !token) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             // 1. BUSCA VENDAS
@@ -58,11 +68,13 @@ export function DadosTab({
             });
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
             const data: VendaAPI[] = await resVendas.json();
+
+            // ACEITA VARIOS STATUS PRA NÃO ZERAR
             const vendas = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .filter(v => ["concluida", "pago", "finalizada"].includes(v.status?.toLowerCase().trim()))
                 .map(v => ({
                     ...v,
-                    total: Number(v.total),
+                    total: Number(v.total) || 0,
                     data_venda: new Date(v.data_venda)
                 }));
 
@@ -90,12 +102,18 @@ export function DadosTab({
                 }
             } catch {}
 
+            const vendaDiaria = vendasHoje.reduce((acc, v) => acc + v.total, 0);
+            const totalVendasMes = vendasMes.reduce((acc, v) => acc + v.total, 0);
+            const qtdVendasHoje = vendasHoje.length;
+            const ticketMedio = qtdVendasHoje > 0 ? vendaDiaria / qtdVendasHoje : 0;
+
             setKpis({
-                vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
-                saidaDiaria: 0, // <- liga com rota de despesas depois
+                vendaDiaria: vendaDiaria,
+                saidaDiaria: 0,
                 totalProdutos: totalProdutos,
-                totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
-                estoqueZerado: estoqueZerado
+                totalVendasMes: totalVendasMes,
+                estoqueZerado: estoqueZerado,
+                qtdVendasHoje: qtdVendasHoje
             })
         } catch (error) {
             console.error("Erro ao carregar KPIs", error);
@@ -119,7 +137,7 @@ export function DadosTab({
         ws.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.tipo === 'stats.updated') { // <- quando vender, recarrega
+                if (data.tipo === 'stats.updated') {
                     carregarKPIs()
                 }
             } catch (e) {
@@ -129,7 +147,7 @@ export function DadosTab({
 
         ws.current.onclose = () => {
             setWsConectado(false)
-            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000) // reconecta em 3s
+            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000)
         }
 
         ws.current.onerror = () => {
@@ -148,6 +166,7 @@ export function DadosTab({
     }, [carregarKPIs, conectarWebSocket])
 
     const saldoDia = kpis.vendaDiaria - kpis.saidaDiaria;
+    const ticketMedio = kpis.qtdVendasHoje > 0 ? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
 
     return (
         <div className="space-y-6">
@@ -166,50 +185,40 @@ export function DadosTab({
                 </button>
             </div>
 
-            {/* 4 CARDS KPI - lg:grid-cols-4 */}
+            {/* 4 CARDS KPI IGUAL ESTATISTICAS TAB */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-
-                {/* Card 1: Venda Diária */}
-                <div className="bg-gradient-to-br from-green-950/40 to-neutral-900 p-4 rounded-xl border-green-900/30">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-gray-300 font-medium">Venda Diária</p>
-                        <DollarSign size={16} className="text-green-500" />
-                    </div>
-                    <p className="text-2xl font-bold text-green-400">{loading ? "..." : formatCurrency(kpis.vendaDiaria)}</p>
-                    <p className="text-xs text-green-400/70 mt-1">Entradas de hoje</p>
-                </div>
-
-                {/* Card 2: Saída Diária */}
-                <div className="bg-gradient-to-br from-red-950/40 to-neutral-900 p-4 rounded-xl border-red-900/30">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-gray-300 font-medium">Saída Diária</p>
-                        <TrendingDown size={16} className="text-red-500" />
-                    </div>
-                    <p className="text-2xl font-bold text-red-400">{loading ? "..." : formatCurrency(kpis.saidaDiaria)}</p>
-                    <p className="text-xs text-red-400/70 mt-1">Despesas + Compras</p>
-                </div>
-
-                {/* Card 3: Saldo do Dia */}
-                <div className="bg-gradient-to-br from-blue-950/40 to-neutral-900 p-4 rounded-xl border-blue-900/30">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-gray-300 font-medium">Saldo do Dia</p>
-                        <TrendingUp size={16} className={saldoDia >= 0 ? "text-blue-500" : "text-red-500"} />
-                    </div>
-                    <p className={`text-2xl font-bold ${saldoDia >= 0 ? "text-blue-400" : "text-red-400"}`}>
-                        {loading ? "..." : formatCurrency(saldoDia)}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">Lucro do dia</p>
-                </div>
-
-                {/* Card 4: Estoque Zerado */}
-                <div className="bg-gradient-to-br from-rose-950/40 to-neutral-900 p-4 rounded-xl border-rose-900/30">
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs text-gray-300 font-medium">Estoque Zerado</p>
-                        <Ban size={16} className="text-rose-500" />
-                    </div>
-                    <p className="text-2xl font-bold text-rose-400">{loading ? "..." : kpis.estoqueZerado}</p>
-                    <p className="text-xs text-rose-400/70 mt-1">Não consegue vender</p>
-                </div>
+                <CardStats
+                    titulo="Faturamento Hoje"
+                    stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    icon={<DollarSign size={16} />}
+                    cor="green"
+                    descricao="Entradas de hoje"
+                    formatCurrency={formatCurrency}
+                />
+                <CardStats
+                    titulo="Vendas Hoje"
+                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    icon={<ShoppingBag size={16} />}
+                    cor="blue"
+                    descricao="Pedidos concluídos"
+                    formatCurrency={(v) => String(v)}
+                />
+                <CardStats
+                    titulo="Ticket Médio"
+                    stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    icon={<TrendingUp size={16} />}
+                    cor="purple"
+                    descricao="Valor por venda"
+                    formatCurrency={formatCurrency}
+                />
+                <CardStats
+                    titulo="Estoque Zerado"
+                    stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }}
+                    icon={<Ban size={16} />}
+                    cor="red"
+                    descricao="Não consegue vender"
+                    formatCurrency={(v) => String(v)}
+                />
             </div>
 
             {/* GRID DE INFORMAÇÕES PADRONIZADO - SEM ALTERAR NADA */}
@@ -253,6 +262,43 @@ export function DadosTab({
                     </div>
                 </div>
             </div>
+        </div>
+    )
+}
+
+// COMPONENTE IGUAL DO ESTATISTICASTAB
+function CardStats({
+    titulo,
+    stats,
+    icon,
+    cor,
+    descricao,
+    formatCurrency
+}: {
+    titulo: string,
+    stats: Stats,
+    icon: React.ReactNode,
+    cor: "red" | "orange" | "yellow" | "blue" | "green" | "purple",
+    descricao: string,
+    formatCurrency: (v: number) => string
+}) {
+    const cores = {
+        red: "border-red-500/30 bg-red-950/20 text-red-400",
+        orange: "border-orange-500/30 bg-orange-950/20 text-orange-400",
+        yellow: "border-yellow-500/30 bg-yellow-950/20 text-yellow-400",
+        blue: "border-blue-500/30 bg-blue-950/20 text-blue-400",
+        green: "border-green-500/30 bg-green-950/20 text-green-400",
+        purple: "border-purple-500/30 bg-purple-950/20 text-purple-400"
+    }
+
+    return (
+        <div className={`border rounded-xl p-3 md:p-4 transition hover:scale-[1.02] ${cores[cor]}`}>
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-xs md:text-sm font-medium text-gray-300 truncate">{titulo}</p>
+                <div className="opacity-80 shrink-0">{icon}</div>
+            </div>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{formatCurrency(stats.total)}</p>
+            <p className="text-xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
         </div>
     )
 }
