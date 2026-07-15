@@ -10,6 +10,8 @@ import { EquipaTab } from "./_components/tabs/EquipaTab";
 import { VendaTab } from "./_components/tabs/VendaTab";
 import { EstatisticasTab } from "./_components/tabs/EstatisticasTab";
 import { RiscoTab } from "./_components/tabs/RiscoTab";
+import { FornecedoresTab } from "./_components/tabs/FornecedoresTab"; // NOVO
+import { DocumentosTab } from "./_components/tabs/DocumentosTab"; // NOVO
 import { PermissaoModal } from "./_components/modals/PermissaoModal";
 import { ErroModal } from "./_components/modals/ErroModal";
 import { DetalhesModal } from "./_components/modals/DetalhesModal";
@@ -91,9 +93,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-          ? data
-              .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-              .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+         ? data
+             .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+             .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -195,7 +197,7 @@ export default function LojaPage() {
                 const loja_id = user?.loja_id || "";
 
                 let payload: any = {
-              ...(data || formDataProduto),
+             ...(data || formDataProduto),
                     senha_dono,
                     senha_confirmacao: senha_dono,
                     loja_id: (data as ProdutoType)?.loja_id || loja_id
@@ -313,7 +315,10 @@ export default function LojaPage() {
 
                         {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} formatCurrency={formatCurrency} />}
 
-                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
+                        {activeTab === "fornecedores" && podeVerTudo && <FornecedoresTab />} // NOVO
+                        {activeTab === "documentos" && podeVerTudo && <DocumentosTab loja={loja} />} // NOVO
+
+                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
 
                 </div>
@@ -336,6 +341,7 @@ export default function LojaPage() {
 
             </div>
         }
+        
         <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} formatCurrency={formatCurrency} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} />
     </>;
 }
