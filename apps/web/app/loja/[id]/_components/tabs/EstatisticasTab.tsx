@@ -443,7 +443,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                                        formatter={(value: number | undefined) => value ? formatCurrency(value) : ""}
+                                        formatter={(value: any) => typeof value === 'number' ? formatCurrency(value) : ""}
                                     />
 
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
