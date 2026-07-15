@@ -3,9 +3,8 @@ import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, Ban, Wifi, Wi
 import { Loja, userread, formatCurrency } from "../../page";
 import { useEffect, useState, useRef, useCallback } from "react";
 
-// FORÇAR HTTPS EM PRODUÇÃO
-const API_URL = "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
-const WS_URL = "wss://gentle-playfulness-production-d333.up.railway.app";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
 
 type ItemVenda = {
     id: string
@@ -57,7 +56,8 @@ export function DadosTab({
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const carregarKPIs = useCallback(async () => {
-        if (!lojaId || !token) {
+        if (!lojaId || !token || !API_URL) {
+            console.log("Faltando dados:", {lojaId, token, API_URL})
             setLoading(false);
             return;
         }
@@ -119,7 +119,7 @@ export function DadosTab({
     }, [lojaId, token])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token || !lojaId) return;
+        if (!token || !lojaId || !WS_URL) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -190,7 +190,7 @@ export function DadosTab({
                 />
                 <CardStats
                     titulo="Vendas Hoje"
-                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }} // CORRIGIDO AQUI
+                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
                     icon={<ShoppingBag size={16} />}
                     cor="blue"
                     descricao="Pedidos concluídos"
