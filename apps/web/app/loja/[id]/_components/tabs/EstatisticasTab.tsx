@@ -440,10 +440,12 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <XAxis dataKey="nome" stroke="#9ca3af" fontSize={12} />
                                     <YAxis yAxisId="left" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                                     <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" fontSize={12} />
+
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
-                                        formatter={(value: number) => formatCurrency(value)}
+                                        formatter={(value: number | undefined) => value ? formatCurrency(value) : ""}
                                     />
+
                                     <Legend wrapperStyle={{ fontSize: '12px' }} />
                                     <Bar yAxisId="left" dataKey="Categoria A" stackId="a" fill="#facc15" name="Categoria A" />
                                     <Bar yAxisId="left" dataKey="Categoria B" stackId="a" fill="#818cf8" name="Categoria B" />
