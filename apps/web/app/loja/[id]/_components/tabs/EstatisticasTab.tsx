@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer, Filter, Download, BarChart3, PieChart, Users } from "lucide-react"
+import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
@@ -56,6 +57,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const [abaAtiva, setAbaAtiva] = useState<"resumo" | "produtos" | "pagamentos">("resumo")
     const [filtroPeriodo, setFiltroPeriodo] = useState("30")
     const [filtroForma, setFiltroForma] = useState("TODAS")
+    const [filtroGrafico, setFiltroGrafico] = useState<"diario" | "semanal" | "mensal">("diario")
     const ws = useRef<WebSocket | null>(null)
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
@@ -70,15 +72,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-             .filter(v => v.status?.toLowerCase().trim() === "concluida")
-             .map(v => ({
+            .filter(v => v.status?.toLowerCase().trim() === "concluida")
+            .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                     ...item,
+                    ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -153,15 +155,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-         .header { text-align: center; margin-bottom: 5px; }
-         .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-         .header p { margin: 1px 0; font-size: 10px; }
-         .info p { margin: 1px 0; }
+        .header { text-align: center; margin-bottom: 5px; }
+        .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+        .header p { margin: 1px 0; font-size: 10px; }
+        .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-         .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-         .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+        .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+        .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -255,10 +257,53 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
         return Object.entries(dias).slice(-7).map(([dia, total]) => ({ dia, total }));
     }, [vendasFiltradas]);
 
+    // NOVO: DADOS DO GRAFICO BARRAS EMPILHADAS + LINHA
+    const dadosGrafico = useMemo(() => {
+        const agrupado: Record<string, { cat1: number; cat2: number; cat3: number; total: number }> = {};
+
+        vendasFiltradas.forEach(v => {
+            let chave = "";
+            const data = new Date(v.data);
+
+            if (filtroGrafico === "diario") {
+                chave = data.toLocaleDateString('pt-AO', { day: '2-digit', month: '2-digit' });
+            } else if (filtroGrafico === "semanal") {
+                const semana = Math.ceil(data.getDate() / 7);
+                chave = `Sem ${semana} ${data.toLocaleDateString('pt-AO', { month: 'short' })}`;
+            } else {
+                chave = data.toLocaleDateString('pt-AO', { month: 'short', year: '2-digit' });
+            }
+
+            if (!agrupado[chave]) agrupado[chave] = { cat1: 0, cat2: 0, cat3: 0, total: 0 };
+
+            // Aqui tu pode trocar por categoria real depois. Por enquanto divido por 3 partes
+            const parte = v.total / 3;
+            agrupado[chave].cat1 += parte;
+            agrupado[chave].cat2 += parte;
+            agrupado[chave].cat3 += parte;
+            agrupado[chave].total += v.total;
+        });
+
+        return Object.entries(agrupado).map(([nome, vals]) => ({
+            nome,
+            "Categoria A": vals.cat1,
+            "Categoria B": vals.cat2,
+            "Categoria C": vals.cat3,
+            "Ticket Médio": vals.total > 0? vals.total / vendasFiltradas.filter(v => {
+                const data = new Date(v.data);
+                let chave = "";
+                if (filtroGrafico === "diario") chave = data.toLocaleDateString('pt-AO', { day: '2-digit', month: '2-digit' });
+                else if (filtroGrafico === "semanal") chave = `Sem ${Math.ceil(data.getDate() / 7)} ${data.toLocaleDateString('pt-AO', { month: 'short' })}`;
+                else chave = data.toLocaleDateString('pt-AO', { month: 'short', year: '2-digit' });
+                return chave === nome;
+            }).length || 1 : 0
+        }));
+    }, [vendasFiltradas, filtroGrafico]);
+
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-         ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+        ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -278,8 +323,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-       .scrollbar-hide::-webkit-scrollbar { display: none; }
-       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
             {/* HEADER */}
@@ -381,7 +426,41 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                     </div>
 
-                    {/* GRAFICO LINHA COM PICOS */}
+                    {/* NOVO GRAFICO BARRAS EMPILHADAS + LINHA */}
+                    <div className="bg-neutral-900 rounded-xl p-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
+                            <h3 className="font-bold">Desempenho de Vendas</h3>
+                            <div className="flex gap-2">
+                                {["diario", "semanal", "mensal"].map(tipo => (
+                                    <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filtroGrafico === tipo? "bg-green-600 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"}`}>
+                                        {tipo === "diario"? "Diário" : tipo === "semanal"? "Semanal" : "Mensal"}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="h-80 w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={dadosGrafico}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                                    <XAxis dataKey="nome" stroke="#9ca3af" fontSize={12} />
+                                    <YAxis yAxisId="left" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                                    <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" fontSize={12} />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
+                                        formatter={(value: number) => formatCurrency(value)}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    <Bar yAxisId="left" dataKey="Categoria A" stackId="a" fill="#facc15" name="Categoria A" />
+                                    <Bar yAxisId="left" dataKey="Categoria B" stackId="a" fill="#818cf8" name="Categoria B" />
+                                    <Bar yAxisId="left" dataKey="Categoria C" stackId="a" fill="#4ade80" name="Categoria C" />
+                                    <Line yAxisId="right" type="monotone" dataKey="Ticket Médio" stroke="#ef4444" strokeWidth={3} name="Ticket Médio" dot={{ r: 4 }} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* GRAFICO LINHA ANTIGO */}
                     <div className="bg-neutral-900 rounded-xl p-4">
                         <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
 
@@ -479,7 +558,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <p className="text-sm font-bold">{formatCurrency(p.total)}</p>
                                 </div>
                                 <div className="w-full bg-neutral-800 rounded-full h-2">
-                                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${(p.total / statsPeriodo.total) * 100}%` }}></div>
+                                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0? (p.total / statsPeriodo.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
                         ))}
