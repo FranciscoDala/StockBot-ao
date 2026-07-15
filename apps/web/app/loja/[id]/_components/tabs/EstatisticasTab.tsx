@@ -62,7 +62,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
     const buscarVendas = useCallback(async () => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         setLoading(true)
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
@@ -71,16 +71,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-            .filter(v => v.status?.toLowerCase().trim() === "concluida")
-            .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                    ...item,
+                        ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -95,7 +95,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     }, [token, lojaId])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -220,7 +220,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const calcularStats = (lista: Venda[]): Stats => {
         const total = lista.reduce((acc, v) => acc + v.total, 0)
         const qtdVendas = lista.length
-        const ticketMedio = qtdVendas > 0? total / qtdVendas : 0
+        const ticketMedio = qtdVendas > 0 ? total / qtdVendas : 0
         return { total, qtdVendas, ticketMedio }
     }
 
@@ -259,7 +259,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
     // NOVO: DADOS DO GRAFICO BARRAS EMPILHADAS + LINHA
     const dadosGrafico = useMemo(() => {
-        const agrupado: Record<string, { cat1: number; cat2: number; cat3: number; total: number }> = {};
+        const agrupado: Record<string, { cat1: number; cat2: number; cat3: number; total: number; qtd: number }> = {};
 
         vendasFiltradas.forEach(v => {
             let chave = "";
@@ -274,14 +274,14 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 chave = data.toLocaleDateString('pt-AO', { month: 'short', year: '2-digit' });
             }
 
-            if (!agrupado[chave]) agrupado[chave] = { cat1: 0, cat2: 0, cat3: 0, total: 0 };
+            if (!agrupado[chave]) agrupado[chave] = { cat1: 0, cat2: 0, cat3: 0, total: 0, qtd: 0 };
 
-            // Aqui tu pode trocar por categoria real depois. Por enquanto divido por 3 partes
             const parte = v.total / 3;
             agrupado[chave].cat1 += parte;
             agrupado[chave].cat2 += parte;
             agrupado[chave].cat3 += parte;
             agrupado[chave].total += v.total;
+            agrupado[chave].qtd += 1; // conta quantas vendas teve nesse período
         });
 
         return Object.entries(agrupado).map(([nome, vals]) => ({
@@ -289,21 +289,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             "Categoria A": vals.cat1,
             "Categoria B": vals.cat2,
             "Categoria C": vals.cat3,
-            "Ticket Médio": vals.total > 0? vals.total / vendasFiltradas.filter(v => {
-                const data = new Date(v.data);
-                let chave = "";
-                if (filtroGrafico === "diario") chave = data.toLocaleDateString('pt-AO', { day: '2-digit', month: '2-digit' });
-                else if (filtroGrafico === "semanal") chave = `Sem ${Math.ceil(data.getDate() / 7)} ${data.toLocaleDateString('pt-AO', { month: 'short' })}`;
-                else chave = data.toLocaleDateString('pt-AO', { month: 'short', year: '2-digit' });
-                return chave === nome;
-            }).length || 1 : 0
+            "Ticket Médio": vals.qtd > 0 ? vals.total / vals.qtd : 0 // agora sim
         }));
     }, [vendasFiltradas, filtroGrafico]);
+
 
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-        ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+            ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -331,7 +325,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
-                    {wsConectado? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
+                    {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
                 </div>
                 <div className="flex gap-2">
                     <button onClick={exportarCSV} className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold">
@@ -378,7 +372,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         { id: "produtos", label: "Top Produtos", icon: Package },
                         { id: "pagamentos", label: "Pagamentos", icon: PieChart }
                     ].map(tab => (
-                        <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                        <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition ${abaAtiva === tab.id ? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
                             <tab.icon size={14} /> {tab.label}
                         </button>
                     ))}
@@ -401,7 +395,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Vendas Realizadas"
-                            stats={{...statsPeriodo, total: statsPeriodo.qtdVendas }}
+                            stats={{ ...statsPeriodo, total: statsPeriodo.qtdVendas }}
                             icon={<ShoppingBag size={16} />}
                             cor="blue"
                             descricao="Pedidos concluídos"
@@ -409,7 +403,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Ticket Médio"
-                            stats={{...statsPeriodo, total: statsPeriodo.ticketMedio }}
+                            stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
                             icon={<TrendingUp size={16} />}
                             cor="purple"
                             descricao="Valor por venda"
@@ -418,7 +412,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Itens Vendidos"
-                            stats={{...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
+                            stats={{ ...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
                             icon={<Package size={16} />}
                             cor="orange"
                             descricao="Unidades no período"
@@ -433,8 +427,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             <div className="flex gap-2">
                                 {["diario", "semanal", "mensal"].map(tipo => (
                                     <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filtroGrafico === tipo? "bg-green-600 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"}`}>
-                                        {tipo === "diario"? "Diário" : tipo === "semanal"? "Semanal" : "Mensal"}
+                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filtroGrafico === tipo ? "bg-green-600 text-white" : "bg-neutral-800 text-gray-300 hover:bg-neutral-700"}`}>
+                                        {tipo === "diario" ? "Diário" : tipo === "semanal" ? "Semanal" : "Mensal"}
                                     </button>
                                 ))}
                             </div>
@@ -444,7 +438,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 <BarChart data={dadosGrafico}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                                     <XAxis dataKey="nome" stroke="#9ca3af" fontSize={12} />
-                                    <YAxis yAxisId="left" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} />
+                                    <YAxis yAxisId="left" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                                     <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" fontSize={12} />
                                     <Tooltip
                                         contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
@@ -464,7 +458,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     <div className="bg-neutral-900 rounded-xl p-4">
                         <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
 
-                        {vendasPorDia.length === 0? (
+                        {vendasPorDia.length === 0 ? (
                             <div className="h-40 flex items-center justify-center">
                                 <p className="text-gray-400 text-sm">Sem vendas no período selecionado</p>
                             </div>
@@ -558,7 +552,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <p className="text-sm font-bold">{formatCurrency(p.total)}</p>
                                 </div>
                                 <div className="w-full bg-neutral-800 rounded-full h-2">
-                                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0? (p.total / statsPeriodo.total) * 100 : 0}%` }}></div>
+                                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0 ? (p.total / statsPeriodo.total) * 100 : 0}%` }}></div>
                                 </div>
                             </div>
                         ))}
