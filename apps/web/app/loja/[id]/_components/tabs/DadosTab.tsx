@@ -1,7 +1,28 @@
 "use client";
 import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Ban, AlertTriangle } from "lucide-react";
-import { Loja, userread, formatCurrency } from "../../page"; // <- REMOVI fetchComAuth daqui
-import { useEffect, useState } from "react";
+import { Loja, userread, formatCurrency } from "../../page";
+import { useEffect, useState, useMemo } from "react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+
+type ItemVenda = {
+    id: string
+    produto_id: string
+    nome_produto: string
+    quantidade: number
+    preco_unitario: number
+    subtotal: number
+}
+
+type VendaAPI = {
+    id: string | number
+    total: number
+    total_itens: number
+    forma_pagamento: string
+    data_venda: string
+    status: string
+    itens: ItemVenda[]
+}
 
 export function DadosTab({
     loja,
@@ -16,7 +37,7 @@ export function DadosTab({
 }) {
     const [kpis, setKpis] = useState({
         vendaDiaria: 0,
-        saidaDiaria: 0,
+        saidaDiaria: 0, // <- se tu não tem saída ainda, deixa 0 por enquanto
         totalVendasMes: 0,
         totalProdutos: 0,
         estoqueZerado: 0,
@@ -24,37 +45,59 @@ export function DadosTab({
     });
     const [loading, setLoading] = useState(true);
 
-    // FUNÇÃO ADICIONADA AQUI PRA NÃO QUEBRAR O BUILD
-    const fetchComAuth = async (endpoint: string) => {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            cache: 'no-store'
-        });
-        if (!res.ok) throw new Error('Erro na requisição');
-        return res.json();
-    }
-
-    // LIGADO COM API REAL
     useEffect(() => {
         if (!lojaId || !token) return;
 
         const carregarKPIs = async () => {
             setLoading(true);
             try {
-                const resDia = await fetchComAuth(`/lojas/${lojaId}/dashboard/dia`);
-                const resMes = await fetchComAuth(`/lojas/${lojaId}/dashboard/mes`);
-                const resEstoque = await fetchComAuth(`/lojas/${lojaId}/dashboard/estoque-alertas`);
+                // 1. BUSCA VENDAS IGUAL ESTATISTICASTAB
+                const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
+                const data: VendaAPI[] = await resVendas.json();
+                const vendas = (Array.isArray(data) ? data : [])
+                    .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                    .map(v => ({
+                        ...v,
+                        total: Number(v.total),
+                        data_venda: new Date(v.data_venda)
+                    }));
+
+                // 2. FILTRA HOJE
+                const hoje = new Date();
+                const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+                const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje);
+
+                // 3. FILTRA ÚLTIMOS 30 DIAS
+                const inicioMes = new Date();
+                inicioMes.setDate(hoje.getDate() - 30);
+                const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
+
+                // 4. BUSCA ESTOQUE - SE TIVER ROTA
+                let estoqueZerado = 0;
+                let riscoRuptura = 0;
+                let totalProdutos = 0;
+                try {
+                    const resEstoque = await fetch(`${API_URL}/lojas/${lojaId}/dashboard/estoque-alertas`, {
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
+                    if(resEstoque.ok){
+                        const resEstoqueJson = await resEstoque.json();
+                        estoqueZerado = resEstoqueJson.estoque_zerado || 0;
+                        riscoRuptura = resEstoqueJson.risco_ruptura || 0;
+                        totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
+                    }
+                } catch {}
 
                 setKpis({
-                    vendaDiaria: resDia.venda_total || 0,
-                    saidaDiaria: resDia.saida_total || 0,
-                    totalProdutos: resDia.total_produtos_ativos || 0,
-                    totalVendasMes: resMes.venda_total || 0,
-                    estoqueZerado: resEstoque.estoque_zerado || 0,
-                    riscoRuptura: resEstoque.risco_ruptura || 0
+                    vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
+                    saidaDiaria: 0, // <- aqui tu liga com a rota de despesas quando tiver
+                    totalProdutos: totalProdutos,
+                    totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
+                    estoqueZerado: estoqueZerado,
+                    riscoRuptura: riscoRuptura
                 })
             } catch (error) {
                 console.error("Erro ao carregar KPIs", error);
@@ -95,7 +138,7 @@ export function DadosTab({
                 </div>
 
                 {/* Card 2: Saída Diária */}
-                <div className="bg-gradient-to-br from-red-950/40 to-neutral-900 p-4 rounded-xl border border-red-900/30"> {/* <- CORRIGI: faltava border */}
+                <div className="bg-gradient-to-br from-red-950/40 to-neutral-900 p-4 rounded-xl border-red-900/30">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-300 font-medium">Saída Diária</p>
                         <TrendingDown size={16} className="text-red-500" />
@@ -105,7 +148,7 @@ export function DadosTab({
                 </div>
 
                 {/* Card 3: Saldo do Dia */}
-                <div className="bg-gradient-to-br from-blue-950/40 to-neutral-900 p-4 rounded-xl border border-blue-900/30">
+                <div className="bg-gradient-to-br from-blue-950/40 to-neutral-900 p-4 rounded-xl border-blue-900/30">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-300 font-medium">Saldo do Dia</p>
                         <TrendingUp size={16} className={saldoDia >= 0 ? "text-blue-500" : "text-red-500"} />
@@ -117,7 +160,7 @@ export function DadosTab({
                 </div>
 
                 {/* Card 4: Estoque Zerado */}
-                <div className="bg-gradient-to-br from-rose-950/40 to-neutral-900 p-4 rounded-xl border-rose-900/30"> {/* <- CORRIGI: faltava border */}
+                <div className="bg-gradient-to-br from-rose-950/40 to-neutral-900 p-4 rounded-xl border-rose-900/30">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-300 font-medium">Estoque Zerado</p>
                         <Ban size={16} className="text-rose-500" />
@@ -142,70 +185,34 @@ export function DadosTab({
                 <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
                     <h3 className="font-semibold mb-4 text-sm sm:text-base">Informações Base</h3>
                     <div className="space-y-3">
-                        <div>
-                            <p className="text-xs text-gray-400">ID</p>
-                            <p className="text-sm text-white break-all">{lojaId || "-"}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">Slug</p>
-                            <p className="text-sm text-white break-all">{loja?.slug || "-"}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">NIF</p>
-                            <p className="text-sm text-white">{loja?.nif || "-"}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">Ano Fundação</p>
-                            <p className="text-sm text-white">{loja?.ano_fundacao || "-"}</p>
-                        </div>
+                        <div><p className="text-xs text-gray-400">ID</p><p className="text-sm text-white break-all">{lojaId || "-"}</p></div>
+                        <div><p className="text-xs text-gray-400">Slug</p><p className="text-sm text-white break-all">{loja?.slug || "-"}</p></div>
+                        <div><p className="text-xs text-gray-400">NIF</p><p className="text-sm text-white">{loja?.nif || "-"}</p></div>
+                        <div><p className="text-xs text-gray-400">Ano Fundação</p><p className="text-sm text-white">{loja?.ano_fundacao || "-"}</p></div>
                     </div>
                 </div>
 
                 <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base">
-                        <User size={16} /> Responsável
-                    </h3>
+                    <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base"><User size={16} /> Responsável</h3>
                     <div className="space-y-3">
-                        <div>
-                            <p className="text-xs text-gray-400">Nome</p>
-                            <p className="text-sm text-white truncate">{user?.nome}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">Email</p>
-                            <p className="text-sm text-white truncate">{user?.email}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">Nível</p>
-                            <span className="text-xs px-2 py-1 bg-green-600 rounded-full font-medium">{user?.nivel}</span>
-                        </div>
+                        <div><p className="text-xs text-gray-400">Nome</p><p className="text-sm text-white truncate">{user?.nome}</p></div>
+                        <div><p className="text-xs text-gray-400">Email</p><p className="text-sm text-white truncate">{user?.email}</p></div>
+                        <div><p className="text-xs text-gray-400">Nível</p><span className="text-xs px-2 py-1 bg-green-600 rounded-full font-medium">{user?.nivel}</span></div>
                     </div>
                 </div>
 
                 <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
-                    <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base">
-                        <MapPin size={16} /> Localização
-                    </h3>
+                    <h3 className="font-semibold mb-4 flex items-center gap-2 text-sm sm:text-base"><MapPin size={16} /> Localização</h3>
                     <div className="space-y-3">
-                        <div>
-                            <p className="text-xs text-gray-400">Endereço</p>
-                            <p className="text-sm text-white">{loja?.endereco || "não informada"}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">Telefone</p>
-                            <p className="text-sm text-white">{loja?.telefone || "-"}</p>
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-400">Status</p>
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${loja?.is_active ? "bg-green-600" : "bg-gray-600"}`}>
-                                {loja?.is_active ? "Ativa" : "Inativa"}
-                            </span>
-                        </div>
+                        <div><p className="text-xs text-gray-400">Endereço</p><p className="text-sm text-white">{loja?.endereco || "não informada"}</p></div>
+                        <div><p className="text-xs text-gray-400">Telefone</p><p className="text-sm text-white">{loja?.telefone || "-"}</p></div>
+                        <div><p className="text-xs text-gray-400">Status</p><span className={`text-xs px-2 py-1 rounded-full font-medium ${loja?.is_active ? "bg-green-600" : "bg-gray-600"}`}>{loja?.is_active ? "Ativa" : "Inativa"}</span></div>
                     </div>
                 </div>
             </div>
 
             {/* RESUMO MENSAL ESTILO IMAGEM */}
-            <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30"> {/* <- CORRIGI: faltava border */}
+            <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30">
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-xs text-gray-300 font-medium">Resumo do Mês</p>
