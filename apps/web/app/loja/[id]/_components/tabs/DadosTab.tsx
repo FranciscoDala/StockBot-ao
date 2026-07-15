@@ -62,16 +62,16 @@ export function DadosTab({
         }
         setLoading(true);
         try {
-            // 1. BUSCA VENDAS - COM BARRA NO FINAL PRA EVITAR 307
+            // 1. BUSCA VENDAS - IGUAL ESTATISTICASTAB
             const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
             const data: VendaAPI[] = await resVendas.json();
 
-            // AGORA FILTRA POR "concluido" IGUAL ESTA NO DB
+            // FILTRO IGUAL DO ESTATISTICASTAB: "concluida"
             const vendas = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluido")
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
                 .map(v => ({
                     ...v,
                     total: Number(v.total) || 0,
@@ -218,7 +218,6 @@ export function DadosTab({
                     formatCurrency={(v) => String(v)}
                 />
             </div>
-
 
             <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30">
                 <div className="flex items-center justify-between">
