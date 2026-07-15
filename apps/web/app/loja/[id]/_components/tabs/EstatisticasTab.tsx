@@ -456,49 +456,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         </div>
                     </div>
 
-                    {/* GRAFICO LINHA ANTIGO */}
-                    <div className="bg-neutral-900 rounded-xl p-4">
-                        <h3 className="font-bold mb-4">Vendas por Dia - Últimos 7 dias</h3>
 
-                        {vendasPorDia.length === 0 ? (
-                            <div className="h-40 flex items-center justify-center">
-                                <p className="text-gray-400 text-sm">Sem vendas no período selecionado</p>
-                            </div>
-                        ) : (
-                            <div className="relative h-40">
-                                <svg className="w-full h-full">
-                                    {(() => {
-                                        const max = Math.max(...vendasPorDia.map(x => x.total), 1)
-                                        const points = vendasPorDia.map((d, i) => {
-                                            const x = (i / (vendasPorDia.length - 1)) * 100
-                                            const y = 100 - (d.total / max) * 90
-                                            return `${x},${y}`
-                                        }).join(' ')
-                                        return (
-                                            <>
-                                                <polyline
-                                                    fill="none"
-                                                    stroke="#22c55e"
-                                                    strokeWidth="3"
-                                                    points={points}
-                                                />
-                                                {vendasPorDia.map((d, i) => {
-                                                    const x = (i / (vendasPorDia.length - 1)) * 100
-                                                    const y = 100 - (d.total / max) * 90
-                                                    return (
-                                                        <g key={i}>
-                                                            <circle cx={`${x}%`} cy={`${y}%`} r="4" fill="#22c55e" />
-                                                            <text x={`${x}%`} y="98%" textAnchor="middle" fontSize="10" fill="#9ca3af">{d.dia.split('/')[0]}</text>
-                                                        </g>
-                                                    )
-                                                })}
-                                            </>
-                                        )
-                                    })()}
-                                </svg>
-                            </div>
-                        )}
-                    </div>
 
                     {/* TABELA VENDAS */}
                     <div className="bg-neutral-900 rounded-xl p-3 md:p-4">
@@ -513,7 +471,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <div className="flex items-center gap-2 shrink-0">
                                         <p className="font-bold text-green-500">{formatCurrency(v.total)}</p>
                                         <button onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} className="p-1.5 rounded-md hover:bg-green-600/20 transition text-gray-300 hover:text-green-400" title="Imprimir">
-                                            <Printer size={14} />
+                                            <Printer size={18} />
                                         </button>
                                     </div>
                                 </div>
