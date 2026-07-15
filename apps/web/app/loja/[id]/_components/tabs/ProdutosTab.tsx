@@ -70,43 +70,49 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     </div>
                     {isAdmin && (
                         <button onClick={onAdd} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold text-white transition w-full sm:w-auto">
-                            <Plus size={14} /> Novo Produto
+                            <Plus size={14} /> Adicionar Produto
                         </button>
                     )}
                 </div>
 
-                {/* CARDS KPI */}
+                {/* CARDS KPI PADRONIZADOS */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
+                    <div className="border border-green-500/30 bg-green-950/20 text-green-400 rounded-xl p-3 md:p-4 transition hover:scale-[1.02] min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-gray-400">Valor em Estoque</p>
-                            <DollarSign size={16} className="text-green-500" />
+                            <p className="text-xs md:text-sm font-medium text-gray-300 truncate">Valor em Estoque</p>
+                            <DollarSign size={16} className="opacity-80 shrink-0" />
                         </div>
-                        <p className="text-lg sm:text-xl font-bold text-green-500">{formatCurrency(kpis.valorTotalEstoque)}</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-white truncate" title={formatCurrency(kpis.valorTotalEstoque)}>
+                            {formatCurrency(kpis.valorTotalEstoque)}
+                        </p>
+                        <p className="text-xs md:text-xs mt-1 opacity-80 truncate">Total do estoque atual</p>
                     </div>
 
-                    <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
+                    <div className="border border-blue-500/30 bg-blue-950/20 text-blue-400 rounded-xl p-3 md:p-4 transition hover:scale-[1.02] min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-gray-400">Em Estoque</p>
-                            <TrendingUp size={16} className="text-green-500" />
+                            <p className="text-xs md:text-sm font-medium text-gray-300 truncate">Em Estoque</p>
+                            <TrendingUp size={16} className="opacity-80 shrink-0" />
                         </div>
-                        <p className="text-lg sm:text-xl font-bold">{kpis.totalEmEstoque}</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-white">{kpis.totalEmEstoque}</p>
+                        <p className="text-xs md:text-xs mt-1 opacity-80 truncate">Produtos com estoque ok</p>
                     </div>
 
-                    <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
+                    <div className="border border-amber-500/30 bg-amber-950/20 text-amber-400 rounded-xl p-3 md:p-4 transition hover:scale-[1.02] min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-gray-400">Estoque Baixo</p>
-                            <AlertTriangle size={16} className="text-amber-500" />
+                            <p className="text-xs md:text-sm font-medium text-gray-300 truncate">Estoque Baixo</p>
+                            <AlertTriangle size={16} className="opacity-80 shrink-0" />
                         </div>
-                        <p className="text-lg sm:text-xl font-bold text-amber-500">{kpis.estoqueBaixo}</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-white">{kpis.estoqueBaixo}</p>
+                        <p className="text-xs md:text-xs mt-1 opacity-80 truncate">Abaixo do mínimo</p>
                     </div>
 
-                    <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
+                    <div className="border border-red-500/30 bg-red-950/20 text-red-400 rounded-xl p-3 md:p-4 transition hover:scale-[1.02] min-w-0">
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs text-gray-400">Sem Estoque</p>
-                            <TrendingDown size={16} className="text-red-500" />
+                            <p className="text-xs md:text-sm font-medium text-gray-300 truncate">Sem Estoque</p>
+                            <TrendingDown size={16} className="opacity-80 shrink-0" />
                         </div>
-                        <p className="text-lg sm:text-xl font-bold text-red-500">{kpis.semEstoque}</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-white">{kpis.semEstoque}</p>
+                        <p className="text-xs md:text-xs mt-1 opacity-80 truncate">Produtos zerados</p>
                     </div>
                 </div>
 
