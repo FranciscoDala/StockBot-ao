@@ -63,15 +63,12 @@ export function DadosTab({
         }
         setLoading(true);
         try {
-            console.log("Buscando vendas com token:", token?.slice(0,10)) // pra debug
-
             const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas: " + resVendas.status);
             const data: VendaAPI[] = await resVendas.json();
 
-            // FILTRO FLEXIVEL PRA NÃO DAR BUG DE MAIUSCULA/ESPAÇO
             const vendas = (Array.isArray(data) ? data : [])
                 .filter(v => v.status?.toLowerCase().trim() === "concluida")
                 .map(v => ({
@@ -193,7 +190,7 @@ export function DadosTab({
                 />
                 <CardStats
                     titulo="Vendas Hoje"
-                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, token: ticketMedio }}
+                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }} // CORRIGIDO AQUI
                     icon={<ShoppingBag size={16} />}
                     cor="blue"
                     descricao="Pedidos concluídos"
