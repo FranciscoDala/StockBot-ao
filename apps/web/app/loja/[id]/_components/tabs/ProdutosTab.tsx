@@ -54,8 +54,8 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
     return (
         <>
         <style jsx global>{`
-           .scrollbar-hide::-webkit-scrollbar { display: none; }
-           .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
         <div className="space-y-6">
             {/* HEADER PADRONIZADO */}
@@ -109,7 +109,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                 </div>
             </div>
 
-            {/* GRID DE PRODUTOS */}
+            {/* GRID DE PRODUTOS COM SCROLL */}
             <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
                 {produtos.length === 0? (
                     <div className="text-center py-16 border-2 border-dashed border-neutral-800 rounded-xl">
@@ -118,7 +118,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         <p className="text-sm text-gray-500">Comece adicionando seu primeiro produto</p>
                     </div>
                 ) : (
-                    // MOBILE: scroll horizontal | DESKTOP: grid normal
+                    // MOBILE: 1 card 100% + scroll | TABLET: 2 cards | DESKTOP: grid
                     <div className="overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
                         <div className="flex gap-4 w-max sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 sm:w-full">
                             {produtos.map(p => {
@@ -128,8 +128,8 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                 const qrValue = `${APP_URL}/p/${p.sku || p.id}`;
 
                                 return (
-                                    <div key={p.id} className={`bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden flex-col transition-all hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10 group ${!p.is_active? 'opacity-50' : ''} w-[240px] sm:w-auto shrink-0`}>
-                                        <div className="relative w-full h-40 bg-neutral-900">
+                                    <div key={p.id} className={`bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden flex-col transition-all hover:border-green-500/40 hover:shadow-lg hover:shadow-green-500/10 group ${!p.is_active? 'opacity-50' : ''} w-[calc(100vw-3rem)] sm:w-auto shrink-0`}>
+                                        <div className="relative w-full h-48 bg-neutral-900">
                                             {p.imagem_url? (
                                                 <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                             ) : (
