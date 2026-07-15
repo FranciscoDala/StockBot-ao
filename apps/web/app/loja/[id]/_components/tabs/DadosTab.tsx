@@ -57,7 +57,7 @@ export function DadosTab({
 
     const carregarKPIs = useCallback(async () => {
         if (!lojaId || !token || !API_URL) {
-            console.log("Faltando dados:", {lojaId, token, API_URL})
+            console.log("Faltando dados:", { lojaId, token, API_URL })
             setLoading(false);
             return;
         }
@@ -91,12 +91,12 @@ export function DadosTab({
                 const resEstoque = await fetch(`${API_URL}/lojas/${lojaId}/dashboard/estoque-alertas`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
-                if(resEstoque.ok){
+                if (resEstoque.ok) {
                     const resEstoqueJson = await resEstoque.json();
                     estoqueZerado = resEstoqueJson.estoque_zerado || 0;
                     totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
                 }
-            } catch {}
+            } catch { }
 
             const vendaDiaria = vendasHoje.reduce((acc, v) => acc + v.total, 0);
             const totalVendasMes = vendasMes.reduce((acc, v) => acc + v.total, 0);
@@ -165,17 +165,18 @@ export function DadosTab({
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">
                         Dados
                         {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-400">Visão geral da loja em tempo real</p>
                 </div>
-                <button className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold transition w-full sm:w-auto">
+                <button onClick={carregarKPIs} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold text-white transition w-full sm:w-auto">
                     <Edit size={14} />
-                    Editar
+                    Atualizar
                 </button>
             </div>
 

@@ -27,18 +27,18 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
     return (
         <div className="space-y-6">
             {/* HEADER PADRONIZADO */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">
                         <Users size={22} />
                         Equipa
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-400">Gerencie os membros da loja</p>
                 </div>
                 {isAdmin && (
-                    <Button onClick={onAdd} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold transition w-full sm:w-auto">
+                    <button onClick={onAdd} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold text-white transition w-full sm:w-auto">
                         <Plus size={14} /> Adicionar Membro
-                    </Button>
+                    </button>
                 )}
             </div>
 
@@ -49,10 +49,10 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
                         <p className="text-xs text-gray-400">Total Membros</p>
                         <Users size={16} className="text-blue-500" />
                     </div>
-                    <p className="text-lg sm:text-xl font-bold">{equipa.length}</p>
+                    <p className="text-lg sm:text-xl font-bold text-white">{equipa.length}</p>
                 </div>
 
-                <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+                <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-400">Ativos</p>
                         <UserCheck size={16} className="text-green-500" />
@@ -60,7 +60,7 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
                     <p className="text-lg sm:text-xl font-bold text-green-500">{totalAtivos}</p>
                 </div>
 
-                <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
+                <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-400">Gerentes/Dono</p>
                         <Shield size={16} className="text-purple-500" />
@@ -73,31 +73,32 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
             <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
                 <div className="space-y-3">
                     {equipa.length === 0 && (
-                        <div className="text-center py-8">
-                            <Users size={32} className="mx-auto text-gray-600 mb-2" />
-                            <p className="text-gray-500 text-sm">Nenhum membro cadastrado ainda</p>
+                        <div className="text-center py-16 border-2 border-dashed border-neutral-800 rounded-xl">
+                            <Users size={32} className="mx-auto text-gray-600 mb-3" />
+                            <p className="text-gray-400 text-sm font-medium">Nenhum membro cadastrado ainda</p>
+                            <p className="text-xs text-gray-500">Clique em "Adicionar Membro" para começar</p>
                         </div>
                     )}
                     {equipa.map(u => (
                         <div key={u.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-neutral-800 rounded-lg gap-3 hover:bg-neutral-800/80 transition">
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                    <p className="font-medium text-sm sm:text-base truncate">{u.nome}</p>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${u.is_active ? "bg-green-600" : "bg-gray-600"}`}>
+                                    <p className="font-medium text-sm sm:text-base truncate text-white">{u.nome}</p>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium text-white ${u.is_active ? "bg-green-600" : "bg-gray-600"}`}>
                                         {u.is_active ? "Ativo" : "Inativo"}
                                     </span>
                                 </div>
                                 <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                                <span className="text-xs px-2 py-0.5 bg-neutral-700 rounded mt-1 inline-block">{u.role}</span>
+                                <span className="text-xs px-2 py-0.5 bg-neutral-700 text-white rounded mt-1 inline-block">{u.role}</span>
                             </div>
 
                             {isAdmin && (
                                 <div className="flex gap-2 flex-wrap shrink-0">
-                                    <Button size="sm" variant="outline" className="border-neutral-700 hover:bg-neutral-700" onClick={() => onView(toModalUser(u))}>
+                                    <Button size="sm" variant="outline" className="border-neutral-700 hover:bg-neutral-700 text-white" onClick={() => onView(toModalUser(u))}>
                                         <Eye size={14}/> Ver
                                     </Button>
                                     {u.role !== 'DONO' && (
-                                        <Button size="sm" variant="secondary" onClick={() => onEdit(toModalUser(u))}>
+                                        <Button size="sm" variant="secondary" className="bg-neutral-700 hover:bg-neutral-600 text-white" onClick={() => onEdit(toModalUser(u))}>
                                             Editar
                                         </Button>
                                     )}
