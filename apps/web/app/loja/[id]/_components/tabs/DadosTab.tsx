@@ -3,8 +3,9 @@ import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, Ban, Wifi, Wi
 import { Loja, userread, formatCurrency } from "../../page";
 import { useEffect, useState, useRef, useCallback } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
+// FORÇAR HTTPS EM PRODUÇÃO
+const API_URL = "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
+const WS_URL = "wss://gentle-playfulness-production-d333.up.railway.app";
 
 type ItemVenda = {
     id: string
@@ -62,14 +63,15 @@ export function DadosTab({
         }
         setLoading(true);
         try {
-            // 1. BUSCA VENDAS - IGUAL ESTATISTICASTAB
+            console.log("Buscando vendas com token:", token?.slice(0,10)) // pra debug
+
             const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
-            if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
+            if (!resVendas.ok) throw new Error("Erro ao buscar vendas: " + resVendas.status);
             const data: VendaAPI[] = await resVendas.json();
 
-            // FILTRO IGUAL DO ESTATISTICASTAB: "concluida"
+            // FILTRO FLEXIVEL PRA NÃO DAR BUG DE MAIUSCULA/ESPAÇO
             const vendas = (Array.isArray(data) ? data : [])
                 .filter(v => v.status?.toLowerCase().trim() === "concluida")
                 .map(v => ({
@@ -78,17 +80,14 @@ export function DadosTab({
                     data_venda: new Date(v.data_venda)
                 }));
 
-            // 2. FILTRA HOJE
             const hoje = new Date();
             const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
             const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje);
 
-            // 3. FILTRA ÚLTIMOS 30 DIAS
             const inicioMes = new Date();
             inicioMes.setDate(hoje.getDate() - 30);
             const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
 
-            // 4. BUSCA ESTOQUE
             let estoqueZerado = 0;
             let totalProdutos = 0;
             try {
@@ -122,7 +121,6 @@ export function DadosTab({
         }
     }, [lojaId, token])
 
-    // WEBSOCKET TEMPO REAL
     const conectarWebSocket = useCallback(() => {
         if (!token || !lojaId) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
@@ -195,7 +193,7 @@ export function DadosTab({
                 />
                 <CardStats
                     titulo="Vendas Hoje"
-                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, token: ticketMedio }}
                     icon={<ShoppingBag size={16} />}
                     cor="blue"
                     descricao="Pedidos concluídos"
