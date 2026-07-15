@@ -326,6 +326,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg md:text-xl font-bold">Estatísticas</h2>
                     {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
+                    <p className="text-xs sm:text-sm text-gray-400">Acompanha o crescimento da sua loja</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={exportarCSV} className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold">

@@ -164,6 +164,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg md:text-xl font-bold">Painel de Riscos</h2>
                     {totalRiscos === 0? <CheckCircle2 size={18} className="text-green-500" /> : <AlertTriangle size={18} className="text-red-500" />}
+                    <p className="text-xs sm:text-sm text-gray-400">Observe e controle os ricos diários</p>
                 </div>
                 <button onClick={exportarCSV} className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold">
                     <Download size={14} /> Exportar CSV
