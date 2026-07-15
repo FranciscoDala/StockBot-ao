@@ -189,28 +189,71 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
         </div>
 
         <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
-            <DialogContent className="bg-neutral-900 border-neutral-800 text-white max-w-md [&>button]:hidden">
-                <DialogHeader>
-                    <DialogTitle>QR Code do Produto</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center gap-5 py-4">
-                    {qrProduto && (
-                        <>
-                            <div className="bg-white p-5 rounded-xl shadow-lg">
-                                <QRCodeSVG id={`qr-${qrProduto.id}`} value={`${APP_URL}/p/${qrProduto.sku || qrProduto.id}`} size={150} level="H" />
+            <DialogContent className="bg-black border-0 text-white max-w-sm p-0 overflow-hidden [&>button]:hidden">
+                {/* HEADER */}
+                <div className="flex items-center justify-between p-4">
+                    <button onClick={() => setQrProduto(null)} className="p-2 hover:bg-neutral-900 rounded-full transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <DialogTitle className="text-base font-semibold">Código QR</DialogTitle>
+                    <button onClick={() => handleDownloadQR(qrProduto)} className="p-2 hover:bg-neutral-900 rounded-full transition">
+                        <Download size={20} />
+                    </button>
+                </div>
+
+                {/* CARD CENTRAL */}
+                <div className="px-4 pb-6">
+                    <div className="bg-neutral-950 rounded-2xl p-6 flex flex-col items-center gap-4">
+                        {qrProduto?.imagem_url && (
+                            <div className="relative">
+                                <img src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
+                                    alt={qrProduto.nome}
+                                    className="w-12 h-12 rounded-full object-cover border-2 border-neutral-800"
+                                />
                             </div>
-                            <div className="text-center">
-                                <p className="font-semibold text-lg">{qrProduto.nome}</p>
-                                <p className="text-sm text-gray-400">SKU: {qrProduto.sku || 'N/A'}</p>
-                            </div>
-                            <Button onClick={() => handleDownloadQR(qrProduto)} className="bg-green-600 hover:bg-green-700 w-full h-11">
-                                <Download size={16} /> Baixar QR em SVG
-                            </Button>
-                        </>
-                    )}
+                        )}
+
+                        <div className="text-center">
+                            <p className="font-bold text-lg">{qrProduto?.nome}</p>
+                            <p className="text-sm text-gray-400">SKU: {qrProduto?.sku || 'N/A'}</p>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl shadow-2xl">
+                            <QRCodeSVG
+                                id={`qr-${qrProduto?.id}`}
+                                value={`${APP_URL}/p/${qrProduto?.sku || qrProduto?.id}`}
+                                size={200}
+                                level="H"
+                                fgColor="#000"
+                                bgColor="#FFFFFF"
+                            />
+                        </div>
+                    </div>
+
+                    {/* TEXTO EXPLICATIVO */}
+                    <p className="text-center text-sm text-gray-400 mt-6 px-2 leading-relaxed">
+                        Este é o QR do seu produto. Qualquer pessoa pode escanear para ver a página e comprar direto.
+                        <span className="text-green-500 font-medium"> Manter em segurança</span>
+                    </p>
+
+                    {/* BOTÕES */}
+                    <div className="mt-6 space-y-3">
+                        <Button
+                            onClick={() => handleDownloadQR(qrProduto)}
+                            className="bg-green-500 hover:bg-green-600 text-black w-full h-12 rounded-xl font-bold text-base"
+                        >
+                            <Download size={18} /> Baixar QR Code
+                        </Button>
+
+                        <button className="text-green-500 font-semibold text-sm w-full text-center hover:underline">
+                            Gerar novo código
+                        </button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
+
+
         </>
     )
 }
