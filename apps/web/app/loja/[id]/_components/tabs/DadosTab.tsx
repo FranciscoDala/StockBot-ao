@@ -1,6 +1,6 @@
 "use client";
 import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Ban, AlertTriangle } from "lucide-react";
-import { Loja, userread, formatCurrency, fetchComAuth } from "../../page"; // <- ADICIONEI fetchComAuth
+import { Loja, userread, formatCurrency } from "../../page"; // <- REMOVI fetchComAuth daqui
 import { useEffect, useState } from "react";
 
 export function DadosTab({
@@ -19,29 +19,42 @@ export function DadosTab({
         saidaDiaria: 0,
         totalVendasMes: 0,
         totalProdutos: 0,
-        estoqueZerado: 0, // <- NOVO
-        riscoRuptura: 0   // <- NOVO
+        estoqueZerado: 0,
+        riscoRuptura: 0
     });
-    const [loading, setLoading] = useState(true); // <- NOVO
+    const [loading, setLoading] = useState(true);
+
+    // FUNÇÃO ADICIONADA AQUI PRA NÃO QUEBRAR O BUILD
+    const fetchComAuth = async (endpoint: string) => {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+            cache: 'no-store'
+        });
+        if (!res.ok) throw new Error('Erro na requisição');
+        return res.json();
+    }
 
     // LIGADO COM API REAL
     useEffect(() => {
-        if (!lojaId || !token) return; // <- NOVO
+        if (!lojaId || !token) return;
 
-        const carregarKPIs = async () => { // <- NOVO
+        const carregarKPIs = async () => {
             setLoading(true);
             try {
-                const resDia = await fetchComAuth(`/lojas/${lojaId}/dashboard/dia`, token);
-                const resMes = await fetchComAuth(`/lojas/${lojaId}/dashboard/mes`, token);
-                const resEstoque = await fetchComAuth(`/lojas/${lojaId}/dashboard/estoque-alertas`, token); // <- NOVO
+                const resDia = await fetchComAuth(`/lojas/${lojaId}/dashboard/dia`);
+                const resMes = await fetchComAuth(`/lojas/${lojaId}/dashboard/mes`);
+                const resEstoque = await fetchComAuth(`/lojas/${lojaId}/dashboard/estoque-alertas`);
 
                 setKpis({
                     vendaDiaria: resDia.venda_total || 0,
                     saidaDiaria: resDia.saida_total || 0,
                     totalProdutos: resDia.total_produtos_ativos || 0,
                     totalVendasMes: resMes.venda_total || 0,
-                    estoqueZerado: resEstoque.estoque_zerado || 0, // <- NOVO
-                    riscoRuptura: resEstoque.risco_ruptura || 0    // <- NOVO
+                    estoqueZerado: resEstoque.estoque_zerado || 0,
+                    riscoRuptura: resEstoque.risco_ruptura || 0
                 })
             } catch (error) {
                 console.error("Erro ao carregar KPIs", error);
@@ -50,7 +63,7 @@ export function DadosTab({
             }
         }
         carregarKPIs();
-    }, [lojaId, token]) // <- AJUSTADO
+    }, [lojaId, token])
 
     const saldoDia = kpis.vendaDiaria - kpis.saidaDiaria;
 
@@ -69,10 +82,10 @@ export function DadosTab({
             </div>
 
             {/* 5 CARDS KPI ESTILO IMAGEM */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4"> {/* <- lg:grid-cols-5 */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
 
                 {/* Card 1: Venda Diária */}
-                <div className="bg-gradient-to-br from-green-950/40 to-neutral-900 p-4 rounded-xl border border-green-900/30">
+                <div className="bg-gradient-to-br from-green-950/40 to-neutral-900 p-4 rounded-xl border-green-900/30">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-300 font-medium">Venda Diária</p>
                         <DollarSign size={16} className="text-green-500" />
@@ -82,7 +95,7 @@ export function DadosTab({
                 </div>
 
                 {/* Card 2: Saída Diária */}
-                <div className="bg-gradient-to-br from-red-950/40 to-neutral-900 p-4 rounded-xl border-red-900/30">
+                <div className="bg-gradient-to-br from-red-950/40 to-neutral-900 p-4 rounded-xl border border-red-900/30"> {/* <- CORRIGI: faltava border */}
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-300 font-medium">Saída Diária</p>
                         <TrendingDown size={16} className="text-red-500" />
@@ -103,8 +116,8 @@ export function DadosTab({
                     <p className="text-xs text-gray-400 mt-1">Lucro do dia</p>
                 </div>
 
-                {/* Card 4: Estoque Zerado - NOVO */}
-                <div className="bg-gradient-to-br from-rose-950/40 to-neutral-900 p-4 rounded-xl border-rose-900/30">
+                {/* Card 4: Estoque Zerado */}
+                <div className="bg-gradient-to-br from-rose-950/40 to-neutral-900 p-4 rounded-xl border-rose-900/30"> {/* <- CORRIGI: faltava border */}
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-300 font-medium">Estoque Zerado</p>
                         <Ban size={16} className="text-rose-500" />
@@ -113,8 +126,8 @@ export function DadosTab({
                     <p className="text-xs text-rose-400/70 mt-1">Não consegue vender</p>
                 </div>
 
-                {/* Card 5: Risco Ruptura - NOVO */}
-                <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 rounded-xl border border-amber-900/30">
+                {/* Card 5: Risco Ruptura */}
+                <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 rounded-xl border-amber-900/30">
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-300 font-medium">Risco Ruptura</p>
                         <AlertTriangle size={16} className="text-amber-500" />
@@ -126,7 +139,7 @@ export function DadosTab({
 
             {/* GRID DE INFORMAÇÕES PADRONIZADO - SEM ALTERAR NADA */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-                <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border border-neutral-800">
+                <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
                     <h3 className="font-semibold mb-4 text-sm sm:text-base">Informações Base</h3>
                     <div className="space-y-3">
                         <div>
@@ -192,7 +205,7 @@ export function DadosTab({
             </div>
 
             {/* RESUMO MENSAL ESTILO IMAGEM */}
-            <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30"> {/* <- AJUSTADO */}
+            <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30"> {/* <- CORRIGI: faltava border */}
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-xs text-gray-300 font-medium">Resumo do Mês</p>
