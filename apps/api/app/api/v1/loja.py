@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from uuid import UUID
-from pydantic import BaseModel, Field, field_validator # <- ADICIONADO
+from pydantic import BaseModel, Field, field_validator
 import re
 import unicodedata
 from datetime import datetime
@@ -35,11 +35,10 @@ class DonoUpdateInWithAuth(DonoUpdateIn, AdminAuth):
     pass
 
 def slugify(text: str) -> str:
-    # CORRIGIDO: tira acento e troca espaço por -
     text = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('ASCII')
     text = text.lower()
     text = re.sub(r'[^a-z0-9\s-]', '', text)
-    text = re.sub(r'[\s-]+', '-', text).strip('-') # <- troquei. por -
+    text = re.sub(r'[\s-]+', '-', text).strip('-')
     return text
 
 async def get_admin_db(db: AsyncSession, admin_token: dict | object) -> Usuario:
@@ -88,6 +87,7 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
         out.append(LojaDetailOut(
             id=l.id, nome=l.nome, slug=l.slug, is_active=l.is_active, created_at=l.created_at,
             endereco=l.endereco, nif=l.nif, telefone=l.telefone, logo_url=l.logo_url,
+            theme=l.theme, card_style=l.card_style, card_size=l.card_size, font_size=l.font_size, # <- ADICIONADO
             gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
         ))
     return out
@@ -109,37 +109,21 @@ async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: 
 
 @router.get("/minhas-temp")
 async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user_temp)):
-    """
-    Rota para usar com temp_token na tela de seleção.
-    Retorna todas lojas do usuário com is_active e role
-    """
     if current_user.is_superuser:
         stmt = select(Loja).order_by(Loja.nome)
     else:
         stmt = select(Loja).join(UsuarioLoja).where(UsuarioLoja.usuario_id == current_user.id).order_by(Loja.nome)
-
     result = await db.execute(stmt)
     lojas = result.scalars().all()
-
     lojas_out = []
     for l in lojas:
-        membro = (await db.execute(
-            select(UsuarioLoja).where(UsuarioLoja.loja_id == l.id, UsuarioLoja.usuario_id == current_user.id)
-        )).scalar_one_or_none()
-
+        membro = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == l.id, UsuarioLoja.usuario_id == current_user.id))).scalar_one_or_none()
         lojas_out.append({
-            "id": str(l.id),
-            "nome": l.nome,
-            "slug": l.slug,
-            "is_active": l.is_active,
-            "created_at": l.created_at,
-            "endereco": l.endereco,
-            "role": membro.role.value if membro else "dono"
+            "id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at,
+            "endereco": l.endereco, "role": membro.role.value if membro else "dono"
         })
-
     return lojas_out
 
-# ADICIONADO: Buscar por ID pra evitar problema de slug com acento
 @router.get("/id/{loja_id}", response_model=LojaDetailOut)
 async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     loja = await db.get(Loja, loja_id)
@@ -151,6 +135,7 @@ async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -165,68 +150,46 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
 @router.post("", response_model=LojaDetailOut, status_code=status.HTTP_201_CREATED)
 async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
-    """
-    Cria loja. SuperAdmin pode criar com dono_existente_id OU dono_novo
-    """
-    # 1. Validar slug
     slug_clean = slugify(body.slug)
     if (await db.execute(select(Loja).where(Loja.slug == slug_clean))).scalar_one_or_none():
         raise HTTPException(status_code=400, detail=f"Slug '{slug_clean}' já existe")
-
     email_para_validar = None
     if body.dono_novo:
         email_para_validar = body.dono_novo.email.lower().strip()
-    # se for dono_existente_id não precisa validar email aqui
-
-    # 2. Validar se email do dono novo já existe
-    if email_para_validar:
-        dono_existente = (await db.execute(
-            select(Usuario).where(func.lower(func.trim(Usuario.email)) == email_para_validar)
-        )).scalar_one_or_none()
+        dono_existente = (await db.execute(select(Usuario).where(func.lower(func.trim(Usuario.email)) == email_para_validar))).scalar_one_or_none()
         if dono_existente:
             raise HTTPException(status_code=400, detail=f"Email '{body.dono_novo.email}' já cadastrado")
-
-    # 3. Criar
     try:
         body.slug = slug_clean
-        loja = await crud_loja.create_loja(db=db, loja_in=body)
-
+        loja = await crud_loja.create_loja(db=db, loja_in=body) # CRUD vai pegar os defaults do schema
     except IntegrityError as e:
         await db.rollback()
         erro_original = str(e.orig).lower()
         print(f"INTEGRITY ERROR AO CRIAR LOJA: {e.orig}")
-
-        if "usuarios_email_key" in erro_original:
-            raise HTTPException(status_code=400, detail="Email do dono já cadastrado")
-        if "lojas_slug_key" in erro_original:
-            raise HTTPException(status_code=400, detail="Slug já existe")
-        if "usuarios_telefone_key" in erro_original:
-            raise HTTPException(status_code=400, detail="Telefone já cadastrado")
-
+        if "usuarios_email_key" in erro_original: raise HTTPException(status_code=400, detail="Email do dono já cadastrado")
+        if "lojas_slug_key" in erro_original: raise HTTPException(status_code=400, detail="Slug já existe")
+        if "usuarios_telefone_key" in erro_original: raise HTTPException(status_code=400, detail="Telefone já cadastrado")
         raise HTTPException(status_code=400, detail=f"Erro de integridade no banco: {e.orig}")
-
     except ValueError as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-
     except Exception as e:
         await db.rollback()
         print(f"ERRO INESPERADO AO CRIAR LOJA: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao criar loja")
-
-    # 4. Retornar
     dono, membro = await get_dono_loja(db, loja.id)
     count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.is_active == True)
     total = (await db.execute(count_stmt)).scalar_one()
-
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -272,6 +235,7 @@ async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSes
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
