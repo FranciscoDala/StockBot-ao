@@ -53,10 +53,10 @@ const fetchComAuth = async (url: string, token: string, options: RequestInit = {
     if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorData = await res.json().catch(() => ({})); console.error("API ERROR:", res.status, errorData); throw new Error(errorData.detail || res.statusText); }
     if (res.status === 204) { return true; } return await res.json();
 }
-
 const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
-  return await fetchComAuth(`${API_URL}/lojas/${lojaId}`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
+  return await fetchComAuth(`${API_URL}/lojas/${lojaId}/definicoes`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
 }
+
 export default function LojaPage() {
     const router = useRouter(); const params = useParams(); const lojaId = params.id as string;
     const [isClient, setIsClient] = useState(false); const [user, setUser] = useState<userread | null>(null); const [token, setToken] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [loja, setLoja] = useState<Loja | null>(null);
