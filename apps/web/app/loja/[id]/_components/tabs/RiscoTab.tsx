@@ -161,7 +161,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             {/* HEADER + FILTROS */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div className="flex items-center gap-2">
+                <div className="">
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">Painel de Riscos</h2>
                     {totalRiscos === 0? <CheckCircle2 size={18} className="text-green-500" /> : <AlertTriangle size={18} className="text-red-500" />}
                     <p className="text-xs sm:text-sm text-gray-400">Observe e controle os ricos diários</p>
