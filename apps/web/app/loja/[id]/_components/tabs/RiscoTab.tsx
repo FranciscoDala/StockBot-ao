@@ -38,6 +38,12 @@ type Props = {
     formatCurrency: (v: number) => string
 }
 
+type CorRisco = {
+    bg: string;
+    text: string;
+    border?: string;
+}
+
 function CardRisco({
     titulo,
     qtd,
@@ -53,7 +59,7 @@ function CardRisco({
     icon: React.ReactNode,
     tendencia?: string
 }) {
-    const cores = {
+    const cores: Record<"primaria" | "alerta" | "yellow" | "blue", CorRisco> = {
         primaria: { bg: 'var(--cor-primaria)', text: '#fff' },
         alerta: { bg: '#ef4444', text: '#fff' },
         yellow: { bg: 'var(--cor-fundo-card, #18181b)', text: '#facc15', border: '#eab30830' },
@@ -62,11 +68,11 @@ function CardRisco({
     const c = cores[cor]
     return (
         <div
-            className="p-3 md:p-4 transition hover:scale-"
+            className="p-3 md:p-4 transition hover:scale-[1.02]"
             style={{
                 backgroundColor: c.bg,
                 color: c.text,
-                border: cor === "primaria" || cor === "alerta"? 'none' : `1px solid ${c.border || 'var(--cor-primaria)30'}`,
+                border: c.border? `1px solid ${c.border}` : 'none',
                 borderRadius: 'var(--radius)'
             }}
         >
@@ -147,8 +153,8 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
     const exportarCSV = () => {
         const linhas = [
             ["Tipo", "Produto", "Estoque", "Minimo"],
-        ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
-        ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
+       ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
+       ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -254,7 +260,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap"
                             style={abaAtiva === tab.id
-                            ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
+                           ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
                                 : {color: 'var(--cor-texto-sec)', borderRadius: 'var(--radius)'}
                             }
                         >
@@ -373,8 +379,8 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
             )}
 
             <style jsx global>{`
-          .scrollbar-hide::-webkit-scrollbar { display: none; }
-          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+         .scrollbar-hide::-webkit-scrollbar { display: none; }
+         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     )
