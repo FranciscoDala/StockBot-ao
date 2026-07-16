@@ -121,7 +121,7 @@ body {
 /* ============ FIX INPUTS MOBILE ============ */
 input, textarea, select {
   border: 1px solid var(--cor-primaria)40;
-  background-color: var(--cor-fundo);
+  background-color: var(--cor-card); /* <-- MUDOU AQUI: era var(--cor-fundo) */
   color: var(--cor-texto);
   border-radius: var(--radius);
   outline: none;
@@ -140,4 +140,9 @@ select {
   background-repeat: no-repeat;
   background-size: 1rem;
   padding-right: 2.5rem;
+}
+
+select option { /* <-- ADICIONEI ISSO */
+  background-color: var(--cor-card);
+  color: var(--cor-texto);
 }
