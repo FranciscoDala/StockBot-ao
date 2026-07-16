@@ -62,17 +62,17 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                 {/* HEADER PADRONIZADO */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
-                        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
-                            <Package size={22} style={{color: 'var(--cor-primaria)'}} />
+                        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
+                            <Package size={22} style={{ color: 'var(--cor-primaria)' }} />
                             Produtos
                         </h2>
-                        <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>{kpis.totalProdutos} produtos cadastrados</p>
+                        <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{kpis.totalProdutos} produtos cadastrados</p>
                     </div>
                     {isAdmin && (
                         <button
                             onClick={onAdd}
                             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
-                            style={{background: 'var(--cor-primaria)', color: '#fff'}}
+                            style={{ background: 'var(--cor-primaria)', color: '#fff' }}
                         >
                             <Plus size={14} /> Adicionar Produto
                         </button>
@@ -90,13 +90,13 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{opacity: 0.9}}>Valor em Estoque</p>
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9 }}>Valor em Estoque</p>
                             <DollarSign size={16} className="opacity-90 shrink-0" />
                         </div>
                         <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" title={formatCurrency(kpis.valorTotalEstoque)}>
                             {formatCurrency(kpis.valorTotalEstoque)}
                         </p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{opacity: 0.8}}>Total do estoque atual</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8 }}>Total do estoque atual</p>
                     </div>
 
                     <div
@@ -109,11 +109,11 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{color: 'var(--cor-texto-sec)'}}>Em Estoque</p>
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Em Estoque</p>
                             <TrendingUp size={16} className="opacity-80 shrink-0" />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{color: 'var(--cor-texto)'}}>{kpis.totalEmEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{color: 'var(--cor-texto-sec)'}}>Produtos com estoque ok</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{kpis.totalEmEstoque}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Produtos com estoque ok</p>
                     </div>
 
                     <div
@@ -126,11 +126,11 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{color: 'var(--cor-texto-sec)'}}>Estoque Baixo</p>
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Estoque Baixo</p>
                             <AlertTriangle size={16} className="opacity-80 shrink-0" />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{color: 'var(--cor-texto)'}}>{kpis.estoqueBaixo}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{color: 'var(--cor-texto-sec)'}}>Abaixo do mínimo</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{kpis.estoqueBaixo}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Abaixo do mínimo</p>
                     </div>
 
                     <div
@@ -143,11 +143,11 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{color: 'var(--cor-texto-sec)'}}>Sem Estoque</p>
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Sem Estoque</p>
                             <TrendingDown size={16} className="opacity-80 shrink-0" />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{color: 'var(--cor-texto)'}}>{kpis.semEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{color: 'var(--cor-texto-sec)'}}>Produtos zerados</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{kpis.semEstoque}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Produtos zerados</p>
                     </div>
                 </div>
 
@@ -160,14 +160,14 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         borderRadius: 'var(--radius)'
                     }}
                 >
-                    {produtos.length === 0? (
+                    {produtos.length === 0 ? (
                         <div
                             className="text-center py-16 border-2 border-dashed"
-                            style={{borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)'}}
+                            style={{ borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)' }}
                         >
-                            <Package className="mx-auto mb-3" size={48} style={{color: 'var(--cor-primaria)', opacity: 0.5}} />
-                            <p className="font-medium" style={{color: 'var(--cor-texto)'}}>Nenhum produto cadastrado</p>
-                            <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Comece adicionando seu primeiro produto</p>
+                            <Package className="mx-auto mb-3" size={48} style={{ color: 'var(--cor-primaria)', opacity: 0.5 }} />
+                            <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>Nenhum produto cadastrado</p>
+                            <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
@@ -175,13 +175,13 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                    const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                    const imgSrc = p.imagem_url?.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`;
                                     const qrValue = `${APP_URL}/p/${p.sku || p.id}`;
 
                                     return (
                                         <div
                                             key={p.id}
-                                            className={`border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active? 'opacity-50' : ''} w-[calc(100vw-3rem)] sm:w-auto shrink-0`}
+                                            className={`border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active ? 'opacity-50' : ''} w-[calc(100vw-3rem)] sm:w-auto shrink-0`}
                                             style={{
                                                 backgroundColor: 'var(--cor-fundo)',
                                                 borderColor: 'var(--cor-primaria)20',
@@ -190,11 +190,11 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                             onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
                                             onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
                                         >
-                                            <div className="relative w-full h-48" style={{backgroundColor: 'var(--cor-fundo)'}}>
-                                                {p.imagem_url? (
+                                            <div className="relative w-full h-48" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                                                {p.imagem_url ? (
                                                     <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center"><ImageOff size={32} style={{color: 'var(--cor-primaria)', opacity: 0.3}} /></div>
+                                                    <div className="w-full h-full flex items-center justify-center"><ImageOff size={32} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
                                                 )}
 
                                                 <div className="absolute top-2 right-2 flex gap-1.5">
@@ -202,33 +202,33 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                                         onClick={() => setQrProduto(p)}
                                                         className="backdrop-blur-sm p-1.5 rounded-lg hover:brightness-110 transition-colors"
                                                         title="Ver QR Code"
-                                                        style={{backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 'var(--radius)'}}
+                                                        style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 'var(--radius)' }}
                                                     >
                                                         <QrCode size={16} className="text-white" />
                                                     </button>
-                                                    {!p.is_active && (<Badge variant="destructive" className="text-xs h-6 px-2" style={{backgroundColor: '#ef4444'}}>Inativo</Badge>)}
+                                                    {!p.is_active && (<Badge variant="destructive" className="text-xs h-6 px-2" style={{ backgroundColor: '#ef4444' }}>Inativo</Badge>)}
                                                 </div>
                                             </div>
 
                                             <div className="p-4 flex-col flex-1">
                                                 <h4
                                                     className="font-semibold text-base truncate mb-1 transition-colors"
-                                                    style={{color: 'var(--cor-texto)'}}
+                                                    style={{ color: 'var(--cor-texto)' }}
                                                     onMouseEnter={(e) => e.currentTarget.style.color = 'var(--cor-primaria)'}
                                                     onMouseLeave={(e) => e.currentTarget.style.color = 'var(--cor-texto)'}
                                                 >
                                                     {p.nome}
                                                 </h4>
-                                                <div className="flex items-center gap-1.5 text-xs mb-3" style={{color: 'var(--cor-texto-sec)'}}><Tag size={12} /> {p.sku || 'N/A'}</div>
+                                                <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
 
                                                 <div className="space-y-2 text-sm flex-1">
                                                     <div className="flex justify-between items-center">
-                                                        <span style={{color: 'var(--cor-texto-sec)'}}>P.Unitário</span>
-                                                        <span className="font-bold text-base" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco)}</span>
+                                                        <span style={{ color: 'var(--cor-texto-sec)' }}>P.Unitário</span>
+                                                        <span className="font-bold text-base" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
-                                                        <span style={{color: 'var(--cor-texto-sec)'}}>Quantidade</span>
-                                                        <div className="flex items-center gap-1.5 font-bold" style={{color: status.color}}>
+                                                        <span style={{ color: 'var(--cor-texto-sec)' }}>Quantidade</span>
+                                                        <div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>
                                                             {status.icon}
                                                             <span>{p.estoque} {p.unidade}</span>
                                                         </div>
@@ -248,12 +248,12 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                                 </div>
 
                                                 {isAdmin && (
-                                                    <div className="flex gap-2 mt-auto pt-3 border-t" style={{borderColor: 'var(--cor-primaria)20'}}>
+                                                    <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)20' }}>
                                                         <Button
                                                             size="sm"
                                                             onClick={() => onEdit(p)}
                                                             className="flex-1 h-9"
-                                                            style={{backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}
+                                                            style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
                                                         >
                                                             <Edit size={14} /> Editar
                                                         </Button>
@@ -263,7 +263,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                                                 variant="destructive"
                                                                 onClick={() => onDelete(p)}
                                                                 className="h-9 px-3"
-                                                                style={{backgroundColor: '#ef4444', color: '#fff', borderRadius: 'var(--radius)'}}
+                                                                style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: 'var(--radius)' }}
                                                             >
                                                                 <Trash2 size={14} />
                                                             </Button>
@@ -282,42 +282,42 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
 
             <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
                 <DialogContent
-                    className="border-0 max-w-sm p-0 overflow-hidden [&>button]:hidden"
-                    style={{backgroundColor: 'var(--cor-fundo)'}}
+                    className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col max-h-[90dvh] [&>button]:hidden"
+                    style={{ backgroundColor: 'var(--cor-fundo)' }}
                 >
-                    {/* HEADER */}
-                    <div className="flex items-center justify-between p-4">
-                        <button onClick={() => setQrProduto(null)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{color: 'var(--cor-texto)'}}>
+                    {/* HEADER FIXO */}
+                    <div className="flex items-center justify-between p-4 shrink-0">
+                        <button onClick={() => setQrProduto(null)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{ color: 'var(--cor-texto)' }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
                         </button>
-                        <DialogTitle className="text-base font-semibold" style={{color: 'var(--cor-texto)'}}>Código QR</DialogTitle>
-                        <button onClick={() => handleDownloadQR(qrProduto)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{color: 'var(--cor-texto)'}}>
+                        <DialogTitle className="text-base font-semibold" style={{ color: 'var(--cor-texto)' }}>Código QR</DialogTitle>
+                        <button onClick={() => handleDownloadQR(qrProduto)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{ color: 'var(--cor-texto)' }}>
                             <Download size={20} />
                         </button>
                     </div>
 
-                    {/* CARD CENTRAL */}
-                    <div className="px-4 pb-6">
+                    {/* CONTEÚDO COM SCROLL */}
+                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide">
                         <div
-                            className="p-6 flex-col items-center gap-4"
-                            style={{backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)'}}
+                            className="p-6 flex-col items-center gap-4 text-center"
+                            style={{ backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)' }}
                         >
                             {qrProduto?.imagem_url && (
                                 <div className="relative">
-                                    <img src={qrProduto.imagem_url.startsWith('http')? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
+                                    <img src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
                                         alt={qrProduto.nome}
                                         className="w-12 h-12 rounded-full object-cover border-2"
-                                        style={{borderColor: 'var(--cor-primaria)30'}}
+                                        style={{ borderColor: 'var(--cor-primaria)30' }}
                                     />
                                 </div>
                             )}
 
-                            <div className="text-center">
-                                <p className="font-bold text-lg" style={{color: 'var(--cor-texto)'}}>{qrProduto?.nome}</p>
-                                <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>SKU: {qrProduto?.sku || 'N/A'}</p>
+                            <div>
+                                <p className="font-bold text-lg" style={{ color: 'var(--cor-texto)' }}>{qrProduto?.nome}</p>
+                                <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>SKU: {qrProduto?.sku || 'N/A'}</p>
                             </div>
 
-                            <div className="bg-white p-5 rounded-2xl shadow-2xl">
+                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[240px]">
                                 <QRCodeSVG
                                     id={`qr-${qrProduto?.id}`}
                                     value={`${APP_URL}/p/${qrProduto?.sku || qrProduto?.id}`}
@@ -325,14 +325,15 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                     level="H"
                                     fgColor="#000"
                                     bgColor="#FFFFFF"
+                                    className="w-full h-auto"
                                 />
                             </div>
                         </div>
 
                         {/* TEXTO EXPLICATIVO */}
-                        <p className="text-center text-sm mt-6 px-2 leading-relaxed" style={{color: 'var(--cor-texto-sec)'}}>
+                        <p className="text-center text-sm mt-6 px-2 leading-relaxed" style={{ color: 'var(--cor-texto-sec)' }}>
                             Este é o QR do seu produto. Qualquer pessoa pode escanear para ver a página e comprar direto.
-                            <span className="font-medium" style={{color: 'var(--cor-primaria)'}}> Manter em segurança</span>
+                            <span className="font-medium" style={{ color: 'var(--cor-primaria)' }}> Manter em segurança</span>
                         </p>
 
                         {/* BOTÕES */}
@@ -340,18 +341,19 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                             <Button
                                 onClick={() => handleDownloadQR(qrProduto)}
                                 className="w-full h-12 font-bold text-base"
-                                style={{backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}
+                                style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
                             >
                                 <Download size={18} /> Baixar QR Code
                             </Button>
 
-                            <button className="font-semibold text-sm w-full text-center hover:underline" style={{color: 'var(--cor-primaria)'}}>
+                            <button className="font-semibold text-sm w-full text-center hover:underline" style={{ color: 'var(--cor-primaria)' }}>
                                 Gerar novo código
                             </button>
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
+
         </>
     )
 }
