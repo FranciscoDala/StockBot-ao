@@ -282,7 +282,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
 
             <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
                 <DialogContent
-                    className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col max-h-[90dvh] [&>button]:hidden"
+                    className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col max-h-[92dvh] [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)' }}
                 >
                     {/* HEADER FIXO */}
@@ -296,32 +296,30 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         </button>
                     </div>
 
-                    {/* CONTEÚDO COM SCROLL */}
-                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide">
+                    {/* CONTEÚDO COM SCROLL E CENTRALIZADO */}
+                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex flex-col items-center justify-center">
                         <div
-                            className="p-6 flex-col items-center gap-4 text-center"
+                            className="w-full p-6 flex-col items-center justify-center gap-5 text-center" // <-- CENTRALIZADO
                             style={{ backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)' }}
                         >
                             {qrProduto?.imagem_url && (
-                                <div className="relative">
-                                    <img src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
-                                        alt={qrProduto.nome}
-                                        className="w-12 h-12 rounded-full object-cover border-2"
-                                        style={{ borderColor: 'var(--cor-primaria)30' }}
-                                    />
-                                </div>
+                                <img src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
+                                    alt={qrProduto.nome}
+                                    className="w-16 h-16 rounded-full object-cover border-2"
+                                    style={{ borderColor: 'var(--cor-primaria)30' }}
+                                />
                             )}
 
-                            <div>
-                                <p className="font-bold text-lg" style={{ color: 'var(--cor-texto)' }}>{qrProduto?.nome}</p>
+                            <div className="space-y-1">
+                                <p className="font-bold text-xl" style={{ color: 'var(--cor-texto)' }}>{qrProduto?.nome}</p>
                                 <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>SKU: {qrProduto?.sku || 'N/A'}</p>
                             </div>
 
-                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[240px]">
+                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[280px]">
                                 <QRCodeSVG
                                     id={`qr-${qrProduto?.id}`}
                                     value={`${APP_URL}/p/${qrProduto?.sku || qrProduto?.id}`}
-                                    size={200}
+                                    size={256}
                                     level="H"
                                     fgColor="#000"
                                     bgColor="#FFFFFF"
@@ -330,29 +328,35 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                             </div>
                         </div>
 
-                        {/* TEXTO EXPLICATIVO */}
-                        <p className="text-center text-sm mt-6 px-2 leading-relaxed" style={{ color: 'var(--cor-texto-sec)' }}>
+                        {/* TEXTO EXPLICATIVO CENTRALIZADO */}
+                        <p className="text-center text-sm mt-6 px-4 leading-relaxed max-w-xs" style={{ color: 'var(--cor-texto-sec)' }}>
                             Este é o QR do seu produto. Qualquer pessoa pode escanear para ver a página e comprar direto.
                             <span className="font-medium" style={{ color: 'var(--cor-primaria)' }}> Manter em segurança</span>
                         </p>
 
-                        {/* BOTÕES */}
-                        <div className="mt-6 space-y-3">
+                        {/* BOTÕES CENTRALIZADOS */}
+                        <div className="mt-6 space-y-3 w-full max-w-sm">
                             <Button
                                 onClick={() => handleDownloadQR(qrProduto)}
-                                className="w-full h-12 font-bold text-base"
+                                className="w-full h-12 font-bold text-base flex items-center justify-center gap-2"
                                 style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
                             >
                                 <Download size={18} /> Baixar QR Code
                             </Button>
 
-                            <button className="font-semibold text-sm w-full text-center hover:underline" style={{ color: 'var(--cor-primaria)' }}>
+                            <button
+                                onClick={() => toast.info("Função em breve")}
+                                className="font-semibold text-sm w-full text-center hover:underline"
+                                style={{ color: 'var(--cor-primaria)' }}
+                            >
                                 Gerar novo código
                             </button>
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
+
+
 
         </>
     )
