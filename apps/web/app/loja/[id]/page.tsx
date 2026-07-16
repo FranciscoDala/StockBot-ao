@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, FormEvent, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Menu, X } from "lucide-react";
+import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Menu, X, Settings } from "lucide-react"; // ADICIONEI Settings
 import { toast, Toaster } from "sonner";
 import { z } from "zod";
 import { DadosTab } from "./_components/tabs/DadosTab";
@@ -10,8 +10,9 @@ import { EquipaTab } from "./_components/tabs/EquipaTab";
 import { VendaTab } from "./_components/tabs/VendaTab";
 import { EstatisticasTab } from "./_components/tabs/EstatisticasTab";
 import { RiscoTab } from "./_components/tabs/RiscoTab";
-import { FornecedoresTab } from "./_components/tabs/FornecedoresTab"; // NOVO
-import { DocumentosTab } from "./_components/tabs/DocumentosTab"; // NOVO
+import { FornecedoresTab } from "./_components/tabs/FornecedoresTab";
+import { DocumentosTab } from "./_components/tabs/DocumentosTab";
+import { DefinicoesTab } from "./_components/tabs/DefinicoesTab"; // NOVO
 import { PermissaoModal } from "./_components/modals/PermissaoModal";
 import { ErroModal } from "./_components/modals/ErroModal";
 import { DetalhesModal } from "./_components/modals/DetalhesModal";
@@ -65,6 +66,7 @@ export default function LojaPage() {
         { id: "documentos", label: "Documentos", icon: FileText, show: podeVerTudo },
         { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: true },
         { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo },
+        { id: "definicoes", label: "Definições", icon: Settings, show: podeVerTudo }, // NOVO
     ];
     const initialTabs = allTabs.filter(t => t.show);
     const [activeTab, setActiveTab] = useState(initialTabs[0]?.id || "dados");
@@ -93,9 +95,9 @@ export default function LojaPage() {
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
             const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-         ? data
-             .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-             .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
+        ? data
+            .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
+            .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
                 : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
@@ -197,7 +199,7 @@ export default function LojaPage() {
                 const loja_id = user?.loja_id || "";
 
                 let payload: any = {
-             ...(data || formDataProduto),
+            ...(data || formDataProduto),
                     senha_dono,
                     senha_confirmacao: senha_dono,
                     loja_id: (data as ProdutoType)?.loja_id || loja_id
@@ -243,7 +245,6 @@ export default function LojaPage() {
         } catch (err: any) { setErrorMsg(err.message); setSaving(false); }
     };
 
-    // Mapeia Venda do backend para o formato que RiscoTab espera
     const vendasParaRisco = useMemo(() => vendas.map(v => ({
         id: String(v.id),
         data: v.data_venda || new Date().toISOString(),
@@ -317,8 +318,9 @@ export default function LojaPage() {
 
                         {activeTab === "fornecedores" && podeVerTudo && <FornecedoresTab />}
                         {activeTab === "documentos" && podeVerTudo && <DocumentosTab loja={loja} />}
+                        {activeTab === "definicoes" && podeVerTudo && <DefinicoesTab />} {/* NOVO */}
 
-                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
+                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos", "definicoes"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
 
                 </div>
@@ -328,7 +330,7 @@ export default function LojaPage() {
                 <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
                 <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
                 <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
-
+                    
                 <ConfirmarModal
                     open={showConfirmarModal}
                     onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }}

@@ -1,60 +1,116 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* TEMA V4: Aqui definimos todas as variáveis que o Shadcn usa */
-@theme {
-  /* Cores */
-  --color-brand: #22c55e; /* Verde StockBot */
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
-  --color-zinc-800: #27272a;
-  --color-zinc-900: #18181b;
+/* TEMA V4: Variáveis dinâmicas + Shadcn */
+:root {
+    /* Cores que vamos trocar via JS */
+    --cor-primaria: #16a34a;
+    /* green-600 default */
+    --cor-fundo: #0a0a0a;
+    /* neutral-950 */
+    --arredondamento: 0.75rem;
+    /* xl */
 
-  /* Shadcn V4 usa essas: */
-  --color-primary: var(--color-brand);
-  --color-primary-foreground: #000;
-  --color-muted: var(--color-zinc-900);
-  --color-muted-foreground: #a1a1aa;
-  --color-border: var(--color-zinc-800);
-  --color-card: var(--color-zinc-900);
-  --color-card-foreground: var(--color-foreground);
-  --color-input: var(--color-zinc-800);
-  --color-ring: var(--color-brand);
-  --color-destructive: #ef4444;
-  --color-destructive-foreground: #ffffff;
-  --radius: 0.625rem;
+    /* Shadcn V4 usa essas. Ligamos elas nas nossas vars */
+    --color-brand: var(--cor-primaria);
+    --color-background: var(--cor-fundo);
+    --color-foreground: #ededed;
+    --color-zinc-800: #27272a;
+    --color-zinc-900: #18181b;
 
-  /* FONTE - Já linkada com a do layout.tsx */
-  --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-bricolage), sans-serif;
+    --color-primary: var(--color-brand);
+    --color-primary-foreground: #000;
+    --color-muted: var(--color-zinc-900);
+    --color-muted-foreground: #a1a1aa;
+    --color-border: var(--color-zinc-800);
+    --color-card: var(--color-zinc-900);
+    --color-card-foreground: var(--color-foreground);
+    --color-input: var(--color-zinc-800);
+    --color-ring: var(--color-brand);
+    --color-destructive: #ef4444;
+    --color-destructive-foreground: #ffffff;
+    --radius: var(--arredondamento);
+
+    /* FONTE */
+    --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--font-bricolage), sans-serif;
+}
+
+/* TEMA CLARO */
+[data-theme="light"] {
+    --cor-fundo: #ffffff;
+    --color-foreground: #0a0a0a;
+    --color-zinc-800: #e4e4e7;
+    --color-zinc-900: #f4f4f5;
+    --color-primary-foreground: #ffffff;
 }
 
 /* BASE */
 :root {
-  color-scheme: dark;
+    color-scheme: dark;
+}
+
+[data-theme="light"] {
+    color-scheme: light;
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-zalando);
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* UTILITIES CUSTOM - v4 seguro */
+/* UTILITIES CUSTOM - BOTÕES PADRONIZADOS */
 @layer utilities {
-  .btn-brand {
-    background-color: var(--color-brand);
-    @apply hover:bg-green-500 text-black font-bold py-2 px-4 rounded-lg transition-all;
-  }
-  .input-dark {
-    @apply bg-zinc-900 border-zinc-700 rounded-lg px-3 py-2 w-full focus:border-[--color-brand] focus:outline-none focus:ring-1 focus:ring-[--color-brand];
-  }
+    .btn-primary {
+        background-color: var(--color-brand);
+        color: var(--color-primary-foreground);
+        @apply flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all hover:brightness-90 w-full sm:w-auto;
+        border-radius: var(--radius);
+    }
+
+    .btn-secondary {
+        @apply flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all bg-zinc-800 hover:bg-zinc-700 text-white w-full sm:w-auto;
+        border-radius: var(--radius);
+    }
+
+    .btn-brand {
+        background-color: var(--color-brand);
+        @apply hover:brightness-90 text-black font-bold py-2 px-4 rounded-lg transition-all;
+    }
+
+    .input-dark {
+        @apply bg-zinc-900 border-zinc-700 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-1;
+        border-color: var(--color-zinc-800);
+    }
+
+    .input-dark:focus {
+        border-color: var(--color-brand);
+        box-shadow: 0 0 0 1px var(--color-brand);
+    }
+
+    .card-padrao {
+        @apply bg-zinc-900 p-4;
+        border-radius: var(--radius);
+        border: 1px solid var(--color-border);
+    }
 }
 
 .scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
+
 .scrollbar-none::-webkit-scrollbar {
-  display: none;
+    display: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
