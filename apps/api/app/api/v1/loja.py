@@ -34,6 +34,27 @@ class LojaUpdateInWithAuth(LojaUpdateIn, AdminAuth):
 class DonoUpdateInWithAuth(DonoUpdateIn, AdminAuth):
     pass
 
+# NOVO: Schema para salvar só aparência
+class LojaDefinicoesUpdate(BaseModel):
+    theme: Optional[str] = None
+    card_style: Optional[str] = None
+    card_size: Optional[str] = None
+    font_size: Optional[str] = None
+    cor_primaria: Optional[str] = None
+    cor_fundo: Optional[str] = None
+
+    @field_validator('cor_primaria', 'cor_fundo', check_fields=False)
+    @classmethod
+    def normalize_hex(cls, v: Optional[str]) -> Optional[str]:
+        if v is None: return v
+        v = v.strip()
+        # Aceita #000 e converte pra #000
+        if re.match(r'^#[0-9a-fA-F]{3}$', v):
+            v = '#' + ''.join([c*2 for c in v[1:]])
+        if not re.match(r'^#[0-9a-fA-F]{6}$', v):
+            raise ValueError('Cor deve estar no formato #rrggbb')
+        return v.lower()
+
 def slugify(text: str) -> str:
     text = unicodedata.normalize('NFKD', text).encode('ASCII', 'ignore').decode('ASCII')
     text = text.lower()
@@ -88,7 +109,7 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
             id=l.id, nome=l.nome, slug=l.slug, is_active=l.is_active, created_at=l.created_at,
             endereco=l.endereco, nif=l.nif, telefone=l.telefone, logo_url=l.logo_url,
             theme=l.theme, card_style=l.card_style, card_size=l.card_size, font_size=l.font_size,
-            cor_primaria=l.cor_primaria, cor_fundo=l.cor_fundo, # <- ADICIONADO
+            cor_primaria=l.cor_primaria, cor_fundo=l.cor_fundo,
             gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
         ))
     return out
@@ -137,7 +158,7 @@ async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
-        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -153,7 +174,7 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
-        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -170,9 +191,8 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
             raise HTTPException(status_code=400, detail=f"Email '{body.dono_novo.email}' já cadastrado")
     try:
         body.slug = slug_clean
-        # GARANTE PADRÃO DAS CORES SE NÃO VIER NO BODY
-        if not body.cor_primaria: body.cor_primaria = "#10b981"
-        if not body.cor_fundo: body.cor_fundo = "#000"
+        if not body.cor_primaria: body.cor_primaria = "#057418"
+        if not body.cor_fundo: body.cor_fundo = "#000000"
         if not body.theme: body.theme = "dark"
         if not body.card_style: body.card_style = "padrao"
         if not body.card_size: body.card_size = "medio"
@@ -201,7 +221,7 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
-        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -248,7 +268,41 @@ async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSes
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
-        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
+        gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
+    )
+
+# NOVO: ROTA PARA SALVAR APARÊNCIA
+@router.patch("/{loja_id}/definicoes", response_model=LojaDetailOut)
+async def atualizar_definicoes_loja(
+    loja_id: UUID,
+    body: LojaDefinicoesUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    await verificar_acesso_loja(loja_id, db, current_user)
+    loja = await db.get(Loja, loja_id)
+    if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+
+    try:
+        update_data = body.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(loja, field, value)
+        db.add(loja)
+        await db.commit()
+        await db.refresh(loja)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao atualizar definições: {e}")
+
+    dono, membro = await get_dono_loja(db, loja_id)
+    count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.is_active == True)
+    total = (await db.execute(count_stmt)).scalar_one()
+    return LojaDetailOut(
+        id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
