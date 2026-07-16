@@ -170,18 +170,28 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
 
 @router.post("", response_model=LojaDetailOut, status_code=status.HTTP_201_CREATED)
 async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
+    """
+    Cria loja. SuperAdmin pode criar com dono_existente_id OU dono_novo
+    """
+    # 1. Validar slug
     slug_clean = slugify(body.slug)
     if (await db.execute(select(Loja).where(Loja.slug == slug_clean))).scalar_one_or_none():
         raise HTTPException(status_code=400, detail=f"Slug '{slug_clean}' já existe")
 
-    if body.dono_email:
-        email_clean = body.dono_email.lower().strip()
+    email_para_validar = None
+    if body.dono_novo:
+        email_para_validar = body.dono_novo.email.lower().strip()
+    # se for dono_existente_id não precisa validar email aqui
+
+    # 2. Validar se email do dono novo já existe
+    if email_para_validar:
         dono_existente = (await db.execute(
-            select(Usuario).where(func.lower(func.trim(Usuario.email)) == email_clean)
+            select(Usuario).where(func.lower(func.trim(Usuario.email)) == email_para_validar)
         )).scalar_one_or_none()
         if dono_existente:
-            raise HTTPException(status_code=400, detail=f"Email '{body.dono_email}' já cadastrado")
+            raise HTTPException(status_code=400, detail=f"Email '{body.dono_novo.email}' já cadastrado")
 
+    # 3. Criar
     try:
         body.slug = slug_clean
         loja = await crud_loja.create_loja(db=db, loja_in=body)
@@ -195,6 +205,8 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
             raise HTTPException(status_code=400, detail="Email do dono já cadastrado")
         if "lojas_slug_key" in erro_original:
             raise HTTPException(status_code=400, detail="Slug já existe")
+        if "usuarios_telefone_key" in erro_original:
+            raise HTTPException(status_code=400, detail="Telefone já cadastrado")
 
         raise HTTPException(status_code=400, detail=f"Erro de integridade no banco: {e.orig}")
 
@@ -207,6 +219,7 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
         print(f"ERRO INESPERADO AO CRIAR LOJA: {e}")
         raise HTTPException(status_code=500, detail="Erro interno ao criar loja")
 
+    # 4. Retornar
     dono, membro = await get_dono_loja(db, loja.id)
     count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.is_active == True)
     total = (await db.execute(count_stmt)).scalar_one()
@@ -216,7 +229,6 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
-
 
 @router.patch("/{loja_id}", response_model=LojaDetailOut)
 async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
