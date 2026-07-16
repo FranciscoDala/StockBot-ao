@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState, FormEvent, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Menu, X, Settings } from "lucide-react";
+import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Menu, X, Settings, Palette } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { z } from "zod";
 import { DadosTab } from "./_components/tabs/DadosTab";
@@ -34,23 +34,37 @@ export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA" 
 export type UsuarioLojaPage = { id: string; nome: string; email: string; telefone?: string | null; role: UserRole; is_active: boolean; }
 export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: string; role: UserRole; is_active: boolean; }
 export type userread = { id: string; nome: string; email: string; nivel: UserRole; loja?: Loja | null; loja_id?: string | null; }
-export type Loja = { id: string; nome: string; slug: string; is_active: boolean; created_at: string; endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null; }
+export type Loja = {
+  id: string; nome: string; slug: string; is_active: boolean; created_at: string;
+  endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null;
+  theme?: string; card_style?: string; card_size?: string; font_size?: string; // ADICIONADO
+}
 
 const formatError = (data: any): string => { if (!data) return "Erro desconhecido"; if (typeof data.detail === 'string') return data.detail; if (Array.isArray(data.detail)) return data.detail.map((d: any) => d.msg).join(", "); return "Erro ao processar requisição"; }
 export const formatCurrency = (value: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(value);
 const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
 const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; Secure; SameSite=None`; };
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`,...options.headers }, credentials: 'include', cache: "no-store" });
     if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorData = await res.json().catch(() => ({})); console.error("API ERROR:", res.status, errorData); throw new Error(errorData.detail || res.statusText); }
     if (res.status === 204) { return true; } return await res.json();
 }
 
+const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size'>>) => {
+  return await fetchComAuth(`${API_URL}/lojas/${lojaId}`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
+}
+
 export default function LojaPage() {
     const router = useRouter(); const params = useParams(); const lojaId = params.id as string;
     const [isClient, setIsClient] = useState(false); const [user, setUser] = useState<userread | null>(null); const [token, setToken] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [loja, setLoja] = useState<Loja | null>(null);
     const [menuMobileOpen, setMenuMobileOpen] = useState(false);
+
+    const [theme, setTheme] = useState("dark");
+    const [cardStyle, setCardStyle] = useState("padrao");
+    const [cardSize, setCardSize] = useState("medio");
+    const [fontSize, setFontSize] = useState("medio");
 
     const podeEditarApagar = ["DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerTudo = ["ADMIN", "DONO", "GERENTE"].includes(user?.nivel!);
@@ -79,40 +93,63 @@ export default function LojaPage() {
     const [showPermissaoModal, setShowPermissaoModal] = useState(false); const [showErroModal, setShowErroModal] = useState(false); const [erroMsgPermissao, setErroMsgPermissao] = useState(""); const [showDetalhesModal, setShowDetalhesModal] = useState(false);
     const [showConfirmarModal, setShowConfirmarModal] = useState(false); const [itemParaRemover, setItemParaRemover] = useState<CarrinhoItem | null>(null); const [busca, setBusca] = useState(""); const [formaPagamento, setFormaPagamento] = useState("Dinheiro"); const [valorRecebido, setValorRecebido] = useState(""); const [showConfirmarFinalizar, setShowConfirmarFinalizar] = useState(false); const [loadingVenda, setLoadingVenda] = useState(false);
 
-    const [acaoPendente, setAcaoPendente] = useState<{
-        tipo: 'editar' | 'apagar' | 'adicionar';
-        entidade: 'user' | 'produto';
-        descricao: string;
-        data?: UsuarioLojaPage | ProdutoType;
-    } | null>(null);
-
+    const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar' | 'adicionar'; entidade: 'user' | 'produto'; descricao: string; data?: UsuarioLojaPage | ProdutoType; } | null>(null);
     const [showVendaSucessoModal, setShowVendaSucessoModal] = useState(false); const [vendaConcluida, setVendaConcluida] = useState<Venda | null>(null); const [ws, setWs] = useState<WebSocket | null>(null);
 
-    // CORREÇÃO: useMemo adicionados aqui
     const getPreco = (item: CarrinhoItem) => item.preco || 0;
     const subtotal = useMemo(() => carrinho.reduce((acc, item) => acc + (getPreco(item) * item.quantidade), 0), [carrinho]);
     const totalItens = useMemo(() => carrinho.reduce((acc, item) => acc + item.quantidade, 0), [carrinho]);
     const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
     const podeFinalizar = useMemo(() => carrinho.length > 0 && (formaPagamento!== "Dinheiro" || Number(valorRecebido) >= subtotal && subtotal > 0), [carrinho, formaPagamento, valorRecebido, subtotal]);
 
-        const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
+    const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
+
+    const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string) => {
+      document.documentElement.style.setProperty('--cor-primaria', t === 'dark'? '#10b981' : '#059669');
+      document.documentElement.style.setProperty('--radius', cs === 'arredondado'? '16px' : cs === 'clean'? '4px' : '8px');
+      document.documentElement.style.setProperty('--card-padding', csz === 'grande'? '24px' : csz === 'pequeno'? '12px' : '16px');
+      document.documentElement.style.setProperty('--font-size', fsz === 'grande'? '16px' : fsz === 'pequeno'? '12px' : '14px');
+    }, []);
+
+    const handleSaveTheme = useCallback(async (newTheme: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size'>>) => {
+      if (!token ||!lojaId) return;
+      try {
+        await updateLojaTheme(lojaId, token, newTheme);
+        const newLoja = {...loja,...newTheme} as Loja;
+        setLoja(newLoja);
+        if(newTheme.theme) setTheme(newTheme.theme);
+        if(newTheme.card_style) setCardStyle(newTheme.card_style);
+        if(newTheme.card_size) setCardSize(newTheme.card_size);
+        if(newTheme.font_size) setFontSize(newTheme.font_size);
+        applyTheme(newTheme.theme || theme, newTheme.card_style || cardStyle, newTheme.card_size || cardSize, newTheme.font_size || fontSize);
+        toast.success("Aparência salva!");
+      } catch (e) { toast.error("Erro ao salvar aparência"); }
+    }, [token, lojaId, loja, theme, cardStyle, cardSize, fontSize, applyTheme]);
 
     const fetchEquipa = async (currentToken: string) => {
         if (!currentToken ||!lojaId) return;
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
-            const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)
-     ? data
-         .filter((u: any) => String(u.role).toUpperCase()!== "ADMIN")
-         .map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole }))
-                : [];
+            const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)? data.filter((u: any) => String(u.role).toUpperCase()!== "ADMIN").map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole })) : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
     };
 
     const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken ||!lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { console.error(e); setProdutos([]); toast.error("Erro ao validar produtos"); } }, []);
     const fetchVendas = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken ||!lojaId) { setVendas([]); return; } try { const data = await fetchComAuth(`${API_URL}/vendas?loja_id=${lojaId}`, currentToken); setVendas(z.array(VendaSchema).parse(data)); } catch (e) { console.error(e); setVendas([]); } }, []);
-    const fetchLoja = useCallback(async (currentToken: string) => { if (!currentToken ||!lojaId) return; try { setLoja(await fetchComAuth(`${API_URL}/lojas/id/${lojaId}`, currentToken)); } catch (e) { console.error("Erro ao buscar loja:", e); setLoja(null); } }, [lojaId]);
+
+    const fetchLoja = useCallback(async (currentToken: string) => {
+      if (!currentToken ||!lojaId) return;
+      try {
+        const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}`, currentToken);
+        setLoja(data);
+        if(data.theme) setTheme(data.theme);
+        if(data.card_style) setCardStyle(data.card_style);
+        if(data.card_size) setCardSize(data.card_size);
+        if(data.font_size) setFontSize(data.font_size);
+        applyTheme(data.theme || "dark", data.card_style || "padrao", data.card_size || "medio", data.font_size || "medio");
+      } catch (e) { console.error("Erro ao buscar loja:", e); setLoja(null); }
+    }, [lojaId, applyTheme]);
 
     useEffect(() => {
         setIsClient(true); const currentToken = getCookie("token"); const userStr = getCookie("user"); setToken(currentToken || null);
@@ -134,7 +171,6 @@ export default function LojaPage() {
         };
         socket.onclose = () => { setWs(null); setTimeout(() => { if (token && lojaId) setWs(null); }, 3000); }; return () => socket.close();
     }, [token, lojaId]);
-
     const adicionarAoCarrinho = (produto: ProdutoType) => { if ((produto.estoque?? 0) <= 0) { toast.error("Sem estoque"); return; } setCarrinho(prev => { const item = prev.find(i => String(i.id) === String(produto.id)); if (item) { if (item.quantidade + 1 > (produto.estoque?? 0)) { toast.warning("Estoque max"); return prev; } return prev.map(i => String(i.id) === String(produto.id)? {...i, quantidade: i.quantidade + 1 } : i); } return [...prev, {...produto, quantidade: 1 }]; }); };
     const confirmarRemoverItem = (item: CarrinhoItem) => { setItemParaRemover(item); setShowConfirmarModal(true); };
     const handleConfirmarRemocao = () => { if (itemParaRemover) { setCarrinho(prev => prev.filter(i => i.id!== itemParaRemover.id)); toast.success("Removido"); } setShowConfirmarModal(false); setItemParaRemover(null); };
@@ -166,17 +202,11 @@ export default function LojaPage() {
     const handleDeleteProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'apagar', entidade: 'produto', descricao: `Tem certeza que deseja apagar o produto ${p.nome}? Esta ação não pode ser desfeita.`, data: p }); setShowPermissaoModal(true); }
 
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!acaoPendente ||!token) return;
-        setSaving(true);
-        const { tipo, entidade, data } = acaoPendente;
+        if (!acaoPendente ||!token) return; setSaving(true); const { tipo, entidade, data } = acaoPendente;
         try {
             if (entidade === 'user') {
                 const baseUrl = `${API_URL}/lojas/id/${lojaId}/usuarios`;
-                if (tipo === 'adicionar') {
-                    await fetchComAuth(baseUrl, token, { method: "POST", body: JSON.stringify({...formDataUser, senha_confirmacao: formDataUser.senha, senha_dono, senha_confirmacao_dono: senha_dono }) });
-                    await fetchEquipa(token);
-                    toast.success("Membro adicionado!");
-                }
+                if (tipo === 'adicionar') { await fetchComAuth(baseUrl, token, { method: "POST", body: JSON.stringify({...formDataUser, senha_confirmacao: formDataUser.senha, senha_dono, senha_confirmacao_dono: senha_dono }) }); await fetchEquipa(token); toast.success("Membro adicionado!"); }
                 if (tipo === 'editar' && data) {
                     const payload: any = { senha_dono, senha_confirmacao: senha_dono };
                     if (formDataUser.nome) payload.nome = formDataUser.nome;
@@ -184,45 +214,20 @@ export default function LojaPage() {
                     if (formDataUser.role) payload.role = formDataUser.role;
                     payload.is_active = formDataUser.is_active;
                     if (formDataUser.senha) { payload.senha = formDataUser.senha; payload.senha_confirmacao = formDataUser.senha; }
-                    await fetchComAuth(`${baseUrl}/${(data as UsuarioLojaPage).id}`, token, { method: "PUT", body: JSON.stringify(payload) });
-                    await fetchEquipa(token);
-                    toast.success("Membro atualizado!");
+                    await fetchComAuth(`${baseUrl}/${(data as UsuarioLojaPage).id}`, token, { method: "PUT", body: JSON.stringify(payload) }); await fetchEquipa(token); toast.success("Membro atualizado!");
                 }
-                if (tipo === 'apagar' && data) {
-                    await fetchComAuth(`${baseUrl}/${(data as UsuarioLojaPage).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono }) });
-                    await fetchEquipa(token);
-                    toast.success("Membro removido!");
-                }
+                if (tipo === 'apagar' && data) { await fetchComAuth(`${baseUrl}/${(data as UsuarioLojaPage).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono }) }); await fetchEquipa(token); toast.success("Membro removido!"); }
             }
             if (entidade === 'produto') {
-                const baseUrl = `${API_URL}/produtos`;
-                const loja_id = user?.loja_id || "";
+                const baseUrl = `${API_URL}/produtos`; const loja_id = user?.loja_id || "";
                 let payload: any = {...(data || formDataProduto), senha_dono, senha_confirmacao: senha_dono, loja_id: (data as ProdutoType)?.loja_id || loja_id };
-                if (tipo === 'adicionar') {
-                    delete payload.id;
-                    await fetchComAuth(baseUrl, token, { method: "POST", body: JSON.stringify(payload) });
-                }
-                if (tipo === 'editar' && editingProduto) {
-                    if (!payload.codigo_barras) delete payload.codigo_barras;
-                    if (!payload.imagem_url) delete payload.imagem_url;
-                    await fetchComAuth(`${baseUrl}/${editingProduto.id}`, token, { method: "PATCH", body: JSON.stringify(payload) });
-                }
-                if (tipo === 'apagar' && data) {
-                    await fetchComAuth(`${baseUrl}/${(data as ProdutoType).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono, loja_id: (data as ProdutoType).loja_id }) });
-                }
-                await fetchProdutos(token, loja_id);
-                toast.success("Produto salvo!");
+                if (tipo === 'adicionar') { delete payload.id; await fetchComAuth(baseUrl, token, { method: "POST", body: JSON.stringify(payload) }); }
+                if (tipo === 'editar' && editingProduto) { if (!payload.codigo_barras) delete payload.codigo_barras; if (!payload.imagem_url) delete payload.imagem_url; await fetchComAuth(`${baseUrl}/${editingProduto.id}`, token, { method: "PATCH", body: JSON.stringify(payload) }); }
+                if (tipo === 'apagar' && data) { await fetchComAuth(`${baseUrl}/${(data as ProdutoType).id}`, token, { method: "DELETE", body: JSON.stringify({ senha_dono, senha_confirmacao: senha_dono, loja_id: (data as ProdutoType).loja_id }) }); }
+                await fetchProdutos(token, loja_id); toast.success("Produto salvo!");
             }
-            setShowPermissaoModal(false);
-            setShowModal(false);
-            setAcaoPendente(null);
-        } catch (err: any) {
-            console.error("ERRO BACKEND:", err);
-            setErroMsgPermissao(err.message);
-            setShowErroModal(true);
-        } finally {
-            setSaving(false);
-        }
+            setShowPermissaoModal(false); setShowModal(false); setAcaoPendente(null);
+        } catch (err: any) { console.error("ERRO BACKEND:", err); setErroMsgPermissao(err.message); setShowErroModal(true); } finally { setSaving(false); }
     }
 
     const handleSave = async (payload: any) => {
@@ -237,21 +242,7 @@ export default function LojaPage() {
         } catch (err: any) { setErrorMsg(err.message); setSaving(false); }
     };
 
-    const vendasParaRisco = useMemo(() => vendas.map(v => ({
-        id: String(v.id),
-        data: v.data_venda || new Date().toISOString(),
-        total: v.total,
-        formaPagamento: v.forma_pagamento,
-        itens: v.total_itens,
-        detalhes: (v.itens || []).map((it, idx) => ({
-            id: String(it.produto_id) + '-' + idx,
-            nome_produto: it.nome || 'Produto',
-            quantidade: it.quantidade,
-            preco_unitario: it.preco_unitario,
-            subtotal: it.subtotal
-        })),
-        status: "concluida"
-    })), [vendas]);
+    const vendasParaRisco = useMemo(() => vendas.map(v => ({ id: String(v.id), data: v.data_venda || new Date().toISOString(), total: v.total, formaPagamento: v.forma_pagamento, itens: v.total_itens, detalhes: (v.itens || []).map((it, idx) => ({ id: String(it.produto_id) + '-' + idx, nome_produto: it.nome || 'Produto', quantidade: it.quantidade, preco_unitario: it.preco_unitario, subtotal: it.subtotal })), status: "concluida" })), [vendas]);
 
     if (!isClient || loading) return (
         <div className="flex items-center justify-center min-h-screen bg-black">
@@ -263,9 +254,10 @@ export default function LojaPage() {
         <style jsx global>{`
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+:root { --cor-primaria: #10b981; --radius: 8px; --card-padding: 16px; --font-size: 14px; }
         `}</style>
 
-        <Toaster position="top-center" richColors theme="dark" />
+        <Toaster position="top-center" richColors theme={theme as any} />
         {activeTab === "venda"? <div className="fixed inset-0 z-40 bg-black"><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} /></div> :
             <div className="min-h-screen bg-black text-white">
                 <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
@@ -278,6 +270,7 @@ export default function LojaPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => handleSaveTheme({theme: theme === 'dark'? 'light' : 'dark'})} className="p-2 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition"><Palette size={16} /></button>
                             <span className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-xs font-medium" style={{backgroundColor: loja?.is_active? 'var(--cor-primaria)' : '#4b5563'}}>{loja?.is_active? "ativa" : "inativa"}</span>
                             <button onClick={handleSair} className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-red-600 rounded-lg text-xs sm:text-xs font-bold flex items-center gap-1.5 hover:bg-red-700 transition" style={{borderRadius: 'var(--radius)'}}><LogOut size={14} className="sm:w-4 sm:h-4" /><span className="hidden sm:inline">Sair</span></button>
                         </div>
@@ -285,7 +278,7 @@ export default function LojaPage() {
                     <div className="mb-4 sm:mb-6">
                         <div className="bg-neutral-900 p-1 overflow-x-auto scrollbar-hide touch-pan-x" style={{borderRadius: 'var(--radius)'}}>
                             <div className="flex gap-1 w-max min-w-full">
-                                {initialTabs.map(tab => (<button key={tab.id} onClick={() => { setActiveTab(tab.id); setMenuMobileOpen(false) }} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{backgroundColor: activeTab === tab.id? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id? 'white' : '#9ca3af', borderRadius: 'var(--radius)'}}><tab.icon size={14} className="sm:w-4 sm:h-4" />{tab.label}</button>))}
+                                {initialTabs.map(tab => (<button key={tab.id} onClick={() => { setActiveTab(tab.id); setMenuMobileOpen(false) }} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{backgroundColor: activeTab === tab.id? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id? 'white' : '#9ca3af', borderRadius: 'var(--radius)', fontSize: 'var(--font-size)'}}><tab.icon size={14} className="sm:w-4 sm:h-4" />{tab.label}</button>))}
                             </div>
                         </div>
                     </div>
@@ -297,7 +290,7 @@ export default function LojaPage() {
                         {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} formatCurrency={formatCurrency} />}
                         {activeTab === "fornecedores" && podeVerTudo && <FornecedoresTab />}
                         {activeTab === "documentos" && podeVerTudo && <DocumentosTab loja={loja} />}
-                        {activeTab === "definicoes" && podeVerTudo && <DefinicoesTab />}
+                        {activeTab === "definicoes" && podeVerTudo && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} />}
                         {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos", "definicoes"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
                 </div>

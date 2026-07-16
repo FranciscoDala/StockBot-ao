@@ -8,66 +8,70 @@ import { toast } from "sonner";
 
 type TabDef = "aparencia" | "tema" | "cards" | "notificacoes" | "seguranca";
 
-export function DefinicoesTab() {
+type Props = {
+  onSaveTheme: (data: {theme?: string, card_style?: string, card_size?: string, font_size?: string}) => void;
+  theme: string;
+  cardStyle: string;
+  cardSize: string;
+  fontSize: string;
+}
+
+export function DefinicoesTab({ onSaveTheme, theme, cardStyle, cardSize, fontSize }: Props) {
     const [tabAtiva, setTabAtiva] = useState<TabDef>("aparencia");
 
-    const [corPrimaria, setCorPrimaria] = useState("#16a34a");
-    const [corFundo, setCorFundo] = useState("#000000");
-    const [modoEscuro, setModoEscuro] = useState(true);
-    const [estiloCard, setEstiloCard] = useState("padrao"); // padrao | glass | borda
-    const [tamanhoCard, setTamanhoCard] = useState("medio"); // pequeno | medio | grande
-    const [fonteTamanho, setFonteTamanho] = useState("normal");
+    // AGORA VEM DO DB E NÃO DO LOCALSTORAGE
+    const [modoEscuro, setModoEscuro] = useState(theme === 'dark');
+    const [estiloCard, setEstiloCard] = useState(cardStyle); // padrao | glass | borda
+    const [tamanhoCard, setTamanhoCard] = useState(cardSize); // pequeno | medio | grande
+    const [fonteTamanho, setFonteTamanho] = useState(fontSize); // pequeno | medio | grande
 
-    // Carregar do localStorage ao abrir
+    // Atualiza os states quando o DB carrega
     useEffect(() => {
-        const saved = localStorage.getItem("loja_config");
-        if(saved) {
-            const config = JSON.parse(saved);
-            setCorPrimaria(config.corPrimaria || "#16a34a");
-            setCorFundo(config.corFundo || "#000");
-            setModoEscuro(config.modoEscuro ?? true);
-            setEstiloCard(config.estiloCard || "padrao");
-            setTamanhoCard(config.tamanhoCard || "medio");
-            setFonteTamanho(config.fonteTamanho || "normal");
-            aplicarTema(config);
-        } else {
-            // aplica o padrão do html na primeira vez
-            aplicarTema({
-                corPrimaria: "#16a34a",
-                corFundo: "#000",
-                modoEscuro: true,
-                estiloCard: "padrao",
-                tamanhoCard: "medio"
-            })
-        }
-    }, [])
+        setModoEscuro(theme === 'dark');
+        setEstiloCard(cardStyle);
+        setTamanhoCard(cardSize);
+        setFonteTamanho(fontSize);
+        aplicarTema(theme, cardStyle, cardSize, fontSize);
+    }, [theme, cardStyle, cardSize, fontSize])
 
-    const aplicarTema = (config: any) => {
-        // 1. Cores
-        document.documentElement.style.setProperty('--cor-primaria', config.corPrimaria);
-        document.documentElement.style.setProperty('--cor-fundo', config.corFundo);
+    const aplicarTema = (t: string, cs: string, csz: string, fsz: string) => {
+        // 1. Cores - já vem do --cor-primaria global
+        document.documentElement.style.setProperty('--cor-primaria', t === 'dark'? '#10b981' : '#059669');
 
         // 2. Tema claro/escuro
-        document.documentElement.setAttribute('data-theme', config.modoEscuro ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', t);
 
         // 3. Estilo e tamanho do card
-        document.documentElement.setAttribute('data-card-style', config.estiloCard);
-        document.documentElement.setAttribute('data-card-size', config.tamanhoCard);
+        document.documentElement.setAttribute('data-card-style', cs);
+        document.documentElement.setAttribute('data-card-size', csz);
+
+        // 4. Fonte
+        document.documentElement.style.setProperty('--font-size', fsz === 'grande'? '16px' : fsz === 'pequeno'? '12px' : '14px');
     }
 
     const handleSalvar = () => {
-        const config = {
-            corPrimaria, corFundo, modoEscuro, estiloCard, tamanhoCard, fonteTamanho
-        }
-        localStorage.setItem("loja_config", JSON.stringify(config));
-        aplicarTema(config);
-        toast.success("Configurações salvas e aplicadas!")
-        // TODO: POST /api/lojas/{lojaId}/config
+        const newTheme = modoEscuro ? 'dark' : 'light';
+        onSaveTheme({
+            theme: newTheme,
+            card_style: estiloCard,
+            card_size: tamanhoCard,
+            font_size: fonteTamanho
+        });
+        toast.success("Configurações salvas!")
     }
 
     const handleRestaurar = () => {
-        localStorage.removeItem("loja_config");
-        window.location.reload();
+        setModoEscuro(true);
+        setEstiloCard("padrao");
+        setTamanhoCard("medio");
+        setFonteTamanho("medio");
+        onSaveTheme({
+            theme: 'dark',
+            card_style: 'padrao',
+            card_size: 'medio',
+            font_size: 'medio'
+        });
+        toast.info("Configurações restauradas para o padrão")
     }
 
     const tabs = [
@@ -122,25 +126,12 @@ export function DefinicoesTab() {
                 {tabAtiva === "aparencia" && (
                     <div className="space-y-6">
                         <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Cores da Marca</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Cor Primária</label>
-                                <div className="flex items-center gap-3">
-                                    <input type="color" value={corPrimaria} onChange={(e) => setCorPrimaria(e.target.value)} className="w-12 h-12 rounded-lg border-2 cursor-pointer" style={{borderColor: 'var(--cor-borda)'}}/>
-                                    <input type="text" value={corPrimaria} onChange={(e) => setCorPrimaria(e.target.value)} className="flex-1 rounded-lg px-3 py-2 text-sm" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}/>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Cor de Fundo</label>
-                                <div className="flex items-center gap-3">
-                                    <input type="color" value={corFundo} onChange={(e) => setCorFundo(e.target.value)} className="w-12 h-12 rounded-lg border-2 cursor-pointer" style={{borderColor: 'var(--cor-borda)'}}/>
-                                    <input type="text" value={corFundo} onChange={(e) => setCorFundo(e.target.value)} className="flex-1 rounded-lg px-3 py-2 text-sm" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}/>
-                                </div>
-                            </div>
+                        <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>
+                            A cor primária muda automaticamente com o tema. Dark = Verde, Light = Verde Escuro
+                        </p>
+                        <div className="p-4 rounded-lg" style={{backgroundColor: 'var(--cor-card)', borderRadius: 'var(--radius)'}}>
+                            Cor atual: <span className="font-bold" style={{color: 'var(--cor-primaria)'}}>{modoEscuro ? 'Verde #10b981' : 'Verde #059669'}</span>
                         </div>
-                        <button onClick={() => aplicarTema({corPrimaria, corFundo, modoEscuro, estiloCard, tamanhoCard})} className="px-4 py-2 rounded-lg font-bold" style={{backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius-sm)'}}>
-                            Aplicar Preview
-                        </button>
                     </div>
                 )}
 
@@ -209,6 +200,20 @@ export function DefinicoesTab() {
                             >
                                 <option value="pequeno">Pequeno</option>
                                 <option value="medio">Médio</option>
+                                <option value="grande">Grande</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Tamanho da Fonte</label>
+                            <select
+                                value={fonteTamanho}
+                                onChange={e => setFonteTamanho(e.target.value)}
+                                className="w-full rounded-lg px-3 py-2 text-sm"
+                                style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}
+                            >
+                                <option value="pequeno">Pequena</option>
+                                <option value="medio">Média</option>
                                 <option value="grande">Grande</option>
                             </select>
                         </div>
