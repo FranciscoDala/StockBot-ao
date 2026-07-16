@@ -17,7 +17,7 @@ const API_BASE = API_URL.replace('/api/v1', '');
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
 
 const gerarSkuAleatorio = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -71,21 +71,20 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const lucro = (formData.preco || 0) - (formData.preco_custo || 0);
-    const qrLink = formData.sku ? `${APP_URL}/p/${formData.sku}` : null;
+    const qrLink = formData.sku? `${APP_URL}/p/${formData.sku}` : null;
 
     useEffect(() => {
-        if (open && !editingProduto && !formData.sku) {
-            setFormData((prev: any) => ({ ...prev, sku: gerarSkuAleatorio() }));
+        if (open &&!editingProduto &&!formData.sku) {
+            setFormData((prev: any) => ({...prev, sku: gerarSkuAleatorio() }));
         }
-        // Mostra imagem antiga se existir
         if (editingProduto?.imagem_url) {
-            const url = editingProduto.imagem_url.startsWith('http') ? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
+            const url = editingProduto.imagem_url.startsWith('http')? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
             setPreview(url);
         } else {
             setPreview(null);
         }
         if (editingProduto && editingProduto.codigo_barras === "") {
-            setFormData((prev: any) => ({ ...prev, codigo_barras: undefined }));
+            setFormData((prev: any) => ({...prev, codigo_barras: undefined }));
         }
         if (errorMsg) {
             let mensagemAmigavel = "Ocorreu um erro inesperado. Tente novamente.";
@@ -108,7 +107,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleFile = (file: File) => {
         if (!validateFile(file)) return;
         setPreview(URL.createObjectURL(file));
-        setFormData({ ...formData, file_to_upload: file });
+        setFormData({...formData, file_to_upload: file });
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,25 +118,21 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleDrag = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === "dragenter" || e.type === "dragover") setDragActive(true); else if (e.type === "dragleave") setDragActive(false); };
     const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file); };
 
-
-
     const handleSaveClick = async () => {
         if (!formData.nome || formData.nome.length < 2) { toast.error("Nome do produto é obrigatório"); return; }
         if ((formData.preco || 0) <= 0) { toast.error("Preço de venda deve ser maior que 0"); return; }
 
-        let finalData = { ...formData };
+        let finalData = {...formData };
         const file = finalData.file_to_upload;
         const token = getCookie('token');
         let urls: any = {};
 
-        // 1. UPLOAD NAS 2 ROTAS AO MESMO TEMPO
         if (file && token) {
             setUploading(true);
             try {
                 const formDataUpload = new FormData();
                 formDataUpload.append('file', file);
 
-                // Faz os 2 uploads em paralelo
                 const [resLocal, resCloud] = await Promise.all([
                     fetch(`${API_URL}/upload/produto/local`, {
                         method: 'POST',
@@ -151,26 +146,17 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     })
                 ]);
 
-                // Pega resultado do Local
                 if (resLocal.ok) {
                     const dataLocal = await resLocal.json();
                     urls.local = dataLocal.url;
-                    console.log("[LOCAL] OK:", dataLocal.url);
-                } else {
-                    console.warn("[LOCAL] Falhou:", await resLocal.text());
                 }
 
-                // Pega resultado do Cloudinary
                 if (resCloud.ok) {
                     const dataCloud = await resCloud.json();
                     urls.cloudinary = dataCloud.optimized_url;
                     urls.public_id = dataCloud.public_id;
-                    console.log("[CLOUDINARY] OK:", dataCloud.optimized_url);
-                } else {
-                    console.warn("[CLOUDINARY] Falhou:", await resCloud.text());
                 }
 
-                // PRIORIDADE: Usa Cloudinary. Se falhar usa Local
                 finalData.imagem_url = urls.cloudinary || urls.local;
 
                 if (!finalData.imagem_url) throw new Error("Falha em ambos os uploads");
@@ -190,16 +176,15 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.codigo_barras = null;
         }
 
-        // 2. DEPOIS SALVA O PRODUTO com a URL do Cloudinary
         onSave(finalData);
     };
 
-
-    const handleInputChange = (field: string, value: any) => {
-        setFormData({ ...formData, [field]: value });
+        const handleInputChange = (field: string, value: any) => {
+        setFormData({...formData, [field]: value });
     }
 
-    const inputClass = "bg-neutral-900 border-neutral-700 focus:border-green-500 h-11 px-3"
+    const inputClass = "bg-neutral-900 border-neutral-700 h-11 px-3"
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
 
     return (
         <>
@@ -208,15 +193,19 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
                     className="!max-w-[800px] w-full bg-neutral-950 border-neutral-800 text-white p-0 h-[90vh] flex-col [&>button]:hidden"
+                    style={{borderRadius: 'var(--radius)'}}
                 >
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
-                        <DialogTitle className="text-lg sm:text-xl">{editingProduto ? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl">{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
                         <DialogDescription className="text-gray-400 text-xs sm:text-sm">Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
                     </DialogHeader>
 
                     <div className="flex-1 overflow-y-auto px-4 sm:px-6 no-scrollbar">
                         <Tabs defaultValue="dados" className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 bg-neutral-900 sticky top-0 z-10 h-11">
+                            <TabsList
+                                className="grid w-full grid-cols-3 bg-neutral-900 sticky top-0 z-10 h-11"
+                                style={{borderRadius: 'var(--radius)'}}
+                            >
                                 <TabsTrigger value="dados" className="text-xs sm:text-sm"><Package size={14} className="mr-1 sm:mr-2" />Dados</TabsTrigger>
                                 <TabsTrigger value="imagem" className="text-xs sm:text-sm"><ImageIcon size={14} className="mr-1 sm:mr-2" />Imagem</TabsTrigger>
                                 <TabsTrigger value="preco" className="text-xs sm:text-sm"><DollarSign size={14} className="mr-1 sm:mr-2" />Preço</TabsTrigger>
@@ -225,11 +214,11 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 <TabsContent value="dados" className="space-y-5 mt-0">
                                     <div className="space-y-2">
                                         <Label>Nome do Produto *</Label>
-                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className={inputClass} />
+                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className={inputClass} style={focusStyle} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Descrição</Label>
-                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className={`bg-neutral-900 border-neutral-700 focus:border-green-500 px-3 py-3 min-h-28`} />
+                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="bg-neutral-900 border-neutral-700 px-3 py-3 min-h-28" style={focusStyle} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
@@ -245,18 +234,29 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Marca</Label>
-                                            <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className={inputClass} />
+                                            <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className={inputClass} style={focusStyle} />
                                         </div>
                                     </div>
                                 </TabsContent>
                                 <TabsContent value="imagem" className="space-y-5 mt-0">
                                     <div className="space-y-2">
                                         <Label>Imagem do Produto</Label>
-                                        <div onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop} className={`relative w-full h-52 sm:h-72 rounded-lg border-2 border-dashed transition-colors ${dragActive ? 'border-green-500 bg-green-500/10' : 'border-neutral-700 bg-neutral-900'}`}>
-                                            {preview ? (
+                                        <div
+                                            onDragEnter={handleDrag}
+                                            onDragLeave={handleDrag}
+                                            onDragOver={handleDrag}
+                                            onDrop={handleDrop}
+                                            className="relative w-full h-52 sm:h-72 border-2 border-dashed transition-colors"
+                                            style={{
+                                                borderColor: dragActive? 'var(--cor-primaria)' : '#27272a',
+                                                backgroundColor: dragActive? 'var(--cor-primaria)10' : '#171717',
+                                                borderRadius: 'var(--radius)'
+                                            }}
+                                        >
+                                            {preview? (
                                                 <>
                                                     <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-lg p-2" />
-                                                    <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({ ...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
+                                                    <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
                                                 </>
                                             ) : (
                                                 <div className="absolute inset-0 flex-col items-center justify-center text-gray-500 text-center">
@@ -269,7 +269,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         </div>
                                     </div>
                                     {qrLink && (
-                                        <div className="space-y-2 p-4 bg-neutral-900 rounded-lg border-neutral-800">
+                                        <div className="space-y-2 p-4 bg-neutral-900 border" style={{borderColor: '#27272a', borderRadius: 'var(--radius)'}}>
                                             <Label className="flex items-center gap-2"><QrCode size={16} /> QR Code do Produto</Label>
                                             <div className="flex justify-center bg-white p-3 rounded">
                                                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrLink)}`} alt="QR Code" className="w-40 h-40" />
@@ -278,23 +278,23 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         </div>
                                     )}
                                     {!qrLink && (<p className="text-xs text-gray-500 text-center">Salve o produto para gerar o QR Code</p>)}
-                                    {uploading && <p className="text-xs text-yellow-400 flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Enviando imagem...</p>}
+                                    {uploading && <p className="text-xs flex items-center gap-2" style={{color: 'var(--cor-primaria)'}}><Loader2 size={14} className="animate-spin" /> Enviando imagem...</p>}
                                 </TabsContent>
                                 <TabsContent value="preco" className="space-y-5 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
                                             <Label>Preço de Custo</Label>
-                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className={inputClass} />
+                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className={inputClass} style={focusStyle} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Preço de Venda *</Label>
-                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className={inputClass} />
+                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className={inputClass} style={focusStyle} />
                                         </div>
                                     </div>
-                                    <div className="bg-neutral-900 p-4 rounded-lg border-neutral-800">
+                                    <div className="bg-neutral-900 p-4 border" style={{borderColor: '#27272a', borderRadius: 'var(--radius)'}}>
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-gray-400">Lucro por unidade</span>
-                                            <span className={`font-bold text-base sm:text-lg ${lucro >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            <span className="font-bold text-base sm:text-lg" style={{color: lucro >= 0? 'var(--cor-primaria)' : '#ef4444'}}>
                                                 {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(lucro)}
                                             </span>
                                         </div>
@@ -302,16 +302,16 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                                         <div className="space-y-2">
                                             <Label>Estoque Atual</Label>
-                                            <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className={inputClass} />
+                                            <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className={inputClass} style={focusStyle} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label>Estoque Mínimo</Label>
-                                            <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className={inputClass} />
+                                            <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className={inputClass} style={focusStyle} />
                                         </div>
                                         <div className="space-y-2 col-span-2 sm:col-span-1">
                                             <Label>Unidade</Label>
                                             <Select value={formData.unidade || 'UN'} onValueChange={(val) => handleInputChange("unidade", val)}>
-                                                <SelectTrigger className={inputClass}><SelectValue /></SelectTrigger>
+                                                <SelectTrigger className={inputClass} style={focusStyle}><SelectValue /></SelectTrigger>
                                                 <SelectContent className="bg-neutral-900 border-neutral-700">
                                                     <SelectItem value="UN">UN</SelectItem><SelectItem value="KG">KG</SelectItem><SelectItem value="LT">LT</SelectItem>
                                                     <SelectItem value="CX">CX</SelectItem><SelectItem value="PCT">PCT</SelectItem>
@@ -326,14 +326,22 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                     <DialogFooter className="p-4 sm:p-6 pt-4 border-t border-neutral-800 shrink-0 flex-col sm:flex-row gap-2">
                         <div className="flex items-center space-x-2 mr-auto">
-                            <Checkbox id="active" checked={formData.is_active ?? true} onCheckedChange={(val) => handleInputChange("is_active", !!val)} className="border-neutral-600 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600" />
+                            <Checkbox
+                                id="active"
+                                checked={formData.is_active?? true}
+                                onCheckedChange={(val) => handleInputChange("is_active",!!val)}
+                                className="border-neutral-600"
+                                style={{'--ring-color': 'var(--cor-primaria)'} as any}
+                            />
                             <Label htmlFor="active" className="text-sm text-gray-300 font-medium cursor-pointer">Produto Ativo</Label>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving || uploading} className="flex-1 sm:flex-initial h-11">Cancelar</Button>
-                            <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-initial min-w-28 h-11">
+                            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving || uploading} className="flex-1 sm:flex-initial h-11">
+                                Cancelar
+                            </Button>
+                            <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="btn-primary flex-1 sm:flex-initial min-w-28 h-11">
                                 {(saving || uploading) && <Loader2 className="mr-4 h-4 w-4 animate-spin" />}
-                                {editingProduto ? 'Salvar' : 'Criar'}
+                                {editingProduto? 'Salvar' : 'Criar'}
                             </Button>
                         </div>
                     </DialogFooter>
@@ -345,6 +353,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
                     className="bg-neutral-900 border-red-500/30 text-white max-w-md [&>button]:hidden"
+                    style={{borderRadius: 'var(--radius)'}}
                 >
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-red-400"><AlertCircle size={20} /> Erro ao Salvar</DialogTitle>

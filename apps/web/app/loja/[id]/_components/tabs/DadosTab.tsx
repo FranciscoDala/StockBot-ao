@@ -170,11 +170,11 @@ export function DadosTab({
                 <div>
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">
                         Dados
-                        {wsConectado ? <Wifi size={16} className="text-green-500" /> : <WifiOff size={16} className="text-red-500" />}
+                        {wsConectado ? <Wifi size={16} style={{color: 'var(--cor-primaria)'}} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-400">Visão geral da loja em tempo real</p>
                 </div>
-                <button onClick={carregarKPIs} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold text-white transition w-full sm:w-auto">
+                <button onClick={carregarKPIs} className="btn-primary">
                     <Edit size={14} />
                     Atualizar
                 </button>
@@ -184,43 +184,49 @@ export function DadosTab({
                 <CardStats
                     titulo="Faturamento Hoje"
                     stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    cor="primaria"
                     icon={<DollarSign size={16} />}
-                    cor="green"
                     descricao="Entradas de hoje"
                     formatCurrency={formatCurrency}
                 />
                 <CardStats
                     titulo="Vendas Hoje"
                     stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    cor="secundaria"
                     icon={<ShoppingBag size={16} />}
-                    cor="blue"
                     descricao="Pedidos concluídos"
                     formatCurrency={(v) => String(v)}
                 />
                 <CardStats
                     titulo="Ticket Médio"
                     stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
+                    cor="secundaria"
                     icon={<TrendingUp size={16} />}
-                    cor="purple"
                     descricao="Valor por venda"
                     formatCurrency={formatCurrency}
                 />
                 <CardStats
                     titulo="Estoque Zerado"
                     stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }}
+                    cor="alerta"
                     icon={<Ban size={16} />}
-                    cor="red"
                     descricao="Não consegue vender"
                     formatCurrency={(v) => String(v)}
                 />
             </div>
 
-            <div className="bg-gradient-to-br from-amber-950/40 to-neutral-900 p-4 sm:p-6 rounded-xl border-amber-900/30">
+            <div
+                className="p-4 sm:p-6 rounded-xl"
+                style={{
+                    background: 'linear-gradient(to bottom right, var(--cor-primaria)08, #171717)',
+                    border: '1px solid var(--cor-primaria)30'
+                }}
+            >
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-xs text-gray-300 font-medium">Resumo do Mês</p>
-                        <p className="text-3xl font-bold text-amber-400 mt-1">{loading ? "..." : formatCurrency(kpis.totalVendasMes)}</p>
-                        <p className="text-xs text-amber-400/70 mt-1">Total vendido nos últimos 30 dias</p>
+                        <p className="text-3xl font-bold mt-1" style={{color: 'var(--cor-primaria)'}}>{loading ? "..." : formatCurrency(kpis.totalVendasMes)}</p>
+                        <p className="text-xs mt-1" style={{color: 'var(--cor-primaria)', opacity: 0.7}}>Total vendido nos últimos 30 dias</p>
                     </div>
                 </div>
             </div>
@@ -239,26 +245,33 @@ function CardStats({
     titulo: string,
     stats: Stats,
     icon: React.ReactNode,
-    cor: "red" | "orange" | "yellow" | "blue" | "green" | "purple",
+    cor: "primaria" | "secundaria" | "alerta",
     descricao: string,
     formatCurrency: (v: number) => string
 }) {
     const cores = {
-        red: "border-red-500/30 bg-red-950/20 text-red-400",
-        orange: "border-orange-500/30 bg-orange-950/20 text-orange-400",
-        yellow: "border-yellow-500/30 bg-yellow-950/20 text-yellow-400",
-        blue: "border-blue-500/30 bg-blue-950/20 text-blue-400",
-        green: "border-green-500/30 bg-green-950/20 text-green-400",
-        purple: "border-purple-500/30 bg-purple-950/20 text-purple-400"
+        primaria: { border: 'var(--cor-primaria)30', bg: 'var(--cor-primaria)14', text: 'var(--cor-primaria)' },
+        secundaria: { border: '#27272a', bg: '#18181b', text: '#60a5fa' },
+        alerta: { border: '#ef444430', bg: '#ef444414', text: '#ef4444' }
     }
 
+    const c = cores[cor]
+
     return (
-        <div className={`border rounded-xl p-3 md:p-4 transition hover:scale-[1.02] ${cores[cor]}`}>
+        <div
+            className="rounded-xl p-3 md:p-4 transition hover:scale-[1.02]"
+            style={{
+                border: `1px solid ${c.border}`,
+                backgroundColor: c.bg,
+                color: c.text,
+                borderRadius: 'var(--radius)'
+            }}
+        >
             <div className="flex items-center justify-between mb-2">
                 <p className="text-xs md:text-sm font-medium text-gray-300 truncate">{titulo}</p>
                 <div className="opacity-80 shrink-0">{icon}</div>
             </div>
-            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{formatCurrency(stats.total)}</p>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate text-white">{formatCurrency(stats.total)}</p>
             <p className="text-xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
         </div>
     )

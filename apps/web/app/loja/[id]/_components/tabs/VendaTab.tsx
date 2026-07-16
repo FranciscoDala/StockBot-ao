@@ -76,7 +76,7 @@ interface Props {
     nifLoja?: string;
     enderecoLoja?: string;
     lojaId?: string;
-    vendaAtual?: { // <- ADICIONADO PRA IMPRIMIR DEPOIS DE FINALIZAR
+    vendaAtual?: {
         id: string;
         data: string;
         total: number;
@@ -86,7 +86,7 @@ interface Props {
     } | null
 }
 
-export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
+export function VendaTab({
     produtos,
     carrinho,
     busca, setBusca,
@@ -107,7 +107,7 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
     nomeLoja,
     nifLoja = "NIF: 000",
     enderecoLoja = "Endereço: Luanda",
-    vendaAtual // <- PRA IMPRIMIR
+    vendaAtual
 }: Props) {
 
     const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
@@ -140,15 +140,15 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-             .header { text-align: center; margin-bottom: 5px; }
-             .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-             .header p { margin: 1px 0; font-size: 10px; }
-             .info p { margin: 1px 0; }
+           .header { text-align: center; margin-bottom: 5px; }
+           .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+           .header p { margin: 1px 0; font-size: 10px; }
+           .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-             .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-             .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+           .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+           .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -178,7 +178,7 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
     }, [formatCurrency, gerarHeaderFactura]);
 
     useEffect(() => {
-        if(vendaAtual){ // <- IMPRIME AUTOMATICO AO FINALIZAR
+        if(vendaAtual){
             handleImprimir(vendaAtual)
         }
     }, [vendaAtual, handleImprimir]);
@@ -228,14 +228,15 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                         <Input
                             id="busca-produto"
                             placeholder="Buscar produto... [F2]"
-                            className="pl-9 bg-neutral-950 border-neutral-800 h-10 text-sm focus:border-green-500"
+                            className="pl-9 bg-neutral-950 border-neutral-800 h-10 text-sm"
+                            style={{borderRadius: 'var(--radius)'}}
                             value={busca}
                             onChange={(e) => setBusca(e.target.value)}
                             autoFocus
                         />
                     </div>
 
-                    {produtosFiltrados.length === 0 && (
+                                        {produtosFiltrados.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-64 text-gray-500">
                             <PackageX size={40} />
                             <p className="mt-2 text-sm">Nenhum produto encontrado</p>
@@ -250,7 +251,14 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                                     key={p.id}
                                     onClick={() => adicionarAoCarrinho(p)}
                                     disabled={p.estoque <= 0}
-                                    className="bg-neutral-950 border-neutral-800 rounded-xl overflow-hidden text-left transition-all hover:border-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
+                                    className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
+                                    style={{
+                                        backgroundColor: '#171717',
+                                        borderColor: '#27272a',
+                                        borderRadius: 'var(--radius)'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)80'}
+                                    onMouseLeave={(e) => e.currentTarget.style.borderColor = '#27272a'}
                                 >
                                     <div className="relative w-full aspect-square bg-neutral-900">
                                         {p.imagem_url? (
@@ -259,12 +267,12 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                                             <div className="w-full h-full flex items-center justify-center text-gray-700 text-xs">Sem Img</div>
                                         )}
                                         {p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1">0</Badge>)}
-                                        {p.estoque > 0 && (<Badge className="absolute top-1 right-1 bg-green-600 text-white border-none text-[9px] px-1.5">{p.estoque}</Badge>)}
+                                        {p.estoque > 0 && (<Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{backgroundColor: 'var(--cor-primaria)'}}>{p.estoque}</Badge>)}
                                     </div>
                                     <div className="p-2">
                                         <h4 className="font-semibold text-xs truncate">{p.nome}</h4>
                                         <div className="flex justify-between items-center mt-1">
-                                            <span className="font-bold text-green-400 text-xs">{formatCurrency(preco)}</span>
+                                            <span className="font-bold text-xs" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco)}</span>
                                         </div>
                                     </div>
                                 </button>
@@ -277,7 +285,7 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2">
                             <ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}
                         </h3>
-                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 bg-neutral-950 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 bg-neutral-950 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{borderRadius: 'var(--radius)'}}>
                             {carrinho.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-24 text-gray-500">
                                     <ShoppingCart size={24} />
@@ -291,13 +299,14 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                                         key={item.id}
                                         onClick={() => confirmarRemoverItem(item)}
                                         className="flex items-center gap-2 p-2 bg-neutral-900 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
+                                        style={{borderRadius: 'var(--radius)'}}
                                     >
                                         <span className="text-xs font-bold w-8 text-center">{item.quantidade}</span>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-semibold truncate">{item.nome}</p>
-                                            <p className="text-xs font-bold text-green-400">{formatCurrency(preco)}</p>
+                                            <p className="text-xs font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco)}</p>
                                         </div>
-                                        <p className="text-xs font-bold text-green-400">{formatCurrency(preco * item.quantidade)}</p>
+                                        <p className="text-xs font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco * item.quantidade)}</p>
                                     </div>
                                 )
                             })}
@@ -307,7 +316,7 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                     {/* MOBILE PAGAMENTO */}
                     <div className="lg:hidden py-3 space-y-2 border-t border-neutral-800 bg-neutral-950 sticky bottom-0">
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                            <SelectTrigger className="bg-neutral-900 border-neutral-800 h-10 text-sm">
+                            <SelectTrigger className="bg-neutral-900 border-neutral-800 h-10 text-sm" style={{borderRadius: 'var(--radius)'}}>
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="bg-neutral-900 border-neutral-800">
@@ -318,7 +327,7 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                         </Select>
 
                         {formaPagamento === "Dinheiro" && (
-                            <Input type="number" placeholder="Valor Recebido" className="bg-neutral-900 border-neutral-800 h-10 text-sm" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                            <Input type="number" placeholder="Valor Recebido" className="bg-neutral-900 border-neutral-800 h-10 text-sm" style={{borderRadius: 'var(--radius)'}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
                         )}
                         {formaPagamento === "Dinheiro" && troco > 0 && (
                             <div className="flex justify-between text-xs font-semibold text-amber-400"><span>Troco</span><span>{formatCurrency(troco)}</span></div>
@@ -326,13 +335,13 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
 
                         <div className="flex justify-between items-center">
                             <span className="text-xs text-gray-400">Total</span>
-                            <span className="font-bold text-green-400 text-lg">{formatCurrency(subtotal)}</span>
+                            <span className="font-bold text-lg" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(subtotal)}</span>
                         </div>
 
                         <Button
                             onClick={handleFinalizar}
                             disabled={!podeFinalizar || loadingVenda}
-                            className="bg-green-600 hover:bg-green-700 w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-primary w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loadingVenda? "Finalizando..." : "Finalizar Venda"}
                         </Button>
@@ -358,17 +367,18 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                                 <div
                                     key={item.id}
                                     onClick={() => confirmarRemoverItem(item)}
-                                    className="bg-neutral-900 p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
+                                    className="p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
+                                    style={{backgroundColor: '#171717', borderRadius: 'var(--radius)'}}
                                 >
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="min-w-0">
                                             <p className="font-semibold text-xs truncate">{item.nome}</p>
-                                            <p className="text-xs font-bold text-green-400">{formatCurrency(preco)} x {item.quantidade}</p>
+                                            <p className="text-xs font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco)} x {item.quantidade}</p>
                                         </div>
                                         <span className="text-sm font-bold">{item.quantidade}</span>
                                     </div>
                                     <div className="flex justify-end mt-1">
-                                        <p className="font-bold text-sm text-green-400">{formatCurrency(preco * item.quantidade)}</p>
+                                        <p className="font-bold text-sm" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco * item.quantidade)}</p>
                                     </div>
                                 </div>
                             )
@@ -377,10 +387,10 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
 
                     <div className="border-t border-neutral-800 p-3 space-y-2 bg-neutral-950 mt-auto">
                         <div className="flex justify-between text-xs"><span className="text-gray-400">Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span></div>
-                        <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold text-green-400">{formatCurrency(subtotal)}</span></div>
+                        <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(subtotal)}</span></div>
 
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                            <SelectTrigger className="bg-neutral-900 border-neutral-800 h-9 text-sm"><SelectValue /></SelectTrigger>
+                            <SelectTrigger className="bg-neutral-900 border-neutral-800 h-9 text-sm" style={{borderRadius: 'var(--radius)'}}><SelectValue /></SelectTrigger>
                             <SelectContent className="bg-neutral-900 border-neutral-800">
                                 <SelectItem value="Dinheiro"><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
                                 <SelectItem value="TPA"><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
@@ -389,14 +399,14 @@ export function VendaTab({ // <- TEM QUE SER EXPORT NOMEADO
                         </Select>
 
                         {formaPagamento === "Dinheiro" && (
-                            <Input type="number" placeholder="Valor Recebido" className="bg-neutral-900 border-neutral-800 h-9 text-sm" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                            <Input type="number" placeholder="Valor Recebido" className="bg-neutral-900 border-neutral-800 h-9 text-sm" style={{borderRadius: 'var(--radius)'}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
                         )}
                         {formaPagamento === "Dinheiro" && troco > 0 && (<div className="flex justify-between text-xs font-semibold text-amber-400"><span>Troco</span><span>{formatCurrency(troco)}</span></div>)}
 
                         <Button
                             onClick={handleFinalizar}
                             disabled={!podeFinalizar || loadingVenda}
-                            className="bg-green-600 hover:bg-green-700 w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="btn-primary w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loadingVenda? "Finalizando..." : "Finalizar [Enter]"}
                         </Button>

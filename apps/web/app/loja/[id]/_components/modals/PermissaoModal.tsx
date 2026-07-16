@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react"; // <- adiciona useEffect
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ interface Props {
 export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Props) {
     const [senha, setSenha] = useState("");
 
-    useEffect(() => { // <- LIMPA SENHA AO FECHAR/ABRIR
+    useEffect(() => {
         if (!open) setSenha("");
     }, [open]);
 
@@ -26,12 +26,15 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
         onConfirm(senha);
     }
 
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
+
     return (
-        <Dialog open={open} onOpenChange={onClose}> {/* <- CORRIGIDO: antes tava () => {} */}
+        <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
                 className="sm:max-w-[425px] bg-neutral-950 border-yellow-500/50 text-white p-0 shadow-2xl shadow-black/50 [&>button]:hidden"
+                style={{borderRadius: 'var(--radius)'}}
             >
                 <DialogHeader className="p-6 pb-2">
                     <div className="flex items-center gap-3">
@@ -53,13 +56,31 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                             onChange={(e) => setSenha(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                             className="bg-neutral-900 border-neutral-800 h-10"
+                            style={focusStyle}
                             autoFocus
                         />
                     </div>
                 </div>
-                <DialogFooter className="p-4 bg-neutral-900/50 border-t border-white/10 flex-row justify-end gap-2">
-                    <Button variant="ghost" onClick={onClose} disabled={loading} className="text-white hover:bg-neutral-800">Cancelar</Button>
-                    <Button onClick={handleSubmit} disabled={loading ||!senha} className="gap-2 bg-yellow-600 hover:bg-yellow-700 text-black font-bold">
+                <DialogFooter
+                    className="p-4 border-t flex-row justify-end gap-2"
+                    style={{
+                        backgroundColor: '#171717',
+                        borderColor: '#27272a'
+                    }}
+                >
+                    <Button
+                        variant="secondary"
+                        onClick={onClose}
+                        disabled={loading}
+                        style={{borderRadius: 'var(--radius)'}}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleSubmit}
+                        disabled={loading ||!senha}
+                        className="btn-primary gap-2 font-bold"
+                    >
                         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                         Confirmar Ação
                     </Button>

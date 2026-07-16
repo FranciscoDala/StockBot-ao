@@ -36,7 +36,7 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
                     <p className="text-xs sm:text-sm text-gray-400">Gerencie os membros da loja</p>
                 </div>
                 {isAdmin && (
-                    <button onClick={onAdd} className="flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold text-white transition w-full sm:w-auto">
+                    <button onClick={onAdd} className="btn-primary w-full sm:w-auto">
                         <Plus size={14} /> Adicionar Membro
                     </button>
                 )}
@@ -44,66 +44,132 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
 
             {/* CARDS KPI */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
+                <div
+                    className="p-4 border"
+                    style={{
+                        backgroundColor: '#171717',
+                        borderColor: '#27272a',
+                        borderRadius: 'var(--radius)'
+                    }}
+                >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-400">Total Membros</p>
-                        <Users size={16} className="text-blue-500" />
+                        <Users size={16} style={{color: 'var(--cor-primaria)'}} />
                     </div>
                     <p className="text-lg sm:text-xl font-bold text-white">{equipa.length}</p>
                 </div>
 
-                <div className="bg-neutral-900 p-4 rounded-xl border-neutral-800">
+                <div
+                    className="p-4 border"
+                    style={{
+                        backgroundColor: '#171717',
+                        borderColor: '#27272a',
+                        borderRadius: 'var(--radius)'
+                    }}
+                >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-400">Ativos</p>
-                        <UserCheck size={16} className="text-green-500" />
+                        <UserCheck size={16} style={{color: 'var(--cor-primaria)'}} />
                     </div>
-                    <p className="text-lg sm:text-xl font-bold text-green-500">{totalAtivos}</p>
+                    <p className="text-lg sm:text-xl font-bold" style={{color: 'var(--cor-primaria)'}}>{totalAtivos}</p>
                 </div>
 
-                <div className="bg-neutral-900 p-4 rounded-xl border border-neutral-800">
+                <div
+                    className="p-4 border"
+                    style={{
+                        backgroundColor: '#171717',
+                        borderColor: '#27272a',
+                        borderRadius: 'var(--radius)'
+                    }}
+                >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs text-gray-400">Gerentes/Dono</p>
-                        <Shield size={16} className="text-purple-500" />
+                        <Shield size={16} style={{color: 'var(--cor-primaria)'}} />
                     </div>
-                    <p className="text-lg sm:text-xl font-bold text-purple-500">{totalGerentes}</p>
+                    <p className="text-lg sm:text-xl font-bold" style={{color: 'var(--cor-primaria)'}}>{totalGerentes}</p>
                 </div>
             </div>
 
             {/* LISTA PROFISSIONAL */}
-            <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
+            <div
+                className="p-4 sm:p-6 border"
+                style={{
+                    backgroundColor: '#171717',
+                    borderColor: '#27272a',
+                    borderRadius: 'var(--radius)'
+                }}
+            >
                 <div className="space-y-3">
                     {equipa.length === 0 && (
-                        <div className="text-center py-16 border-2 border-dashed border-neutral-800 rounded-xl">
+                        <div
+                            className="text-center py-16 border-2 border-dashed"
+                            style={{borderColor: '#27272a', borderRadius: 'var(--radius)'}}
+                        >
                             <Users size={32} className="mx-auto text-gray-600 mb-3" />
                             <p className="text-gray-400 text-sm font-medium">Nenhum membro cadastrado ainda</p>
                             <p className="text-xs text-gray-500">Clique em "Adicionar Membro" para começar</p>
                         </div>
                     )}
                     {equipa.map(u => (
-                        <div key={u.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-neutral-800 rounded-lg gap-3 hover:bg-neutral-800/80 transition">
+                        <div
+                            key={u.id}
+                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 gap-3 hover:opacity-90 transition"
+                            style={{
+                                backgroundColor: '#262626',
+                                borderRadius: 'var(--radius)'
+                            }}
+                        >
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-2 mb-1">
                                     <p className="font-medium text-sm sm:text-base truncate text-white">{u.nome}</p>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium text-white ${u.is_active ? "bg-green-600" : "bg-gray-600"}`}>
+                                    <span
+                                        className="text-xs px-2 py-0.5 rounded-full font-medium text-white"
+                                        style={{
+                                            backgroundColor: u.is_active ? 'var(--cor-primaria)' : '#52525b',
+                                            borderRadius: 'var(--radius)'
+                                        }}
+                                    >
                                         {u.is_active ? "Ativo" : "Inativo"}
                                     </span>
                                 </div>
                                 <p className="text-xs text-gray-400 truncate">{u.email}</p>
-                                <span className="text-xs px-2 py-0.5 bg-neutral-700 text-white rounded mt-1 inline-block">{u.role}</span>
+                                <span
+                                    className="text-xs px-2 py-0.5 text-white mt-1 inline-block"
+                                    style={{backgroundColor: '#3f3f46', borderRadius: 'var(--radius)'}}
+                                >
+                                    {u.role}
+                                </span>
                             </div>
 
                             {isAdmin && (
                                 <div className="flex gap-2 flex-wrap shrink-0">
-                                    <Button size="sm" variant="outline" className="border-neutral-700 hover:bg-neutral-700 text-white" onClick={() => onView(toModalUser(u))}>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="text-white"
+                                        style={{borderColor: '#3f3f46', borderRadius: 'var(--radius)'}}
+                                        onClick={() => onView(toModalUser(u))}
+                                    >
                                         <Eye size={14}/> Ver
                                     </Button>
                                     {u.role !== 'DONO' && (
-                                        <Button size="sm" variant="secondary" className="bg-neutral-700 hover:bg-neutral-600 text-white" onClick={() => onEdit(toModalUser(u))}>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            className="text-white"
+                                            style={{backgroundColor: '#3f3f46', borderRadius: 'var(--radius)'}}
+                                            onClick={() => onEdit(toModalUser(u))}
+                                        >
                                             Editar
                                         </Button>
                                     )}
                                     {isDono && u.role !== 'DONO' && (
-                                        <Button size="sm" variant="destructive" onClick={() => onDelete(u)}>
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            style={{borderRadius: 'var(--radius)'}}
+                                            onClick={() => onDelete(u)}
+                                        >
                                             <Trash2 size={14}/> Apagar
                                         </Button>
                                     )}

@@ -4,6 +4,7 @@ import {
     Settings, Palette, LayoutGrid, Type, Bell, Shield,
     Save, RefreshCw, Sun, Moon
 } from "lucide-react";
+import { toast } from "sonner"; // 1. usa toast
 
 type TabDef = "aparencia" | "tema" | "cards" | "notificacoes" | "seguranca";
 
@@ -16,6 +17,14 @@ export function DefinicoesTab() {
     const [arredondamento, setArredondamento] = useState("xl");
     const [estiloCard, setEstiloCard] = useState("padrao");
     const [fonteTamanho, setFonteTamanho] = useState("normal");
+
+    // Converte xl/lg/2xl para rem real
+    const getRadius = (val: string) => {
+        if(val === 'lg') return '0.5rem'
+        if(val === 'xl') return '0.75rem'
+        if(val === '2xl') return '1rem'
+        return '0.75rem'
+    }
 
     // Carregar do localStorage ao abrir
     useEffect(() => {
@@ -35,7 +44,7 @@ export function DefinicoesTab() {
     const aplicarTema = (config: any) => {
         document.documentElement.style.setProperty('--cor-primaria', config.corPrimaria);
         document.documentElement.style.setProperty('--cor-fundo', config.corFundo);
-        document.documentElement.style.setProperty('--arredondamento', config.arredondamento);
+        document.documentElement.style.setProperty('--arredondamento', getRadius(config.arredondamento)); // 2. converte aqui
         document.documentElement.setAttribute('data-theme', config.modoEscuro ? 'dark' : 'light');
     }
 
@@ -45,7 +54,7 @@ export function DefinicoesTab() {
         }
         localStorage.setItem("loja_config", JSON.stringify(config));
         aplicarTema(config);
-        alert("Configurações salvas e aplicadas!")
+        toast.success("Configurações salvas e aplicadas!") // 3. toast
         // TODO: POST /api/lojas/{lojaId}/config
     }
 
@@ -90,11 +99,10 @@ export function DefinicoesTab() {
                         <button
                             key={t.id}
                             onClick={() => setTabAtiva(t.id)}
-                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition whitespace-nowrap ${
-                                tabAtiva === t.id
-                                ? "text-[var(--cor-primaria)] border-b-2 border-[var(--cor-primaria)]"
-                                : "text-gray-400 hover:text-white"
-                            }`}
+                            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition whitespace-nowrap`}
+                            style={tabAtiva === t.id
+                                ? {color: 'var(--cor-primaria)', borderBottom: '2px solid var(--cor-primaria)'}
+                                : {color: '#9ca3af'}}
                         >
                             {t.icon} {t.label}
                         </button>
@@ -103,7 +111,14 @@ export function DefinicoesTab() {
             </div>
 
             {/* CONTEÚDO */}
-            <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl border-neutral-800">
+            <div
+                className="p-4 sm:p-6 border"
+                style={{
+                    backgroundColor: '#171717',
+                    borderColor: '#27272a',
+                    borderRadius: 'var(--radius)'
+                }}
+            >
                 {tabAtiva === "aparencia" && (
                     <div className="space-y-6">
                         <h3 className="text-lg font-bold text-white">Cores da Marca</h3>
@@ -133,10 +148,26 @@ export function DefinicoesTab() {
                     <div className="space-y-6">
                         <h3 className="text-lg font-bold text-white">Tema do App</h3>
                         <div className="grid grid-cols-2 gap-4">
-                            <button onClick={() => setModoEscuro(false)} className={`p-6 rounded-xl border-2 flex-col items-center gap-3 ${!modoEscuro ? "border-[var(--cor-primaria)] bg-[var(--cor-primaria)]/10" : "border-neutral-800 bg-neutral-800"}`}>
+                            <button
+                                onClick={() => setModoEscuro(false)}
+                                className="p-6 rounded-xl border-2 flex-col items-center gap-3"
+                                style={{
+                                    borderColor: !modoEscuro ? 'var(--cor-primaria)' : '#27272a',
+                                    backgroundColor: !modoEscuro ? 'var(--cor-primaria)14' : '#262626',
+                                    borderRadius: 'var(--radius)'
+                                }}
+                            >
                                 <Sun size={32} className="text-amber-500" /> <span className="font-medium text-white">Claro</span>
                             </button>
-                            <button onClick={() => setModoEscuro(true)} className={`p-6 rounded-xl border-2 flex-col items-center gap-3 ${modoEscuro ? "border-[var(--cor-primaria)] bg-[var(--cor-primaria)]/10" : "border-neutral-800 bg-neutral-800"}`}>
+                            <button
+                                onClick={() => setModoEscuro(true)}
+                                className="p-6 rounded-xl border-2 flex-col items-center gap-3"
+                                style={{
+                                    borderColor: modoEscuro ? 'var(--cor-primaria)' : '#27272a',
+                                    backgroundColor: modoEscuro ? 'var(--cor-primaria)14' : '#262626',
+                                    borderRadius: 'var(--radius)'
+                                }}
+                            >
                                 <Moon size={32} className="text-purple-500" /> <span className="font-medium text-white">Escuro</span>
                             </button>
                         </div>
@@ -148,10 +179,33 @@ export function DefinicoesTab() {
                         <h3 className="text-lg font-bold text-white">Estilo dos Cards</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {["padrao", "glass", "borda"].map(c => (
-                                <button key={c} onClick={() => setEstiloCard(c)} className={`p-4 rounded-xl border-2 text-left ${estiloCard === c ? "border-[var(--cor-primaria)] bg-[var(--cor-primaria)]/10" : "border-neutral-800 bg-neutral-800"}`}>
+                                <button
+                                    key={c}
+                                    onClick={() => setEstiloCard(c)}
+                                    className="p-4 rounded-xl border-2 text-left"
+                                    style={{
+                                        borderColor: estiloCard === c ? 'var(--cor-primaria)' : '#27272a',
+                                        backgroundColor: estiloCard === c ? 'var(--cor-primaria)14' : '#262626',
+                                        borderRadius: 'var(--radius)'
+                                    }}
+                                >
                                     <p className="font-bold text-white capitalize">{c}</p>
                                 </button>
                             ))}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-gray-300 mb-2 block">Arredondamento</label>
+                            <select
+                                value={arredondamento}
+                                onChange={e => setArredondamento(e.target.value)}
+                                className="bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"
+                                style={{borderRadius: 'var(--radius)'}}
+                            >
+                                <option value="lg">Pequeno</option>
+                                <option value="xl">Médio</option>
+                                <option value="2xl">Grande</option>
+                            </select>
                         </div>
                     </div>
                 )}
@@ -160,9 +214,9 @@ export function DefinicoesTab() {
                     <div className="space-y-4">
                         <h3 className="text-lg font-bold text-white">Notificações</h3>
                         {["Estoque Baixo", "Nova Venda", "Cliente Novo"].map(n => (
-                            <div key={n} className="flex items-center justify-between p-4 bg-neutral-800 rounded-lg">
+                            <div key={n} className="flex items-center justify-between p-4 bg-neutral-800" style={{borderRadius: 'var(--radius)'}}>
                                 <p className="font-medium text-white">{n}</p>
-                                <div className="w-12 h-6 bg-[var(--cor-primaria)] rounded-full relative"><div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div></div>
+                                <div className="w-12 h-6 rounded-full relative" style={{backgroundColor: 'var(--cor-primaria)'}}><div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div></div>
                             </div>
                         ))}
                     </div>
@@ -171,7 +225,7 @@ export function DefinicoesTab() {
                 {tabAtiva === "seguranca" && (
                     <div className="space-y-4">
                         <h3 className="text-lg font-bold text-white">Segurança</h3>
-                        <div className="p-4 bg-neutral-800 rounded-lg">
+                        <div className="p-4 bg-neutral-800" style={{borderRadius: 'var(--radius)'}}>
                             <p className="font-medium text-white">Autenticação 2FA</p>
                         </div>
                     </div>

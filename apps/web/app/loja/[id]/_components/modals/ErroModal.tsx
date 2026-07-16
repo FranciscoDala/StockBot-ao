@@ -13,10 +13,30 @@ interface Props {
 
 export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Props) {
     const config = {
-        erro: { icon: <XCircle className="text-red-500" size={24} />, title: titulo || "Ação não permitida", color: "border-red-500/50", btn: "bg-red-600 hover:bg-red-700" },
-        sucesso: { icon: <CheckCircle className="text-green-500" size={24} />, title: titulo || "Sucesso!", color: "border-green-500/50", btn: "bg-green-600 hover:bg-green-700" },
-        alerta: { icon: <AlertTriangle className="text-yellow-500" size={24} />, title: titulo || "Atenção", color: "border-yellow-500/50", btn: "bg-yellow-600 hover:bg-yellow-700" },
-        info: { icon: <Info className="text-blue-500" size={24} />, title: titulo || "Informação", color: "border-blue-500/50", btn: "bg-blue-600 hover:bg-blue-700" }
+        erro: {
+            icon: <XCircle className="text-red-500" size={24} />,
+            title: titulo || "Ação não permitida",
+            color: "#ef444430",
+            btnColor: "#ef4444"
+        },
+        sucesso: {
+            icon: <CheckCircle style={{color: 'var(--cor-primaria)'}} size={24} />,
+            title: titulo || "Sucesso!",
+            color: "var(--cor-primaria)30",
+            btnColor: "var(--cor-primaria)"
+        },
+        alerta: {
+            icon: <AlertTriangle className="text-yellow-500" size={24} />,
+            title: titulo || "Atenção",
+            color: "#eab30830",
+            btnColor: "#eab308"
+        },
+        info: {
+            icon: <Info className="text-blue-500" size={24} />,
+            title: titulo || "Informação",
+            color: "#3b82f630",
+            btnColor: "#3b82f6"
+        }
     }
     const current = config[tipo];
 
@@ -25,7 +45,11 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
-                className={`sm:max-w-[425px] bg-neutral-950 border ${current.color} text-white p-0 shadow-2xl shadow-black/50 [&>button]:hidden`}
+                className="sm:max-w-[425px] bg-neutral-950 text-white p-0 shadow-2xl shadow-black/50 [&>button]:hidden border"
+                style={{
+                    borderColor: current.color,
+                    borderRadius: 'var(--radius)'
+                }}
             >
                 <DialogHeader className="p-6 pb-2">
                     <div className="flex items-start gap-3">
@@ -36,8 +60,24 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                         </div>
                     </div>
                 </DialogHeader>
-                <DialogFooter className="p-4 bg-neutral-900/50 border-t border-white/10">
-                    <Button onClick={onClose} className={`w-full ${current.btn} text-white font-semibold`}>Entendi</Button>
+                <DialogFooter
+                    className="p-4 border-t"
+                    style={{
+                        backgroundColor: '#171717',
+                        borderColor: '#27272a'
+                    }}
+                >
+                    <Button
+                        onClick={onClose}
+                        className="w-full font-semibold"
+                        style={{
+                            backgroundColor: current.btnColor,
+                            color: tipo === 'sucesso'? 'white' : 'black',
+                            borderRadius: 'var(--radius)'
+                        }}
+                    >
+                        Entendi
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

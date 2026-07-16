@@ -49,24 +49,32 @@ function CardRisco({
     titulo: string,
     qtd: number,
     descricao: string,
-    cor: "red" | "yellow" | "orange" | "green" | "blue",
+    cor: "primaria" | "alerta" | "yellow" | "blue",
     icon: React.ReactNode,
     tendencia?: string
 }) {
     const cores = {
-        red: "border-red-500/30 bg-red-950/20 text-red-400",
-        yellow: "border-yellow-500/30 bg-yellow-950/20 text-yellow-400",
-        orange: "border-orange-500/30 bg-orange-950/20 text-orange-400",
-        green: "border-green-500/30 bg-green-950/20 text-green-400",
-        blue: "border-blue-500/30 bg-blue-950/20 text-blue-400"
+        primaria: { border: 'var(--cor-primaria)30', bg: 'var(--cor-primaria)14', text: 'var(--cor-primaria)' },
+        alerta: { border: '#ef444430', bg: '#ef444414', text: '#ef4444' },
+        yellow: { border: '#eab30830', bg: '#eab30814', text: '#facc15' },
+        blue: { border: '#3b82f630', bg: '#3b82f614', text: '#60a5fa' }
     }
+    const c = cores[cor]
     return (
-        <div className={`border rounded-xl p-3 md:p-4 transition hover:scale-[1.02] ${cores[cor]}`}>
+        <div
+            className="p-3 md:p-4 transition hover:scale-[1.02]"
+            style={{
+                border: `1px solid ${c.border}`,
+                backgroundColor: c.bg,
+                color: c.text,
+                borderRadius: 'var(--radius)'
+            }}
+        >
             <div className="flex items-center justify-between mb-2">
                 <p className="text-xs md:text-sm font-medium text-gray-300">{titulo}</p>
                 {icon}
             </div>
-            <p className="text-2xl md:text-3xl font-bold">{qtd}</p>
+            <p className="text-2xl md:text-3xl font-bold text-white">{qtd}</p>
             <p className="text-xs mt-1 opacity-80">{descricao}</p>
             {tendencia && <p className="text-[10px] mt-1 opacity-60">{tendencia}</p>}
         </div>
@@ -76,8 +84,8 @@ function CardRisco({
 function BarraProgresso({ valor, max, cor }: { valor: number, max: number, cor: string }) {
     const pct = max > 0? (valor / max) * 100 : 0
     return (
-        <div className="w-full bg-neutral-800 rounded-full h-2">
-            <div className={`h-2 rounded-full ${cor}`} style={{ width: `${Math.min(pct, 100)}%` }}></div>
+        <div className="w-full bg-neutral-800 rounded-full h-2" style={{borderRadius: 'var(--radius)'}}>
+            <div className={`h-2 rounded-full ${cor}`} style={{ width: `${Math.min(pct, 100)}%`, borderRadius: 'var(--radius)' }}></div>
         </div>
     )
 }
@@ -162,25 +170,37 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
             {/* HEADER + FILTROS */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="">
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">Painel de Riscos 
-                    {totalRiscos === 0? <CheckCircle2 size={18} className="text-green-500" /> : <AlertTriangle size={18} className="text-red-500" />}
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">Painel de Riscos
+                    {totalRiscos === 0? <CheckCircle2 size={18} style={{color: 'var(--cor-primaria)'}} /> : <AlertTriangle size={18} className="text-red-500" />}
                     </h2>
                     <p className="text-xs sm:text-sm text-gray-400">Observe e controle os ricos diários</p>
                 </div>
-                <button onClick={exportarCSV} className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs font-bold">
+                <button onClick={exportarCSV} className="btn-primary">
                     <Download size={14} /> Exportar CSV
                 </button>
             </div>
 
             {/* FILTROS SELECT */}
-            <div className="bg-neutral-900 border-neutral-800 rounded-xl p-3 md:p-4">
+            <div
+                className="border p-3 md:p-4"
+                style={{
+                    backgroundColor: '#171717',
+                    borderColor: '#27272a',
+                    borderRadius: 'var(--radius)'
+                }}
+            >
                 <div className="flex items-center gap-2 mb-3 text-gray-300">
                     <Filter size={16} /> <span className="text-sm font-medium">Filtros Inteligentes</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                         <label className="text-xs text-gray-400">Período de Análise</label>
-                        <select value={filtroPeriodo} onChange={(e) => setFiltroPeriodo(e.target.value)} className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
+                        <select
+                            value={filtroPeriodo}
+                            onChange={(e) => setFiltroPeriodo(e.target.value)}
+                            className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none"
+                            style={{borderRadius: 'var(--radius)'}}
+                        >
                             <option value="7">Últimos 7 dias</option>
                             <option value="15">Últimos 15 dias</option>
                             <option value="30">Últimos 30 dias</option>
@@ -189,7 +209,12 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                     </div>
                     <div>
                         <label className="text-xs text-gray-400">Categoria</label>
-                        <select value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)} className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm focus:border-green-500 outline-none">
+                        <select
+                            value={filtroCategoria}
+                            onChange={(e) => setFiltroCategoria(e.target.value)}
+                            className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none"
+                            style={{borderRadius: 'var(--radius)'}}
+                        >
                             <option value="TODAS">Todas Categorias</option>
                             {categorias.map(c => <option key={String(c)} value={String(c)}>Categoria {c}</option>)}
                         </select>
@@ -198,7 +223,13 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                         <label className="text-xs text-gray-400">Buscar Produto</label>
                         <div className="relative mt-1">
                             <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
-                            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome do produto..." className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-9 pr-3 py-2 text-sm focus:border-green-500 outline-none" />
+                            <input
+                                value={busca}
+                                onChange={(e) => setBusca(e.target.value)}
+                                placeholder="Nome do produto..."
+                                className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-9 pr-3 py-2 text-sm outline-none"
+                                style={{borderRadius: 'var(--radius)'}}
+                            />
                         </div>
                     </div>
                 </div>
@@ -206,13 +237,24 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
 
             {/* ABAS - AGORA COM SCROLL HORIZONTAL */}
             <div className="overflow-x-auto scrollbar-hide">
-                <div className="flex gap-2 bg-neutral-900 p-1 rounded-lg w-max min-w-full">
+                <div
+                    className="flex gap-2 p-1 w-max min-w-full"
+                    style={{backgroundColor: '#171717', borderRadius: 'var(--radius)'}}
+                >
                     {[
                         {id: "estoque", label: "Estoque", icon: PackageX},
                         {id: "financeiro", label: "Financeiro", icon: TrendingDown},
                         {id: "operacional", label: "Operacional", icon: BarChart3}
                     ].map(tab => (
-                        <button key={tab.id} onClick={() => setAbaAtiva(tab.id as any)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap ${abaAtiva === tab.id? "bg-green-600 text-white" : "text-gray-400 hover:bg-neutral-800"}`}>
+                        <button
+                            key={tab.id}
+                            onClick={() => setAbaAtiva(tab.id as any)}
+                            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap"
+                            style={abaAtiva === tab.id
+                              ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
+                                : {color: '#9ca3af', borderRadius: 'var(--radius)'}
+                            }
+                        >
                             <tab.icon size={14} /> {tab.label}
                         </button>
                     ))}
@@ -223,20 +265,27 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
             {abaAtiva === "estoque" && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="red" icon={<Ban size={16} />} tendencia="-12% vs mês ant" />
-                        <CardRisco titulo="Risco Ruptura" qtd={produtosRuptura.length} descricao="Abaixo do mínimo" cor="orange" icon={<PackageX size={16} />} />
+                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" />
+                        <CardRisco titulo="Risco Ruptura" qtd={produtosRuptura.length} descricao="Abaixo do mínimo" cor="yellow" icon={<PackageX size={16} />} />
                         <CardRisco titulo="Produtos Parados" qtd={produtosParados.length} descricao="+30 dias sem girar" cor="yellow" icon={<Clock size={16} />} />
-                        <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="orange" icon={<Flame size={16} />} />
+                        <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="yellow" icon={<Flame size={16} />} />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div className="bg-neutral-900 rounded-xl p-3 md:p-4">
-                            <h3 className="font-bold text-base mb-3 flex items-center gap-2"><PackageX size={16} className="text-red-500" /> Alertas Críticos</h3>
+                        <div
+                            className="p-3 md:p-4 border"
+                            style={{
+                                backgroundColor: '#171717',
+                                borderColor: '#27272a',
+                                borderRadius: 'var(--radius)'
+                            }}
+                        >
+                            <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-white"><PackageX size={16} className="text-red-500" /> Alertas Críticos</h3>
                             <div className="space-y-2 max-h-[350px] overflow-y-auto scrollbar-hide">
                                 {[...produtosZerados,...produtosRuptura].slice(0, 15).map(p => (
-                                    <div key={p.id} className="bg-neutral-800 p-3 rounded-lg">
+                                    <div key={p.id} className="p-3" style={{backgroundColor: '#262626', borderRadius: 'var(--radius)'}}>
                                         <div className="flex justify-between items-center mb-2">
-                                            <p className="font-medium text-sm truncate max-w-[200px]">{p.nome}</p>
+                                            <p className="font-medium text-sm truncate max-w-[200px] text-white">{p.nome}</p>
                                             <span className={`font-bold text-xs ${p.estoque <= 0? 'text-red-500' : 'text-orange-500'}`}>Est: {p.estoque}</span>
                                         </div>
                                         <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "bg-red-500" : "bg-orange-500"} />
@@ -248,14 +297,21 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                         </div>
 
                         {produtosValidade.length > 0 && (
-                            <div className="bg-neutral-900 rounded-xl p-3 md:p-4">
-                                <h3 className="font-bold text-base mb-3 flex items-center gap-2"><Flame size={16} className="text-orange-500" /> Próximos do Vencimento</h3>
+                            <div
+                                className="p-3 md:p-4 border"
+                                style={{
+                                    backgroundColor: '#171717',
+                                    borderColor: '#27272a',
+                                    borderRadius: 'var(--radius)'
+                                }}
+                            >
+                                <h3 className="font-bold text-base mb-3 flex items-center gap-2 text-white"><Flame size={16} className="text-orange-500" /> Próximos do Vencimento</h3>
                                 <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto scrollbar-hide">
                                     {produtosValidade.map(p => (
-                                        <div key={p.id} className="bg-orange-950/20 border-orange-500/20 p-3 rounded-lg text-xs">
-                                            <p className="font-medium truncate">{p.nome}</p>
+                                        <div key={p.id} className="p-3 text-xs" style={{backgroundColor: '#f9731614', border: '1px solid #f9731630', borderRadius: 'var(--radius)'}}>
+                                            <p className="font-medium truncate text-white">{p.nome}</p>
                                             <p className="text-gray-400">Vence: {new Date(p.data_validade!).toLocaleDateString('pt-AO')}</p>
-                                            <p className="font-bold mt-1">Est: {p.estoque} un</p>
+                                            <p className="font-bold mt-1 text-white">Est: {p.estoque} un</p>
                                         </div>
                                     ))}
                                 </div>
@@ -268,19 +324,26 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
             {abaAtiva === "financeiro" && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardRisco titulo="Vendas Canceladas" qtd={vendasCanceladas.length} descricao={`${taxaCancelamento.toFixed(1)}% do total`} cor="red" icon={<TrendingDown size={16} />} />
+                        <CardRisco titulo="Vendas Canceladas" qtd={vendasCanceladas.length} descricao={`${taxaCancelamento.toFixed(1)}% do total`} cor="alerta" icon={<TrendingDown size={16} />} />
                         <CardRisco titulo="Perda Estimada" qtd={0} descricao={formatCurrency(totalPerdido)} cor="yellow" icon={<Ban size={16} />} />
-                        <CardRisco titulo="Desconto >20%" qtd={vendasComDesconto.length} descricao="Risco de margem" cor="orange" icon={<Flame size={16} />} />
+                        <CardRisco titulo="Desconto >20%" qtd={vendasComDesconto.length} descricao="Risco de margem" cor="yellow" icon={<Flame size={16} />} />
                         <CardRisco titulo="Vendas no Período" qtd={vendasFiltradas.length} descricao="Total analisado" cor="blue" icon={<BarChart3 size={16} />} />
                     </div>
 
-                    <div className="bg-neutral-900 rounded-xl p-3 md:p-4">
-                        <h3 className="font-bold text-base mb-3">Últimas Vendas Canceladas</h3>
+                    <div
+                        className="p-3 md:p-4 border"
+                        style={{
+                            backgroundColor: '#171717',
+                            borderColor: '#27272a',
+                            borderRadius: 'var(--radius)'
+                        }}
+                    >
+                        <h3 className="font-bold text-base mb-3 text-white">Últimas Vendas Canceladas</h3>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                             {vendasCanceladas.slice(0, 10).map(v => (
-                                <div key={v.id} className="flex justify-between items-center bg-red-950/20 border-red-500/20 p-3 rounded-lg text-xs">
+                                <div key={v.id} className="flex justify-between items-center p-3 text-xs" style={{backgroundColor: '#ef444414', border: '1px solid #ef444430', borderRadius: 'var(--radius)'}}>
                                     <div>
-                                        <p className="font-medium">#{v.id.slice(0,8)}</p>
+                                        <p className="font-medium text-white">#{v.id.slice(0,8)}</p>
                                         <p className="text-gray-400">{new Date(v.data).toLocaleDateString('pt-AO')}</p>
                                     </div>
                                     <p className="font-bold text-red-400">{formatCurrency(v.total)}</p>
@@ -293,16 +356,23 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
             )}
 
             {abaAtiva === "operacional" && (
-                <div className="bg-neutral-900 rounded-xl p-6 text-center">
-                    <CheckCircle2 size={32} className="text-green-500 mx-auto mb-2" />
-                    <p className="font-semibold">Operação Estável</p>
+                <div
+                    className="p-6 text-center border"
+                    style={{
+                        backgroundColor: '#171717',
+                        borderColor: '#27272a',
+                        borderRadius: 'var(--radius)'
+                    }}
+                >
+                    <CheckCircle2 size={32} style={{color: 'var(--cor-primaria)', margin: '0 auto 8px'}} />
+                    <p className="font-semibold text-white">Operação Estável</p>
                     <p className="text-sm text-gray-400">Sem anomalias operacionais detectadas nos últimos {filtroPeriodo} dias</p>
                 </div>
             )}
 
             <style jsx global>{`
-              .scrollbar-hide::-webkit-scrollbar { display: none; }
-              .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+            .scrollbar-hide::-webkit-scrollbar { display: none; }
+            .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     )
