@@ -5,13 +5,12 @@
 @tailwind components;
 @tailwind utilities;
 
-
 /* ============ TEMA BASE ============ */
 :root {
   /* CORES */
   --cor-primaria: #16a34a;
   --cor-secundaria: #22c55e;
-  --cor-fundo: #000000;
+  --cor-fundo: #000;
   --cor-card: #171717;
   --cor-card-hover: #262626;
   --cor-borda: #2a2a2a;
@@ -27,7 +26,6 @@
   --radius: 0.75rem;
   --radius-sm: 0.5rem;
   --padding-card: 1.5rem; /* medio padrão */
-
 
     /* FONTE */
     --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
@@ -119,3 +117,27 @@ body {
 ::-webkit-scrollbar-track { background: var(--cor-card); }
 ::-webkit-scrollbar-thumb { background: var(--cor-primaria); border-radius: var(--radius-sm); }
 ::-webkit-scrollbar-thumb:hover { background: var(--cor-secundaria); }
+
+/* ============ FIX INPUTS MOBILE ============ */
+input, textarea, select {
+  border: 1px solid var(--cor-primaria)40;
+  background-color: var(--cor-fundo);
+  color: var(--cor-texto);
+  border-radius: var(--radius);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:focus, textarea:focus, select:focus {
+  border: 1px solid var(--cor-primaria);
+  box-shadow: 0 0 0 2px var(--cor-primaria)20;
+}
+
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2316a34a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
