@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { QRCodeSVG } from "qrcode.react";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner"; // <-- ADICIONA ESSA LINHA
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -343,7 +344,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                             >
                                 <Download size={18} /> Baixar QR Code
                             </Button>
-
+                            
                             <button
                                 onClick={() => toast.info("Função em breve")}
                                 className="font-semibold text-sm w-full text-center hover:underline"
