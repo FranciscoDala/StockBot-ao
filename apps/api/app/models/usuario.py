@@ -4,7 +4,7 @@ from sqlalchemy import String, Boolean, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
-from  app.db.base import BaseModel
+from  ..db.base import BaseModel
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:

@@ -3,8 +3,8 @@ import uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID
-from app.db.base import BaseModel
-from app.models.role import UserRole
+from ..db.base import BaseModel
+from ..models.role import UserRole
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:

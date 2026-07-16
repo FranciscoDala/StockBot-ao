@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, Integer, DateTime
 from datetime import datetime
-from app.db.base import BaseModel
+from ..db.base import BaseModel
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
@@ -37,6 +37,10 @@ class Loja(BaseModel):
     card_style: Mapped[str] = mapped_column(String(20), nullable=False, default="padrao", server_default="padrao")
     card_size: Mapped[str] = mapped_column(String(20), nullable=False, default="medio", server_default="medio")
     font_size: Mapped[str] = mapped_column(String(20), nullable=False, default="medio", server_default="medio")
+
+    # CORES CUSTOM - ADICIONADO
+    cor_primaria: Mapped[str] = mapped_column(String(7), nullable=False, default="#10b981", server_default="#10b981")
+    cor_fundo: Mapped[str] = mapped_column(String(7), nullable=False, default="#000", server_default="#000")
 
     # Relationships
     membros: Mapped[List["UsuarioLoja"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin")

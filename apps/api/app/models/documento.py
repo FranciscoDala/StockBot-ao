@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 import uuid
 import enum
 from datetime import datetime
-from  app.db.base import BaseModel
+from  ..db.base import BaseModel
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:

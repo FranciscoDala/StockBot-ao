@@ -87,7 +87,8 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
         out.append(LojaDetailOut(
             id=l.id, nome=l.nome, slug=l.slug, is_active=l.is_active, created_at=l.created_at,
             endereco=l.endereco, nif=l.nif, telefone=l.telefone, logo_url=l.logo_url,
-            theme=l.theme, card_style=l.card_style, card_size=l.card_size, font_size=l.font_size, # <- ADICIONADO
+            theme=l.theme, card_style=l.card_style, card_size=l.card_size, font_size=l.font_size,
+            cor_primaria=l.cor_primaria, cor_fundo=l.cor_fundo, # <- ADICIONADO
             gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
         ))
     return out
@@ -135,7 +136,8 @@ async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
-        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -150,7 +152,8 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
-        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -167,7 +170,15 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
             raise HTTPException(status_code=400, detail=f"Email '{body.dono_novo.email}' já cadastrado")
     try:
         body.slug = slug_clean
-        loja = await crud_loja.create_loja(db=db, loja_in=body) # CRUD vai pegar os defaults do schema
+        # GARANTE PADRÃO DAS CORES SE NÃO VIER NO BODY
+        if not body.cor_primaria: body.cor_primaria = "#10b981"
+        if not body.cor_fundo: body.cor_fundo = "#000"
+        if not body.theme: body.theme = "dark"
+        if not body.card_style: body.card_style = "padrao"
+        if not body.card_size: body.card_size = "medio"
+        if not body.font_size: body.font_size = "medio"
+
+        loja = await crud_loja.create_loja(db=db, loja_in=body)
     except IntegrityError as e:
         await db.rollback()
         erro_original = str(e.orig).lower()
@@ -189,7 +200,8 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
-        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
@@ -235,7 +247,8 @@ async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSes
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
-        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size, # <- ADICIONADO
+        theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
+        cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo, # <- ADICIONADO
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 

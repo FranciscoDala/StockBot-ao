@@ -32,6 +32,8 @@ class LojaBase(BaseModel):
     card_style: str = "padrao"
     card_size: str = "medio"
     font_size: str = "medio"
+    cor_primaria: str = "#10b981" # ADICIONADO
+    cor_fundo: str = "#000000" # ADICIONADO
 
 class LojaCreateIn(LojaBase):
     dono_existente_id: Optional[UUID] = None
@@ -61,6 +63,8 @@ class LojaUpdateIn(BaseModel):
     card_style: Optional[str] = None
     card_size: Optional[str] = None
     font_size: Optional[str] = None
+    cor_primaria: Optional[str] = None # ADICIONADO
+    cor_fundo: Optional[str] = None # ADICIONADO
 
 class LojaSelectOut(BaseModel):
     id: UUID
@@ -84,6 +88,8 @@ class LojaDetailOut(BaseModel):
     card_style: str
     card_size: str
     font_size: str
+    cor_primaria: str # ADICIONADO
+    cor_fundo: str # ADICIONADO
     model_config = ConfigDict(from_attributes=True)
 
 class LojaDetailFull(BaseModel):
@@ -107,6 +113,8 @@ class LojaDetailFull(BaseModel):
     card_style: str
     card_size: str
     font_size: str
+    cor_primaria: str # ADICIONADO
+    cor_fundo: str # ADICIONADO
 
     @model_validator(mode='after')
     def set_aliases(self):
