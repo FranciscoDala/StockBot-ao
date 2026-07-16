@@ -65,7 +65,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             </div>
                         )}
 
-                        <p className="text-sm font-semibold" style={{color: 'var(--cor-texto-sec)'}}>-mb-2">Dados do Membro</p>
+                        <p className="text-sm font-semibold -mb-2" style={{color: 'var(--cor-texto-sec)'}}>Dados do Membro</p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right" style={{color: 'var(--cor-texto-sec)'}}>Nome *</Label>
@@ -78,7 +78,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1px solid var(--cor-primaria)30',
                                     borderRadius: 'var(--radius)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                                 required
                             />
@@ -97,7 +97,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1px solid var(--cor-primaria)30',
                                         borderRadius: 'var(--radius)',
-                                      ...focusStyle
+                                     ...focusStyle
                                     }}
                                 />
                             ) : (
@@ -118,7 +118,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1px solid var(--cor-primaria)30',
                                         borderRadius: 'var(--radius)',
-                                      ...focusStyle
+                                     ...focusStyle
                                     }}
                                     required
                                     placeholder="mínimo 6 caracteres"
@@ -139,7 +139,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1px solid var(--cor-primaria)30',
                                         borderRadius: 'var(--radius)',
-                                      ...focusStyle
+                                     ...focusStyle
                                     }}
                                     placeholder="deixe em branco para não alterar"
                                 />
@@ -157,7 +157,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1px solid var(--cor-primaria)30',
                                     borderRadius: 'var(--radius)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                             />
                         </div>
@@ -182,7 +182,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1px solid var(--cor-primaria)30',
                                     borderRadius: 'var(--radius)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                             >
                                 <option value="GERENTE">Gerente</option>
