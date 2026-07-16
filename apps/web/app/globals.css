@@ -27,6 +27,11 @@
   --radius: 0.75rem;
   --radius-sm: 0.5rem;
   --padding-card: 1.5rem; /* medio padrão */
+
+
+    /* FONTE */
+    --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+    --font-heading: var(--font-bricolage), sans-serif;
 }
 
 /* TEMA CLARO */
@@ -86,6 +91,7 @@
 body {
   background-color: var(--cor-fundo);
   color: var(--cor-texto);
+    font-family: var(--font-zalando);
   transition: background-color 0.3s, color 0.3s;
 }
 
