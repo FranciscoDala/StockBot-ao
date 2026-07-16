@@ -18,7 +18,7 @@ import { ErroModal } from "./_components/modals/ErroModal";
 import { DetalhesModal } from "./_components/modals/DetalhesModal";
 import { UserModal } from "./_components/modals/UserModal";
 import { ProdutoModal, Produto } from "./_components/modals/ProdutoModal";
-import { ConfirmarModal } from "./_components/modals/ConfirmarModal"; // <-- corrigi nome
+import { ConfirmarModal } from "./_components/modals/ConfirmacaoModal"; // <-- corrigi nome
 import { VendaSucessoModal } from "./_components/modals/VendaSucessoModal";
 
 const ItemVendaSchema = z.object({ produto_id: z.union([z.string(), z.number()]), quantidade: z.number().int().positive(), preco_unitario: z.number(), subtotal: z.number(), nome: z.string().optional() });
