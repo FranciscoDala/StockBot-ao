@@ -9,21 +9,40 @@ import { toast } from "sonner";
 type TabDef = "aparencia" | "tema" | "cards" | "notificacoes" | "seguranca";
 
 type Props = {
-  onSaveTheme: (data: {theme?: string, card_style?: string, card_size?: string, font_size?: string}) => void;
+  onSaveTheme: (data: {
+    theme?: string,
+    card_style?: string,
+    card_size?: string,
+    font_size?: string,
+    cor_primaria?: string,
+    cor_fundo?: string
+  }) => void;
   theme: string;
   cardStyle: string;
   cardSize: string;
   fontSize: string;
+  corPrimaria: string;
+  corFundo: string;
 }
 
-export function DefinicoesTab({ onSaveTheme, theme, cardStyle, cardSize, fontSize }: Props) {
+export function DefinicoesTab({
+  onSaveTheme,
+  theme,
+  cardStyle,
+  cardSize,
+  fontSize,
+  corPrimaria: corPrimariaProp,
+  corFundo: corFundoProp
+}: Props) {
     const [tabAtiva, setTabAtiva] = useState<TabDef>("aparencia");
 
-    // AGORA VEM DO DB E NÃO DO LOCALSTORAGE
+    // STATES VINDOS DO DB
     const [modoEscuro, setModoEscuro] = useState(theme === 'dark');
-    const [estiloCard, setEstiloCard] = useState(cardStyle); // padrao | glass | borda
-    const [tamanhoCard, setTamanhoCard] = useState(cardSize); // pequeno | medio | grande
-    const [fonteTamanho, setFonteTamanho] = useState(fontSize); // pequeno | medio | grande
+    const [estiloCard, setEstiloCard] = useState(cardStyle);
+    const [tamanhoCard, setTamanhoCard] = useState(cardSize);
+    const [fonteTamanho, setFonteTamanho] = useState(fontSize);
+    const [corPrimaria, setCorPrimaria] = useState(corPrimariaProp || '#10b981');
+    const [corFundo, setCorFundo] = useState(corFundoProp || '#000');
 
     // Atualiza os states quando o DB carrega
     useEffect(() => {
@@ -31,12 +50,15 @@ export function DefinicoesTab({ onSaveTheme, theme, cardStyle, cardSize, fontSiz
         setEstiloCard(cardStyle);
         setTamanhoCard(cardSize);
         setFonteTamanho(fontSize);
-        aplicarTema(theme, cardStyle, cardSize, fontSize);
-    }, [theme, cardStyle, cardSize, fontSize])
+        setCorPrimaria(corPrimariaProp || '#10b981');
+        setCorFundo(corFundoProp || '#000000');
+        aplicarTema(theme, cardStyle, cardSize, fontSize, corPrimariaProp, corFundoProp);
+    }, [theme, cardStyle, cardSize, fontSize, corPrimariaProp, corFundoProp])
 
-    const aplicarTema = (t: string, cs: string, csz: string, fsz: string) => {
-        // 1. Cores - já vem do --cor-primaria global
-        document.documentElement.style.setProperty('--cor-primaria', t === 'dark'? '#10b981' : '#059669');
+    const aplicarTema = (t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
+        // 1. Cores do DB
+        document.documentElement.style.setProperty('--cor-primaria', corP || '#10b981');
+        document.documentElement.style.setProperty('--cor-fundo', corF || '#000');
 
         // 2. Tema claro/escuro
         document.documentElement.setAttribute('data-theme', t);
@@ -55,22 +77,32 @@ export function DefinicoesTab({ onSaveTheme, theme, cardStyle, cardSize, fontSiz
             theme: newTheme,
             card_style: estiloCard,
             card_size: tamanhoCard,
-            font_size: fonteTamanho
+            font_size: fonteTamanho,
+            cor_primaria: corPrimaria,
+            cor_fundo: corFundo
         });
+        aplicarTema(newTheme, estiloCard, tamanhoCard, fonteTamanho, corPrimaria, corFundo);
         toast.success("Configurações salvas!")
     }
 
     const handleRestaurar = () => {
+        const defaultCorP = '#10b981';
+        const defaultCorF = '#000000';
         setModoEscuro(true);
         setEstiloCard("padrao");
         setTamanhoCard("medio");
         setFonteTamanho("medio");
+        setCorPrimaria(defaultCorP);
+        setCorFundo(defaultCorF);
         onSaveTheme({
             theme: 'dark',
             card_style: 'padrao',
             card_size: 'medio',
-            font_size: 'medio'
+            font_size: 'medio',
+            cor_primaria: defaultCorP,
+            cor_fundo: defaultCorF
         });
+        aplicarTema('dark', 'padrao', 'medio', 'medio', defaultCorP, defaultCorF);
         toast.info("Configurações restauradas para o padrão")
     }
 
@@ -127,10 +159,73 @@ export function DefinicoesTab({ onSaveTheme, theme, cardStyle, cardSize, fontSiz
                     <div className="space-y-6">
                         <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Cores da Marca</h3>
                         <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>
-                            A cor primária muda automaticamente com o tema. Dark = Verde, Light = Verde Escuro
+                            Defina as cores principais da sua loja. Elas serão aplicadas em todo o sistema.
                         </p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* COR PRIMARIA */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{color: 'var(--cor-texto)'}}>
+                                    <Palette size={16} /> Cor Primária
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="color"
+                                        value={corPrimaria}
+                                        onChange={(e) => {
+                                            setCorPrimaria(e.target.value);
+                                            aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, e.target.value, corFundo);
+                                        }}
+                                        className="h-10 w-10 rounded cursor-pointer border"
+                                        style={{borderColor: 'var(--cor-borda)'}}
+                                    />
+                                    <input
+                                        value={corPrimaria}
+                                        onChange={(e) => {
+                                            setCorPrimaria(e.target.value);
+                                            aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, e.target.value, corFundo);
+                                        }}
+                                        className="flex-1 p-2 border rounded-lg"
+                                        style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* COR FUNDO */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{color: 'var(--cor-texto)'}}>
+                                    <Palette size={16} /> Cor de Fundo
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="color"
+                                        value={corFundo}
+                                        onChange={(e) => {
+                                            setCorFundo(e.target.value);
+                                            aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, corPrimaria, e.target.value);
+                                        }}
+                                        className="h-10 w-10 rounded cursor-pointer border"
+                                        style={{borderColor: 'var(--cor-borda)'}}
+                                    />
+                                    <input
+                                        value={corFundo}
+                                        onChange={(e) => {
+                                            setCorFundo(e.target.value);
+                                            aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, corPrimaria, e.target.value);
+                                        }}
+                                        className="flex-1 p-2 border rounded-lg"
+                                        style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="p-4 rounded-lg" style={{backgroundColor: 'var(--cor-card)', borderRadius: 'var(--radius)'}}>
-                            Cor atual: <span className="font-bold" style={{color: 'var(--cor-primaria)'}}>{modoEscuro ? 'Verde #10b981' : 'Verde #059669'}</span>
+                            <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Preview:</p>
+                            <div className="flex gap-2 mt-2">
+                                <div className="w-8 h-8 rounded" style={{backgroundColor: corPrimaria}}></div>
+                                <div className="w-8 h-8 rounded" style={{backgroundColor: corFundo, border: '1px solid var(--cor-borda)'}}></div>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -141,7 +236,7 @@ export function DefinicoesTab({ onSaveTheme, theme, cardStyle, cardSize, fontSiz
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={() => setModoEscuro(false)}
-                                className="p-6 border-2 flex flex-col items-center gap-3"
+                                className="p-6 border-2 flex-col items-center gap-3"
                                 style={{
                                     borderColor: !modoEscuro ? 'var(--cor-primaria)' : 'var(--cor-borda)',
                                     backgroundColor: !modoEscuro ? 'var(--cor-primaria)20' : 'var(--cor-card)',

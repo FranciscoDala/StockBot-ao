@@ -37,7 +37,9 @@ export type userread = { id: string; nome: string; email: string; nivel: UserRol
 export type Loja = {
   id: string; nome: string; slug: string; is_active: boolean; created_at: string;
   endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null;
-  theme?: string; card_style?: string; card_size?: string; font_size?: string; // ADICIONADO
+  theme?: string; card_style?: string; card_size?: string; font_size?: string;
+  cor_primaria?: string; // NOVO
+  cor_fundo?: string; // NOVO
 }
 
 const formatError = (data: any): string => { if (!data) return "Erro desconhecido"; if (typeof data.detail === 'string') return data.detail; if (Array.isArray(data.detail)) return data.detail.map((d: any) => d.msg).join(", "); return "Erro ao processar requisição"; }
@@ -52,10 +54,9 @@ const fetchComAuth = async (url: string, token: string, options: RequestInit = {
     if (res.status === 204) { return true; } return await res.json();
 }
 
-const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size'>>) => {
+const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
   return await fetchComAuth(`${API_URL}/lojas/${lojaId}`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
 }
-
 export default function LojaPage() {
     const router = useRouter(); const params = useParams(); const lojaId = params.id as string;
     const [isClient, setIsClient] = useState(false); const [user, setUser] = useState<userread | null>(null); const [token, setToken] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [loja, setLoja] = useState<Loja | null>(null);
@@ -65,6 +66,8 @@ export default function LojaPage() {
     const [cardStyle, setCardStyle] = useState("padrao");
     const [cardSize, setCardSize] = useState("medio");
     const [fontSize, setFontSize] = useState("medio");
+    const [corPrimaria, setCorPrimaria] = useState("#10b981"); // NOVO
+    const [corFundo, setCorFundo] = useState("#000000"); // NOVO
 
     const podeEditarApagar = ["DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerTudo = ["ADMIN", "DONO", "GERENTE"].includes(user?.nivel!);
@@ -104,14 +107,15 @@ export default function LojaPage() {
 
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
 
-    const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string) => {
-      document.documentElement.style.setProperty('--cor-primaria', t === 'dark'? '#10b981' : '#059669');
+    const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
+      document.documentElement.style.setProperty('--cor-primaria', corP || '#10b981');
+      document.documentElement.style.setProperty('--cor-fundo', corF || '#000');
       document.documentElement.style.setProperty('--radius', cs === 'arredondado'? '16px' : cs === 'clean'? '4px' : '8px');
       document.documentElement.style.setProperty('--card-padding', csz === 'grande'? '24px' : csz === 'pequeno'? '12px' : '16px');
       document.documentElement.style.setProperty('--font-size', fsz === 'grande'? '16px' : fsz === 'pequeno'? '12px' : '14px');
     }, []);
 
-    const handleSaveTheme = useCallback(async (newTheme: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size'>>) => {
+    const handleSaveTheme = useCallback(async (newTheme: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
       if (!token ||!lojaId) return;
       try {
         await updateLojaTheme(lojaId, token, newTheme);
@@ -121,10 +125,15 @@ export default function LojaPage() {
         if(newTheme.card_style) setCardStyle(newTheme.card_style);
         if(newTheme.card_size) setCardSize(newTheme.card_size);
         if(newTheme.font_size) setFontSize(newTheme.font_size);
-        applyTheme(newTheme.theme || theme, newTheme.card_style || cardStyle, newTheme.card_size || cardSize, newTheme.font_size || fontSize);
+        if(newTheme.cor_primaria) setCorPrimaria(newTheme.cor_primaria);
+        if(newTheme.cor_fundo) setCorFundo(newTheme.cor_fundo);
+        applyTheme(
+          newTheme.theme || theme, newTheme.card_style || cardStyle, newTheme.card_size || cardSize, newTheme.font_size || fontSize,
+          newTheme.cor_primaria || corPrimaria, newTheme.cor_fundo || corFundo
+        );
         toast.success("Aparência salva!");
       } catch (e) { toast.error("Erro ao salvar aparência"); }
-    }, [token, lojaId, loja, theme, cardStyle, cardSize, fontSize, applyTheme]);
+    }, [token, lojaId, loja, theme, cardStyle, cardSize, fontSize, corPrimaria, corFundo, applyTheme]);
 
     const fetchEquipa = async (currentToken: string) => {
         if (!currentToken ||!lojaId) return;
@@ -147,7 +156,12 @@ export default function LojaPage() {
         if(data.card_style) setCardStyle(data.card_style);
         if(data.card_size) setCardSize(data.card_size);
         if(data.font_size) setFontSize(data.font_size);
-        applyTheme(data.theme || "dark", data.card_style || "padrao", data.card_size || "medio", data.font_size || "medio");
+        if(data.cor_primaria) setCorPrimaria(data.cor_primaria);
+        if(data.cor_fundo) setCorFundo(data.cor_fundo);
+        applyTheme(
+          data.theme || "dark", data.card_style || "padrao", data.card_size || "medio", data.font_size || "medio",
+          data.cor_primaria || "#10b981", data.cor_fundo || "#000"
+        );
       } catch (e) { console.error("Erro ao buscar loja:", e); setLoja(null); }
     }, [lojaId, applyTheme]);
 
@@ -245,7 +259,7 @@ export default function LojaPage() {
     const vendasParaRisco = useMemo(() => vendas.map(v => ({ id: String(v.id), data: v.data_venda || new Date().toISOString(), total: v.total, formaPagamento: v.forma_pagamento, itens: v.total_itens, detalhes: (v.itens || []).map((it, idx) => ({ id: String(it.produto_id) + '-' + idx, nome_produto: it.nome || 'Produto', quantidade: it.quantidade, preco_unitario: it.preco_unitario, subtotal: it.subtotal })), status: "concluida" })), [vendas]);
 
     if (!isClient || loading) return (
-        <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="flex items-center justify-center min-h-screen" style={{backgroundColor: 'var(--cor-fundo)'}}>
             <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{borderColor: 'var(--cor-primaria)'}}></div>
         </div>
     );
@@ -254,31 +268,42 @@ export default function LojaPage() {
         <style jsx global>{`
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-:root { --cor-primaria: #10b981; --radius: 8px; --card-padding: 16px; --font-size: 14px; }
+:root {
+  --cor-primaria: #10b981;
+  --cor-fundo: #000;
+  --cor-card: #171717;
+  --cor-texto: #fff;
+  --cor-texto-sec: #9ca3af;
+  --cor-borda: #2a2a2a;
+  --radius: 8px;
+  --card-padding: 16px;
+  --font-size: 14px;
+}
+body { background-color: var(--cor-fundo); }
         `}</style>
 
         <Toaster position="top-center" richColors theme={theme as any} />
-        {activeTab === "venda"? <div className="fixed inset-0 z-40 bg-black"><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} /></div> :
-            <div className="min-h-screen bg-black text-white">
+        {activeTab === "venda"? <div className="fixed inset-0 z-40" style={{backgroundColor: 'var(--cor-fundo)'}}><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} /></div> :
+            <div className="min-h-screen" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)'}}>
                 <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
                     <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-neutral-800 flex items-center justify-center text-lg sm:text-xl font-bold shrink-0" style={{color: 'var(--cor-primaria)'}}><Store /></div>
+                            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center text-lg sm:text-xl font-bold shrink-0" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-primaria)'}}><Store /></div>
                             <div className="min-w-0">
-                                <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold truncate">{loja?.nome || "Sem loja"}</h1>
-                                <p className="text-xs sm:text-xs text-gray-400 truncate">{loja?.endereco}</p>
+                                <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold truncate" style={{color: 'var(--cor-texto)'}}>{loja?.nome || "Sem loja"}</h1>
+                                <p className="text-xs sm:text-xs truncate" style={{color: 'var(--cor-texto-sec)'}}>{loja?.endereco}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => handleSaveTheme({theme: theme === 'dark'? 'light' : 'dark'})} className="p-2 bg-neutral-800 rounded-lg hover:bg-neutral-700 transition"><Palette size={16} /></button>
+                            <button onClick={() => handleSaveTheme({theme: theme === 'dark'? 'light' : 'dark'})} className="p-2 rounded-lg hover:opacity-80 transition" style={{backgroundColor: 'var(--cor-card)'}}><Palette size={16} /></button>
                             <span className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-xs font-medium" style={{backgroundColor: loja?.is_active? 'var(--cor-primaria)' : '#4b5563'}}>{loja?.is_active? "ativa" : "inativa"}</span>
                             <button onClick={handleSair} className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-red-600 rounded-lg text-xs sm:text-xs font-bold flex items-center gap-1.5 hover:bg-red-700 transition" style={{borderRadius: 'var(--radius)'}}><LogOut size={14} className="sm:w-4 sm:h-4" /><span className="hidden sm:inline">Sair</span></button>
                         </div>
                     </div>
                     <div className="mb-4 sm:mb-6">
-                        <div className="bg-neutral-900 p-1 overflow-x-auto scrollbar-hide touch-pan-x" style={{borderRadius: 'var(--radius)'}}>
+                        <div className="p-1 overflow-x-auto scrollbar-hide touch-pan-x" style={{backgroundColor: 'var(--cor-card)', borderRadius: 'var(--radius)'}}>
                             <div className="flex gap-1 w-max min-w-full">
-                                {initialTabs.map(tab => (<button key={tab.id} onClick={() => { setActiveTab(tab.id); setMenuMobileOpen(false) }} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{backgroundColor: activeTab === tab.id? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id? 'white' : '#9ca3af', borderRadius: 'var(--radius)', fontSize: 'var(--font-size)'}}><tab.icon size={14} className="sm:w-4 sm:h-4" />{tab.label}</button>))}
+                                {initialTabs.map(tab => (<button key={tab.id} onClick={() => { setActiveTab(tab.id); setMenuMobileOpen(false) }} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{backgroundColor: activeTab === tab.id? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id? 'white' : 'var(--cor-texto-sec)', borderRadius: 'var(--radius)', fontSize: 'var(--font-size)'}}><tab.icon size={14} className="sm:w-4 sm:h-4" />{tab.label}</button>))}
                             </div>
                         </div>
                     </div>
@@ -290,8 +315,8 @@ export default function LojaPage() {
                         {activeTab === "risco" && podeVerTudo && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} formatCurrency={formatCurrency} />}
                         {activeTab === "fornecedores" && podeVerTudo && <FornecedoresTab />}
                         {activeTab === "documentos" && podeVerTudo && <DocumentosTab loja={loja} />}
-                        {activeTab === "definicoes" && podeVerTudo && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} />}
-                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos", "definicoes"].includes(activeTab) && <div className="bg-neutral-900 p-4 sm:p-6 rounded-xl text-center text-gray-400 text-sm">Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
+                        {activeTab === "definicoes" && podeVerTudo && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} corPrimaria={corPrimaria} corFundo={corFundo} />}
+                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos", "definicoes"].includes(activeTab) && <div className="p-4 sm:p-6 rounded-xl text-center text-sm" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto-sec)'}}>Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
                     </div>
                 </div>
                 <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
