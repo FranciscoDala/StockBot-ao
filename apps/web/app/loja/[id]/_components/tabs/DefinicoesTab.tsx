@@ -4,7 +4,7 @@ import {
     Settings, Palette, LayoutGrid, Type, Bell, Shield,
     Save, RefreshCw, Sun, Moon
 } from "lucide-react";
-import { toast } from "sonner"; // 1. usa toast
+import { toast } from "sonner";
 
 type TabDef = "aparencia" | "tema" | "cards" | "notificacoes" | "seguranca";
 
@@ -12,19 +12,11 @@ export function DefinicoesTab() {
     const [tabAtiva, setTabAtiva] = useState<TabDef>("aparencia");
 
     const [corPrimaria, setCorPrimaria] = useState("#16a34a");
-    const [corFundo, setCorFundo] = useState("#0a0a0a");
+    const [corFundo, setCorFundo] = useState("#000000");
     const [modoEscuro, setModoEscuro] = useState(true);
-    const [arredondamento, setArredondamento] = useState("xl");
-    const [estiloCard, setEstiloCard] = useState("padrao");
+    const [estiloCard, setEstiloCard] = useState("padrao"); // padrao | glass | borda
+    const [tamanhoCard, setTamanhoCard] = useState("medio"); // pequeno | medio | grande
     const [fonteTamanho, setFonteTamanho] = useState("normal");
-
-    // Converte xl/lg/2xl para rem real
-    const getRadius = (val: string) => {
-        if(val === 'lg') return '0.5rem'
-        if(val === 'xl') return '0.75rem'
-        if(val === '2xl') return '1rem'
-        return '0.75rem'
-    }
 
     // Carregar do localStorage ao abrir
     useEffect(() => {
@@ -32,29 +24,44 @@ export function DefinicoesTab() {
         if(saved) {
             const config = JSON.parse(saved);
             setCorPrimaria(config.corPrimaria || "#16a34a");
-            setCorFundo(config.corFundo || "#0a0a0a");
+            setCorFundo(config.corFundo || "#000");
             setModoEscuro(config.modoEscuro ?? true);
-            setArredondamento(config.arredondamento || "xl");
             setEstiloCard(config.estiloCard || "padrao");
+            setTamanhoCard(config.tamanhoCard || "medio");
             setFonteTamanho(config.fonteTamanho || "normal");
             aplicarTema(config);
+        } else {
+            // aplica o padrão do html na primeira vez
+            aplicarTema({
+                corPrimaria: "#16a34a",
+                corFundo: "#000",
+                modoEscuro: true,
+                estiloCard: "padrao",
+                tamanhoCard: "medio"
+            })
         }
     }, [])
 
     const aplicarTema = (config: any) => {
+        // 1. Cores
         document.documentElement.style.setProperty('--cor-primaria', config.corPrimaria);
         document.documentElement.style.setProperty('--cor-fundo', config.corFundo);
-        document.documentElement.style.setProperty('--arredondamento', getRadius(config.arredondamento)); // 2. converte aqui
+
+        // 2. Tema claro/escuro
         document.documentElement.setAttribute('data-theme', config.modoEscuro ? 'dark' : 'light');
+
+        // 3. Estilo e tamanho do card
+        document.documentElement.setAttribute('data-card-style', config.estiloCard);
+        document.documentElement.setAttribute('data-card-size', config.tamanhoCard);
     }
 
     const handleSalvar = () => {
         const config = {
-            corPrimaria, corFundo, modoEscuro, arredondamento, estiloCard, fonteTamanho
+            corPrimaria, corFundo, modoEscuro, estiloCard, tamanhoCard, fonteTamanho
         }
         localStorage.setItem("loja_config", JSON.stringify(config));
         aplicarTema(config);
-        toast.success("Configurações salvas e aplicadas!") // 3. toast
+        toast.success("Configurações salvas e aplicadas!")
         // TODO: POST /api/lojas/{lojaId}/config
     }
 
@@ -76,24 +83,24 @@ export function DefinicoesTab() {
             {/* HEADER PADRONIZADO */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
                         <Settings size={22} />
                         Definições
                     </h2>
-                    <p className="text-xs sm:text-sm text-gray-400">Personalize a aparência da sua loja</p>
+                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Personalize a aparência da sua loja</p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <button onClick={handleRestaurar} className="btn-secondary w-1/2 sm:w-auto">
+                    <button onClick={handleRestaurar} className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition hover:opacity-90" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}>
                         <RefreshCw size={14} /> Restaurar
                     </button>
-                    <button onClick={handleSalvar} className="btn-primary w-1/2 sm:w-auto">
+                    <button onClick={handleSalvar} className="px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition hover:opacity-90" style={{backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius-sm)'}}>
                         <Save size={14} /> Salvar
                     </button>
                 </div>
             </div>
 
             {/* TABS INTERNAS */}
-            <div className="border-b border-neutral-800">
+            <div className="card">
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                     {tabs.map(t => (
                         <button
@@ -102,7 +109,7 @@ export function DefinicoesTab() {
                             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition whitespace-nowrap`}
                             style={tabAtiva === t.id
                                 ? {color: 'var(--cor-primaria)', borderBottom: '2px solid var(--cor-primaria)'}
-                                : {color: '#9ca3af'}}
+                                : {color: 'var(--cor-texto-sec)'}}
                         >
                             {t.icon} {t.label}
                         </button>
@@ -111,34 +118,27 @@ export function DefinicoesTab() {
             </div>
 
             {/* CONTEÚDO */}
-            <div
-                className="p-4 sm:p-6 border"
-                style={{
-                    backgroundColor: '#171717',
-                    borderColor: '#27272a',
-                    borderRadius: 'var(--radius)'
-                }}
-            >
+            <div className="card border" style={{borderColor: 'var(--cor-borda)'}}>
                 {tabAtiva === "aparencia" && (
                     <div className="space-y-6">
-                        <h3 className="text-lg font-bold text-white">Cores da Marca</h3>
+                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Cores da Marca</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label className="text-sm font-medium text-gray-300 mb-2 block">Cor Primária</label>
+                                <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Cor Primária</label>
                                 <div className="flex items-center gap-3">
-                                    <input type="color" value={corPrimaria} onChange={(e) => setCorPrimaria(e.target.value)} className="w-12 h-12 rounded-lg border-2 border-neutral-800 cursor-pointer"/>
-                                    <input type="text" value={corPrimaria} onChange={(e) => setCorPrimaria(e.target.value)} className="flex-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"/>
+                                    <input type="color" value={corPrimaria} onChange={(e) => setCorPrimaria(e.target.value)} className="w-12 h-12 rounded-lg border-2 cursor-pointer" style={{borderColor: 'var(--cor-borda)'}}/>
+                                    <input type="text" value={corPrimaria} onChange={(e) => setCorPrimaria(e.target.value)} className="flex-1 rounded-lg px-3 py-2 text-sm" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}/>
                                 </div>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-gray-300 mb-2 block">Cor de Fundo</label>
+                                <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Cor de Fundo</label>
                                 <div className="flex items-center gap-3">
-                                    <input type="color" value={corFundo} onChange={(e) => setCorFundo(e.target.value)} className="w-12 h-12 rounded-lg border-2 border-neutral-800 cursor-pointer"/>
-                                    <input type="text" value={corFundo} onChange={(e) => setCorFundo(e.target.value)} className="flex-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"/>
+                                    <input type="color" value={corFundo} onChange={(e) => setCorFundo(e.target.value)} className="w-12 h-12 rounded-lg border-2 cursor-pointer" style={{borderColor: 'var(--cor-borda)'}}/>
+                                    <input type="text" value={corFundo} onChange={(e) => setCorFundo(e.target.value)} className="flex-1 rounded-lg px-3 py-2 text-sm" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}/>
                                 </div>
                             </div>
                         </div>
-                        <button onClick={() => aplicarTema({corPrimaria, corFundo, modoEscuro, arredondamento})} className="btn-primary">
+                        <button onClick={() => aplicarTema({corPrimaria, corFundo, modoEscuro, estiloCard, tamanhoCard})} className="px-4 py-2 rounded-lg font-bold" style={{backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius-sm)'}}>
                             Aplicar Preview
                         </button>
                     </div>
@@ -146,29 +146,29 @@ export function DefinicoesTab() {
 
                 {tabAtiva === "tema" && (
                     <div className="space-y-6">
-                        <h3 className="text-lg font-bold text-white">Tema do App</h3>
+                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Tema do App</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={() => setModoEscuro(false)}
-                                className="p-6 rounded-xl border-2 flex-col items-center gap-3"
+                                className="p-6 border-2 flex flex-col items-center gap-3"
                                 style={{
-                                    borderColor: !modoEscuro ? 'var(--cor-primaria)' : '#27272a',
-                                    backgroundColor: !modoEscuro ? 'var(--cor-primaria)14' : '#262626',
+                                    borderColor: !modoEscuro ? 'var(--cor-primaria)' : 'var(--cor-borda)',
+                                    backgroundColor: !modoEscuro ? 'var(--cor-primaria)20' : 'var(--cor-card)',
                                     borderRadius: 'var(--radius)'
                                 }}
                             >
-                                <Sun size={32} className="text-amber-500" /> <span className="font-medium text-white">Claro</span>
+                                <Sun size={32} className="text-amber-500" /> <span className="font-medium" style={{color: 'var(--cor-texto)'}}>Claro</span>
                             </button>
                             <button
                                 onClick={() => setModoEscuro(true)}
-                                className="p-6 rounded-xl border-2 flex-col items-center gap-3"
+                                className="p-6 border-2 flex flex-col items-center gap-3"
                                 style={{
-                                    borderColor: modoEscuro ? 'var(--cor-primaria)' : '#27272a',
-                                    backgroundColor: modoEscuro ? 'var(--cor-primaria)14' : '#262626',
+                                    borderColor: modoEscuro ? 'var(--cor-primaria)' : 'var(--cor-borda)',
+                                    backgroundColor: modoEscuro ? 'var(--cor-primaria)20' : 'var(--cor-card)',
                                     borderRadius: 'var(--radius)'
                                 }}
                             >
-                                <Moon size={32} className="text-purple-500" /> <span className="font-medium text-white">Escuro</span>
+                                <Moon size={32} className="text-purple-500" /> <span className="font-medium" style={{color: 'var(--cor-texto)'}}>Escuro</span>
                             </button>
                         </div>
                     </div>
@@ -176,35 +176,40 @@ export function DefinicoesTab() {
 
                 {tabAtiva === "cards" && (
                     <div className="space-y-6">
-                        <h3 className="text-lg font-bold text-white">Estilo dos Cards</h3>
+                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Estilo dos Cards</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {["padrao", "glass", "borda"].map(c => (
+                            {[
+                                {id: "padrao", nome: "Padrão", desc: "Sólido"},
+                                {id: "glass", nome: "Glass", desc: "Com desfoque"},
+                                {id: "borda", nome: "Com Borda", desc: "Contorno visível"}
+                            ].map(c => (
                                 <button
-                                    key={c}
-                                    onClick={() => setEstiloCard(c)}
-                                    className="p-4 rounded-xl border-2 text-left"
+                                    key={c.id}
+                                    onClick={() => setEstiloCard(c.id)}
+                                    className="p-4 border-2 text-left transition"
                                     style={{
-                                        borderColor: estiloCard === c ? 'var(--cor-primaria)' : '#27272a',
-                                        backgroundColor: estiloCard === c ? 'var(--cor-primaria)14' : '#262626',
+                                        borderColor: estiloCard === c.id ? 'var(--cor-primaria)' : 'var(--cor-borda)',
+                                        backgroundColor: estiloCard === c.id ? 'var(--cor-primaria)20' : 'var(--cor-card)',
                                         borderRadius: 'var(--radius)'
                                     }}
                                 >
-                                    <p className="font-bold text-white capitalize">{c}</p>
+                                    <p className="font-bold" style={{color: 'var(--cor-texto)'}}>{c.nome}</p>
+                                    <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{c.desc}</p>
                                 </button>
                             ))}
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-gray-300 mb-2 block">Arredondamento</label>
+                            <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Tamanho dos Cards</label>
                             <select
-                                value={arredondamento}
-                                onChange={e => setArredondamento(e.target.value)}
-                                className="bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm text-white"
-                                style={{borderRadius: 'var(--radius)'}}
+                                value={tamanhoCard}
+                                onChange={e => setTamanhoCard(e.target.value)}
+                                className="w-full rounded-lg px-3 py-2 text-sm"
+                                style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}
                             >
-                                <option value="lg">Pequeno</option>
-                                <option value="xl">Médio</option>
-                                <option value="2xl">Grande</option>
+                                <option value="pequeno">Pequeno</option>
+                                <option value="medio">Médio</option>
+                                <option value="grande">Grande</option>
                             </select>
                         </div>
                     </div>
@@ -212,10 +217,10 @@ export function DefinicoesTab() {
 
                 {tabAtiva === "notificacoes" && (
                     <div className="space-y-4">
-                        <h3 className="text-lg font-bold text-white">Notificações</h3>
+                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Notificações</h3>
                         {["Estoque Baixo", "Nova Venda", "Cliente Novo"].map(n => (
-                            <div key={n} className="flex items-center justify-between p-4 bg-neutral-800" style={{borderRadius: 'var(--radius)'}}>
-                                <p className="font-medium text-white">{n}</p>
+                            <div key={n} className="flex items-center justify-between p-4" style={{backgroundColor: 'var(--cor-card)', borderRadius: 'var(--radius)'}}>
+                                <p className="font-medium" style={{color: 'var(--cor-texto)'}}>{n}</p>
                                 <div className="w-12 h-6 rounded-full relative" style={{backgroundColor: 'var(--cor-primaria)'}}><div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div></div>
                             </div>
                         ))}
@@ -224,9 +229,9 @@ export function DefinicoesTab() {
 
                 {tabAtiva === "seguranca" && (
                     <div className="space-y-4">
-                        <h3 className="text-lg font-bold text-white">Segurança</h3>
-                        <div className="p-4 bg-neutral-800" style={{borderRadius: 'var(--radius)'}}>
-                            <p className="font-medium text-white">Autenticação 2FA</p>
+                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Segurança</h3>
+                        <div className="p-4" style={{backgroundColor: 'var(--cor-card)', borderRadius: 'var(--radius)'}}>
+                            <p className="font-medium" style={{color: 'var(--cor-texto)'}}>Autenticação 2FA</p>
                         </div>
                     </div>
                 )}
