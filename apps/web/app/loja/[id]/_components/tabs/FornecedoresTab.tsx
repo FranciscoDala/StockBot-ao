@@ -10,37 +10,41 @@ export function FornecedoresTab() {
             {/* HEADER PADRONIZADO */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">
-                        <Truck size={22} />
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
+                        <Truck size={22} style={{color: 'var(--cor-primaria)'}} />
                         Fornecedores
                     </h2>
-                    <p className="text-xs sm:text-sm text-gray-400">Gerencie os fornecedores da loja</p>
+                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Gerencie os fornecedores da loja</p>
                 </div>
-                <button className="btn-primary w-full sm:w-auto">
+                <button
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
+                    style={{background: 'var(--cor-primaria)', color: '#fff'}}
+                >
                     <Plus size={14} /> Adicionar Fornecedor
                 </button>
             </div>
 
             {/* CONTEÚDO */}
             <div
-                className="p-4 sm:p-6 border"
+                className="p-4 sm:p-6"
                 style={{
-                    backgroundColor: '#171717',
-                    borderColor: '#27272a',
-                    borderRadius: 'var(--radius)'
+                    background: 'var(--cor-primaria)',
+                    border: '1px solid var(--cor-primaria)',
+                    borderRadius: 'var(--radius)',
+                    color: '#fff'
                 }}
             >
                 {fornecedores.length === 0? (
                     <div
                         className="text-center py-16 border-2 border-dashed"
-                        style={{borderColor: '#27272a', borderRadius: 'var(--radius)'}}
+                        style={{borderColor: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius)'}}
                     >
-                        <Truck size={32} className="mx-auto text-gray-600 mb-3" />
-                        <p className="text-gray-400 text-sm font-medium">Nenhum fornecedor cadastrado ainda</p>
-                        <p className="text-xs text-gray-500">Clique em "Adicionar Fornecedor" para começar</p>
+                        <Truck size={32} className="mx-auto mb-3" style={{opacity: 0.7}} />
+                        <p className="text-sm font-medium">Nenhum fornecedor cadastrado ainda</p>
+                        <p className="text-xs" style={{opacity: 0.8}}>Clique em "Adicionar Fornecedor" para começar</p>
                     </div>
                 ) : (
-                    <div className="text-white">Lista aqui</div>
+                    <div>Lista aqui</div>
                 )}
             </div>
         </div>

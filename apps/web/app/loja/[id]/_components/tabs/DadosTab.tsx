@@ -56,7 +56,7 @@ export function DadosTab({
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const carregarKPIs = useCallback(async () => {
-        if (!lojaId || !token || !API_URL) {
+        if (!lojaId ||!token ||!API_URL) {
             console.log("Faltando dados:", { lojaId, token, API_URL })
             setLoading(false);
             return;
@@ -69,10 +69,10 @@ export function DadosTab({
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas: " + resVendas.status);
             const data: VendaAPI[] = await resVendas.json();
 
-            const vendas = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluida")
-                .map(v => ({
-                    ...v,
+            const vendas = (Array.isArray(data)? data : [])
+               .filter(v => v.status?.toLowerCase().trim() === "concluida")
+               .map(v => ({
+                   ...v,
                     total: Number(v.total) || 0,
                     data_venda: new Date(v.data_venda)
                 }));
@@ -101,7 +101,7 @@ export function DadosTab({
             const vendaDiaria = vendasHoje.reduce((acc, v) => acc + v.total, 0);
             const totalVendasMes = vendasMes.reduce((acc, v) => acc + v.total, 0);
             const qtdVendasHoje = vendasHoje.length;
-            const ticketMedio = qtdVendasHoje > 0 ? vendaDiaria / qtdVendasHoje : 0;
+            const ticketMedio = qtdVendasHoje > 0? vendaDiaria / qtdVendasHoje : 0;
 
             setKpis({
                 vendaDiaria: vendaDiaria,
@@ -119,7 +119,7 @@ export function DadosTab({
     }, [lojaId, token])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token || !lojaId || !WS_URL) return;
+        if (!token ||!lojaId ||!WS_URL) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -161,20 +161,24 @@ export function DadosTab({
     }, [carregarKPIs, conectarWebSocket])
 
     const saldoDia = kpis.vendaDiaria - kpis.saidaDiaria;
-    const ticketMedio = kpis.qtdVendasHoje > 0 ? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
+    const ticketMedio = kpis.qtdVendasHoje > 0? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
 
     return (
         <div className="space-y-6">
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
                         Dados
-                        {wsConectado ? <Wifi size={16} style={{color: 'var(--cor-primaria)'}} /> : <WifiOff size={16} className="text-red-500" />}
+                        {wsConectado? <Wifi size={16} style={{color: 'var(--cor-primaria)'}} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
-                    <p className="text-xs sm:text-sm text-gray-400">Visão geral da loja em tempo real</p>
+                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Visão geral da loja em tempo real</p>
                 </div>
-                <button onClick={carregarKPIs} className="btn-primary">
+                <button
+                    onClick={carregarKPIs}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
+                    style={{background: 'var(--cor-primaria)', color: '#fff'}}
+                >
                     <Edit size={14} />
                     Atualizar
                 </button>
@@ -218,15 +222,16 @@ export function DadosTab({
             <div
                 className="p-4 sm:p-6 rounded-xl"
                 style={{
-                    background: 'linear-gradient(to bottom right, var(--cor-primaria)08, #171717)',
-                    border: '1px solid var(--cor-primaria)30'
+                    background: 'var(--cor-primaria)',
+                    border: '1px solid var(--cor-primaria)',
+                    color: '#fff'
                 }}
             >
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-xs text-gray-300 font-medium">Resumo do Mês</p>
-                        <p className="text-3xl font-bold mt-1" style={{color: 'var(--cor-primaria)'}}>{loading ? "..." : formatCurrency(kpis.totalVendasMes)}</p>
-                        <p className="text-xs mt-1" style={{color: 'var(--cor-primaria)', opacity: 0.7}}>Total vendido nos últimos 30 dias</p>
+                        <p className="text-xs font-medium" style={{opacity: 0.9}}>Resumo do Mês</p>
+                        <p className="text-3xl font-bold mt-1">{loading? "..." : formatCurrency(kpis.totalVendasMes)}</p>
+                        <p className="text-xs mt-1" style={{opacity: 0.8}}>Total vendido nos últimos 30 dias</p>
                     </div>
                 </div>
             </div>
@@ -250,9 +255,9 @@ function CardStats({
     formatCurrency: (v: number) => string
 }) {
     const cores = {
-        primaria: { border: 'var(--cor-primaria)30', bg: 'var(--cor-primaria)14', text: 'var(--cor-primaria)' },
-        secundaria: { border: '#27272a', bg: '#18181b', text: '#60a5fa' },
-        alerta: { border: '#ef444430', bg: '#ef444414', text: '#ef4444' }
+        primaria: { bg: 'var(--cor-primaria)', text: '#fff' },
+        secundaria: { bg: 'var(--cor-fundo-card, #18181b)', text: 'var(--cor-texto)' },
+        alerta: { bg: '#ef4444', text: '#fff' }
     }
 
     const c = cores[cor]
@@ -261,18 +266,17 @@ function CardStats({
         <div
             className="rounded-xl p-3 md:p-4 transition hover:scale-[1.02]"
             style={{
-                border: `1px solid ${c.border}`,
                 backgroundColor: c.bg,
                 color: c.text,
                 borderRadius: 'var(--radius)'
             }}
         >
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium text-gray-300 truncate">{titulo}</p>
-                <div className="opacity-80 shrink-0">{icon}</div>
+                <p className="text-xs md:text-sm font-medium truncate" style={{opacity: 0.9}}>{titulo}</p>
+                <div className="opacity-90 shrink-0">{icon}</div>
             </div>
-            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate text-white">{formatCurrency(stats.total)}</p>
-            <p className="text-xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{formatCurrency(stats.total)}</p>
+            <p className="text-xs md:text-xs mt-1 truncate" style={{opacity: 0.8}}>{descricao}</p>
         </div>
     )
 }

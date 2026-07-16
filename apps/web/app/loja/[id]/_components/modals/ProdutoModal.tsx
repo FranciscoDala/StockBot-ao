@@ -12,7 +12,6 @@ import { UploadCloud, X, Loader2, DollarSign, Package, Image as ImageIcon, QrCod
 import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
-
 const API_BASE = API_URL.replace('/api/v1', '');
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -179,12 +178,19 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         onSave(finalData);
     };
 
-        const handleInputChange = (field: string, value: any) => {
+    const handleInputChange = (field: string, value: any) => {
         setFormData({...formData, [field]: value });
     }
 
-    const inputClass = "bg-neutral-900 border-neutral-700 h-11 px-3"
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
+    const inputStyle = {
+        backgroundColor: 'var(--cor-fundo)',
+        color: 'var(--cor-texto)',
+        border: '1px solid var(--cor-primaria)30',
+        borderRadius: 'var(--radius)',
+        outline: 'none',
+        boxShadow: '0 0 0 1px transparent'
+    }
+    const focusStyle = { boxShadow: '0 0 0 1px var(--cor-primaria)' }
 
     return (
         <>
@@ -192,55 +198,60 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 <DialogContent
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
-                    className="!max-w-[800px] w-full bg-neutral-950 border-neutral-800 text-white p-0 h-[90vh] flex-col [&>button]:hidden"
-                    style={{borderRadius: 'var(--radius)'}}
+                    className="!max-w-[800px] w-full p-0 h-[90vh] flex-col border shadow-2xl [&>button]:hidden"
+                    style={{
+                        backgroundColor: 'var(--cor-fundo-card, #171717)',
+                        color: 'var(--cor-texto)',
+                        borderColor: 'var(--cor-primaria)30',
+                        borderRadius: 'var(--radius)'
+                    }}
                 >
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
-                        <DialogTitle className="text-lg sm:text-xl">{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
-                        <DialogDescription className="text-gray-400 text-xs sm:text-sm">Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
+                        <DialogTitle className="text-lg sm:text-xl" style={{color: 'var(--cor-texto)'}}>{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
+                        <DialogDescription className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 no-scrollbar">
+                    <div className="flex-1 overflow-y-auto px-4 sm:px-6 scrollbar-hide">
                         <Tabs defaultValue="dados" className="w-full">
                             <TabsList
-                                className="grid w-full grid-cols-3 bg-neutral-900 sticky top-0 z-10 h-11"
-                                style={{borderRadius: 'var(--radius)'}}
+                                className="grid w-full grid-cols-3 sticky top-0 z-10 h-11"
+                                style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}
                             >
-                                <TabsTrigger value="dados" className="text-xs sm:text-sm"><Package size={14} className="mr-1 sm:mr-2" />Dados</TabsTrigger>
-                                <TabsTrigger value="imagem" className="text-xs sm:text-sm"><ImageIcon size={14} className="mr-1 sm:mr-2" />Imagem</TabsTrigger>
-                                <TabsTrigger value="preco" className="text-xs sm:text-sm"><DollarSign size={14} className="mr-1 sm:mr-2" />Preço</TabsTrigger>
+                                <TabsTrigger value="dados" className="text-xs sm:text-sm data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white"><Package size={14} className="mr-1 sm:mr-2" />Dados</TabsTrigger>
+                                <TabsTrigger value="imagem" className="text-xs sm:text-sm data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white"><ImageIcon size={14} className="mr-1 sm:mr-2" />Imagem</TabsTrigger>
+                                <TabsTrigger value="preco" className="text-xs sm:text-sm data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white"><DollarSign size={14} className="mr-1 sm:mr-2" />Preço</TabsTrigger>
                             </TabsList>
                             <div className="py-4">
                                 <TabsContent value="dados" className="space-y-5 mt-0">
                                     <div className="space-y-2">
-                                        <Label>Nome do Produto *</Label>
-                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className={inputClass} style={focusStyle} />
+                                        <Label style={{color: 'var(--cor-texto-sec)'}}>Nome do Produto *</Label>
+                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className="h-11 px-3" style={{...inputStyle,...focusStyle}} />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Descrição</Label>
-                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="bg-neutral-900 border-neutral-700 px-3 py-3 min-h-28" style={focusStyle} />
+                                        <Label style={{color: 'var(--cor-texto-sec)'}}>Descrição</Label>
+                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="px-3 py-3 min-h-28" style={{...inputStyle,...focusStyle}} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
-                                            <Label>SKU</Label>
+                                            <Label style={{color: 'var(--cor-texto-sec)'}}>SKU</Label>
                                             <div className="flex gap-2">
-                                                <Input placeholder="Gerado automaticamente" value={formData.sku || ''} disabled className={`${inputClass} bg-neutral-800 text-gray-300 cursor-not-allowed flex-1`} />
+                                                <Input placeholder="Gerado automaticamente" value={formData.sku || ''} disabled className="h-11 flex-1" style={{...inputStyle, backgroundColor: 'var(--cor-fundo-card)', color: 'var(--cor-texto-sec)', cursor: 'not-allowed'}} />
                                                 {!editingProduto && (
-                                                    <Button type="button" variant="secondary" size="icon" onClick={() => handleInputChange("sku", gerarSkuAleatorio())} className="bg-neutral-800 hover:bg-neutral-700 h-11 w-11 shrink-0">
+                                                    <Button type="button" size="icon" onClick={() => handleInputChange("sku", gerarSkuAleatorio())} className="h-11 w-11 shrink-0" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30'}}>
                                                         <RefreshCw size={16} />
                                                     </Button>
                                                 )}
                                             </div>
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Marca</Label>
-                                            <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className={inputClass} style={focusStyle} />
+                                            <Label style={{color: 'var(--cor-texto-sec)'}}>Marca</Label>
+                                            <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className="h-11 px-3" style={{...inputStyle,...focusStyle}} />
                                         </div>
                                     </div>
                                 </TabsContent>
                                 <TabsContent value="imagem" className="space-y-5 mt-0">
                                     <div className="space-y-2">
-                                        <Label>Imagem do Produto</Label>
+                                        <Label style={{color: 'var(--cor-texto-sec)'}}>Imagem do Produto</Label>
                                         <div
                                             onDragEnter={handleDrag}
                                             onDragLeave={handleDrag}
@@ -248,8 +259,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                             onDrop={handleDrop}
                                             className="relative w-full h-52 sm:h-72 border-2 border-dashed transition-colors"
                                             style={{
-                                                borderColor: dragActive? 'var(--cor-primaria)' : '#27272a',
-                                                backgroundColor: dragActive? 'var(--cor-primaria)10' : '#171717',
+                                                borderColor: dragActive? 'var(--cor-primaria)' : 'var(--cor-primaria)30',
+                                                backgroundColor: dragActive? 'var(--cor-primaria)10' : 'var(--cor-fundo)',
                                                 borderRadius: 'var(--radius)'
                                             }}
                                         >
@@ -259,7 +270,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                                     <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
                                                 </>
                                             ) : (
-                                                <div className="absolute inset-0 flex-col items-center justify-center text-gray-500 text-center">
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{color: 'var(--cor-texto-sec)'}}>
                                                     <UploadCloud size={32} className="mb-2" />
                                                     <p className="text-sm font-medium">Arraste e solte ou clique</p>
                                                     <p className="text-xs">PNG, JPG, WEBP até 5MB</p>
@@ -269,31 +280,31 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         </div>
                                     </div>
                                     {qrLink && (
-                                        <div className="space-y-2 p-4 bg-neutral-900 border" style={{borderColor: '#27272a', borderRadius: 'var(--radius)'}}>
-                                            <Label className="flex items-center gap-2"><QrCode size={16} /> QR Code do Produto</Label>
+                                        <div className="space-y-2 p-4 border" style={{backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)'}}>
+                                            <Label className="flex items-center gap-2" style={{color: 'var(--cor-texto-sec)'}}><QrCode size={16} /> QR Code do Produto</Label>
                                             <div className="flex justify-center bg-white p-3 rounded">
                                                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrLink)}`} alt="QR Code" className="w-40 h-40" />
                                             </div>
-                                            <p className="text-xs text-gray-400 text-center break-all">{qrLink}</p>
+                                            <p className="text-xs text-center break-all" style={{color: 'var(--cor-texto-sec)'}}>{qrLink}</p>
                                         </div>
                                     )}
-                                    {!qrLink && (<p className="text-xs text-gray-500 text-center">Salve o produto para gerar o QR Code</p>)}
+                                    {!qrLink && (<p className="text-xs text-center" style={{color: 'var(--cor-texto-sec)'}}>Salve o produto para gerar o QR Code</p>)}
                                     {uploading && <p className="text-xs flex items-center gap-2" style={{color: 'var(--cor-primaria)'}}><Loader2 size={14} className="animate-spin" /> Enviando imagem...</p>}
                                 </TabsContent>
-                                <TabsContent value="preco" className="space-y-5 mt-0">
+                                                                <TabsContent value="preco" className="space-y-5 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
-                                            <Label>Preço de Custo</Label>
-                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className={inputClass} style={focusStyle} />
+                                            <Label style={{color: 'var(--cor-texto-sec)'}}>Preço de Custo</Label>
+                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle}} />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Preço de Venda *</Label>
-                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className={inputClass} style={focusStyle} />
+                                            <Label style={{color: 'var(--cor-texto-sec)'}}>Preço de Venda *</Label>
+                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle}} />
                                         </div>
                                     </div>
-                                    <div className="bg-neutral-900 p-4 border" style={{borderColor: '#27272a', borderRadius: 'var(--radius)'}}>
+                                    <div className="p-4 border" style={{backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)'}}>
                                         <div className="flex justify-between items-center text-sm">
-                                            <span className="text-gray-400">Lucro por unidade</span>
+                                            <span style={{color: 'var(--cor-texto-sec)'}}>Lucro por unidade</span>
                                             <span className="font-bold text-base sm:text-lg" style={{color: lucro >= 0? 'var(--cor-primaria)' : '#ef4444'}}>
                                                 {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(lucro)}
                                             </span>
@@ -301,20 +312,29 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                                         <div className="space-y-2">
-                                            <Label>Estoque Atual</Label>
-                                            <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className={inputClass} style={focusStyle} />
+                                            <Label style={{color: 'var(--cor-texto-sec)'}}>Estoque Atual</Label>
+                                            <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle}} />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>Estoque Mínimo</Label>
-                                            <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className={inputClass} style={focusStyle} />
+                                            <Label style={{color: 'var(--cor-texto-sec)'}}>Estoque Mínimo</Label>
+                                            <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle}} />
                                         </div>
                                         <div className="space-y-2 col-span-2 sm:col-span-1">
-                                            <Label>Unidade</Label>
+                                            <Label style={{color: 'var(--cor-texto-sec)'}}>Unidade</Label>
                                             <Select value={formData.unidade || 'UN'} onValueChange={(val) => handleInputChange("unidade", val)}>
-                                                <SelectTrigger className={inputClass} style={focusStyle}><SelectValue /></SelectTrigger>
-                                                <SelectContent className="bg-neutral-900 border-neutral-700">
-                                                    <SelectItem value="UN">UN</SelectItem><SelectItem value="KG">KG</SelectItem><SelectItem value="LT">LT</SelectItem>
-                                                    <SelectItem value="CX">CX</SelectItem><SelectItem value="PCT">PCT</SelectItem>
+                                                <SelectTrigger className="h-11" style={inputStyle}><SelectValue /></SelectTrigger>
+                                                <SelectContent
+                                                    style={{
+                                                        backgroundColor: 'var(--cor-fundo-card)',
+                                                        borderColor: 'var(--cor-primaria)30',
+                                                        color: 'var(--cor-texto)'
+                                                    }}
+                                                >
+                                                    <SelectItem value="UN">UN</SelectItem>
+                                                    <SelectItem value="KG">KG</SelectItem>
+                                                    <SelectItem value="LT">LT</SelectItem>
+                                                    <SelectItem value="CX">CX</SelectItem>
+                                                    <SelectItem value="PCT">PCT</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -324,23 +344,43 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                         </Tabs>
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t border-neutral-800 shrink-0 flex-col sm:flex-row gap-2">
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30'}}>
                         <div className="flex items-center space-x-2 mr-auto">
                             <Checkbox
                                 id="active"
                                 checked={formData.is_active?? true}
                                 onCheckedChange={(val) => handleInputChange("is_active",!!val)}
-                                className="border-neutral-600"
-                                style={{'--ring-color': 'var(--cor-primaria)'} as any}
+                                className="data-[state=checked]:bg-[var(--cor-primaria)] data-[state=checked]:border-[var(--cor-primaria)]"
                             />
-                            <Label htmlFor="active" className="text-sm text-gray-300 font-medium cursor-pointer">Produto Ativo</Label>
+                            <Label htmlFor="active" className="text-sm font-medium cursor-pointer" style={{color: 'var(--cor-texto-sec)'}}>Produto Ativo</Label>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
-                            <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving || uploading} className="flex-1 sm:flex-initial h-11">
+                            <Button
+                                type="button"
+                                onClick={() => onOpenChange(false)}
+                                disabled={saving || uploading}
+                                className="flex-1 sm:flex-initial h-11 font-semibold"
+                                style={{
+                                    backgroundColor: 'var(--cor-fundo)',
+                                    color: 'var(--cor-texto)',
+                                    border: '1px solid var(--cor-primaria)30',
+                                    borderRadius: 'var(--radius)'
+                                }}
+                            >
                                 Cancelar
                             </Button>
-                            <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="btn-primary flex-1 sm:flex-initial min-w-28 h-11">
-                                {(saving || uploading) && <Loader2 className="mr-4 h-4 w-4 animate-spin" />}
+                            <Button
+                                type="button"
+                                onClick={handleSaveClick}
+                                disabled={saving || uploading}
+                                className="flex-1 sm:flex-initial min-w-28 h-11 font-bold"
+                                style={{
+                                    background: 'var(--cor-primaria)',
+                                    color: '#fff',
+                                    borderRadius: 'var(--radius)'
+                                }}
+                            >
+                                {(saving || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {editingProduto? 'Salvar' : 'Criar'}
                             </Button>
                         </div>
@@ -348,20 +388,36 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 </DialogContent>
             </Dialog>
 
+            {/* MODAL DE ERRO */}
             <Dialog open={!!erroModal} onOpenChange={() => { }}>
                 <DialogContent
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
-                    className="bg-neutral-900 border-red-500/30 text-white max-w-md [&>button]:hidden"
-                    style={{borderRadius: 'var(--radius)'}}
+                    className="max-w-md border [&>button]:hidden"
+                    style={{
+                        backgroundColor: 'var(--cor-fundo-card)',
+                        color: 'var(--cor-texto)',
+                        borderColor: '#ef444430',
+                        borderRadius: 'var(--radius)'
+                    }}
                 >
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-400"><AlertCircle size={20} /> Erro ao Salvar</DialogTitle>
-                        <DialogDescription className="text-gray-400">Não foi possível concluir a operação</DialogDescription>
+                        <DialogTitle className="flex items-center gap-2" style={{color: '#ef4444'}}><AlertCircle size={20} /> Erro ao Salvar</DialogTitle>
+                        <DialogDescription style={{color: 'var(--cor-texto-sec)'}}>Não foi possível concluir a operação</DialogDescription>
                     </DialogHeader>
-                    <div className="py-2"><p className="text-sm text-gray-300">{erroModal}</p></div>
+                    <div className="py-2"><p className="text-sm" style={{color: 'var(--cor-texto)'}}>{erroModal}</p></div>
                     <DialogFooter>
-                        <Button onClick={() => setErroModal(null)} className="bg-red-600 hover:bg-red-700 w-full h-11">Entendi</Button>
+                        <Button
+                            onClick={() => setErroModal(null)}
+                            className="w-full h-11 font-bold"
+                            style={{
+                                backgroundColor: '#ef4444',
+                                color: '#fff',
+                                borderRadius: 'var(--radius)'
+                            }}
+                        >
+                            Entendi
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

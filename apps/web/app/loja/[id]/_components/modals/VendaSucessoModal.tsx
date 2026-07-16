@@ -42,10 +42,15 @@ export function VendaSucessoModal({
 
     return (
         <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{backgroundColor: 'rgba(0,0,0,0.8)'}}>
                 <div
-                    className="bg-neutral-950 border-neutral-800 text-white max-w-md w-full mx-4 shadow-2xl"
-                    style={{borderRadius: 'var(--radius)'}}
+                    className="border shadow-2xl max-w-md w-full mx-4"
+                    style={{
+                        backgroundColor: 'var(--cor-fundo-card, #171717)',
+                        color: 'var(--cor-texto)',
+                        borderColor: 'var(--cor-primaria)30',
+                        borderRadius: 'var(--radius)'
+                    }}
                 >
                     <div className="p-6">
                         <div className="flex items-center justify-between mb-4">
@@ -56,14 +61,14 @@ export function VendaSucessoModal({
                                 <CheckCircle size={24} />
                                 Venda Concluída!
                             </h2>
-                            <button onClick={onClose} className="text-gray-400 hover:text-white">
+                            <button onClick={onClose} className="hover:opacity-70" style={{color: 'var(--cor-texto-sec)'}}>
                                 <X size={20} />
                             </button>
                         </div>
 
                         <div className="space-y-3 py-4">
                             <div className="text-center">
-                                <p className="text-sm text-gray-400">Total da Venda</p>
+                                <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Total da Venda</p>
                                 <p
                                     className="text-3xl font-bold"
                                     style={{color: 'var(--cor-primaria)'}}
@@ -75,17 +80,17 @@ export function VendaSucessoModal({
                             <div
                                 className="p-3 space-y-1 text-sm border"
                                 style={{
-                                    backgroundColor: '#171717',
-                                    borderColor: '#27272a',
+                                    backgroundColor: 'var(--cor-fundo)',
+                                    borderColor: 'var(--cor-primaria)30',
                                     borderRadius: 'var(--radius)'
                                 }}
                             >
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400">Itens</span>
+                                    <span style={{color: 'var(--cor-texto-sec)'}}>Itens</span>
                                     <span className="font-semibold">{totalItens}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-400">Pagamento</span>
+                                    <span style={{color: 'var(--cor-texto-sec)'}}>Pagamento</span>
                                     <span className="font-semibold">{venda.forma_pagamento}</span>
                                 </div>
                             </div>
@@ -93,16 +98,25 @@ export function VendaSucessoModal({
 
                         <div className="flex gap-2 pt-4">
                             <Button
-                                variant="outline"
                                 onClick={onClose}
-                                className="flex-1 border-neutral-700 hover:bg-neutral-800"
-                                style={{borderRadius: 'var(--radius)'}}
+                                className="flex-1 font-semibold"
+                                style={{
+                                    backgroundColor: 'var(--cor-fundo)',
+                                    color: 'var(--cor-texto)',
+                                    border: '1px solid var(--cor-primaria)30',
+                                    borderRadius: 'var(--radius)'
+                                }}
                             >
                                 Nova Venda
                             </Button>
                             <Button
                                 onClick={handleImprimir}
-                                className="btn-primary flex-1 gap-2"
+                                className="flex-1 gap-2 font-bold"
+                                style={{
+                                    background: 'var(--cor-primaria)',
+                                    color: '#fff',
+                                    borderRadius: 'var(--radius)'
+                                }}
                             >
                                 <Printer size={16} /> Imprimir
                             </Button>
