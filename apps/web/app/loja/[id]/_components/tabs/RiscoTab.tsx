@@ -62,11 +62,11 @@ function CardRisco({
     const c = cores[cor]
     return (
         <div
-            className="p-3 md:p-4 transition hover:scale-[1.02]"
+            className="p-3 md:p-4 transition hover:scale-"
             style={{
                 backgroundColor: c.bg,
                 color: c.text,
-                border: cor === "primaria" || cor === "alerta"? 'none' : `1px solid ${c.border}`,
+                border: cor === "primaria" || cor === "alerta"? 'none' : `1px solid ${c.border || 'var(--cor-primaria)30'}`,
                 borderRadius: 'var(--radius)'
             }}
         >
@@ -76,7 +76,7 @@ function CardRisco({
             </div>
             <p className="text-2xl md:text-3xl font-bold">{qtd}</p>
             <p className="text-xs mt-1" style={{opacity: 0.8}}>{descricao}</p>
-            {tendencia && <p className="text-[10px] mt-1" style={{opacity: 0.7}}>{tendencia}</p>}
+            {tendencia && <p className="text- mt-1" style={{opacity: 0.7}}>{tendencia}</p>}
         </div>
     )
 }
@@ -136,8 +136,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
     const vendasCanceladas = useMemo(() => vendasFiltradas.filter(v => v.status?.toLowerCase() === "cancelada"), [vendasFiltradas])
     const taxaCancelamento = vendasFiltradas.length > 0? (vendasCanceladas.length / vendasFiltradas.length) * 100 : 0
     const totalPerdido = useMemo(() => vendasCanceladas.reduce((acc, v) => acc + v.total, 0), [vendasCanceladas])
-
-    // 3. RISCOS OPERACIONAIS
+        // 3. RISCOS OPERACIONAIS
     const vendasComDesconto = useMemo(() => vendasFiltradas.filter(v => {
         const totalSemDesconto = v.detalhes.reduce((acc, item) => acc + (item.preco_unitario * item.quantidade), 0)
         return totalSemDesconto > v.total && ((totalSemDesconto - v.total) / totalSemDesconto) > 0.2
@@ -148,8 +147,8 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
     const exportarCSV = () => {
         const linhas = [
             ["Tipo", "Produto", "Estoque", "Minimo"],
-         ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
-         ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
+        ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
+        ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -255,7 +254,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap"
                             style={abaAtiva === tab.id
-                             ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
+                            ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
                                 : {color: 'var(--cor-texto-sec)', borderRadius: 'var(--radius)'}
                             }
                         >
@@ -292,7 +291,7 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
                                             <span className="font-bold text-xs" style={{color: p.estoque <= 0? '#ef4444' : '#f97316'}}>Est: {p.estoque}</span>
                                         </div>
                                         <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "#ef4444" : "#f97316"} />
-                                        <p className="text-[10px] mt-1" style={{color: 'var(--cor-texto-sec)'}}>Mínimo: {p.estoque_minimo}</p>
+                                        <p className="text- mt-1" style={{color: 'var(--cor-texto-sec)'}}>Mínimo: {p.estoque_minimo}</p>
                                     </div>
                                 ))}
                                 {produtosZerados.length === 0 && produtosRuptura.length === 0 && <p className="text-center py-8 text-sm" style={{color: 'var(--cor-texto-sec)'}}>Estoque saudável ✅</p>}
@@ -374,8 +373,8 @@ export function RiscoTab({ vendas, produtos, formatCurrency }: Props) {
             )}
 
             <style jsx global>{`
-           .scrollbar-hide::-webkit-scrollbar { display: none; }
-           .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+          .scrollbar-hide::-webkit-scrollbar { display: none; }
+          .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     )
