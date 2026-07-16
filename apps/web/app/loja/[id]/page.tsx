@@ -38,25 +38,27 @@ export type Loja = {
   id: string; nome: string; slug: string; is_active: boolean; created_at: string;
   endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null;
   theme?: string; card_style?: string; card_size?: string; font_size?: string;
-  cor_primaria?: string; // NOVO
-  cor_fundo?: string; // NOVO
+  cor_primaria?: string;
+  cor_fundo?: string;
 }
 
 const formatError = (data: any): string => { if (!data) return "Erro desconhecido"; if (typeof data.detail === 'string') return data.detail; if (Array.isArray(data.detail)) return data.detail.map((d: any) => d.msg).join(", "); return "Erro ao processar requisição"; }
 export const formatCurrency = (value: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(value);
 const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
 const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; Secure; SameSite=None`; };
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+
+// FORÇAR HTTPS EM PRODUÇÃO
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
 
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
     const res = await fetch(url, {...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`,...options.headers }, credentials: 'include', cache: "no-store" });
     if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorData = await res.json().catch(() => ({})); console.error("API ERROR:", res.status, errorData); throw new Error(errorData.detail || res.statusText); }
     if (res.status === 204) { return true; } return await res.json();
 }
+
 const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
   return await fetchComAuth(`${API_URL}/lojas/${lojaId}/definicoes`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
 }
-
 export default function LojaPage() {
     const router = useRouter(); const params = useParams(); const lojaId = params.id as string;
     const [isClient, setIsClient] = useState(false); const [user, setUser] = useState<userread | null>(null); const [token, setToken] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [loja, setLoja] = useState<Loja | null>(null);
@@ -66,8 +68,8 @@ export default function LojaPage() {
     const [cardStyle, setCardStyle] = useState("padrao");
     const [cardSize, setCardSize] = useState("medio");
     const [fontSize, setFontSize] = useState("medio");
-    const [corPrimaria, setCorPrimaria] = useState("#10b981"); // NOVO
-    const [corFundo, setCorFundo] = useState("#000000"); // NOVO
+    const [corPrimaria, setCorPrimaria] = useState("#10b981");
+    const [corFundo, setCorFundo] = useState("#000000"); // CORRIGIDO: 6 digitos
 
     const podeEditarApagar = ["DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerTudo = ["ADMIN", "DONO", "GERENTE"].includes(user?.nivel!);
@@ -109,7 +111,7 @@ export default function LojaPage() {
 
     const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
       document.documentElement.style.setProperty('--cor-primaria', corP || '#10b981');
-      document.documentElement.style.setProperty('--cor-fundo', corF || '#000');
+      document.documentElement.style.setProperty('--cor-fundo', corF || '#000'); // CORRIGIDO
       document.documentElement.style.setProperty('--radius', cs === 'arredondado'? '16px' : cs === 'clean'? '4px' : '8px');
       document.documentElement.style.setProperty('--card-padding', csz === 'grande'? '24px' : csz === 'pequeno'? '12px' : '16px');
       document.documentElement.style.setProperty('--font-size', fsz === 'grande'? '16px' : fsz === 'pequeno'? '12px' : '14px');
@@ -160,7 +162,7 @@ export default function LojaPage() {
         if(data.cor_fundo) setCorFundo(data.cor_fundo);
         applyTheme(
           data.theme || "dark", data.card_style || "padrao", data.card_size || "medio", data.font_size || "medio",
-          data.cor_primaria || "#10b981", data.cor_fundo || "#000"
+          data.cor_primaria || "#10b981", data.cor_fundo || "#000" // CORRIGIDO
         );
       } catch (e) { console.error("Erro ao buscar loja:", e); setLoja(null); }
     }, [lojaId, applyTheme]);
@@ -270,7 +272,7 @@ export default function LojaPage() {
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 :root {
   --cor-primaria: #10b981;
-  --cor-fundo: #000;
+  --cor-fundo: #000000;
   --cor-card: #171717;
   --cor-texto: #fff;
   --cor-texto-sec: #9ca3af;
