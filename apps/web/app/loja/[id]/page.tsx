@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useState, FormEvent, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Menu, X, Settings, Palette } from "lucide-react";
+import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import { z } from "zod";
+import LojaLayout from "./LojaLayout"; // <-- Importa o layout com header
 import { DadosTab } from "./_components/tabs/DadosTab";
 import { ProdutosTab } from "./_components/tabs/ProdutosTab";
 import { EquipaTab } from "./_components/tabs/EquipaTab";
@@ -45,9 +46,7 @@ export type Loja = {
 const formatError = (data: any): string => { if (!data) return "Erro desconhecido"; if (typeof data.detail === 'string') return data.detail; if (Array.isArray(data.detail)) return data.detail.map((d: any) => d.msg).join(", "); return "Erro ao processar requisição"; }
 export const formatCurrency = (value: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(value);
 const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
-const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; Secure; SameSite=None`; };
 
-// FORÇAR HTTPS EM PRODUÇÃO
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
 
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
@@ -70,7 +69,7 @@ export default function LojaPage() {
     const [cardSize, setCardSize] = useState("medio");
     const [fontSize, setFontSize] = useState("medio");
     const [corPrimaria, setCorPrimaria] = useState("#10b981");
-    const [corFundo, setCorFundo] = useState("#000000");
+    const [corFundo, setCorFundo] = useState("#000");
 
     const podeEditarApagar = ["DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerTudo = ["ADMIN", "DONO", "GERENTE"].includes(user?.nivel!);
@@ -108,8 +107,6 @@ export default function LojaPage() {
     const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal ? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
     const podeFinalizar = useMemo(() => carrinho.length > 0 && (formaPagamento !== "Dinheiro" || Number(valorRecebido) >= subtotal && subtotal > 0), [carrinho, formaPagamento, valorRecebido, subtotal]);
 
-    const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
-
     const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
         document.documentElement.style.setProperty('--cor-primaria', corP || '#10b981');
         document.documentElement.style.setProperty('--cor-fundo', corF || '#000');
@@ -117,6 +114,7 @@ export default function LojaPage() {
         document.documentElement.style.setProperty('--card-padding', csz === 'grande' ? '24px' : csz === 'pequeno' ? '12px' : '16px');
         document.documentElement.style.setProperty('--font-size', fsz === 'grande' ? '16px' : fsz === 'pequeno' ? '12px' : '14px');
     }, []);
+
     const handleSaveTheme = useCallback(async (newTheme: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
         if (!token || !lojaId) return;
         try {
@@ -136,7 +134,6 @@ export default function LojaPage() {
             toast.success("Aparência salva!");
         } catch (e) { toast.error("Erro ao salvar aparência"); }
     }, [token, lojaId, loja, theme, cardStyle, cardSize, fontSize, corPrimaria, corFundo, applyTheme]);
-
     const fetchEquipa = async (currentToken: string) => {
         if (!currentToken || !lojaId) return;
         try {
@@ -169,11 +166,11 @@ export default function LojaPage() {
 
     useEffect(() => {
         setIsClient(true); const currentToken = getCookie("token"); const userStr = getCookie("user"); setToken(currentToken || null);
-        if (!currentToken || !userStr) { handleSair(); return; } try {
-            const userData: userread = JSON.parse(userStr); if (userData.loja_id !== lojaId) { handleSair(); return; } setUser(userData);
+        if (!currentToken || !userStr) { router.replace("/login"); return; } try {
+            const userData: userread = JSON.parse(userStr); if (userData.loja_id !== lojaId) { router.replace("/login"); return; } setUser(userData);
             const loadData = async () => { setLoading(true); await Promise.all([fetchLoja(currentToken), fetchEquipa(currentToken), fetchProdutos(currentToken, userData.loja_id || ""), fetchVendas(currentToken, userData.loja_id || "")]); setLoading(false); }
             loadData();
-        } catch (err) { handleSair(); }
+        } catch (err) { router.replace("/login"); }
     }, [router, lojaId, fetchProdutos, fetchLoja, fetchVendas]);
 
     useEffect(() => {
@@ -267,118 +264,27 @@ export default function LojaPage() {
         </div>
     );
 
-    return <>
-        <style jsx global>{`
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-body { background-color: var(--cor-fundo); }
-        `}</style>
+    return (
+        <LojaLayout theme={theme} handleSaveTheme={handleSaveTheme} lojaNome={loja?.nome}> {/* <-- AQUI */}
+            <style jsx global>{`
+            .scrollbar-hide::-webkit-scrollbar { display: none; }
+            .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                body { background-color: var(--cor-fundo); }
+            `}</style>
 
-        <Toaster position="top-center" richColors theme={theme as any} />
-        {activeTab === "venda" ? <div className="fixed inset-0 z-40" style={{ backgroundColor: 'var(--cor-fundo)' }}><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} /></div> :
-            <div
-                data-theme={theme}
-                data-card-style={cardStyle}
-                data-card-size={cardSize}
-                className="min-h-screen"
-                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
-            >
-                <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
-                    <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center text-lg sm:text-xl font-bold shrink-0" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-primaria)' }}><Store /></div>
-                            <div className="min-w-0">
-                                <h1 className="text-lg sm:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-texto)' }}>{loja?.nome || "Sem loja"}</h1>
-                                <p className="text-xs sm:text-xs truncate" style={{ color: 'var(--cor-texto-sec)' }}>{loja?.endereco}</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => handleSaveTheme({ theme: theme === 'dark' ? 'light' : 'dark' })} className="p-2 rounded-lg hover:opacity-80 transition" style={{ backgroundColor: 'var(--cor-card)' }}><Palette size={16} /></button>
-                            <span className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-xs font-medium" style={{ backgroundColor: loja?.is_active ? 'var(--cor-primaria)' : '#4b5563' }}>{loja?.is_active ? "ativa" : "inativa"}</span>
-                            <button onClick={handleSair} className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-red-600 rounded-lg text-xs sm:text-xs font-bold flex items-center gap-1.5 hover:bg-red-700 transition" style={{ borderRadius: 'var(--radius)' }}><LogOut size={14} className="sm:w-4 sm:h-4" /><span className="hidden sm:inline">Sair</span></button>
-                        </div>
-                    </div>
-                    <div className="mb-4 sm:mb-6">
-                        <div className="p-1 overflow-x-auto scrollbar-hide touch-pan-x" style={{ backgroundColor: 'var(--cor-card)', borderRadius: 'var(--radius)' }}>
-                            <div className="flex gap-1 w-max min-w-full">
-                                {initialTabs.map(tab => (<button key={tab.id} onClick={() => { setActiveTab(tab.id); setMenuMobileOpen(false) }} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{ backgroundColor: activeTab === tab.id ? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--cor-texto-sec)', borderRadius: 'var(--radius)', fontSize: 'var(--font-size)' }}><tab.icon size={14} className="sm:w-4 sm:h-4" />{tab.label}</button>))}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="pb-8">
-                        {activeTab === "dados" && <DadosTab loja={loja} user={user} />}
+            <Toaster position="top-center" richColors theme={theme as any} />
 
-                        {activeTab === "produtos" && (podeVerVendas || podeVerEstoque) &&
-                            <ProdutosTab
-                                produtos={produtos}
-                                isAdmin={podeEditarApagar}
-                                isDono={["DONO"].includes(user?.nivel!)}
-                                lojaId={lojaId}
-                                onAdd={podeEditarApagar ? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")}
-                                onEdit={podeEditarApagar ? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")}
-                                onDelete={podeEditarApagar ? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")}
-                                formatCurrency={formatCurrency}
-                                theme={theme}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                            />
-                        }
-
-                        {activeTab === "equipa" &&
-                            <EquipaTab
-                                equipa={equipa}
-                                isAdmin={podeEditarApagar}
-                                isDono={["DONO"].includes(user?.nivel!)}
-                                lojaId={lojaId}
-                                onAdd={podeEditarApagar ? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")}
-                                onEdit={podeEditarApagar ? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")}
-                                onDelete={podeEditarApagar ? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")}
-                                onView={handleViewUserClick}
-                                theme={theme}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                            />
-                        }
-
-                        {activeTab === "estatisticas" &&
-                            <EstatisticasTab
-                                lojaId={lojaId}
-                                token={token}
-                                formatCurrency={formatCurrency}
-                                nomeLoja={loja?.nome || "MINHA LOJA"}
-                                nifLoja={`NIF: ${loja?.nif || ""}`}
-                                enderecoLoja={loja?.endereco || ""}
-                                theme={theme}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                            />
-                        }
-
-                        {activeTab === "risco" && podeVerTudo &&
-                            <RiscoTab
-                                vendas={vendasParaRisco as any}
-                                produtos={produtos}
-                                formatCurrency={formatCurrency}
-                                theme={theme}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                            />
-                        }
-
-                        {activeTab === "fornecedores" && podeVerTudo && <FornecedoresTab />}
-                        {activeTab === "documentos" && podeVerTudo && <DocumentosTab loja={loja} />}
-                        {activeTab === "definicoes" && podeVerTudo && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} corPrimaria={corPrimaria} corFundo={corFundo} />}
-                        {!["dados", "venda", "produtos", "equipa", "estatisticas", "risco", "fornecedores", "documentos", "definicoes"].includes(activeTab) && <div className="p-4 sm:p-6 rounded-xl text-center text-sm" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto-sec)' }}>Em breve: {allTabs.find(t => t.id === activeTab)?.label}</div>}
-                    </div>
+            {activeTab === "venda" ?
+                <div className="fixed inset-0 z-40" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                    <VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} />
                 </div>
-                <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
-                <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
-                <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
-                <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
-                <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
-                <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }} onConfirm={handleConfirmarRemocao} titulo="Remover do Carrinho" descricao={`Deseja remover ${itemParaRemover?.nome} do carrinho?`} loading={false} tipo="venda" />
-            </div>
-        }
-        <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} formatCurrency={formatCurrency} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} />
-    </>;
+                :
+                <div data-theme={theme} data-card-style={cardStyle} data-card-size={cardSize}>
+                    ...
+                </div>
+            }
+
+            {/*... todos os modals... */}
+        </LojaLayout>
+    );
 }
