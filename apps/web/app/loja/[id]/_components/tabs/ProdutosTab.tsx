@@ -205,7 +205,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                                         title="Ver QR Code"
                                                         style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 'var(--radius)' }}
                                                     >
-                                                        <QrCode size={16} className="text-white" />
+                                                        <QrCode size={20} className="text-white" />
                                                     </button>
                                                     {!p.is_active && (<Badge variant="destructive" className="text-xs h-6 px-2" style={{ backgroundColor: '#ef4444' }}>Inativo</Badge>)}
                                                 </div>

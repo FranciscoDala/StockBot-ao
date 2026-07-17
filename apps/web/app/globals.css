@@ -92,6 +92,7 @@
 
 .card {
     padding: var(--padding-card);
+    font-family: var(--font-sans); /* <-- ADICIONEI */
     transition: all 0.3s;
 }
 
@@ -103,7 +104,7 @@
 body {
     background-color: var(--cor-fundo);
     color: var(--cor-texto);
-    font-family: var(--font-zalando);
+    font-family: var(--font-sans); /* <-- CORRIGI AQUI: era --font-zalando */
     transition: background-color 0.3s, color 0.3s;
 }
 
@@ -175,9 +176,9 @@ textarea,
 select {
     border: 1px solid var(--cor-primaria)40;
     background-color: var(--cor-card);
-    /* <-- MUDOU AQUI: era var(--cor-fundo) */
     color: var(--cor-texto);
     border-radius: var(--radius);
+    font-family: var(--font-sans); /* <-- ADICIONEI */
     outline: none;
     -webkit-appearance: none;
     appearance: none;
@@ -199,7 +200,6 @@ select {
 }
 
 select option {
-    /* <-- ADICIONEI ISSO */
     background-color: var(--cor-card);
     color: var(--cor-texto);
 }
