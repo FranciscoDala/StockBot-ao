@@ -19,9 +19,25 @@ interface Props {
     onEdit: (p: any) => void;
     onDelete: (p: any) => void;
     formatCurrency: (v: number) => string;
+    // ADICIONADO
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
 }
 
-export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, onDelete, formatCurrency }: Props) {
+export function ProdutosTab({
+    produtos,
+    isAdmin,
+    isDono,
+    lojaId,
+    onAdd,
+    onEdit,
+    onDelete,
+    formatCurrency,
+    theme,
+    cardStyle,
+    cardSize
+}: Props) {
     const [qrProduto, setQrProduto] = useState<any>(null);
 
     const getEstoqueStatus = (estoque: number, minimo: number) => {
@@ -55,10 +71,16 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
     return (
         <>
             <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+       .scrollbar-hide::-webkit-scrollbar { display: none; }
+       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
-            <div className="space-y-6">
+            <div
+                className="space-y-6"
+                // ADICIONADO: herdar tema e estilo de card global
+                data-theme={theme}
+                data-card-style={cardStyle}
+                data-card-size={cardSize}
+            >
 
                 {/* HEADER PADRONIZADO */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -83,7 +105,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                 {/* CARDS KPI PADRONIZADOS */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div
-                        className="p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
+                        className="card p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',
@@ -101,7 +123,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     </div>
 
                     <div
-                        className="p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
+                        className="card p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-fundo-card, #18181b)',
                             border: '1px solid #3b82f630',
@@ -118,7 +140,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     </div>
 
                     <div
-                        className="p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
+                        className="card p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-fundo-card, #18181b)',
                             border: '1px solid #f59e0b30',
@@ -135,7 +157,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     </div>
 
                     <div
-                        className="p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
+                        className="card p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-fundo-card, #18181b)',
                             border: '1px solid #ef444430',
@@ -154,14 +176,14 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
 
                 {/* GRID DE PRODUTOS COM SCROLL */}
                 <div
-                    className="p-4 sm:p-6"
+                    className="card p-4 sm:p-6"
                     style={{
                         backgroundColor: 'var(--cor-fundo-card, #171717)',
                         border: '1px solid var(--cor-primaria)30',
                         borderRadius: 'var(--radius)'
                     }}
                 >
-                    {produtos.length === 0 ? (
+                    {produtos.length === 0? (
                         <div
                             className="text-center py-16 border-2 border-dashed"
                             style={{ borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)' }}
@@ -176,13 +198,13 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                    const imgSrc = p.imagem_url?.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                    const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
                                     const qrValue = `${APP_URL}/p/${p.sku || p.id}`;
 
                                     return (
                                         <div
                                             key={p.id}
-                                            className={`border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active ? 'opacity-50' : ''} w-[calc(100vw-3rem)] sm:w-auto shrink-0`}
+                                            className={`card border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active? 'opacity-50' : ''} w-[calc(100vw-3rem)] sm:w-auto shrink-0`}
                                             style={{
                                                 backgroundColor: 'var(--cor-fundo)',
                                                 borderColor: 'var(--cor-primaria)20',
@@ -192,7 +214,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                                             onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
                                         >
                                             <div className="relative w-full h-48" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                {p.imagem_url ? (
+                                                {p.imagem_url? (
                                                     <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center"><ImageOff size={32} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
@@ -281,7 +303,6 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                 </div>
             </div>
 
-
             <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
                 <DialogContent
                     className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col h-[80dvh] [&>button]:hidden"
@@ -306,7 +327,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         >
                             {qrProduto?.imagem_url && (
                                 <img
-                                    src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
+                                    src={qrProduto.imagem_url.startsWith('http')? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
                                     alt={qrProduto.nome}
                                     className="w-16 h-16 rounded-full object-cover border-2 mx-auto"
                                     style={{ borderColor: 'var(--cor-primaria)30' }}

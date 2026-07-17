@@ -12,9 +12,25 @@ interface Props {
     onEdit: (u: UsuarioLojaPage) => void;
     onDelete: (u: UsuarioLojaPage) => void;
     onView: (u: UsuarioLojaPage) => void;
+    // ADICIONADO
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
 }
 
-export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDelete, onView }: Props) {
+export function EquipaTab({
+    equipa,
+    isAdmin,
+    isDono,
+    lojaId,
+    onAdd,
+    onEdit,
+    onDelete,
+    onView,
+    theme,
+    cardStyle,
+    cardSize
+}: Props) {
     const toModalUser = (u: UsuarioLojaPage): UsuarioLoja => ({
        ...u,
         telefone: u.telefone?? undefined
@@ -25,7 +41,13 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
     const totalGerentes = equipa.filter(u => u.role === 'GERENTE' || u.role === 'DONO').length;
 
     return (
-        <div className="space-y-6">
+        <div
+            className="space-y-6"
+            // ADICIONADO: herdar tema e estilo de card global
+            data-theme={theme}
+            data-card-style={cardStyle}
+            data-card-size={cardSize}
+        >
             {/* HEADER PADRONIZADO */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
@@ -49,7 +71,7 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
             {/* CARDS KPI */}
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <div
-                    className="p-4 transition hover:scale-[1.02]"
+                    className="card p-4 transition hover:scale-[1.02]"
                     style={{
                         background: 'var(--cor-primaria)',
                         borderRadius: 'var(--radius)',
@@ -64,7 +86,7 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
                 </div>
 
                 <div
-                    className="p-4 transition hover:scale-[1.02]"
+                    className="card p-4 transition hover:scale-[1.02]"
                     style={{
                         background: 'var(--cor-fundo-card, #18181b)',
                         border: '1px solid var(--cor-primaria)30',
@@ -80,7 +102,7 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
                 </div>
 
                 <div
-                    className="p-4 transition hover:scale-[1.02]"
+                    className="card p-4 transition hover:scale-[1.02]"
                     style={{
                         background: 'var(--cor-fundo-card, #18181b)',
                         border: '1px solid var(--cor-primaria)30',
@@ -98,7 +120,7 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
 
             {/* LISTA PROFISSIONAL */}
             <div
-                className="p-4 sm:p-6"
+                className="card p-4 sm:p-6"
                 style={{
                     background: 'var(--cor-fundo-card, #171717)',
                     border: '1px solid var(--cor-primaria)30',
@@ -119,7 +141,7 @@ export function EquipaTab({ equipa, isAdmin, isDono, lojaId, onAdd, onEdit, onDe
                     {equipa.map(u => (
                         <div
                             key={u.id}
-                            className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 gap-3 hover:brightness-105 transition"
+                            className="card flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 gap-3 hover:brightness-105 transition"
                             style={{
                                 backgroundColor: 'var(--cor-fundo-card, #262626)',
                                 border: '1px solid var(--cor-primaria)15',

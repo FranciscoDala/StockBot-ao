@@ -47,9 +47,23 @@ type Props = {
     nomeLoja?: string
     nifLoja?: string
     enderecoLoja?: string
+    // ADICIONADO
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
 }
 
-export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MINHA LOJA", nifLoja = "NIF: 000", enderecoLoja = "Endereço: Luanda" }: Props) {
+export function EstatisticasTab({
+    lojaId,
+    token,
+    formatCurrency,
+    nomeLoja = "MINHA LOJA",
+    nifLoja = "NIF: 000",
+    enderecoLoja = "Endereço: Luanda",
+    theme,
+    cardStyle,
+    cardSize
+}: Props) {
     const [vendas, setVendas] = useState<Venda[]>([])
     const [loading, setLoading] = useState(true)
     const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
@@ -191,7 +205,6 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             printWindow.focus();
         }
     }
-
     useEffect(() => {
         buscarVendas()
         conectarWebSocket()
@@ -200,6 +213,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             ws.current?.close()
         }
     }, [buscarVendas, conectarWebSocket])
+
     const hoje = new Date()
     const diasAtras = useMemo(() => {
         const d = new Date()
@@ -294,7 +308,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-          ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+         ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -312,10 +326,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     )
 
     return (
-        <div className="space-y-4 md:space-y-6 p-2 md:p-0">
+        <div
+            className="space-y-4 md:space-y-6 p-2 md:p-0"
+            // ADICIONADO: herdar tema e estilo de card global
+            data-theme={theme}
+            data-card-style={cardStyle}
+            data-card-size={cardSize}
+        >
             <style jsx global>{`
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+   .scrollbar-hide::-webkit-scrollbar { display: none; }
+   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
             {/* HEADER */}
@@ -338,7 +358,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
             {/* FILTROS */}
             <div
-                className="p-3 md:p-4"
+                className="card p-3 md:p-4"
                 style={{
                     backgroundColor: 'var(--cor-fundo-card, #171717)',
                     border: '1px solid var(--cor-primaria)30',
@@ -399,7 +419,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition`}
                             style={abaAtiva === tab.id
-                              ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
+                             ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
                                 : {color: 'var(--cor-texto-sec)', borderRadius: 'var(--radius)'}
                             }
                         >
@@ -421,7 +441,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
                     {/* GRAFICO */}
                     <div
-                        className="p-4"
+                        className="card p-4"
                         style={{
                             backgroundColor: 'var(--cor-fundo-card, #171717)',
                             border: '1px solid var(--cor-primaria)30',
@@ -435,7 +455,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
                                         className="px-3 py-1.5 rounded-lg text-xs font-medium transition"
                                         style={filtroGrafico === tipo
-                                          ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
+                                         ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
                                             : {backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', borderRadius: 'var(--radius)'}
                                         }
                                     >
@@ -469,7 +489,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
                     {/* TABELA VENDAS */}
                     <div
-                        className="p-3 md:p-4"
+                        className="card p-3 md:p-4"
                         style={{
                             backgroundColor: 'var(--cor-fundo-card, #171717)',
                             border: '1px solid var(--cor-primaria)30',
@@ -479,7 +499,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         <h3 className="font-bold mb-3" style={{color: 'var(--cor-texto)'}}>Últimas Vendas - {vendasFiltradas.length}</h3>
                         <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-hide">
                             {vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
-                                <div key={v.id} className="flex justify-between items-center border-b pb-2 pt-2 px-2 text-xs hover:bg-neutral-800/30 rounded-lg transition" style={{borderColor: 'var(--cor-primaria)15'}}>
+                                <div key={v.id} className="card flex justify-between items-center border-b pb-2 pt-2 px-2 text-xs hover:bg-neutral-800/30 rounded-lg transition" style={{borderColor: 'var(--cor-primaria)15'}}>
                                     <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
                                         <p className="font-medium" style={{color: 'var(--cor-texto)'}}>#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
                                         <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{v.itens} itens • {v.formaPagamento}</p>
@@ -500,7 +520,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             {/* ABA PRODUTOS */}
             {abaAtiva === "produtos" && (
                 <div
-                    className="p-4"
+                    className="card p-4"
                     style={{
                         backgroundColor: 'var(--cor-fundo-card, #171717)',
                         border: '1px solid var(--cor-primaria)30',
@@ -510,7 +530,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     <h3 className="font-bold mb-4" style={{color: 'var(--cor-texto)'}}>Top 10 Produtos Mais Vendidos</h3>
                     <div className="space-y-2">
                         {topProdutos.map((p, i) => (
-                            <div key={i} className="flex justify-between items-center p-3" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}>
+                            <div key={i} className="card flex justify-between items-center p-3" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}>
                                 <div>
                                     <p className="font-medium text-sm" style={{color: 'var(--cor-texto)'}}>#{i + 1} {p.nome}</p>
                                     <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{p.qtd} unidades vendidas</p>
@@ -526,7 +546,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             {/* ABA PAGAMENTOS */}
             {abaAtiva === "pagamentos" && (
                 <div
-                    className="p-4"
+                    className="card p-4"
                     style={{
                         backgroundColor: 'var(--cor-fundo-card, #171717)',
                         border: '1px solid var(--cor-primaria)30',
@@ -554,7 +574,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             {vendaSelecionada && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setVendaSelecionada(null)}>
                     <div
-                        className="shadow-2xl w-full max-w-lg max-h-[90vh] flex-col border"
+                        className="card shadow-2xl w-full max-w-lg max-h-[90vh] flex-col border"
                         style={{
                             backgroundColor: 'var(--cor-fundo-card, #171717)',
                             borderColor: 'var(--cor-primaria)30',
@@ -577,7 +597,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 <h4 className="font-semibold mb-3 flex items-center gap-2" style={{color: 'var(--cor-texto)'}}><Package size={16} /> Produtos</h4>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                                     {vendaSelecionada.detalhes.map((item) => (
-                                        <div key={item.id} className="flex justify-between items-center text-sm p-3" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}>
+                                        <div key={item.id} className="card flex justify-between items-center text-sm p-3" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}>
                                             <div className="flex-1">
                                                 <p className="font-medium" style={{color: 'var(--cor-texto)'}}>{item.nome_produto}</p>
                                                 <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
@@ -622,7 +642,7 @@ function CardStats({
 
     return (
         <div
-            className="p-3 md:p-4 transition hover:scale-[1.02]"
+            className="card p-3 md:p-4 transition hover:scale-[1.02]"
             style={{
                 backgroundColor: c.bg,
                 color: c.text,
