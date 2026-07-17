@@ -6,6 +6,8 @@ import { QRCodeSVG } from "qrcode.react";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Loja, userread } from "../../page";
+import { formatCurrency } from "../utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -145,7 +147,7 @@ export function ProdutosTab({
                     </div>
 
                     <div
-                        className="transition hover:scale-[1.02] min-w-0" 
+                        className="transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-card)',
                             border: '1px solid var(--cor-primaria)30',

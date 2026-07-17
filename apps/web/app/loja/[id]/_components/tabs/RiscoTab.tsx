@@ -1,6 +1,8 @@
 "use client"
 import { useMemo, useState } from "react"
 import { AlertTriangle, PackageX, TrendingDown, Ban, Clock, Flame, CheckCircle2, Filter, Search, Download, BarChart3 } from "lucide-react"
+import { Loja, userread } from "../../page";
+import { formatCurrency } from "../utils";
 
 type ItemVenda = {
     id: string
@@ -215,7 +217,7 @@ export function RiscoTab({
 
             {/* FILTROS SELECT */}
             <div
-                className="transition" 
+                className="transition"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     border: '1px solid var(--cor-primaria)30',

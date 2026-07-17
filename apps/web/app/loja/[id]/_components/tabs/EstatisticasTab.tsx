@@ -2,6 +2,8 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from "react"
 import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer, Filter, Download, BarChart3, PieChart, Users } from "lucide-react"
 import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { Loja, userread } from "../../page";
+import { formatCurrency } from "../utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://gentle-playfulness-production-d333.up.railway.app";
@@ -647,7 +649,7 @@ function CardStats({
     descricao,
     tendencia,
     formatCurrency,
-    cardStyle, 
+    cardStyle,
     cardSize
 }: {
     titulo: string,
