@@ -344,7 +344,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                             >
                                 <Download size={18} /> Baixar QR Code
                             </Button>
-                            
+
                             <button
                                 onClick={() => toast.info("Função em breve")}
                                 className="font-semibold text-sm w-full text-center hover:underline"
