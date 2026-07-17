@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
     Settings, Palette, LayoutGrid, Type, Bell, Shield,
-    Save, RefreshCw, Sun, Moon
+    Save, RefreshCw, Sun, Moon, Sparkles, Layers, Zap
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -112,6 +112,15 @@ export function DefinicoesTab({
         { id: "cards" as TabDef, label: "Cards", icon: <LayoutGrid size={16} /> },
         { id: "notificacoes" as TabDef, label: "Notificações", icon: <Bell size={16} /> },
         { id: "seguranca" as TabDef, label: "Segurança", icon: <Shield size={16} /> },
+    ]
+
+    const estilosCards = [
+        {id: "padrao", nome: "Padrão", desc: "Limpo e sólido", icon: <LayoutGrid size={18} />},
+        {id: "glass", nome: "Glass", desc: "Efeito vidro iOS", icon: <Layers size={18} />},
+        {id: "borda", nome: "Com Borda", desc: "Contorno profissional", icon: <Settings size={18} />},
+        {id: "neon", nome: "Neon", desc: "Brilho tech gamer", icon: <Zap size={18} />},
+        {id: "gradient", nome: "Gradient", desc: "Premium degradê", icon: <Sparkles size={18} />},
+        {id: "elevado", nome: "Elevado 3D", desc: "Sombra destacada", icon: <LayoutGrid size={18} />},
     ]
 
     return (
@@ -264,22 +273,21 @@ export function DefinicoesTab({
                     <div className="space-y-6">
                         <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Estilo dos Cards</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {[
-                                {id: "padrao", nome: "Padrão", desc: "Sólido"},
-                                {id: "glass", nome: "Glass", desc: "Com desfoque"},
-                                {id: "borda", nome: "Com Borda", desc: "Contorno visível"}
-                            ].map(c => (
+                            {estilosCards.map(c => (
                                 <button
                                     key={c.id}
                                     onClick={() => setEstiloCard(c.id)}
-                                    className="p-4 border-2 text-left transition"
+                                    className="p-4 border-2 text-left transition hover:scale-[1.02]"
                                     style={{
                                         borderColor: estiloCard === c.id ? 'var(--cor-primaria)' : 'var(--cor-borda)',
                                         backgroundColor: estiloCard === c.id ? 'var(--cor-primaria)20' : 'var(--cor-card)',
                                         borderRadius: 'var(--radius)'
                                     }}
                                 >
-                                    <p className="font-bold" style={{color: 'var(--cor-texto)'}}>{c.nome}</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <span style={{color: 'var(--cor-primaria)'}}>{c.icon}</span>
+                                        <p className="font-bold" style={{color: 'var(--cor-texto)'}}>{c.nome}</p>
+                                    </div>
                                     <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{c.desc}</p>
                                 </button>
                             ))}

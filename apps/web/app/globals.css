@@ -110,6 +110,68 @@
     transform: translateY(-2px);
 }
 
+/* 4. NEON - gamer / tech */
+[data-card-style="neon"] .card,
+.card[data-card-style="neon"] {
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-primaria);
+    box-shadow: 0 0 10px var(--cor-primaria)40, 0 0 20px var(--cor-primaria)20;
+}
+
+[data-card-style="neon"] .card:hover,
+.card[data-card-style="neon"]:hover {
+    box-shadow: 0 0 20px var(--cor-primaria)60, 0 0 40px var(--cor-primaria)30;
+    transform: translateY(-3px);
+}
+
+/* 5. GRADIENT - premium */
+[data-card-style="gradient"] .card,
+.card[data-card-style="gradient"] {
+    background: linear-gradient(135deg, var(--cor-card) 0%, var(--cor-card-hover) 100%);
+    border: 1px solid var(--cor-borda);
+}
+
+[data-card-style="gradient"] .card:hover,
+.card[data-card-style="gradient"]:hover {
+    background: linear-gradient(135deg, var(--cor-card-hover) 0%, var(--cor-primaria)15 100%);
+    border-color: var(--cor-primaria);
+    transform: translateY(-2px);
+}
+
+[data-theme="light"][data-card-style="gradient"] .card,
+[data-theme="light"] .card[data-card-style="gradient"] {
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+}
+
+[data-theme="light"][data-card-style="gradient"] .card:hover,
+[data-theme="light"] .card[data-card-style="gradient"]:hover {
+    background: linear-gradient(135deg, #f9fafb 0%, var(--cor-primaria)10 100%);
+}
+
+/* 6. ELEVADO - 3D destacado */
+[data-card-style="elevado"] .card,
+.card[data-card-style="elevado"] {
+    background-color: var(--cor-card);
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+[data-card-style="elevado"] .card:hover,
+.card[data-card-style="elevado"]:hover {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    transform: translateY(-5px) scale(1.02);
+}
+
+[data-theme="light"][data-card-style="elevado"] .card,
+[data-theme="light"] .card[data-card-style="elevado"] {
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+[data-theme="light"][data-card-style="elevado"] .card:hover,
+[data-theme="light"] .card[data-card-style="elevado"]:hover {
+    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+}
+
 /* ============ TAMANHOS DE CARD ============ */
 [data-card-size="pequeno"] .card,
 .card[data-card-size="pequeno"] {
