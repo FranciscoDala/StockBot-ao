@@ -1,6 +1,7 @@
 "use client"
 import { Truck, Plus } from "lucide-react"
 import { useState } from "react"
+import { formatCurrency } from "../utils";
 
 type Props = { // <-- ADICIONEI
     theme: string;

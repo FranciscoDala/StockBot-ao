@@ -1,5 +1,6 @@
 "use client"
 import { FileText, Download, FileSpreadsheet } from "lucide-react"
+import { formatCurrency } from "../utils";
 
 type Props = { // <-- ADICIONEI
     loja: any;

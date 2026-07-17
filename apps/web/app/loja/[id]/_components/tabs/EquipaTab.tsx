@@ -2,6 +2,7 @@
 import { Plus, Eye, Trash2, Users, UserCheck, UserX, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { UsuarioLoja, UsuarioLojaPage } from "../../page";
+import { formatCurrency } from "../utils";
 
 interface Props {
     equipa: UsuarioLojaPage[];

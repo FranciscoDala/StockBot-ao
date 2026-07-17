@@ -36,8 +36,8 @@ export function DefinicoesTab({
 }: Props) {
     const [tabAtiva, setTabAtiva] = useState<TabDef>("aparencia");
 
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px'; // <-- ADICIONADO
-    const padding = cardSize === 'grande' ? '24px' : '16px'; // <-- ADICIONADO
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '24px' : '16px';
 
     // STATES VINDOS DO DB
     const [modoEscuro, setModoEscuro] = useState(theme === 'dark');

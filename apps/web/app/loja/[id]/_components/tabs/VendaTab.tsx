@@ -71,7 +71,6 @@ interface Props {
     setShowConfirmarFinalizar: (v: boolean) => void;
     executarFinalizarVenda: () => void;
     loadingVenda: boolean;
-    formatCurrency: (v: number) => string;
     onClose: () => void;
     token: string | null;
     nomeLoja: string;
@@ -86,9 +85,9 @@ interface Props {
         itens: number;
         detalhes: ItemVenda[];
     } | null
-    theme: string; // <-- ADICIONADO
-    cardStyle: string; // <-- ADICIONADO
-    cardSize: string; // <-- ADICIONADO
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
 }
 
 export function VendaTab({
@@ -107,19 +106,18 @@ export function VendaTab({
     showConfirmarFinalizar, setShowConfirmarFinalizar,
     executarFinalizarVenda,
     loadingVenda,
-    formatCurrency,
     onClose,
     nomeLoja,
     nifLoja = "NIF: 000",
-    enderecoLoja = "Endereço: Luanda",
+    enderecoLoja = "Endereço: ---",
     vendaAtual,
-    theme, // <-- ADICIONADO
-    cardStyle, // <-- ADICIONADO
-    cardSize // <-- ADICIONADO
+    theme,
+    cardStyle,
+    cardSize
 }: Props) {
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
-    const padding = cardSize === 'grande'? '24px' : '16px'; // <-- ADICIONADO
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const padding = cardSize === 'grande'? '24px' : '16px';
 
     const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
 

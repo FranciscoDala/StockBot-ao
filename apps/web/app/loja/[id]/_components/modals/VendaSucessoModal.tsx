@@ -4,6 +4,7 @@ import { useReactToPrint } from "react-to-print";
 import { CheckCircle, Printer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ReciboTermico } from "../venda/ReciboTermico";
+import { formatCurrency } from "../utils";
 
 interface VendaSucessoModalProps {
     open: boolean;

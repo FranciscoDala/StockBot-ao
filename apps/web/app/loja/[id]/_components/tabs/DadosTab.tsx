@@ -2,6 +2,7 @@
 import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, Ban, Wifi, WifiOff, ShoppingBag, Package } from "lucide-react";
 import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
+
 import { useEffect, useState, useRef, useCallback } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
