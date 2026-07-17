@@ -179,7 +179,7 @@ export function DadosTab({
                     className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
                     style={{background: 'var(--cor-primaria)', color: '#fff'}}
                 >
-                    <Edit size={14} />
+                    <Edit size={10} />
                     Atualizar
                 </button>
             </div>
