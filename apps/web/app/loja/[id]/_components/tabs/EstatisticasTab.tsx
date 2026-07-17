@@ -347,10 +347,10 @@ export function EstatisticasTab({
                     <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Acompanha o crescimento da sua loja</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={exportarCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110" style={{background: 'var(--cor-primaria)', color: '#fff'}}>
+                    <button onClick={exportarCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs" style={{background: 'var(--cor-primaria)', color: '#fff'}}>
                         <Download size={14} /> Exportar
                     </button>
-                    <button onClick={buscarVendas} className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition" style={{background: 'transparent', color: 'var(--cor-primaria)', border: '2px solid var(--cor-primaria)'}}>
+                    <button onClick={buscarVendas} className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition text-xs" style={{background: 'transparent', color: 'var(--cor-primaria)', border: '2px solid var(--cor-primaria)'}}>
                         <RefreshCw size={14} /> Atualizar
                     </button>
                 </div>

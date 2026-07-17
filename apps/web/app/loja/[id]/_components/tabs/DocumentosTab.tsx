@@ -14,14 +14,14 @@ export function DocumentosTab({ loja }: { loja: any }) {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
-                        <FileText size={22} style={{color: 'var(--cor-primaria)'}} />
                         Documentos
+                        <FileText size={16} style={{color: 'var(--cor-primaria)'}} />
                     </h2>
                     <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Relatórios e faturas da loja</p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
+                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
                         style={{
                             background: 'transparent',
                             color: 'var(--cor-primaria)',
@@ -32,7 +32,7 @@ export function DocumentosTab({ loja }: { loja: any }) {
                         Gerar
                     </button>
                     <button
-                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
+                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
                         style={{background: 'var(--cor-primaria)', color: '#fff'}}
                     >
                         <Download size={14} />

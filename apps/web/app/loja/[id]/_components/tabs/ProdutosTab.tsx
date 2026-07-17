@@ -70,10 +70,10 @@ export function ProdutosTab({
     return (
         <>
             <style jsx global>{`
-     .scrollbar-hide::-webkit-scrollbar { display: none; }
-     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-     .snap-x { scroll-snap-type: x mandatory; }
-     .snap-center { scroll-snap-align: center; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .snap-x { scroll-snap-type: x mandatory; }
+    .snap-center { scroll-snap-align: center; }
         `}</style>
             <div
                 className="space-y-6"
@@ -86,15 +86,15 @@ export function ProdutosTab({
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
-                            <Package size={22} style={{ color: 'var(--cor-primaria)' }} />
                             Produtos
+                            <Package size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </h2>
                         <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{kpis.totalProdutos} produtos cadastrados</p>
                     </div>
                     {isAdmin && (
                         <button
                             onClick={onAdd}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-2 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
                             style={{ background: 'var(--cor-primaria)', color: '#fff' }}
                         >
                             <Plus size={14} /> Adicionar Produto
@@ -173,18 +173,18 @@ export function ProdutosTab({
                         <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Produtos zerados</p>
                     </div>
                 </div>
-                {/* GRID DE PRODUTOS SEM PADDING */}
+                {/* GRID DE PRODUTOS SEM PADDING NENHUM */}
                 <div
-                    className="card"
+                    className="" // REMOVIDO: card + padding
                     style={{
-                        backgroundColor: 'var(--cor-fundo-card, #171717)',
-                        border: '1px solid var(--cor-primaria)', // BORDA PRIMARY
+                        backgroundColor: 'transparent',
+                        border: '1px solid var(--cor-primaria)', // só borda fina
                         borderRadius: 'var(--radius)'
                     }}
                 >
                     {produtos.length === 0? (
                         <div
-                            className="text-center py-16 border-2 border-dashed"
+                            className="text-center py-16 border-2 border-dashed m-4" // só padding interno do vazio
                             style={{ borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)' }}
                         >
                             <Package className="mx-auto mb-3" size={48} style={{ color: 'var(--cor-primaria)', opacity: 0.5 }} />
@@ -192,9 +192,9 @@ export function ProdutosTab({
                             <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
                         </div>
                     ) : (
-                        // MOBILE: 100% LARGURA + SCROLL. DESKTOP: GRID
+                        // MOBILE: 1 CARD 100% | TABLET: 2 | DESKTOP: 3+
                         <div className="overflow-x-auto scrollbar-hide snap-x">
-                            <div className="flex gap-0 w-max sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 sm:w-full sm:gap-4">
+                            <div className="flex w-max sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:w-full gap-0 sm:gap-3">
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
@@ -210,9 +210,10 @@ export function ProdutosTab({
                                             style={{
                                                 backgroundColor: 'var(--cor-fundo)',
                                                 borderColor: 'var(--cor-primaria)', // BORDA PRIMARY
-                                                borderRadius: 0, // SEM BORDA ARREDONDADA NO MOBILE
+                                                borderRadius: 0, // quadrado no mobile
                                                 borderLeft: 'none',
-                                                borderRight: 'none'
+                                                borderRight: 'none',
+                                                borderBottom: '1px solid var(--cor-primaria)30'
                                             }}
                                         >
                                             <div className="relative w-full h-48" style={{ backgroundColor: 'var(--cor-fundo)' }}>

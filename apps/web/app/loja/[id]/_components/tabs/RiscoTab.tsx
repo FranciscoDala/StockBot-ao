@@ -193,13 +193,13 @@ export function RiscoTab({
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>Painel de Riscos
-                    {totalRiscos === 0? <CheckCircle2 size={18} style={{color: 'var(--cor-primaria)'}} /> : <AlertTriangle size={18} className="text-red-500" />}
+                    {totalRiscos === 0? <CheckCircle2 size={16} style={{color: 'var(--cor-primaria)'}} /> : <AlertTriangle size={16} className="text-red-500" />}
                     </h2>
                     <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Observe e controle os riscos diários</p>
                 </div>
                 <button
                     onClick={exportarCSV}
-                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
                     style={{background: 'var(--cor-primaria)', color: '#fff'}}
                 >
                     <Download size={14} /> Exportar CSV

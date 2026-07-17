@@ -129,16 +129,17 @@ export function DefinicoesTab({
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
-                        <Settings size={22} />
                         Definições
+                        <Settings size={16} style={{color: 'var(--cor-primaria)'}} />
+
                     </h2>
                     <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Personalize a aparência da sua loja</p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <button onClick={handleRestaurar} className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition hover:opacity-90" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}>
+                    <button onClick={handleRestaurar} className="px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition hover:opacity-90 text-xs" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderRadius: 'var(--radius-sm)'}}>
                         <RefreshCw size={14} /> Restaurar
                     </button>
-                    <button onClick={handleSalvar} className="px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition hover:opacity-90" style={{backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius-sm)'}}>
+                    <button onClick={handleSalvar} className="px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition hover:opacity-90 text-xs" style={{backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius-sm)'}}>
                         <Save size={14} /> Salvar
                     </button>
                 </div>
