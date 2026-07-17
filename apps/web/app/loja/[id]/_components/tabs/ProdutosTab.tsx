@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { QRCodeSVG } from "qrcode.react";
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "sonner"; // <-- ADICIONA ESSA LINHA
+import { toast } from "sonner";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -19,7 +19,6 @@ interface Props {
     onEdit: (p: any) => void;
     onDelete: (p: any) => void;
     formatCurrency: (v: number) => string;
-    // ADICIONADO
     theme: string;
     cardStyle: string;
     cardSize: string;
@@ -71,12 +70,13 @@ export function ProdutosTab({
     return (
         <>
             <style jsx global>{`
-       .scrollbar-hide::-webkit-scrollbar { display: none; }
-       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      .snap-x { scroll-snap-type: x mandatory; }
+      .snap-center { scroll-snap-align: center; }
         `}</style>
             <div
                 className="space-y-6"
-                // ADICIONADO: herdar tema e estilo de card global
                 data-theme={theme}
                 data-card-style={cardStyle}
                 data-card-size={cardSize}
@@ -126,8 +126,8 @@ export function ProdutosTab({
                         className="card p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-fundo-card, #18181b)',
-                            border: '1px solid #3b82f630',
-                            color: '#60a5fa',
+                            border: '1px solid var(--cor-primaria)30',
+                            color: 'var(--cor-primaria)',
                             borderRadius: 'var(--radius)'
                         }}
                     >
@@ -143,8 +143,8 @@ export function ProdutosTab({
                         className="card p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-fundo-card, #18181b)',
-                            border: '1px solid #f59e0b30',
-                            color: '#fbbf24',
+                            border: '1px solid var(--cor-primaria)30',
+                            color: 'var(--cor-primaria)',
                             borderRadius: 'var(--radius)'
                         }}
                     >
@@ -160,8 +160,8 @@ export function ProdutosTab({
                         className="card p-3 md:p-4 transition hover:scale-[1.02] min-w-0"
                         style={{
                             background: 'var(--cor-fundo-card, #18181b)',
-                            border: '1px solid #ef444430',
-                            color: '#f87171',
+                            border: '1px solid var(--cor-primaria)30',
+                            color: 'var(--cor-primaria)',
                             borderRadius: 'var(--radius)'
                         }}
                     >
@@ -174,12 +174,13 @@ export function ProdutosTab({
                     </div>
                 </div>
 
-                {/* GRID DE PRODUTOS COM SCROLL */}
+                {/* GRID DE PRODUTOS COM SCROLL MOBILE */}
                 <div
-                    className="card p-4 sm:p-6"
+                    // TIREI O PADDING DA DIV PRINCIPAL
+                    className="card"
                     style={{
                         backgroundColor: 'var(--cor-fundo-card, #171717)',
-                        border: '1px solid var(--cor-primaria)30',
+                        border: '1px solid var(--cor-primaria)', // BORDA PRIMARY
                         borderRadius: 'var(--radius)'
                     }}
                 >
@@ -193,7 +194,9 @@ export function ProdutosTab({
                             <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
                         </div>
                     ) : (
-                        <div className="overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+                        // MOBILE: CARROSSEL 1 POR VEZ CENTRALIZADO
+                        // DESKTOP: GRID NORMAL
+                        <div className="overflow-x-auto scrollbar-hide snap-x px-2 py-4 sm:p-6">
                             <div className="flex gap-4 w-max sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 sm:w-full">
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
@@ -204,14 +207,16 @@ export function ProdutosTab({
                                     return (
                                         <div
                                             key={p.id}
-                                            className={`card border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active? 'opacity-50' : ''} w-[calc(100vw-3rem)] sm:w-auto shrink-0`}
+                                            className={`card border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active? 'opacity-50' : ''}
+                                            w-[85vw] max-w-[380px] snap-center shrink-0
+                                            sm:w-auto`}
                                             style={{
                                                 backgroundColor: 'var(--cor-fundo)',
-                                                borderColor: 'var(--cor-primaria)20',
+                                                borderColor: 'var(--cor-primaria)', // BORDA PRIMARY
                                                 borderRadius: 'var(--radius)',
                                             }}
                                             onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
+                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
                                         >
                                             <div className="relative w-full h-48" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                                                 {p.imagem_url? (
@@ -271,7 +276,7 @@ export function ProdutosTab({
                                                 </div>
 
                                                 {isAdmin && (
-                                                    <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)20' }}>
+                                                    <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                         <Button
                                                             size="sm"
                                                             onClick={() => onEdit(p)}
@@ -320,9 +325,9 @@ export function ProdutosTab({
                     </div>
 
                     {/* CONTEÚDO COM SCROLL E CENTRALIZADO */}
-                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex flex-col items-center min-h-0">
+                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex-col items-center min-h-0">
                         <div
-                            className="w-full p-6 flex flex-col items-center justify-center gap-5 text-center"
+                            className="w-full p-6 flex-col items-center justify-center gap-5 text-center"
                             style={{ backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)' }}
                         >
                             {qrProduto?.imagem_url && (
