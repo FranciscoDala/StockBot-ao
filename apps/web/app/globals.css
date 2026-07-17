@@ -59,14 +59,16 @@
 /* ============ ESTILOS DE CARD ============ */
 
 /* 1. PADRÃO - limpo, sem nada */
-[data-card-style="padrao"] > .card {
+[data-card-style="padrao"] .card,
+.card[data-card-style="padrao"] {
     border: none;
     backdrop-filter: none;
     box-shadow: none;
 }
 
 /* 2. GLASS - bem brabo, efeito vidro iOS */
-[data-card-style="glass"] > .card {
+[data-card-style="glass"] .card,
+.card[data-card-style="glass"] {
     background: rgba(23, 23, 23, 0.25);
     backdrop-filter: blur(20px) saturate(200%);
     -webkit-backdrop-filter: blur(20px) saturate(200%);
@@ -74,47 +76,55 @@
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-[data-theme="light"][data-card-style="glass"] > .card {
+[data-theme="light"][data-card-style="glass"] .card,
+[data-theme="light"] .card[data-card-style="glass"] {
     background: rgba(255, 255, 255, 0.45);
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 }
 
 /* 3. COM BORDA - profissional, cara de SaaS */
-[data-card-style="borda"] > .card {
+[data-card-style="borda"] .card,
+.card[data-card-style="borda"] {
     background-color: var(--cor-card);
     border: 1.5px solid var(--cor-borda);
     box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
 }
 
-[data-card-style="borda"] > .card:hover {
+[data-card-style="borda"] .card:hover,
+.card[data-card-style="borda"]:hover {
     border-color: var(--cor-primaria);
     box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
     transform: translateY(-2px);
 }
 
-[data-theme="light"][data-card-style="borda"] > .card {
+[data-theme="light"][data-card-style="borda"] .card,
+[data-theme="light"] .card[data-card-style="borda"] {
     box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12);
 }
 
-[data-theme="light"][data-card-style="borda"] > .card:hover {
+[data-theme="light"][data-card-style="borda"] .card:hover,
+[data-theme="light"] .card[data-card-style="borda"]:hover {
     border-color: var(--cor-primaria);
     box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
     transform: translateY(-2px);
 }
 
 /* ============ TAMANHOS DE CARD ============ */
-[data-card-size="pequeno"] {
+[data-card-size="pequeno"] .card,
+.card[data-card-size="pequeno"] {
     --padding-card: 0.75rem;
     --radius: 0.5rem;
 }
 
-[data-card-size="medio"] {
+[data-card-size="medio"] .card,
+.card[data-card-size="medio"] {
     --padding-card: 1.5rem;
     --radius: 0.75rem;
 }
 
-[data-card-size="grande"] {
+[data-card-size="grande"] .card,
+.card[data-card-size="grande"] {
     --padding-card: 2.5rem;
     --radius: 1rem;
 }
