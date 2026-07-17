@@ -1,6 +1,5 @@
 "use client";
-
-import { LogOut, Palette } from "lucide-react";
+import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings, Power, Palette } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const deleteCookie = (name: string) => {
@@ -60,7 +59,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
 
                     <div className="flex items-center gap-3 shrink-0">
                         <button
-                            onClick={() => handleSaveTheme({ theme: theme === 'dark'? 'light' : 'dark' })}
+                            onClick={() => handleSaveTheme({ theme: theme === 'dark' ? 'light' : 'dark' })}
                             className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
                             style={{
                                 width: '50px',
@@ -83,7 +82,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                                 borderRadius: 'var(--radius)'
                             }}
                         >
-                            <LogOut size={22} color="#fff" />
+                            <Power size={22} color="#fff" strokeWidth={2.5} />
                         </button>
                     </div>
                 </header>
