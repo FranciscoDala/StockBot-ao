@@ -281,9 +281,10 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                 </div>
             </div>
 
+
             <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
                 <DialogContent
-                    className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col max-h-[92dvh] [&>button]:hidden"
+                    className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col h-[80dvh] [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)' }}
                 >
                     {/* HEADER FIXO */}
@@ -298,9 +299,9 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     </div>
 
                     {/* CONTEÚDO COM SCROLL E CENTRALIZADO */}
-                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex-col items-center justify-start">
+                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex flex-col items-center min-h-0">
                         <div
-                            className="w-full p-6 flex-col items-center justify-center gap-5 text-center"
+                            className="w-full p-6 flex flex-col items-center justify-center gap-5 text-center"
                             style={{ backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)' }}
                         >
                             {qrProduto?.imagem_url && (
