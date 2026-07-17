@@ -84,6 +84,9 @@ interface Props {
         itens: number;
         detalhes: ItemVenda[];
     } | null
+    theme: string; // <-- ADICIONADO
+    cardStyle: string; // <-- ADICIONADO
+    cardSize: string; // <-- ADICIONADO
 }
 
 export function VendaTab({
@@ -107,8 +110,14 @@ export function VendaTab({
     nomeLoja,
     nifLoja = "NIF: 000",
     enderecoLoja = "Endereço: Luanda",
-    vendaAtual
+    vendaAtual,
+    theme, // <-- ADICIONADO
+    cardStyle, // <-- ADICIONADO
+    cardSize // <-- ADICIONADO
 }: Props) {
+
+    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
+    const padding = cardSize === 'grande'? '24px' : '16px'; // <-- ADICIONADO
 
     const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
 
@@ -140,15 +149,15 @@ export function VendaTab({
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-          .header { text-align: center; margin-bottom: 5px; }
-          .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-          .header p { margin: 1px 0; font-size: 10px; }
-          .info p { margin: 1px 0; }
+         .header { text-align: center; margin-bottom: 5px; }
+         .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+         .header p { margin: 1px 0; font-size: 10px; }
+         .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-          .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-          .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+         .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+         .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -164,7 +173,7 @@ export function VendaTab({
             <div class="total"><span>TOTAL</span><span>${formatCurrency(venda.total)}</span></div>
             <hr>
             <p style="text-align:center">Tipo de Pagamento: ${venda.formaPagamento}</p>
-            <div class="footer"><p>Obrigado e volte sempre!</p></div>
+            <div className="footer"><p>Obrigado e volte sempre!</p></div>
         </body>
         </html>
         `;
@@ -214,7 +223,7 @@ export function VendaTab({
 
     return (
         <div className="flex flex-col min-h-screen" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)'}}>
-            <div className="flex items-center justify-between p-3 border-b sticky top-0 z-20" style={{backgroundColor: 'var(--cor-fundo-card, #171717)', borderColor: 'var(--cor-primaria)30'}}>
+            <div className="flex items-center justify-between p-3 border-b sticky top-0 z-20" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}> // <-- ALTERADO
                 <Button variant="ghost" onClick={onClose} className="hover:bg-neutral-800 gap-2 h-9" style={{color: 'var(--cor-texto)'}}>
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
@@ -229,7 +238,7 @@ export function VendaTab({
                             id="busca-produto"
                             placeholder="Buscar produto... [F2]"
                             className="pl-9 h-10 text-sm"
-                            style={{backgroundColor: 'var(--cor-fundo-card, #171717)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}}
+                            style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} // <-- ALTERADO
                             value={busca}
                             onChange={(e) => setBusca(e.target.value)}
                             autoFocus
@@ -253,9 +262,9 @@ export function VendaTab({
                                     disabled={p.estoque <= 0}
                                     className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
                                     style={{
-                                        backgroundColor: 'var(--cor-fundo-card, #171717)',
+                                        backgroundColor: 'var(--cor-card)', // <-- ALTERADO
                                         borderColor: 'var(--cor-primaria)20',
-                                        borderRadius: 'var(--radius)'
+                                        borderRadius: radius // <-- ALTERADO
                                     }}
                                     onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
                                     onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
@@ -284,7 +293,7 @@ export function VendaTab({
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{color: 'var(--cor-texto)'}}>
                             <ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}
                         </h3>
-                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)'}}>
+                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}> // <-- ALTERADO
                             {carrinho.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-24" style={{color: 'var(--cor-texto-sec)'}}>
                                     <ShoppingCart size={24} />
@@ -298,7 +307,7 @@ export function VendaTab({
                                         key={item.id}
                                         onClick={() => confirmarRemoverItem(item)}
                                         className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
-                                        style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}
+                                        style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}} // <-- ALTERADO
                                     >
                                         <span className="text-xs font-bold w-8 text-center">{item.quantidade}</span>
                                         <div className="flex-1 min-w-0">
@@ -313,12 +322,12 @@ export function VendaTab({
                     </div>
 
                     {/* MOBILE PAGAMENTO */}
-                    <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0" style={{backgroundColor: 'var(--cor-fundo-card, #171717)', borderColor: 'var(--cor-primaria)30'}}>
+                    <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}> // <-- ALTERADO
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                            <SelectTrigger className="h-10 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}}>
+                            <SelectTrigger className="h-10 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}> // <-- ALTERADO
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent style={{backgroundColor: 'var(--cor-fundo-card, #171717)', border: '1px solid var(--cor-primaria)30'}}>
+                            <SelectContent style={{backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30'}}> // <-- ALTERADO
                                 <SelectItem value="Dinheiro" style={{color: 'var(--cor-texto)'}}><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
                                 <SelectItem value="TPA" style={{color: 'var(--cor-texto)'}}><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
                                 <SelectItem value="Transferencia" style={{color: 'var(--cor-texto)'}}><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
@@ -326,7 +335,7 @@ export function VendaTab({
                         </Select>
 
                         {formaPagamento === "Dinheiro" && (
-                            <Input type="number" placeholder="Valor Recebido" className="h-10 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                            <Input type="number" placeholder="Valor Recebido" className="h-10 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} /> // <-- ALTERADO
                         )}
                         {formaPagamento === "Dinheiro" && troco > 0 && (
                             <div className="flex justify-between text-xs font-semibold" style={{color: '#fbbf24'}}><span>Troco</span><span>{formatCurrency(troco)}</span></div>
@@ -341,7 +350,7 @@ export function VendaTab({
                             onClick={handleFinalizar}
                             disabled={!podeFinalizar || loadingVenda}
                             className="w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}
+                            style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius}} // <-- ALTERADO
                         >
                             {loadingVenda? "Finalizando..." : "Finalizar Venda"}
                         </Button>
@@ -349,7 +358,7 @@ export function VendaTab({
                 </div>
 
                 {/* DESKTOP CARRINHO */}
-                <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0" style={{backgroundColor: 'var(--cor-fundo-card, #171717)', borderColor: 'var(--cor-primaria)30'}}>
+                <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}> // <-- ALTERADO
                     <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b" style={{color: 'var(--cor-texto)', borderColor: 'var(--cor-primaria)30'}}>
                         <ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}
                     </h3>
@@ -368,7 +377,7 @@ export function VendaTab({
                                     key={item.id}
                                     onClick={() => confirmarRemoverItem(item)}
                                     className="p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
-                                    style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}
+                                    style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}} // <-- ALTERADO
                                 >
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="min-w-0">
@@ -385,13 +394,13 @@ export function VendaTab({
                         })}
                     </div>
 
-                    <div className="border-t p-3 space-y-2 mt-auto" style={{backgroundColor: 'var(--cor-fundo-card, #171717)', borderColor: 'var(--cor-primaria)30'}}>
+                    <div className="border-t p-3 space-y-2 mt-auto" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}> // <-- ALTERADO
                         <div className="flex justify-between text-xs"><span style={{color: 'var(--cor-texto-sec)'}}>Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span></div>
                         <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(subtotal)}</span></div>
 
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                            <SelectTrigger className="h-9 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}}><SelectValue /></SelectTrigger>
-                            <SelectContent style={{backgroundColor: 'var(--cor-fundo-card, #171717)', border: '1px solid var(--cor-primaria)30'}}>
+                            <SelectTrigger className="h-9 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}><SelectValue /></SelectTrigger> // <-- ALTERADO
+                            <SelectContent style={{backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30'}}> // <-- ALTERADO
                                 <SelectItem value="Dinheiro" style={{color: 'var(--cor-texto)'}}><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
                                 <SelectItem value="TPA" style={{color: 'var(--cor-texto)'}}><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
                                 <SelectItem value="Transferencia" style={{color: 'var(--cor-texto)'}}><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
@@ -399,14 +408,14 @@ export function VendaTab({
                         </Select>
 
                         {formaPagamento === "Dinheiro" && (
-                            <Input type="number" placeholder="Valor Recebido" className="h-9 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                            <Input type="number" placeholder="Valor Recebido" className="h-9 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} /> // <-- ALTERADO
                         )}
                         {formaPagamento === "Dinheiro" && troco > 0 && (<div className="flex justify-between text-xs font-semibold" style={{color: '#fbbf24'}}><span>Troco</span><span>{formatCurrency(troco)}</span></div>)}
                         <Button
                             onClick={handleFinalizar}
                             disabled={!podeFinalizar || loadingVenda}
                             className="w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}
+                            style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius}} // <-- ALTERADO
                         >
                             {loadingVenda? "Finalizando..." : "Finalizar [Enter]"}
                         </Button>

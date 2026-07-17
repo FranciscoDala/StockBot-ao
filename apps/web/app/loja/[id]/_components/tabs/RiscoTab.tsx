@@ -36,7 +36,6 @@ type Props = {
     vendas: Venda[]
     produtos: Produto[]
     formatCurrency: (v: number) => string
-    // ADICIONADO
     theme: string;
     cardStyle: string;
     cardSize: string;
@@ -54,30 +53,38 @@ function CardRisco({
     descricao,
     cor,
     icon,
-    tendencia
+    tendencia,
+    cardStyle, // <-- ADICIONADO
+    cardSize // <-- ADICIONADO
 }: {
     titulo: string,
     qtd: number,
     descricao: string,
     cor: "primaria" | "alerta" | "yellow" | "blue",
     icon: React.ReactNode,
-    tendencia?: string
+    tendencia?: string,
+    cardStyle: string, // <-- ADICIONADO
+    cardSize: string // <-- ADICIONADO
 }) {
+    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
+    const padding = cardSize === 'grande'? '20px' : '16px'; // <-- ADICIONADO
+
     const cores: Record<"primaria" | "alerta" | "yellow" | "blue", CorRisco> = {
         primaria: { bg: 'var(--cor-primaria)', text: '#fff' },
         alerta: { bg: '#ef4444', text: '#fff' },
-        yellow: { bg: 'var(--cor-fundo-card, #18181b)', text: '#facc15', border: '#eab30830' },
-        blue: { bg: 'var(--cor-fundo-card, #18181b)', text: '#60a5fa', border: '#3b82f630' }
+        yellow: { bg: 'var(--cor-card)', text: '#facc15', border: '#eab30830' }, // <-- ALTERADO
+        blue: { bg: 'var(--cor-card)', text: '#60a5fa', border: '#3b82f630' } // <-- ALTERADO
     }
     const c = cores[cor]
     return (
         <div
-            className="card p-3 md:p-4 transition hover:scale-[1.02]"
+            className="transition hover:scale-[1.02]" // <-- REMOVIDO class card
             style={{
                 backgroundColor: c.bg,
                 color: c.text,
                 border: c.border? `1px solid ${c.border}` : 'none',
-                borderRadius: 'var(--radius)'
+                borderRadius: radius, // <-- ALTERADO
+                padding // <-- ADICIONADO
             }}
         >
             <div className="flex items-center justify-between mb-2">
@@ -91,11 +98,12 @@ function CardRisco({
     )
 }
 
-function BarraProgresso({ valor, max, cor }: { valor: number, max: number, cor: string }) {
+function BarraProgresso({ valor, max, cor, cardStyle }: { valor: number, max: number, cor: string, cardStyle: string }) { // <-- ADICIONADO cardStyle
+    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
     const pct = max > 0? (valor / max) * 100 : 0
     return (
-        <div className="w-full rounded-full h-2" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}>
-            <div className="h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: cor, borderRadius: 'var(--radius)' }}></div>
+        <div className="w-full rounded-full h-2" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}}> // <-- ALTERADO
+            <div className="h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: cor, borderRadius: radius }}></div> // <-- ALTERADO
         </div>
     )
 }
@@ -113,13 +121,15 @@ export function RiscoTab({
     const [filtroCategoria, setFiltroCategoria] = useState("TODAS")
     const [busca, setBusca] = useState("")
 
+    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
+    const padding = cardSize === 'grande'? '24px' : '16px'; // <-- ADICIONADO
+
     const hoje = new Date()
     const diasAtras = new Date()
     diasAtras.setDate(hoje.getDate() - Number(filtroPeriodo))
     const quinzeDiasFrente = new Date()
     quinzeDiasFrente.setDate(hoje.getDate() + 15)
 
-    // FILTROS
     const produtosFiltrados = useMemo(() => produtos.filter(p => {
         const passaBusca = p.nome.toLowerCase().includes(busca.toLowerCase())
         const passaCategoria = filtroCategoria === "TODAS" || String(p.categoria_id) === filtroCategoria
@@ -131,7 +141,6 @@ export function RiscoTab({
         return dataVenda >= diasAtras
     }), [vendas, diasAtras])
 
-    // 1. RISCOS DE ESTOQUE
     const produtosRuptura = useMemo(() => produtosFiltrados.filter(p => p.estoque <= p.estoque_minimo && p.estoque > 0), [produtosFiltrados])
     const produtosZerados = useMemo(() => produtosFiltrados.filter(p => p.estoque <= 0), [produtosFiltrados])
     const produtosParados = useMemo(() => produtosFiltrados.filter(p => {
@@ -145,7 +154,6 @@ export function RiscoTab({
         return validade <= quinzeDiasFrente && validade >= hoje
     }), [produtosFiltrados, quinzeDiasFrente, hoje])
 
-    // 2. RISCOS FINANCEIROS
     const vendasHoje = useMemo(() => vendasFiltradas.filter(v => {
         const dataVenda = new Date(v.data)
         return dataVenda.toDateString() === hoje.toDateString()
@@ -153,7 +161,7 @@ export function RiscoTab({
     const vendasCanceladas = useMemo(() => vendasFiltradas.filter(v => v.status?.toLowerCase() === "cancelada"), [vendasFiltradas])
     const taxaCancelamento = vendasFiltradas.length > 0? (vendasCanceladas.length / vendasFiltradas.length) * 100 : 0
     const totalPerdido = useMemo(() => vendasCanceladas.reduce((acc, v) => acc + v.total, 0), [vendasCanceladas])
-    // 3. RISCOS OPERACIONAIS
+
     const vendasComDesconto = useMemo(() => vendasFiltradas.filter(v => {
         const totalSemDesconto = v.detalhes.reduce((acc, item) => acc + (item.preco_unitario * item.quantidade), 0)
         return totalSemDesconto > v.total && ((totalSemDesconto - v.total) / totalSemDesconto) > 0.2
@@ -164,8 +172,8 @@ export function RiscoTab({
     const exportarCSV = () => {
         const linhas = [
             ["Tipo", "Produto", "Estoque", "Minimo"],
-      ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
-      ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
+     ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
+     ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -184,7 +192,6 @@ export function RiscoTab({
     return (
         <div
             className="space-y-4 md:space-y-6 p-2 md:p-0"
-            // ADICIONADO: herdar tema e estilo de card global
             data-theme={theme}
             data-card-style={cardStyle}
             data-card-size={cardSize}
@@ -199,8 +206,8 @@ export function RiscoTab({
                 </div>
                 <button
                     onClick={exportarCSV}
-                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
-                    style={{background: 'var(--cor-primaria)', color: '#fff'}}
+                    className="flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
+                    style={{background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande'? '12px 20px' : '8px 16px', borderRadius: radius}} // <-- ALTERADO
                 >
                     <Download size={14} /> Exportar CSV
                 </button>
@@ -208,11 +215,12 @@ export function RiscoTab({
 
             {/* FILTROS SELECT */}
             <div
-                className="card p-3 md:p-4"
+                className="transition" // <-- REMOVIDO class card
                 style={{
-                    backgroundColor: 'var(--cor-fundo-card, #171717)',
+                    backgroundColor: 'var(--cor-card)', // <-- ALTERADO
                     border: '1px solid var(--cor-primaria)30',
-                    borderRadius: 'var(--radius)'
+                    borderRadius: radius, // <-- ALTERADO
+                    padding // <-- ADICIONADO
                 }}
             >
                 <div className="flex items-center gap-2 mb-3" style={{color: 'var(--cor-texto)'}}>
@@ -225,7 +233,7 @@ export function RiscoTab({
                             value={filtroPeriodo}
                             onChange={(e) => setFiltroPeriodo(e.target.value)}
                             className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}}
+                            style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} // <-- ALTERADO
                         >
                             <option value="7">Últimos 7 dias</option>
                             <option value="15">Últimos 15 dias</option>
@@ -239,7 +247,7 @@ export function RiscoTab({
                             value={filtroCategoria}
                             onChange={(e) => setFiltroCategoria(e.target.value)}
                             className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}}
+                            style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} // <-- ALTERADO
                         >
                             <option value="TODAS">Todas Categorias</option>
                             {categorias.map(c => <option key={String(c)} value={String(c)}>Categoria {c}</option>)}
@@ -254,7 +262,7 @@ export function RiscoTab({
                                 onChange={(e) => setBusca(e.target.value)}
                                 placeholder="Nome do produto..."
                                 className="w-full rounded-lg pl-9 pr-3 py-2 text-sm outline-none"
-                                style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: 'var(--radius)'}}
+                                style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} // <-- ALTERADO
                             />
                         </div>
                     </div>
@@ -265,7 +273,7 @@ export function RiscoTab({
             <div className="overflow-x-auto scrollbar-hide">
                 <div
                     className="flex gap-2 p-1 w-max min-w-full"
-                    style={{backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)'}}
+                    style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}} // <-- ALTERADO
                 >
                     {[
                         {id: "estoque", label: "Estoque", icon: PackageX},
@@ -277,8 +285,8 @@ export function RiscoTab({
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap"
                             style={abaAtiva === tab.id
-                          ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: 'var(--radius)'}
-                                : {color: 'var(--cor-texto-sec)', borderRadius: 'var(--radius)'}
+                         ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius} // <-- ALTERADO
+                                : {color: 'var(--cor-texto-sec)', borderRadius: radius} // <-- ALTERADO
                             }
                         >
                             <tab.icon size={14} /> {tab.label}
@@ -291,29 +299,30 @@ export function RiscoTab({
             {abaAtiva === "estoque" && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" />
-                        <CardRisco titulo="Risco Ruptura" qtd={produtosRuptura.length} descricao="Abaixo do mínimo" cor="yellow" icon={<PackageX size={16} />} />
-                        <CardRisco titulo="Produtos Parados" qtd={produtosParados.length} descricao="+30 dias sem girar" cor="yellow" icon={<Clock size={16} />} />
-                        <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="yellow" icon={<Flame size={16} />} />
+                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
+                        <CardRisco titulo="Risco Ruptura" qtd={produtosRuptura.length} descricao="Abaixo do mínimo" cor="yellow" icon={<PackageX size={16} />} cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
+                        <CardRisco titulo="Produtos Parados" qtd={produtosParados.length} descricao="+30 dias sem girar" cor="yellow" icon={<Clock size={16} />} cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
+                        <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div
-                            className="card p-3 md:p-4"
+                            className="transition" // <-- REMOVIDO class card
                             style={{
-                                backgroundColor: 'var(--cor-fundo-card, #171717)',
+                                backgroundColor: 'var(--cor-card)', // <-- ALTERADO
                                 border: '1px solid var(--cor-primaria)30',
-                                borderRadius: 'var(--radius)'
+                                borderRadius: radius, // <-- ALTERADO
+                                padding // <-- ADICIONADO
                             }}
                         >
                             <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{color: 'var(--cor-texto)'}}><PackageX size={16} style={{color: '#ef4444'}} /> Alertas Críticos</h3>
                             <div className="space-y-2 max-h-[350px] overflow-y-auto scrollbar-hide">
                                 {[...produtosZerados,...produtosRuptura].slice(0, 15).map(p => (
-                                    <div key={p.id} className="card p-3" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)'}}>
+                                    <div key={p.id} className="p-3" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}}> // <-- ALTERADO
                                         <div className="flex justify-between items-center mb-2">
                                             <p className="font-medium text-sm truncate max-w-[200px]" style={{color: 'var(--cor-texto)'}}>{p.nome}</p>
                                             <span className="font-bold text-xs" style={{color: p.estoque <= 0? '#ef4444' : '#f97316'}}>Est: {p.estoque}</span>
                                         </div>
-                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "#ef4444" : "#f97316"} />
+                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "#ef4444" : "#f97316"} cardStyle={cardStyle} /> // <-- ADICIONADO PROPS
                                         <p className="text-xs mt-1" style={{color: 'var(--cor-texto-sec)'}}>Mínimo: {p.estoque_minimo}</p>
                                     </div>
                                 ))}
@@ -323,17 +332,18 @@ export function RiscoTab({
 
                         {produtosValidade.length > 0 && (
                             <div
-                                className="card p-3 md:p-4"
+                                className="transition" // <-- REMOVIDO class card
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo-card, #171717)',
+                                    backgroundColor: 'var(--cor-card)', // <-- ALTERADO
                                     border: '1px solid var(--cor-primaria)30',
-                                    borderRadius: 'var(--radius)'
+                                    borderRadius: radius, // <-- ALTERADO
+                                    padding // <-- ADICIONADO
                                 }}
                             >
                                 <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{color: 'var(--cor-texto)'}}><Flame size={16} style={{color: '#f97316'}} /> Próximos do Vencimento</h3>
                                 <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto scrollbar-hide">
                                     {produtosValidade.map(p => (
-                                        <div key={p.id} className="card p-3 text-xs" style={{backgroundColor: '#f9731614', border: '1px solid #f9731630', borderRadius: 'var(--radius)'}}>
+                                        <div key={p.id} className="p-3 text-xs" style={{backgroundColor: '#f9731614', border: '1px solid #f9731630', borderRadius: radius}}> // <-- ALTERADO
                                             <p className="font-medium truncate" style={{color: 'var(--cor-texto)'}}>{p.nome}</p>
                                             <p style={{color: 'var(--cor-texto-sec)'}}>Vence: {new Date(p.data_validade!).toLocaleDateString('pt-AO')}</p>
                                             <p className="font-bold mt-1" style={{color: 'var(--cor-texto)'}}>Est: {p.estoque} un</p>
@@ -349,24 +359,25 @@ export function RiscoTab({
             {abaAtiva === "financeiro" && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardRisco titulo="Vendas Canceladas" qtd={vendasCanceladas.length} descricao={`${taxaCancelamento.toFixed(1)}% do total`} cor="alerta" icon={<TrendingDown size={16} />} />
-                        <CardRisco titulo="Perda Estimada" qtd={0} descricao={formatCurrency(totalPerdido)} cor="yellow" icon={<Ban size={16} />} />
-                        <CardRisco titulo="Desconto >20%" qtd={vendasComDesconto.length} descricao="Risco de margem" cor="yellow" icon={<Flame size={16} />} />
-                        <CardRisco titulo="Vendas no Período" qtd={vendasFiltradas.length} descricao="Total analisado" cor="blue" icon={<BarChart3 size={16} />} />
+                        <CardRisco titulo="Vendas Canceladas" qtd={vendasCanceladas.length} descricao={`${taxaCancelamento.toFixed(1)}% do total`} cor="alerta" icon={<TrendingDown size={16} />} cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
+                        <CardRisco titulo="Perda Estimada" qtd={0} descricao={formatCurrency(totalPerdido)} cor="yellow" icon={<Ban size={16} />} cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
+                        <CardRisco titulo="Desconto >20%" qtd={vendasComDesconto.length} descricao="Risco de margem" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
+                        <CardRisco titulo="Vendas no Período" qtd={vendasFiltradas.length} descricao="Total analisado" cor="blue" icon={<BarChart3 size={16} />} cardStyle={cardStyle} cardSize={cardSize} /> // <-- ADICIONADO PROPS
                     </div>
 
                     <div
-                        className="card p-3 md:p-4"
+                        className="transition" // <-- REMOVIDO class card
                         style={{
-                            backgroundColor: 'var(--cor-fundo-card, #171717)',
+                            backgroundColor: 'var(--cor-card)', // <-- ALTERADO
                             border: '1px solid var(--cor-primaria)30',
-                            borderRadius: 'var(--radius)'
+                            borderRadius: radius, // <-- ALTERADO
+                            padding // <-- ADICIONADO
                         }}
                     >
                         <h3 className="font-bold text-base mb-3" style={{color: 'var(--cor-texto)'}}>Últimas Vendas Canceladas</h3>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                             {vendasCanceladas.slice(0, 10).map(v => (
-                                <div key={v.id} className="card flex justify-between items-center p-3 text-xs" style={{backgroundColor: '#ef444414', border: '1px solid #ef444430', borderRadius: 'var(--radius)'}}>
+                                <div key={v.id} className="flex justify-between items-center p-3 text-xs" style={{backgroundColor: '#ef444414', border: '1px solid #ef444430', borderRadius: radius}}> // <-- ALTERADO
                                     <div>
                                         <p className="font-medium" style={{color: 'var(--cor-texto)'}}>#{v.id.slice(0,8)}</p>
                                         <p style={{color: 'var(--cor-texto-sec)'}}>{new Date(v.data).toLocaleDateString('pt-AO')}</p>
@@ -382,11 +393,12 @@ export function RiscoTab({
 
             {abaAtiva === "operacional" && (
                 <div
-                    className="card p-6 text-center"
+                    className="text-center" // <-- REMOVIDO class card
                     style={{
-                        backgroundColor: 'var(--cor-fundo-card, #171717)',
+                        backgroundColor: 'var(--cor-card)', // <-- ALTERADO
                         border: '1px solid var(--cor-primaria)30',
-                        borderRadius: 'var(--radius)'
+                        borderRadius: radius, // <-- ALTERADO
+                        padding: cardSize === 'grande'? '24px' : '16px' // <-- ALTERADO
                     }}
                 >
                     <CheckCircle2 size={32} style={{color: 'var(--cor-primaria)', margin: '0 auto 8px'}} />
@@ -396,8 +408,8 @@ export function RiscoTab({
             )}
 
             <style jsx global>{`
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+       .scrollbar-hide::-webkit-scrollbar { display: none; }
+       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     )

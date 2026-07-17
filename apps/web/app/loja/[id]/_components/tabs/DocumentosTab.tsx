@@ -1,7 +1,14 @@
 "use client"
 import { FileText, Download, FileSpreadsheet } from "lucide-react"
 
-export function DocumentosTab({ loja }: { loja: any }) {
+type Props = { // <-- ADICIONEI
+    loja: any;
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
+}
+
+export function DocumentosTab({ loja, theme, cardStyle, cardSize }: Props) { // <-- RECEBER
     const docs = [
         { nome: "Relatório de Vendas Mensal", tipo: "PDF" },
         { nome: "Balanço de Estoque", tipo: "XLSX" },
@@ -21,19 +28,26 @@ export function DocumentosTab({ loja }: { loja: any }) {
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
+                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 font-semibold transition hover:brightness-110 text-xs"
                         style={{
                             background: 'transparent',
                             color: 'var(--cor-primaria)',
-                            border: '2px solid var(--cor-primaria)'
+                            border: '2px solid var(--cor-primaria)',
+                            padding: cardSize === 'grande'? '12px 20px' : '8px 16px', // <-- USANDO cardSize
+                            borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
                         }}
                     >
                         <FileSpreadsheet size={14} />
                         Gerar
                     </button>
                     <button
-                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
-                        style={{background: 'var(--cor-primaria)', color: '#fff'}}
+                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 font-semibold transition hover:brightness-110 text-xs"
+                        style={{
+                            background: 'var(--cor-primaria)',
+                            color: '#fff',
+                            padding: cardSize === 'grande'? '12px 20px' : '8px 16px', // <-- USANDO cardSize
+                            borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
+                        }}
                     >
                         <Download size={14} />
                         Download
@@ -43,12 +57,13 @@ export function DocumentosTab({ loja }: { loja: any }) {
 
             {/* LISTA DE DOCUMENTOS */}
             <div
-                className="p-4 sm:p-6"
+                className="p-4 sm:p-6 transition"
                 style={{
                     background: 'var(--cor-primaria)',
                     border: '1px solid var(--cor-primaria)',
-                    borderRadius: 'var(--radius)',
-                    color: '#fff'
+                    color: '#fff',
+                    padding: cardSize === 'grande'? '24px' : '16px', // <-- USANDO cardSize
+                    borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
                 }}
             >
                 <div className="space-y-2">
@@ -58,7 +73,7 @@ export function DocumentosTab({ loja }: { loja: any }) {
                             className="flex justify-between items-center p-3 transition hover:brightness-110"
                             style={{
                                 backgroundColor: 'rgba(0,0,0,0.15)',
-                                borderRadius: 'var(--radius)'
+                                borderRadius: cardStyle === 'arredondado'? '12px' : '8px' // <-- USANDO cardStyle
                             }}
                         >
                             <div className="min-w-0">
@@ -66,8 +81,8 @@ export function DocumentosTab({ loja }: { loja: any }) {
                                 <p className="text-xs truncate" style={{opacity: 0.8}}> {doc.tipo} • Loja: {loja?.nome}</p>
                             </div>
                             <button
-                                className="p-2 rounded-lg transition shrink-0 hover:bg-white/20"
-                                style={{borderRadius: 'var(--radius)'}}
+                                className="p-2 transition shrink-0 hover:bg-white/20"
+                                style={{borderRadius: cardStyle === 'arredondado'? '12px' : '8px'}} // <-- USANDO cardStyle
                             >
                                 <Download size={16} />
                             </button>

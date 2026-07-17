@@ -2,7 +2,13 @@
 import { Truck, Plus } from "lucide-react"
 import { useState } from "react"
 
-export function FornecedoresTab() {
+type Props = { // <-- ADICIONEI
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
+}
+
+export function FornecedoresTab({ theme, cardStyle, cardSize }: Props) { // <-- RECEBER
     const [fornecedores] = useState([]) // aqui tu vai buscar da API depois
 
     return (
@@ -17,8 +23,13 @@ export function FornecedoresTab() {
                     <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Gerencie os fornecedores da loja</p>
                 </div>
                 <button
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
-                    style={{background: 'var(--cor-primaria)', color: '#fff'}}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
+                    style={{
+                        background: 'var(--cor-primaria)',
+                        color: '#fff',
+                        padding: cardSize === 'grande'? '12px 20px' : '8px 16px', // <-- USANDO cardSize
+                        borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
+                    }}
                 >
                     <Plus size={14} /> Adicionar Fornecedor
                 </button>
@@ -26,18 +37,22 @@ export function FornecedoresTab() {
 
             {/* CONTEÚDO */}
             <div
-                className="p-4 sm:p-6"
+                className="p-4 sm:p-6 transition"
                 style={{
                     background: 'var(--cor-primaria)',
                     border: '1px solid var(--cor-primaria)',
-                    borderRadius: 'var(--radius)',
-                    color: '#fff'
+                    color: '#fff',
+                    padding: cardSize === 'grande'? '24px' : '16px', // <-- USANDO cardSize
+                    borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
                 }}
             >
                 {fornecedores.length === 0? (
                     <div
                         className="text-center py-16 border-2 border-dashed"
-                        style={{borderColor: 'rgba(255,255,255,0.3)', borderRadius: 'var(--radius)'}}
+                        style={{
+                            borderColor: 'rgba(255,255,255,0.3)',
+                            borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
+                        }}
                     >
                         <Truck size={32} className="mx-auto mb-3" style={{opacity: 0.7}} />
                         <p className="text-sm font-medium">Nenhum fornecedor cadastrado ainda</p>

@@ -31,17 +31,25 @@ type Stats = {
     ticketMedio: number
 }
 
-export function DadosTab({
-    loja,
-    user,
-    lojaId,
-    token
-}: {
+type Props = { // <-- ADICIONEI ISSO
     loja: Loja | null | undefined;
     user: userread | null;
     lojaId?: string;
     token?: string | null;
-}) {
+    theme: string; // <-- NOVO
+    cardStyle: string; // <-- NOVO
+    cardSize: string; // <-- NOVO
+}
+
+export function DadosTab({
+    loja,
+    user,
+    lojaId,
+    token,
+    theme, // <-- RECEBER
+    cardStyle, // <-- RECEBER
+    cardSize // <-- RECEBER
+}: Props) {
     const [kpis, setKpis] = useState({
         vendaDiaria: 0,
         saidaDiaria: 0,
@@ -70,9 +78,9 @@ export function DadosTab({
             const data: VendaAPI[] = await resVendas.json();
 
             const vendas = (Array.isArray(data)? data : [])
-             .filter(v => v.status?.toLowerCase().trim() === "concluida")
-             .map(v => ({
-                 ...v,
+            .filter(v => v.status?.toLowerCase().trim() === "concluida")
+            .map(v => ({
+                ...v,
                     total: Number(v.total) || 0,
                     data_venda: new Date(v.data_venda)
                 }));
@@ -177,14 +185,18 @@ export function DadosTab({
                 <button
                     onClick={carregarKPIs}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
-                    style={{background: 'var(--cor-primaria)', color: '#fff'}}
+                    style={{
+                        background: 'var(--cor-primaria)',
+                        color: '#fff',
+                        padding: cardSize === 'grande'? '12px 20px' : '8px 16px', // <-- USANDO cardSize
+                        borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
+                    }}
                 >
                     <Edit size={14} />
                     Atualizar
                 </button>
             </div>
 
-            {/* REMOVIDO data-attributes daqui. Agora pega do pai em page.tsx */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <CardStats
                     titulo="Faturamento Hoje"
@@ -193,6 +205,7 @@ export function DadosTab({
                     icon={<DollarSign size={16} />}
                     descricao="Entradas de hoje"
                     formatCurrency={formatCurrency}
+                    theme={theme} cardStyle={cardStyle} cardSize={cardSize} // <-- PASSAR PRA FRENTE
                 />
                 <CardStats
                     titulo="Vendas Hoje"
@@ -201,6 +214,7 @@ export function DadosTab({
                     icon={<ShoppingBag size={16} />}
                     descricao="Pedidos concluídos"
                     formatCurrency={(v) => String(v)}
+                    theme={theme} cardStyle={cardStyle} cardSize={cardSize}
                 />
                 <CardStats
                     titulo="Ticket Médio"
@@ -209,6 +223,7 @@ export function DadosTab({
                     icon={<TrendingUp size={16} />}
                     descricao="Valor por venda"
                     formatCurrency={formatCurrency}
+                    theme={theme} cardStyle={cardStyle} cardSize={cardSize}
                 />
                 <CardStats
                     titulo="Estoque Zerado"
@@ -217,15 +232,18 @@ export function DadosTab({
                     icon={<Ban size={16} />}
                     descricao="Não consegue vender"
                     formatCurrency={(v) => String(v)}
+                    theme={theme} cardStyle={cardStyle} cardSize={cardSize}
                 />
             </div>
 
             <div
-                className="p-4 sm:p-6 rounded-xl"
+                className="p-4 sm:p-6 transition"
                 style={{
                     background: 'var(--cor-primaria)',
                     border: '1px solid var(--cor-primaria)',
-                    color: '#fff'
+                    color: '#fff',
+                    padding: cardSize === 'grande'? '24px' : '16px', // <-- USANDO cardSize
+                    borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
                 }}
             >
                 <div className="flex items-center justify-between">
@@ -246,7 +264,10 @@ function CardStats({
     icon,
     cor,
     descricao,
-    formatCurrency
+    formatCurrency,
+    theme, // <-- RECEBER
+    cardStyle, // <-- RECEBER
+    cardSize // <-- RECEBER
 }: {
     titulo: string,
     stats: Stats,
@@ -254,10 +275,13 @@ function CardStats({
     cor: "primaria" | "secundaria" | "alerta",
     descricao: string,
     formatCurrency: (v: number) => string
+    theme: string; // <-- NOVO
+    cardStyle: string; // <-- NOVO
+    cardSize: string; // <-- NOVO
 }) {
     const cores = {
         primaria: { bg: 'var(--cor-primaria)', text: '#fff' },
-        secundaria: { bg: 'transparent', text: 'var(--cor-texto)' }, // transparente pra deixar o.card mandar
+        secundaria: { bg: 'var(--cor-card)', text: 'var(--cor-texto)' },
         alerta: { bg: '#ef4444', text: '#fff' }
     }
 
@@ -265,10 +289,12 @@ function CardStats({
 
     return (
         <div
-            className="card transition hover:scale-[1.02]" // <-- AGORA USA A CLASSE CARD DO GLOBAL.CSS
+            className="transition hover:scale-[1.02]"
             style={{
                 backgroundColor: c.bg,
                 color: c.text,
+                padding: cardSize === 'grande'? '20px' : '16px', // <-- USANDO cardSize
+                borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
             }}
         >
             <div className="flex items-center justify-between mb-2">
