@@ -70,9 +70,9 @@ export function DadosTab({
             const data: VendaAPI[] = await resVendas.json();
 
             const vendas = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().trim() === "concluida")
-               .map(v => ({
-                   ...v,
+              .filter(v => v.status?.toLowerCase().trim() === "concluida")
+              .map(v => ({
+                  ...v,
                     total: Number(v.total) || 0,
                     data_venda: new Date(v.data_venda)
                 }));
@@ -184,7 +184,12 @@ export function DadosTab({
                 </button>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* AQUI: data-attributes pegam do DB */}
+            <div
+                data-card-style={loja?.card_style || "padrao"}
+                data-card-size={loja?.card_size || "medio"}
+                className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+            >
                 <CardStats
                     titulo="Faturamento Hoje"
                     stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
@@ -256,7 +261,7 @@ function CardStats({
 }) {
     const cores = {
         primaria: { bg: 'var(--cor-primaria)', text: '#fff' },
-        secundaria: { bg: 'var(--cor-fundo-card, #18181b)', text: 'var(--cor-texto)' },
+        secundaria: { bg: 'var(--cor-card)', text: 'var(--cor-texto)' }, // <-- CORRIGIDO
         alerta: { bg: '#ef4444', text: '#fff' }
     }
 
@@ -264,11 +269,10 @@ function CardStats({
 
     return (
         <div
-            className="rounded-xl p-3 md:p-4 transition hover:scale-[1.02]"
+            className="card transition hover:scale-[1.02]" // <-- AGORA USA A CLASSE CARD
             style={{
-                backgroundColor: c.bg,
+                backgroundColor: c.bg, // só cor dinâmica
                 color: c.text,
-                borderRadius: 'var(--radius)'
             }}
         >
             <div className="flex items-center justify-between mb-2">
