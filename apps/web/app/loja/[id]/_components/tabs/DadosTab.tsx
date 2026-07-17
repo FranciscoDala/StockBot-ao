@@ -176,10 +176,10 @@ export function DadosTab({
                 </div>
                 <button
                     onClick={carregarKPIs}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
+                    className="flex items-center gap-2 px-2 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
                     style={{background: 'var(--cor-primaria)', color: '#fff'}}
                 >
-                    <Edit size={10} />
+                    <Edit size={14} />
                     Atualizar
                 </button>
             </div>

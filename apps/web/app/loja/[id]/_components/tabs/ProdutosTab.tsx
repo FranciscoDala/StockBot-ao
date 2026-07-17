@@ -70,10 +70,10 @@ export function ProdutosTab({
     return (
         <>
             <style jsx global>{`
-      .scrollbar-hide::-webkit-scrollbar { display: none; }
-      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-      .snap-x { scroll-snap-type: x mandatory; }
-      .snap-center { scroll-snap-align: center; }
+     .scrollbar-hide::-webkit-scrollbar { display: none; }
+     .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+     .snap-x { scroll-snap-type: x mandatory; }
+     .snap-center { scroll-snap-align: center; }
         `}</style>
             <div
                 className="space-y-6"
@@ -94,7 +94,7 @@ export function ProdutosTab({
                     {isAdmin && (
                         <button
                             onClick={onAdd}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-2 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
                             style={{ background: 'var(--cor-primaria)', color: '#fff' }}
                         >
                             <Plus size={14} /> Adicionar Produto
@@ -173,10 +173,8 @@ export function ProdutosTab({
                         <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Produtos zerados</p>
                     </div>
                 </div>
-
-                {/* GRID DE PRODUTOS COM SCROLL MOBILE */}
+                {/* GRID DE PRODUTOS SEM PADDING */}
                 <div
-                    // TIREI O PADDING DA DIV PRINCIPAL
                     className="card"
                     style={{
                         backgroundColor: 'var(--cor-fundo-card, #171717)',
@@ -194,10 +192,9 @@ export function ProdutosTab({
                             <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
                         </div>
                     ) : (
-                        // MOBILE: CARROSSEL 1 POR VEZ CENTRALIZADO
-                        // DESKTOP: GRID NORMAL
-                        <div className="overflow-x-auto scrollbar-hide snap-x px-2 py-4 sm:p-6">
-                            <div className="flex gap-4 w-max sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 sm:w-full">
+                        // MOBILE: 100% LARGURA + SCROLL. DESKTOP: GRID
+                        <div className="overflow-x-auto scrollbar-hide snap-x">
+                            <div className="flex gap-0 w-max sm:grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 sm:w-full sm:gap-4">
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
@@ -208,15 +205,15 @@ export function ProdutosTab({
                                         <div
                                             key={p.id}
                                             className={`card border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active? 'opacity-50' : ''}
-                                            w-[85vw] max-w-[380px] snap-center shrink-0
+                                            w-screen snap-center shrink-0
                                             sm:w-auto`}
                                             style={{
                                                 backgroundColor: 'var(--cor-fundo)',
                                                 borderColor: 'var(--cor-primaria)', // BORDA PRIMARY
-                                                borderRadius: 'var(--radius)',
+                                                borderRadius: 0, // SEM BORDA ARREDONDADA NO MOBILE
+                                                borderLeft: 'none',
+                                                borderRight: 'none'
                                             }}
-                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
                                         >
                                             <div className="relative w-full h-48" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                                                 {p.imagem_url? (
@@ -313,7 +310,6 @@ export function ProdutosTab({
                     className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col h-[80dvh] [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)' }}
                 >
-                    {/* HEADER FIXO */}
                     <div className="flex items-center justify-between p-4 shrink-0">
                         <button onClick={() => setQrProduto(null)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{ color: 'var(--cor-texto)' }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
@@ -324,7 +320,6 @@ export function ProdutosTab({
                         </button>
                     </div>
 
-                    {/* CONTEÚDO COM SCROLL E CENTRALIZADO */}
                     <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex-col items-center min-h-0">
                         <div
                             className="w-full p-6 flex-col items-center justify-center gap-5 text-center"
@@ -357,13 +352,11 @@ export function ProdutosTab({
                             </div>
                         </div>
 
-                        {/* TEXTO EXPLICATIVO CENTRALIZADO */}
                         <p className="text-center text-sm mt-6 px-4 leading-relaxed max-w-xs">
                             Este é o QR do seu produto. Qualquer pessoa pode escanear para ver a página e comprar direto.
                             <span className="font-medium" style={{ color: 'var(--cor-primaria)' }}> Manter em segurança</span>
                         </p>
 
-                        {/* BOTÕES CENTRALIZADOS */}
                         <div className="mt-6 space-y-3 w-full max-w-sm">
                             <Button
                                 onClick={() => handleDownloadQR(qrProduto)}
