@@ -49,10 +49,10 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                             border: '2px solid var(--cor-primaria)',
                             borderRadius: 'var(--radius)',
                             padding: '0 10px',
-                            fontSize: '1.5rem',
+                            fontSize: '1.2rem',
                             color: 'var(--cor-primaria)',
                             fontFamily: 'var(--font-zalando)',
-                            textTransform: 'uppercase'
+                            textTransform: 'capitalize'
                         }}
                     >
                         {initials}
