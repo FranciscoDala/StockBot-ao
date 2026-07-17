@@ -70,10 +70,10 @@ export function ProdutosTab({
     return (
         <>
             <style jsx global>{`
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    .snap-x { scroll-snap-type: x mandatory; }
-    .snap-center { scroll-snap-align: center; }
+   .scrollbar-hide::-webkit-scrollbar { display: none; }
+   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+   .snap-x { scroll-snap-type: x mandatory; }
+   .snap-center { scroll-snap-align: center; }
         `}</style>
             <div
                 className="space-y-6"
@@ -173,18 +173,18 @@ export function ProdutosTab({
                         <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Produtos zerados</p>
                     </div>
                 </div>
-                {/* GRID DE PRODUTOS SEM PADDING NENHUM */}
+                {/* GRID DE PRODUTOS - SEM PADDING */}
                 <div
-                    className="" // REMOVIDO: card + padding
+                    className="" // ZERO PADDING
                     style={{
                         backgroundColor: 'transparent',
-                        border: '1px solid var(--cor-primaria)', // só borda fina
+                        border: '1px solid var(--cor-primaria)',
                         borderRadius: 'var(--radius)'
                     }}
                 >
                     {produtos.length === 0? (
                         <div
-                            className="text-center py-16 border-2 border-dashed m-4" // só padding interno do vazio
+                            className="text-center py-16 border-2 border-dashed m-4"
                             style={{ borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)' }}
                         >
                             <Package className="mx-auto mb-3" size={48} style={{ color: 'var(--cor-primaria)', opacity: 0.5 }} />
@@ -192,68 +192,65 @@ export function ProdutosTab({
                             <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
                         </div>
                     ) : (
-                        // MOBILE: 1 CARD 100% | TABLET: 2 | DESKTOP: 3+
+                        // MOBILE: SCROLL 1 POR VEZ | DESKTOP: GRID COM MIN-WIDTH
                         <div className="overflow-x-auto scrollbar-hide snap-x">
-                            <div className="flex w-max sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:w-full gap-0 sm:gap-3">
+                            <div className="flex w-max sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:w-full gap-0 sm:gap-4 p-0 sm:p-4">
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
                                     const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
-                                    const qrValue = `${APP_URL}/p/${p.sku || p.id}`;
 
                                     return (
                                         <div
                                             key={p.id}
-                                            className={`card border overflow-hidden flex-col transition-all hover:shadow-lg group ${!p.is_active? 'opacity-50' : ''}
+                                            className={`border overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active? 'opacity-50' : ''}
                                             w-screen snap-center shrink-0
-                                            sm:w-auto`}
+                                            sm:w-auto min-w-[250px]`} // MIN 250PX NO DESKTOP
                                             style={{
-                                                backgroundColor: 'var(--cor-fundo)',
-                                                borderColor: 'var(--cor-primaria)', // BORDA PRIMARY
-                                                borderRadius: 0, // quadrado no mobile
-                                                borderLeft: 'none',
-                                                borderRight: 'none',
-                                                borderBottom: '1px solid var(--cor-primaria)30'
+                                                backgroundColor: 'var(--cor-fundo-card, #18181b)',
+                                                borderColor: 'var(--cor-primaria)40',
+                                                borderRadius: 'var(--radius)',
+                                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                                             }}
                                         >
-                                            <div className="relative w-full h-48" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                                            {/* IMAGEM */}
+                                            <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                                                 {p.imagem_url? (
-                                                    <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                    <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center"><ImageOff size={32} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
+                                                    <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
                                                 )}
 
-                                                <div className="absolute top-2 right-2 flex gap-1.5">
+                                                {/* BADGES TOPO */}
+                                                <div className="absolute top-3 right-3 flex gap-2">
                                                     <button
                                                         onClick={() => setQrProduto(p)}
-                                                        className="backdrop-blur-sm p-1.5 rounded-lg hover:brightness-110 transition-colors"
+                                                        className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all"
                                                         title="Ver QR Code"
-                                                        style={{ backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 'var(--radius)' }}
+                                                        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
                                                     >
-                                                        <QrCode size={20} className="text-white" />
+                                                        <QrCode size={18} className="text-white" />
                                                     </button>
-                                                    {!p.is_active && (<Badge variant="destructive" className="text-xs h-6 px-2" style={{ backgroundColor: '#ef4444' }}>Inativo</Badge>)}
+                                                    {!p.is_active && (<Badge className="text-xs h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444' }}>Inativo</Badge>)}
                                                 </div>
                                             </div>
 
+                                            {/* CONTEUDO */}
                                             <div className="p-4 flex-col flex-1">
-                                                <h4
-                                                    className="font-semibold text-base truncate mb-1 transition-colors"
-                                                    style={{ color: 'var(--cor-texto)' }}
-                                                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--cor-primaria)'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--cor-texto)'}
-                                                >
+                                                <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>
                                                     {p.nome}
                                                 </h4>
-                                                <div className="flex items-center gap-1.5 text-xs mb-3" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
+                                                <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}>
+                                                    <Tag size={12} /> {p.sku || 'N/A'}
+                                                </div>
 
-                                                <div className="space-y-2 text-sm flex-1">
+                                                <div className="space-y-2.5 text-sm flex-1 mb-3">
                                                     <div className="flex justify-between items-center">
-                                                        <span style={{ color: 'var(--cor-texto-sec)' }}>P.Unitário</span>
-                                                        <span className="font-bold text-base" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
+                                                        <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span>
+                                                        <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
                                                     </div>
                                                     <div className="flex justify-between items-center">
-                                                        <span style={{ color: 'var(--cor-texto-sec)' }}>Quantidade</span>
+                                                        <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span>
                                                         <div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>
                                                             {status.icon}
                                                             <span>{p.estoque} {p.unidade}</span>
@@ -261,24 +258,25 @@ export function ProdutosTab({
                                                     </div>
                                                 </div>
 
+                                                {/* TAG STATUS */}
                                                 <div
-                                                    className="mt-3 mb-3 px-2.5 py-1 text-xs font-medium flex items-center gap-1.5 w-fit"
+                                                    className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit rounded-lg"
                                                     style={{
                                                         backgroundColor: status.bg,
                                                         border: `1px solid ${status.border}`,
-                                                        color: status.color,
-                                                        borderRadius: 'var(--radius)'
+                                                        color: status.color
                                                     }}
                                                 >
                                                     {status.icon} {status.label}
                                                 </div>
 
+                                                {/* BOTOES */}
                                                 {isAdmin && (
                                                     <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                         <Button
                                                             size="sm"
                                                             onClick={() => onEdit(p)}
-                                                            className="flex-1 h-9"
+                                                            className="flex-1 h-10 font-semibold"
                                                             style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
                                                         >
                                                             <Edit size={14} /> Editar
@@ -288,7 +286,7 @@ export function ProdutosTab({
                                                                 size="sm"
                                                                 variant="destructive"
                                                                 onClick={() => onDelete(p)}
-                                                                className="h-9 px-3"
+                                                                className="h-10 px-3"
                                                                 style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: 'var(--radius)' }}
                                                             >
                                                                 <Trash2 size={14} />
