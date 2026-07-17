@@ -6,6 +6,8 @@ import { toast, Toaster } from "sonner";
 import { z } from "zod";
 import { formatCurrency } from "./_components/utils";
 
+import LojaLayout from "./LojaLayout";
+
 import { DadosTab } from "./_components/tabs/DadosTab";
 import { ProdutosTab } from "./_components/tabs/ProdutosTab";
 import { EquipaTab } from "./_components/tabs/EquipaTab";
@@ -210,53 +212,53 @@ export default function LojaPage() {
 
     if (!isClient || loading) return (<div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)' }}><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>);
 
-    return <>
-        <style jsx global>{`:root { --cor-primaria: #10b981; --cor-fundo: #000; --cor-card: #171717; --cor-texto: #fff; --cor-texto-sec: #9ca3af; --cor-borda: #2a2a2a; --radius: 8px; --card-padding: 16px; --font-size: 14px; } body { background-color: var(--cor-fundo); }.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
-        <Toaster position="top-center" richColors theme={theme as any} />
+    return (
+        <LojaLayout
+            theme={theme}
+            handleSaveTheme={handleSaveTheme}
+            lojaNome={loja?.nome}
+        >
+            <style jsx global>{`:root { --cor-primaria: #10b981; --cor-fundo: #000; --cor-card: #171717; --cor-texto: #fff; --cor-texto-sec: #9ca3af; --cor-borda: #2a2a2a; --radius: 8px; --card-padding: 16px; --font-size: 14px; } body { background-color: var(--cor-fundo); }.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
+            <Toaster position="top-center" richColors theme={theme as any} />
 
-        {activeTab === "venda" ?
-            <VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "", theme, cardStyle, cardSize }} />
-            :
-            <div className="min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
-                <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
-                    <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-                        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1"><div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full flex items-center justify-center text-lg sm:text-xl font-bold shrink-0" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-primaria)' }}><Store /></div><div className="min-w-0"><h1 className="text-lg sm:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-texto)' }}>{loja?.nome || "Sem loja"}</h1><p className="text-xs sm:text-xs truncate" style={{ color: 'var(--cor-texto-sec)' }}>{loja?.endereco}</p></div></div>
-                        <div className="flex items-center gap-2 shrink-0"><button onClick={() => handleSaveTheme({ theme: theme === 'dark' ? 'light' : 'dark' })} className="p-2 rounded-lg hover:opacity-80 transition" style={{ backgroundColor: 'var(--cor-card)' }}>{theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}</button><span className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-xs font-medium" style={{ backgroundColor: loja?.is_active ? 'var(--cor-primaria)' : '#4b5563' }}>{loja?.is_active ? "ativa" : "inativa"}</span><button onClick={handleSair} className="px-2.5 sm:px-3 py-1.5 sm:py-2 bg-red-600 rounded-lg text-xs sm:text-xs font-bold flex items-center gap-1.5 hover:bg-red-700 transition"><LogOut size={14} className="sm:w-4 sm:h-4" /><span className="hidden sm:inline">Sair</span></button></div>
+            {activeTab === "venda" ?
+                <VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "", theme, cardStyle, cardSize }} />
+                :
+                <>
+                    <div className="mb-4 sm:mb-6">
+                        <div className="p-1 overflow-x-auto scrollbar-hide" style={{ backgroundColor: 'var(--cor-card)', borderRadius: '8px' }}>
+                            <div className="flex gap-1 w-max min-w-full">
+                                {initialTabs.map(tab => (
+                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{ backgroundColor: activeTab === tab.id ? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--cor-texto-sec)', borderRadius: '8px' }}>
+                                        <tab.icon size={14} />
+                                        {tab.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                    <div className="mb-4 sm:mb-6"><div className="p-1 overflow-x-auto scrollbar-hide" style={{ backgroundColor: 'var(--cor-card)', borderRadius: '8px' }}><div className="flex gap-1 w-max min-w-full">{initialTabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{ backgroundColor: activeTab === tab.id ? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--cor-texto-sec)', borderRadius: '8px' }}><tab.icon size={14} />{tab.label}</button>))}</div></div></div>
 
                     <div className="pb-8">
                         {activeTab === "dados" && <DadosTab loja={loja} user={user} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
                         {activeTab === "produtos" && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar ? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar ? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar ? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
-
                         {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar ? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar ? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar ? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")} onView={handleViewUserClick} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
-
                         {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "risco" && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
-
                         {activeTab === "fornecedores" && <FornecedoresTab theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
-
                         {activeTab === "documentos" && <DocumentosTab loja={loja} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
-
                         {activeTab === "definicoes" && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} corPrimaria={corPrimaria} corFundo={corFundo} />}
                     </div>
+                </>
+            }
 
-                </div>
-                <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
-                <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
-                <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
+            <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
+            <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
+            <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
+            <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
+            <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
+            <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }} onConfirm={handleConfirmarRemocao} titulo="Remover do Carrinho" descricao={`Deseja remover ${itemParaRemover?.nome} do carrinho?`} loading={false} tipo="venda" />
+            <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} formatCurrency={formatCurrency} />
 
-                <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
-
-
-                <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
-
-
-                <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }} onConfirm={handleConfirmarRemocao} titulo="Remover do Carrinho" descricao={`Deseja remover ${itemParaRemover?.nome} do carrinho?`} loading={false} tipo="venda" />
-
-                <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} formatCurrency={formatCurrency} />
-
-            </div>
-        }
-    </>;
+        </LojaLayout>
+    );
 }
