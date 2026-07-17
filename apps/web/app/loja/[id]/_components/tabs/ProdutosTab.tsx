@@ -186,9 +186,9 @@ export function ProdutosTab({
                             <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
                         </div>
                     ) : (
-                        // MOBILE: SCROLL COM PADDING 10PX PRA CENTRALIZAR | DESKTOP: GRID
-                        <div className="overflow-x-auto scrollbar-hide snap-x px- px-0 sm:px-0 py-4">
-                            <div className="flex w-max gap- sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 sm:w-full sm:gap-4">
+                        // MOBILE: SCROLL COM PADDING 16PX PRA CENTRALIZAR | DESKTOP: GRID
+                        <div className="overflow-x-auto scrollbar-hide snap-x px-4 sm:px-0 py-4">
+                            <div className="flex w-max gap-4 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 sm:w-full sm:gap-4">
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
@@ -198,8 +198,8 @@ export function ProdutosTab({
                                         <div
                                             key={p.id}
                                             className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''}
-                                            w-[calc(100vw-20px)] snap-center shrink-0
-                                            sm:w-auto`} // 100% - 20px de padding = centralizado
+                                            w-[calc(100vw-32px)] snap-center shrink-0 mx-auto
+                                            sm:w-auto`} // 100% - 32px = 16px de cada lado, centralizado
                                             style={{
                                                 backgroundColor: 'var(--cor-fundo-card, #18181b)',
                                                 border: '1px solid var(--cor-primaria)', // BORDA NO CARD
@@ -298,15 +298,15 @@ export function ProdutosTab({
                 </div>
 
 
-
             </div>
 
             <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
                 <DialogContent
-                    className="border-0 max-w-sm w-full p-0 overflow-hidden flex-col h-[80dvh] [&>button]:hidden"
+                    className="border-0 max-w-sm w-[calc(100%-2rem)] p-0 overflow-hidden flex-col h-[80dvh] [&>button]:hidden items-center"
                     style={{ backgroundColor: 'var(--cor-fundo)' }}
                 >
-                    <div className="flex items-center justify-between p-4 shrink-0">
+                    {/* HEADER */}
+                    <div className="flex items-center justify-between p-4 shrink-0 w-full">
                         <button onClick={() => setQrProduto(null)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{ color: 'var(--cor-texto)' }}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
                         </button>
@@ -316,7 +316,8 @@ export function ProdutosTab({
                         </button>
                     </div>
 
-                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex-col items-center min-h-0">
+                    {/* CONTEUDO CENTRALIZADO */}
+                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 w-full flex flex-col items-center">
                         <div
                             className="w-full p-6 flex-col items-center justify-center gap-5 text-center"
                             style={{ backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)' }}
@@ -325,7 +326,7 @@ export function ProdutosTab({
                                 <img
                                     src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
                                     alt={qrProduto.nome}
-                                    className="w-16 h-16 rounded-full object-cover border-2 mx-auto"
+                                    className="w-16 h-16 rounded-full object-cover border-2"
                                     style={{ borderColor: 'var(--cor-primaria)30' }}
                                 />
                             )}
@@ -335,7 +336,7 @@ export function ProdutosTab({
                                 <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>SKU: {qrProduto?.sku || 'N/A'}</p>
                             </div>
 
-                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[280px] mx-auto">
+                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[280px]">
                                 <QRCodeSVG
                                     id={`qr-${qrProduto?.id}`}
                                     value={`${APP_URL}/p/${qrProduto?.sku || qrProduto?.id}`}
@@ -349,11 +350,14 @@ export function ProdutosTab({
                         </div>
 
                         <p className="text-center text-sm mt-6 px-4 leading-relaxed max-w-xs">
-                            Este é o QR do seu produto. Qualquer pessoa pode escanear para ver a página e comprar direto.
-                            <span className="font-medium" style={{ color: 'var(--cor-primaria)' }}> Manter em segurança</span>
+                            Este é o QR do seu produto.
+                            <br />Qualquer pessoa pode escanear
+                            <br />para ver a página e comprar direto.
+                            <br />
+                            <span className="font-medium" style={{ color: 'var(--cor-primaria)' }}>Manter em segurança</span>
                         </p>
 
-                        <div className="mt-6 space-y-3 w-full max-w-sm">
+                        <div className="mt-6 space-y-3 w-full max-w-sm px-2">
                             <Button
                                 onClick={() => handleDownloadQR(qrProduto)}
                                 className="w-full h-12 font-bold text-base flex items-center justify-center gap-2"
