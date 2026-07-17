@@ -174,7 +174,8 @@ export function ProdutosTab({
                     </div>
                 </div>
 
-                {/* GRID DE PRODUTOS - SEM BORDA E SEM PADDING NO PAI */}
+                
+                {/* GRID DE PRODUTOS - MOBILE SCROLL | DESKTOP GRID */}
                 <div className="">
                     {produtos.length === 0 ? (
                         <div
@@ -186,9 +187,66 @@ export function ProdutosTab({
                             <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
                         </div>
                     ) : (
-                        // MOBILE: SCROLL COM PADDING 16PX PRA CENTRALIZAR | DESKTOP: GRID
-                        <div className="overflow-x-auto scrollbar-hide snap-x px-4 sm:px-0 py-4">
-                            <div className="flex w-max gap-4 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 sm:w-full sm:gap-4">
+                        <>
+                            {/* MOBILE: SCROLL HORIZONTAL */}
+                            <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-4">
+                                <div className="flex w-max gap-4">
+                                    {produtos.map(p => {
+                                        const preco = p.preco_venda || p.preco || 0;
+                                        const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
+                                        const imgSrc = p.imagem_url?.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+
+                                        return (
+                                            <div
+                                                key={`mobile-${p.id}`}
+                                                className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''}
+                                                w-[calc(100vw-32px)] snap-center shrink-0 mx-auto`}
+                                                style={{
+                                                    backgroundColor: 'var(--cor-fundo-card, #18181b)',
+                                                    border: '1px solid var(--cor-primaria)',
+                                                    borderRadius: 'var(--radius)',
+                                                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                                                }}
+                                            >
+                                                {/* IMAGEM */}
+                                                <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                                                    {p.imagem_url ? (
+                                                        <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
+                                                    )}
+                                                    <div className="absolute top-3 right-3 flex gap-2">
+                                                        <button onClick={() => setQrProduto(p)} className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                                                            <QrCode size={18} className="text-white" />
+                                                        </button>
+                                                        {!p.is_active && (<Badge className="text-xs h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444' }}>Inativo</Badge>)}
+                                                    </div>
+                                                </div>
+
+                                                {/* CONTEUDO - igual ao de baixo */}
+                                                <div className="p-4 flex-col flex-1">
+                                                    <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
+                                                    <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
+                                                    <div className="space-y-2.5 text-sm flex-1 mb-3">
+                                                        <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
+                                                        <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
+                                                    </div>
+                                                    <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit rounded-lg" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color }}>{status.icon} {status.label}</div>
+                                                    {isAdmin && (
+                                                        <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
+                                                            <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}><Edit size={14} /> Editar</Button>
+                                                            {isDono && (<Button size="sm" variant="destructive" onClick={() => onDelete(p)} className="h-10 px-3" style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: 'var(--radius)' }}><Trash2 size={14} /></Button>)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* DESKTOP: GRID NORMAL */}
+                            <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
@@ -196,13 +254,11 @@ export function ProdutosTab({
 
                                     return (
                                         <div
-                                            key={p.id}
-                                            className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''}
-                                            w-[calc(100vw-32px)] snap-center shrink-0 mx-auto
-                                            sm:w-auto`} // 100% - 32px = 16px de cada lado, centralizado
+                                            key={`desktop-${p.id}`}
+                                            className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''}`}
                                             style={{
                                                 backgroundColor: 'var(--cor-fundo-card, #18181b)',
-                                                border: '1px solid var(--cor-primaria)', // BORDA NO CARD
+                                                border: '1px solid var(--cor-primaria)',
                                                 borderRadius: 'var(--radius)',
                                                 boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
                                             }}
@@ -214,15 +270,8 @@ export function ProdutosTab({
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
                                                 )}
-
-                                                {/* BADGES TOPO */}
                                                 <div className="absolute top-3 right-3 flex gap-2">
-                                                    <button
-                                                        onClick={() => setQrProduto(p)}
-                                                        className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all"
-                                                        title="Ver QR Code"
-                                                        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-                                                    >
+                                                    <button onClick={() => setQrProduto(p)} className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
                                                         <QrCode size={18} className="text-white" />
                                                     </button>
                                                     {!p.is_active && (<Badge className="text-xs h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444' }}>Inativo</Badge>)}
@@ -231,61 +280,17 @@ export function ProdutosTab({
 
                                             {/* CONTEUDO */}
                                             <div className="p-4 flex-col flex-1">
-                                                <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>
-                                                    {p.nome}
-                                                </h4>
-                                                <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}>
-                                                    <Tag size={12} /> {p.sku || 'N/A'}
-                                                </div>
-
+                                                <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
+                                                <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
                                                 <div className="space-y-2.5 text-sm flex-1 mb-3">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span>
-                                                        <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
-                                                    </div>
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span>
-                                                        <div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>
-                                                            {status.icon}
-                                                            <span>{p.estoque} {p.unidade}</span>
-                                                        </div>
-                                                    </div>
+                                                    <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
+                                                    <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
                                                 </div>
-
-                                                {/* TAG STATUS */}
-                                                <div
-                                                    className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit rounded-lg"
-                                                    style={{
-                                                        backgroundColor: status.bg,
-                                                        border: `1px solid ${status.border}`,
-                                                        color: status.color
-                                                    }}
-                                                >
-                                                    {status.icon} {status.label}
-                                                </div>
-
-                                                {/* BOTOES */}
+                                                <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit rounded-lg" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color }}>{status.icon} {status.label}</div>
                                                 {isAdmin && (
                                                     <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
-                                                        <Button
-                                                            size="sm"
-                                                            onClick={() => onEdit(p)}
-                                                            className="flex-1 h-10 font-semibold"
-                                                            style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
-                                                        >
-                                                            <Edit size={14} /> Editar
-                                                        </Button>
-                                                        {isDono && (
-                                                            <Button
-                                                                size="sm"
-                                                                variant="destructive"
-                                                                onClick={() => onDelete(p)}
-                                                                className="h-10 px-3"
-                                                                style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: 'var(--radius)' }}
-                                                            >
-                                                                <Trash2 size={14} />
-                                                            </Button>
-                                                        )}
+                                                        <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}><Edit size={14} /> Editar</Button>
+                                                        {isDono && (<Button size="sm" variant="destructive" onClick={() => onDelete(p)} className="h-10 px-3" style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: 'var(--radius)' }}><Trash2 size={14} /></Button>)}
                                                     </div>
                                                 )}
                                             </div>
@@ -293,10 +298,9 @@ export function ProdutosTab({
                                     )
                                 })}
                             </div>
-                        </div>
+                        </>
                     )}
                 </div>
-
 
             </div>
 
