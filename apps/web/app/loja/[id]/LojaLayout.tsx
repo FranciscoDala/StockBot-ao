@@ -48,6 +48,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                             backgroundColor: 'var(--cor-primaria)15',
                             border: '2px solid var(--cor-primaria)',
                             borderRadius: 'var(--radius)',
+                            padding: '0 10px',
                             fontSize: '1.5rem',
                             color: 'var(--cor-primaria)',
                             fontFamily: 'var(--font-zalando)',

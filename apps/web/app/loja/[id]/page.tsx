@@ -213,18 +213,20 @@ export default function LojaPage() {
     if (!isClient || loading) return (<div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)' }}><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>);
 
     return (
-        <LojaLayout
-            theme={theme}
-            handleSaveTheme={handleSaveTheme}
-            lojaNome={loja?.nome}
-        >
+        <>
             <style jsx global>{`:root { --cor-primaria: #10b981; --cor-fundo: #000; --cor-card: #171717; --cor-texto: #fff; --cor-texto-sec: #9ca3af; --cor-borda: #2a2a2a; --radius: 8px; --card-padding: 16px; --font-size: 14px; } body { background-color: var(--cor-fundo); }.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
             <Toaster position="top-center" richColors theme={theme as any} />
 
             {activeTab === "venda" ?
+                // TELA DE VENDA SEM HEADER - FULL SCREEN
                 <VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "", theme, cardStyle, cardSize }} />
                 :
-                <>
+                // DEMAIS ABAS COM HEADER NOVO
+                <LojaLayout
+                    theme={theme}
+                    handleSaveTheme={handleSaveTheme}
+                    lojaNome={loja?.nome}
+                >
                     <div className="mb-4 sm:mb-6">
                         <div className="p-1 overflow-x-auto scrollbar-hide" style={{ backgroundColor: 'var(--cor-card)', borderRadius: '8px' }}>
                             <div className="flex gap-1 w-max min-w-full">
@@ -248,17 +250,17 @@ export default function LojaPage() {
                         {activeTab === "documentos" && <DocumentosTab loja={loja} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
                         {activeTab === "definicoes" && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} corPrimaria={corPrimaria} corFundo={corFundo} />}
                     </div>
-                </>
+
+                    <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
+                    <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
+                    <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
+                    <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
+                    <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
+                    <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }} onConfirm={handleConfirmarRemocao} titulo="Remover do Carrinho" descricao={`Deseja remover ${itemParaRemover?.nome} do carrinho?`} loading={false} tipo="venda" />
+                    <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} formatCurrency={formatCurrency} />
+                </LojaLayout>
             }
-
-            <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
-            <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
-            <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
-            <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
-            <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
-            <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }} onConfirm={handleConfirmarRemocao} titulo="Remover do Carrinho" descricao={`Deseja remover ${itemParaRemover?.nome} do carrinho?`} loading={false} tipo="venda" />
-            <VendaSucessoModal open={showVendaSucessoModal} onClose={() => { setShowVendaSucessoModal(false); setVendaConcluida(null) }} venda={vendaConcluida} loja_nome={loja?.nome || ""} loja_nif={loja?.nif || ""} loja_endereco={loja?.endereco || ""} loja_telefone={loja?.telefone || ""} loja_logo={loja?.logo_url || ""} formatCurrency={formatCurrency} />
-
-        </LojaLayout>
+        </>
     );
+
 }
