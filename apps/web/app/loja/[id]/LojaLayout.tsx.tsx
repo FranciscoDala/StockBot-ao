@@ -19,7 +19,7 @@ interface LojaLayoutProps {
     children: React.ReactNode;
     theme: string;
     handleSaveTheme: (data: any) => void;
-    lojaNome?: string | null; // <-- recebe o nome da loja
+    lojaNome?: string | null;
 }
 
 export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome }: LojaLayoutProps) {
@@ -37,12 +37,10 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
         <div className="min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
             <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
-                {/* HEADER NOVO 100px + 50px */}
                 <header
                     className="flex items-center justify-between gap-3 mb-4 sm:mb-6 border-b pb-4"
                     style={{ borderColor: 'var(--cor-primaria)20' }}
                 >
-                    {/* ESQUERDA: LOGO DINAMICA 100px */}
                     <div
                         className="flex items-center justify-center font-bold shrink-0"
                         style={{
@@ -60,10 +58,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                         {initials}
                     </div>
 
-                    {/* DIREITA: BOTÕES 50px */}
                     <div className="flex items-center gap-3 shrink-0">
-
-                        {/* BOTÃO TEMA 50px */}
                         <button
                             onClick={() => handleSaveTheme({ theme: theme === 'dark'? 'light' : 'dark' })}
                             className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
@@ -79,7 +74,6 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                             <Palette size={22} />
                         </button>
 
-                        {/* BOTÃO SAIR OFF 50px */}
                         <button
                             onClick={handleSair}
                             className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
@@ -94,7 +88,6 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                     </div>
                 </header>
 
-                {/* CONTEÚDO DA PAGE */}
                 {children}
             </div>
         </div>

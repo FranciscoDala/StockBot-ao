@@ -31,6 +31,8 @@
     /* FONTE */
     --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
     --font-heading: var(--font-bricolage), sans-serif;
+
+    --font-zalando: 'Zalando Sans Expanded', sans-serif;
 }
 
 /* TEMA CLARO */
