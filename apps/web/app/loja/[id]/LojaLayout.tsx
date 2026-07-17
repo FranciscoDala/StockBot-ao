@@ -43,12 +43,12 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                     <div
                         className="flex items-center justify-center font-bold shrink-0"
                         style={{
-                            width: '80px',
-                            height: '80px',
+                            width: '50px',
+                            height: '50px',
                             backgroundColor: 'var(--cor-primaria)15',
                             border: '2px solid var(--cor-primaria)',
-                            borderRadius: '100%',
-                            fontSize: '1rem',
+                            borderRadius: 'var(--radius)',
+                            fontSize: '1.5rem',
                             color: 'var(--cor-primaria)',
                             fontFamily: 'var(--font-zalando)',
                             textTransform: 'uppercase'
