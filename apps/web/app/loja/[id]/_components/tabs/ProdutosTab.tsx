@@ -298,25 +298,26 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     </div>
 
                     {/* CONTEÚDO COM SCROLL E CENTRALIZADO */}
-                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex flex-col items-center justify-center">
+                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 flex-col items-center justify-start">
                         <div
-                            className="w-full p-6 flex-col items-center justify-center gap-5 text-center" // <-- CENTRALIZADO
+                            className="w-full p-6 flex-col items-center justify-center gap-5 text-center"
                             style={{ backgroundColor: 'var(--cor-fundo-card, #171717)', borderRadius: 'var(--radius)' }}
                         >
                             {qrProduto?.imagem_url && (
-                                <img src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
+                                <img
+                                    src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
                                     alt={qrProduto.nome}
-                                    className="w-16 h-16 rounded-full object-cover border-2"
+                                    className="w-16 h-16 rounded-full object-cover border-2 mx-auto"
                                     style={{ borderColor: 'var(--cor-primaria)30' }}
                                 />
                             )}
 
-                            <div className="space-y-1">
+                            <div className="space-y-1 w-full">
                                 <p className="font-bold text-xl" style={{ color: 'var(--cor-texto)' }}>{qrProduto?.nome}</p>
                                 <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>SKU: {qrProduto?.sku || 'N/A'}</p>
                             </div>
 
-                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[280px]">
+                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[280px] mx-auto">
                                 <QRCodeSVG
                                     id={`qr-${qrProduto?.id}`}
                                     value={`${APP_URL}/p/${qrProduto?.sku || qrProduto?.id}`}
@@ -330,7 +331,7 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                         </div>
 
                         {/* TEXTO EXPLICATIVO CENTRALIZADO */}
-                        <p className="text-center text-sm mt-6 px-4 leading-relaxed max-w-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                        <p className="text-center text-sm mt-6 px-4 leading-relaxed max-w-xs">
                             Este é o QR do seu produto. Qualquer pessoa pode escanear para ver a página e comprar direto.
                             <span className="font-medium" style={{ color: 'var(--cor-primaria)' }}> Manter em segurança</span>
                         </p>
@@ -356,8 +357,6 @@ export function ProdutosTab({ produtos, isAdmin, isDono, lojaId, onAdd, onEdit, 
                     </div>
                 </DialogContent>
             </Dialog>
-
-
 
         </>
     )
