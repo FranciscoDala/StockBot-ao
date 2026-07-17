@@ -47,9 +47,9 @@ type Props = {
     nomeLoja?: string
     nifLoja?: string
     enderecoLoja?: string
-    theme: string; // <-- ADICIONADO
-    cardStyle: string; // <-- ADICIONADO
-    cardSize: string; // <-- ADICIONADO
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
 }
 
 export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MINHA LOJA", nifLoja = "NIF: 000", enderecoLoja = "Endereço: Luanda", theme, cardStyle, cardSize }: Props) {
@@ -64,7 +64,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const ws = useRef<WebSocket | null>(null)
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
 
     const buscarVendas = useCallback(async () => {
         if (!token ||!lojaId) return;
@@ -348,7 +348,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 style={{
                     backgroundColor: '#171717',
                     borderColor: '#27272a',
-                    borderRadius: radius // <-- ALTERADO
+                    borderRadius: radius
                 }}
             >
                 <div className="flex items-center gap-2 mb-3 text-gray-300">
@@ -361,7 +361,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             value={filtroPeriodo}
                             onChange={(e) => setFiltroPeriodo(e.target.value)}
                             className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{borderRadius: radius}} // <-- ALTERADO
+                            style={{borderRadius: radius}}
                         >
                             <option value="7">Últimos 7 dias</option>
                             <option value="15">Últimos 15 dias</option>
@@ -375,7 +375,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             value={filtroForma}
                             onChange={(e) => setFiltroForma(e.target.value)}
                             className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{borderRadius: radius}} // <-- ALTERADO
+                            style={{borderRadius: radius}}
                         >
                             <option value="TODAS">Todas</option>
                             <option value="Dinheiro">Dinheiro</option>
@@ -391,7 +391,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     className="flex gap-2 p-1 w-max min-w-full"
                     style={{
                         backgroundColor: '#171717',
-                        borderRadius: radius // <-- ALTERADO
+                        borderRadius: radius
                     }}
                 >
                     {[
@@ -404,8 +404,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition`}
                             style={abaAtiva === tab.id
-                              ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius} // <-- ALTERADO
-                                : {color: '#9ca3af', borderRadius: radius} // <-- ALTERADO
+                              ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius}
+                                : {color: '#9ca3af', borderRadius: radius}
                             }
                         >
                             <tab.icon size={14} /> {tab.label}
@@ -427,8 +427,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             descricao="Total do período"
                             tendencia="+8.5% vs mês ant"
                             formatCurrency={formatCurrency}
-                            cardStyle={cardStyle} // <-- ADICIONADO
-                            cardSize={cardSize} // <-- ADICIONADO
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
                         />
                         <CardStats
                             titulo="Vendas Realizadas"
@@ -437,8 +437,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             cor="secundaria"
                             descricao="Pedidos concluídos"
                             formatCurrency={(v) => String(v)}
-                            cardStyle={cardStyle} // <-- ADICIONADO
-                            cardSize={cardSize} // <-- ADICIONADO
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
                         />
                         <CardStats
                             titulo="Ticket Médio"
@@ -448,8 +448,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             descricao="Valor por venda"
                             tendencia="+2.3% vs mês ant"
                             formatCurrency={formatCurrency}
-                            cardStyle={cardStyle} // <-- ADICIONADO
-                            cardSize={cardSize} // <-- ADICIONADO
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
                         />
                         <CardStats
                             titulo="Itens Vendidos"
@@ -458,8 +458,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             cor="alerta"
                             descricao="Unidades no período"
                             formatCurrency={(v) => String(v)}
-                            cardStyle={cardStyle} // <-- ADICIONADO
-                            cardSize={cardSize} // <-- ADICIONADO
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
                         />
                     </div>
 
@@ -469,7 +469,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         style={{
                             backgroundColor: '#171717',
                             borderColor: '#27272a',
-                            borderRadius: radius // <-- ALTERADO
+                            borderRadius: radius
                         }}
                     >
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
@@ -479,8 +479,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
                                         className="px-3 py-1.5 rounded-lg text-xs font-medium transition"
                                         style={filtroGrafico === tipo
-                                          ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius} // <-- ALTERADO
-                                            : {backgroundColor: '#262626', color: '#d1d5db', borderRadius: radius} // <-- ALTERADO
+                                          ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius}
+                                            : {backgroundColor: '#262626', color: '#d1d5db', borderRadius: radius}
                                         }
                                     >
                                         {tipo === "diario"? "Diário" : tipo === "semanal"? "Semanal" : "Mensal"}
@@ -517,7 +517,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         style={{
                             backgroundColor: '#171717',
                             borderColor: '#27272a',
-                            borderRadius: radius // <-- ALTERADO
+                            borderRadius: radius
                         }}
                     >
                         <h3 className="font-bold mb-3 text-white">Últimas Vendas - {vendasFiltradas.length}</h3>
@@ -530,7 +530,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <p className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(v.total)}</p>
-                                        <button onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} className="p-1.5 rounded-md hover:bg-neutral-800 transition text-gray-300" title="Imprimir" style={{borderRadius: radius}}> // <-- ALTERADO
+                                        <button onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} className="p-1.5 rounded-md hover:bg-neutral-800 transition text-gray-300" title="Imprimir" style={{borderRadius: radius}}>
                                             <Printer size={18} />
                                         </button>
                                     </div>
@@ -548,13 +548,13 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     style={{
                         backgroundColor: '#171717',
                         borderColor: '#27272a',
-                        borderRadius: radius // <-- ALTERADO
+                        borderRadius: radius
                     }}
                 >
                     <h3 className="font-bold mb-4 text-white">Top 10 Produtos Mais Vendidos</h3>
                     <div className="space-y-2">
                         {topProdutos.map((p, i) => (
-                            <div key={i} className="flex justify-between items-center p-3" style={{backgroundColor: '#262626', borderRadius: radius}}> // <-- ALTERADO
+                            <div key={i} className="flex justify-between items-center p-3" style={{backgroundColor: '#262626', borderRadius: radius}}>
                                 <div>
                                     <p className="font-medium text-sm text-white">#{i + 1} {p.nome}</p>
                                     <p className="text-xs text-gray-400">{p.qtd} unidades vendidas</p>
@@ -574,7 +574,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     style={{
                         backgroundColor: '#171717',
                         borderColor: '#27272a',
-                        borderRadius: radius // <-- ALTERADO
+                        borderRadius: radius
                     }}
                 >
                     <h3 className="font-bold mb-4 text-white">Faturamento por Forma de Pagamento</h3>
@@ -586,7 +586,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <p className="text-sm font-bold text-white">{formatCurrency(p.total)}</p>
                                 </div>
                                 <div className="w-full bg-neutral-800 rounded-full h-2">
-                                    <div className="h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0? (p.total / statsPeriodo.total) * 100 : 0}%`, backgroundColor: 'var(--cor-primaria)', borderRadius: radius }}></div> // <-- ALTERADO
+                                    <div className="h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0? (p.total / statsPeriodo.total) * 100 : 0}%`, backgroundColor: 'var(--cor-primaria)', borderRadius: radius }}></div>
                                 </div>
                             </div>
                         ))}
@@ -602,7 +602,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         style={{
                             backgroundColor: '#171717',
                             borderColor: '#27272a',
-                            borderRadius: radius // <-- ALTERADO
+                            borderRadius: radius
                         }}
                         onClick={e => e.stopPropagation()}
                     >
@@ -621,7 +621,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 <h4 className="font-semibold mb-3 flex items-center gap-2 text-white"><Package size={16} /> Produtos</h4>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                                     {vendaSelecionada.detalhes.map((item) => (
-                                        <div key={item.id} className="flex justify-between items-center text-sm p-3" style={{backgroundColor: '#262626', borderRadius: radius}}> // <-- ALTERADO
+                                        <div key={item.id} className="flex justify-between items-center text-sm p-3" style={{backgroundColor: '#262626', borderRadius: radius}}>
                                             <div className="flex-1">
                                                 <p className="font-medium text-white">{item.nome_produto}</p>
                                                 <p className="text-xs text-gray-400">{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
@@ -647,8 +647,8 @@ function CardStats({
     descricao,
     tendencia,
     formatCurrency,
-    cardStyle, // <-- ADICIONADO
-    cardSize // <-- ADICIONADO
+    cardStyle, 
+    cardSize
 }: {
     titulo: string,
     stats: Stats,
@@ -657,10 +657,10 @@ function CardStats({
     descricao: string,
     tendencia?: string,
     formatCurrency: (v: number) => string,
-    cardStyle: string, // <-- ADICIONADO
-    cardSize: string // <-- ADICIONADO
+    cardStyle: string,
+    cardSize: string
 }) {
-    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
 
     const cores = {
         primaria: { border: 'var(--cor-primaria)30', bg: 'var(--cor-primaria)14', text: 'var(--cor-primaria)' },
@@ -677,7 +677,7 @@ function CardStats({
                 border: `1px solid ${c.border}`,
                 backgroundColor: c.bg,
                 color: c.text,
-                borderRadius: radius // <-- ALTERADO
+                borderRadius: radius
             }}
         >
             <div className="flex items-center justify-between mb-2">

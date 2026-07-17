@@ -9,35 +9,35 @@ import { toast } from "sonner";
 type TabDef = "aparencia" | "tema" | "cards" | "notificacoes" | "seguranca";
 
 type Props = {
-  onSaveTheme: (data: {
-    theme?: string,
-    card_style?: string,
-    card_size?: string,
-    font_size?: string,
-    cor_primaria?: string,
-    cor_fundo?: string
-  }) => void;
-  theme: string;
-  cardStyle: string;
-  cardSize: string;
-  fontSize: string;
-  corPrimaria: string;
-  corFundo: string;
+    onSaveTheme: (data: {
+        theme?: string,
+        card_style?: string,
+        card_size?: string,
+        font_size?: string,
+        cor_primaria?: string,
+        cor_fundo?: string
+    }) => void;
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
+    fontSize: string;
+    corPrimaria: string;
+    corFundo: string;
 }
 
 export function DefinicoesTab({
-  onSaveTheme,
-  theme,
-  cardStyle,
-  cardSize,
-  fontSize,
-  corPrimaria: corPrimariaProp,
-  corFundo: corFundoProp
+    onSaveTheme,
+    theme,
+    cardStyle,
+    cardSize,
+    fontSize,
+    corPrimaria: corPrimariaProp,
+    corFundo: corFundoProp
 }: Props) {
     const [tabAtiva, setTabAtiva] = useState<TabDef>("aparencia");
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px'; // <-- ADICIONADO
-    const padding = cardSize === 'grande'? '24px' : '16px'; // <-- ADICIONADO
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px'; // <-- ADICIONADO
+    const padding = cardSize === 'grande' ? '24px' : '16px'; // <-- ADICIONADO
 
     // STATES VINDOS DO DB
     const [modoEscuro, setModoEscuro] = useState(theme === 'dark');
@@ -71,7 +71,7 @@ export function DefinicoesTab({
         document.documentElement.setAttribute('data-card-size', csz);
 
         // 4. Fonte
-        document.documentElement.style.setProperty('--font-size', fsz === 'grande'? '16px' : fsz === 'pequeno'? '12px' : '14px');
+        document.documentElement.style.setProperty('--font-size', fsz === 'grande' ? '16px' : fsz === 'pequeno' ? '12px' : '14px');
     }
 
     const handleSalvar = () => {
@@ -118,12 +118,12 @@ export function DefinicoesTab({
     ]
 
     const estilosCards = [
-        {id: "padrao", nome: "Padrão", desc: "Limpo e sólido", icon: <LayoutGrid size={18} />},
-        {id: "glass", nome: "Glass", desc: "Efeito vidro iOS", icon: <Layers size={18} />},
-        {id: "borda", nome: "Com Borda", desc: "Contorno profissional", icon: <Settings size={18} />},
-        {id: "neon", nome: "Neon", desc: "Brilho tech gamer", icon: <Zap size={18} />},
-        {id: "gradient", nome: "Gradient", desc: "Premium degradê", icon: <Sparkles size={18} />},
-        {id: "elevado", nome: "Elevado 3D", desc: "Sombra destacada", icon: <LayoutGrid size={18} />},
+        { id: "padrao", nome: "Padrão", desc: "Limpo e sólido", icon: <LayoutGrid size={18} /> },
+        { id: "glass", nome: "Glass", desc: "Efeito vidro iOS", icon: <Layers size={18} /> },
+        { id: "borda", nome: "Com Borda", desc: "Contorno profissional", icon: <Settings size={18} /> },
+        { id: "neon", nome: "Neon", desc: "Brilho tech gamer", icon: <Zap size={18} /> },
+        { id: "gradient", nome: "Gradient", desc: "Premium degradê", icon: <Sparkles size={18} /> },
+        { id: "elevado", nome: "Elevado 3D", desc: "Sombra destacada", icon: <LayoutGrid size={18} /> },
     ]
 
     return (
@@ -131,24 +131,26 @@ export function DefinicoesTab({
             {/* HEADER PADRONIZADO */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
                         Definições
-                        <Settings size={16} style={{color: 'var(--cor-primaria)'}} />
+                        <Settings size={16} style={{ color: 'var(--cor-primaria)' }} />
                     </h2>
-                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Personalize a aparência da sua loja</p>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Personalize a aparência da sua loja</p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <button onClick={handleRestaurar} className="flex items-center justify-center gap-2 font-medium transition hover:opacity-90 text-xs" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', padding: cardSize === 'grande'? '12px 20px' : '8px 16px', borderRadius: radius}}> // <-- ALTERADO
+
+                    <button onClick={handleRestaurar} className="flex items-center justify-center gap-2 font-medium transition hover:opacity-90 text-xs" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
                         <RefreshCw size={14} /> Restaurar
                     </button>
-                    <button onClick={handleSalvar} className="flex items-center justify-center gap-2 font-bold transition hover:opacity-90 text-xs" style={{backgroundColor: 'var(--cor-primaria)', color: 'white', padding: cardSize === 'grande'? '12px 20px' : '8px 16px', borderRadius: radius}}> // <-- ALTERADO
+                    <button onClick={handleSalvar} className="flex items-center justify-center gap-2 font-bold transition hover:opacity-90 text-xs" style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
                         <Save size={14} /> Salvar
                     </button>
+                    
                 </div>
             </div>
 
             {/* TABS INTERNAS */}
-            <div className="transition" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius, padding: cardSize === 'grande'? '4px' : '4px'}}> // <-- ALTERADO
+            <div className="transition" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius, padding: cardSize === 'grande' ? '4px' : '4px' }}> // <-- ALTERADO
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                     {tabs.map(t => (
                         <button
@@ -156,8 +158,8 @@ export function DefinicoesTab({
                             onClick={() => setTabAtiva(t.id)}
                             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition whitespace-nowrap`}
                             style={tabAtiva === t.id
-                                ? {color: 'var(--cor-primaria)', borderBottom: '2px solid var(--cor-primaria)'}
-                                : {color: 'var(--cor-texto-sec)'}}
+                                ? { color: 'var(--cor-primaria)', borderBottom: '2px solid var(--cor-primaria)' }
+                                : { color: 'var(--cor-texto-sec)' }}
                         >
                             {t.icon} {t.label}
                         </button>
@@ -166,18 +168,18 @@ export function DefinicoesTab({
             </div>
 
             {/* CONTEÚDO */}
-            <div className="transition border" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', borderRadius: radius, padding}}> // <-- ALTERADO
+            <div className="transition border" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', borderRadius: radius, padding }}> // <-- ALTERADO
                 {tabAtiva === "aparencia" && (
                     <div className="space-y-6">
-                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Cores da Marca</h3>
-                        <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Cores da Marca</h3>
+                        <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
                             Defina as cores principais da sua loja. Elas serão aplicadas em todo o sistema.
                         </p>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* COR PRIMARIA */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{color: 'var(--cor-texto)'}}>
+                                <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: 'var(--cor-texto)' }}>
                                     <Palette size={16} /> Cor Primária
                                 </label>
                                 <div className="flex gap-2">
@@ -189,7 +191,7 @@ export function DefinicoesTab({
                                             aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, e.target.value, corFundo);
                                         }}
                                         className="h-10 w-10 rounded cursor-pointer border"
-                                        style={{borderColor: 'var(--cor-borda)'}}
+                                        style={{ borderColor: 'var(--cor-borda)' }}
                                     />
                                     <input
                                         value={corPrimaria}
@@ -198,14 +200,14 @@ export function DefinicoesTab({
                                             aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, e.target.value, corFundo);
                                         }}
                                         className="flex-1 p-2 border"
-                                        style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius}} // <-- ALTERADO
+                                        style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
                                     />
                                 </div>
                             </div>
 
                             {/* COR FUNDO */}
                             <div>
-                                <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{color: 'var(--cor-texto)'}}>
+                                <label className="flex items-center gap-2 text-sm font-medium mb-2" style={{ color: 'var(--cor-texto)' }}>
                                     <Palette size={16} /> Cor de Fundo
                                 </label>
                                 <div className="flex gap-2">
@@ -217,7 +219,7 @@ export function DefinicoesTab({
                                             aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, corPrimaria, e.target.value);
                                         }}
                                         className="h-10 w-10 rounded cursor-pointer border"
-                                        style={{borderColor: 'var(--cor-borda)'}}
+                                        style={{ borderColor: 'var(--cor-borda)' }}
                                     />
                                     <input
                                         value={corFundo}
@@ -226,17 +228,17 @@ export function DefinicoesTab({
                                             aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, corPrimaria, e.target.value);
                                         }}
                                         className="flex-1 p-2 border"
-                                        style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius}} // <-- ALTERADO
+                                        style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-4" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}> // <-- ALTERADO
-                            <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Preview:</p>
+                        <div className="p-4" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                            <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Preview:</p>
                             <div className="flex gap-2 mt-2">
-                                <div className="w-8 h-8 rounded" style={{backgroundColor: corPrimaria}}></div>
-                                <div className="w-8 h-8 rounded" style={{backgroundColor: corFundo, border: '1px solid var(--cor-borda)'}}></div>
+                                <div className="w-8 h-8 rounded" style={{ backgroundColor: corPrimaria }}></div>
+                                <div className="w-8 h-8 rounded" style={{ backgroundColor: corFundo, border: '1px solid var(--cor-borda)' }}></div>
                             </div>
                         </div>
                     </div>
@@ -244,7 +246,7 @@ export function DefinicoesTab({
 
                 {tabAtiva === "tema" && (
                     <div className="space-y-6">
-                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Tema do App</h3>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Tema do App</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={() => setModoEscuro(false)}
@@ -255,7 +257,7 @@ export function DefinicoesTab({
                                     borderRadius: radius // <-- ALTERADO
                                 }}
                             >
-                                <Sun size={32} className="text-amber-500" /> <span className="font-medium" style={{color: 'var(--cor-texto)'}}>Claro</span>
+                                <Sun size={32} className="text-amber-500" /> <span className="font-medium" style={{ color: 'var(--cor-texto)' }}>Claro</span>
                             </button>
                             <button
                                 onClick={() => setModoEscuro(true)}
@@ -266,7 +268,7 @@ export function DefinicoesTab({
                                     borderRadius: radius // <-- ALTERADO
                                 }}
                             >
-                                <Moon size={32} className="text-purple-500" /> <span className="font-medium" style={{color: 'var(--cor-texto)'}}>Escuro</span>
+                                <Moon size={32} className="text-purple-500" /> <span className="font-medium" style={{ color: 'var(--cor-texto)' }}>Escuro</span>
                             </button>
                         </div>
                     </div>
@@ -274,7 +276,7 @@ export function DefinicoesTab({
 
                 {tabAtiva === "cards" && (
                     <div className="space-y-6">
-                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Estilo dos Cards</h3>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Estilo dos Cards</h3>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             {estilosCards.map(c => (
                                 <button
@@ -288,21 +290,21 @@ export function DefinicoesTab({
                                     }}
                                 >
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span style={{color: 'var(--cor-primaria)'}}>{c.icon}</span>
-                                        <p className="font-bold" style={{color: 'var(--cor-texto)'}}>{c.nome}</p>
+                                        <span style={{ color: 'var(--cor-primaria)' }}>{c.icon}</span>
+                                        <p className="font-bold" style={{ color: 'var(--cor-texto)' }}>{c.nome}</p>
                                     </div>
-                                    <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{c.desc}</p>
+                                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{c.desc}</p>
                                 </button>
                             ))}
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Tamanho dos Cards</label>
+                            <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--cor-texto-sec)' }}>Tamanho dos Cards</label>
                             <select
                                 value={tamanhoCard}
                                 onChange={e => setTamanhoCard(e.target.value)}
                                 className="w-full rounded-lg px-3 py-2 text-sm"
-                                style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius}} // <-- ALTERADO
+                                style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
                             >
                                 <option value="pequeno">Pequeno</option>
                                 <option value="medio">Médio</option>
@@ -311,12 +313,12 @@ export function DefinicoesTab({
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium mb-2 block" style={{color: 'var(--cor-texto-sec)'}}>Tamanho da Fonte</label>
+                            <label className="text-sm font-medium mb-2 block" style={{ color: 'var(--cor-texto-sec)' }}>Tamanho da Fonte</label>
                             <select
                                 value={fonteTamanho}
                                 onChange={e => setFonteTamanho(e.target.value)}
                                 className="w-full rounded-lg px-3 py-2 text-sm"
-                                style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius}} // <-- ALTERADO
+                                style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
                             >
                                 <option value="pequeno">Pequena</option>
                                 <option value="medio">Média</option>
@@ -328,11 +330,11 @@ export function DefinicoesTab({
 
                 {tabAtiva === "notificacoes" && (
                     <div className="space-y-4">
-                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Notificações</h3>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Notificações</h3>
                         {["Estoque Baixo", "Nova Venda", "Cliente Novo"].map(n => (
-                            <div key={n} className="flex items-center justify-between p-4" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}> // <-- ALTERADO
-                                <p className="font-medium" style={{color: 'var(--cor-texto)'}}>{n}</p>
-                                <div className="w-12 h-6 rounded-full relative" style={{backgroundColor: 'var(--cor-primaria)'}}><div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div></div>
+                            <div key={n} className="flex items-center justify-between p-4" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                                <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>{n}</p>
+                                <div className="w-12 h-6 rounded-full relative" style={{ backgroundColor: 'var(--cor-primaria)' }}><div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div></div>
                             </div>
                         ))}
                     </div>
@@ -340,9 +342,9 @@ export function DefinicoesTab({
 
                 {tabAtiva === "seguranca" && (
                     <div className="space-y-4">
-                        <h3 className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Segurança</h3>
-                        <div className="p-4" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}> // <-- ALTERADO
-                            <p className="font-medium" style={{color: 'var(--cor-texto)'}}>Autenticação 2FA</p>
+                        <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Segurança</h3>
+                        <div className="p-4" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                            <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>Autenticação 2FA</p>
                         </div>
                     </div>
                 )}

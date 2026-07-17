@@ -293,7 +293,7 @@ export function VendaTab({
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{color: 'var(--cor-texto)'}}>
                             <ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}
                         </h3>
-                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}> // <-- ALTERADO
+                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}>
                             {carrinho.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-24" style={{color: 'var(--cor-texto-sec)'}}>
                                     <ShoppingCart size={24} />
