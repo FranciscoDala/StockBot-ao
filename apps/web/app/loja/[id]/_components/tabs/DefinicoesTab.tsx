@@ -145,12 +145,12 @@ export function DefinicoesTab({
                     <button onClick={handleSalvar} className="flex items-center justify-center gap-2 font-bold transition hover:opacity-90 text-xs" style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
                         <Save size={14} /> Salvar
                     </button>
-                    
+
                 </div>
             </div>
 
             {/* TABS INTERNAS */}
-            <div className="transition" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius, padding: cardSize === 'grande' ? '4px' : '4px' }}> // <-- ALTERADO
+            <div className="transition" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius, padding: cardSize === 'grande' ? '4px' : '4px' }}>
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                     {tabs.map(t => (
                         <button
@@ -168,7 +168,7 @@ export function DefinicoesTab({
             </div>
 
             {/* CONTEÚDO */}
-            <div className="transition border" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', borderRadius: radius, padding }}> // <-- ALTERADO
+            <div className="transition border" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', borderRadius: radius, padding }}>
                 {tabAtiva === "aparencia" && (
                     <div className="space-y-6">
                         <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Cores da Marca</h3>
@@ -200,7 +200,7 @@ export function DefinicoesTab({
                                             aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, e.target.value, corFundo);
                                         }}
                                         className="flex-1 p-2 border"
-                                        style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
+                                        style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}
                                     />
                                 </div>
                             </div>
@@ -228,7 +228,7 @@ export function DefinicoesTab({
                                             aplicarTema(theme, estiloCard, tamanhoCard, fonteTamanho, corPrimaria, e.target.value);
                                         }}
                                         className="flex-1 p-2 border"
-                                        style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
+                                        style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}
                                     />
                                 </div>
                             </div>
@@ -254,7 +254,7 @@ export function DefinicoesTab({
                                 style={{
                                     borderColor: !modoEscuro ? 'var(--cor-primaria)' : 'var(--cor-borda)',
                                     backgroundColor: !modoEscuro ? 'var(--cor-primaria)20' : 'var(--cor-card)',
-                                    borderRadius: radius // <-- ALTERADO
+                                    borderRadius: radius
                                 }}
                             >
                                 <Sun size={32} className="text-amber-500" /> <span className="font-medium" style={{ color: 'var(--cor-texto)' }}>Claro</span>
@@ -265,7 +265,7 @@ export function DefinicoesTab({
                                 style={{
                                     borderColor: modoEscuro ? 'var(--cor-primaria)' : 'var(--cor-borda)',
                                     backgroundColor: modoEscuro ? 'var(--cor-primaria)20' : 'var(--cor-card)',
-                                    borderRadius: radius // <-- ALTERADO
+                                    borderRadius: radius
                                 }}
                             >
                                 <Moon size={32} className="text-purple-500" /> <span className="font-medium" style={{ color: 'var(--cor-texto)' }}>Escuro</span>
@@ -286,7 +286,7 @@ export function DefinicoesTab({
                                     style={{
                                         borderColor: estiloCard === c.id ? 'var(--cor-primaria)' : 'var(--cor-borda)',
                                         backgroundColor: estiloCard === c.id ? 'var(--cor-primaria)20' : 'var(--cor-card)',
-                                        borderRadius: radius // <-- ALTERADO
+                                        borderRadius: radius
                                     }}
                                 >
                                     <div className="flex items-center gap-2 mb-1">
@@ -304,7 +304,7 @@ export function DefinicoesTab({
                                 value={tamanhoCard}
                                 onChange={e => setTamanhoCard(e.target.value)}
                                 className="w-full rounded-lg px-3 py-2 text-sm"
-                                style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
+                                style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}
                             >
                                 <option value="pequeno">Pequeno</option>
                                 <option value="medio">Médio</option>
@@ -318,7 +318,7 @@ export function DefinicoesTab({
                                 value={fonteTamanho}
                                 onChange={e => setFonteTamanho(e.target.value)}
                                 className="w-full rounded-lg px-3 py-2 text-sm"
-                                style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} // <-- ALTERADO
+                                style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}
                             >
                                 <option value="pequeno">Pequena</option>
                                 <option value="medio">Média</option>
