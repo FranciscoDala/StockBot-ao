@@ -69,7 +69,7 @@ export default function LojaPage() {
     const [cardSize, setCardSize] = useState("medio");
     const [fontSize, setFontSize] = useState("medio");
     const [corPrimaria, setCorPrimaria] = useState("#10b981");
-    const [corFundo, setCorFundo] = useState("#000000"); // CORRIGIDO: 6 digitos
+    const [corFundo, setCorFundo] = useState("#000000");
 
     const podeEditarApagar = ["DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerTudo = ["ADMIN", "DONO", "GERENTE"].includes(user?.nivel!);
@@ -111,7 +111,7 @@ export default function LojaPage() {
 
     const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
       document.documentElement.style.setProperty('--cor-primaria', corP || '#10b981');
-      document.documentElement.style.setProperty('--cor-fundo', corF || '#000'); // CORRIGIDO
+      document.documentElement.style.setProperty('--cor-fundo', corF || '#000');
       document.documentElement.style.setProperty('--radius', cs === 'arredondado'? '16px' : cs === 'clean'? '4px' : '8px');
       document.documentElement.style.setProperty('--card-padding', csz === 'grande'? '24px' : csz === 'pequeno'? '12px' : '16px');
       document.documentElement.style.setProperty('--font-size', fsz === 'grande'? '16px' : fsz === 'pequeno'? '12px' : '14px');
@@ -162,7 +162,7 @@ export default function LojaPage() {
         if(data.cor_fundo) setCorFundo(data.cor_fundo);
         applyTheme(
           data.theme || "dark", data.card_style || "padrao", data.card_size || "medio", data.font_size || "medio",
-          data.cor_primaria || "#10b981", data.cor_fundo || "#000" // CORRIGIDO
+          data.cor_primaria || "#10b981", data.cor_fundo || "#000"
         );
       } catch (e) { console.error("Erro ao buscar loja:", e); setLoja(null); }
     }, [lojaId, applyTheme]);
@@ -270,23 +270,18 @@ export default function LojaPage() {
         <style jsx global>{`
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-:root {
-  --cor-primaria: #10b981;
-  --cor-fundo: #000000;
-  --cor-card: #171717;
-  --cor-texto: #fff;
-  --cor-texto-sec: #9ca3af;
-  --cor-borda: #2a2a2a;
-  --radius: 8px;
-  --card-padding: 16px;
-  --font-size: 14px;
-}
 body { background-color: var(--cor-fundo); }
         `}</style>
 
         <Toaster position="top-center" richColors theme={theme as any} />
         {activeTab === "venda"? <div className="fixed inset-0 z-40" style={{backgroundColor: 'var(--cor-fundo)'}}><VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, formatCurrency, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "" }} /></div> :
-            <div className="min-h-screen" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)'}}>
+            <div
+                data-theme={theme}
+                data-card-style={cardStyle}
+                data-card-size={cardSize}
+                className="min-h-screen"
+                style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)'}}
+            >
                 <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
                     <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
                         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
