@@ -96,9 +96,11 @@ export default function LojaPage() {
         tipo: 'editar' | 'apagar' | 'adicionar';
         entidade: 'user' | 'produto';
         descricao: string;
-        data: UsuarioLojaPage | ProdutoType | null; 
+        data: UsuarioLojaPage | ProdutoType | null;
     } | null>(null);
-
+    const [showVendaSucessoModal, setShowVendaSucessoModal] = useState(false);
+    const [vendaConcluida, setVendaConcluida] = useState<Venda | null>(null);
+    const [ws, setWs] = useState<WebSocket | null>(null); // <- ESSA LINHA SUMIU
 
 
     const getPreco = (item: CarrinhoItem) => item.preco_venda ?? item.preco ?? 0;
