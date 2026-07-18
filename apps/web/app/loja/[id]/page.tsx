@@ -297,15 +297,14 @@ export default function LojaPage() {
 
 
 
-
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!token || !acaoPendente) return;
+        if (!acaoPendente) return;
         setSaving(true);
         try {
-            await fetchComAuth(`${API_URL}/lojas/${lojaId}/verificar-senha`, token, { method: 'POST', body: JSON.stringify({ senha: senha_dono }) });
+            // REMOVIDO: await fetchComAuth(`${API_URL}/lojas/${lojaId}/verificar-senha`...)
 
             if (acaoPendente.tipo === 'apagar') {
-                if (!acaoPendente.data) return; // <- ADICIONA ESSA LINHA
+                if (!acaoPendente.data) return;
 
                 const url = acaoPendente.entidade === 'user'
                     ? `${API_URL}/lojas/id/${lojaId}/usuarios/${(acaoPendente.data as UsuarioLojaPage).id}`
@@ -317,17 +316,15 @@ export default function LojaPage() {
 
                 await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) });
                 toast.success(acaoPendente.entidade === 'user' ? "Membro apagado!" : "Produto apagado!");
-                if (acaoPendente.entidade === 'user') fetchEquipa(token);
-                else fetchProdutos(token, lojaId);
+                if (acaoPendente.entidade === 'user') fetchEquipa(token!);
+                else fetchProdutos(token!, lojaId);
             }
 
             if (acaoPendente.tipo === 'adicionar' || acaoPendente.tipo === 'editar') {
                 if (acaoPendente.entidade === 'user') {
-                    setFormDataUser((prev: any) => ({ ...prev, senha_dono, senha_confirmacao: senha_dono }));
                     await handleSave({ ...formDataUser, senha_dono, senha_confirmacao: senha_dono });
                 }
                 if (acaoPendente.entidade === 'produto') {
-                    setFormDataProduto((prev: any) => ({ ...prev, senha_dono, senha_confirmacao: senha_dono }));
                     await handleSave({ ...formDataProduto, senha_dono, senha_confirmacao: senha_dono });
                 }
             }
@@ -344,7 +341,6 @@ export default function LojaPage() {
 
 
 
-
     const handleSave = async (payload: any) => {
         if (!token) { toast.error("Sessão expirada"); return; }
         setSaving(true);
@@ -352,10 +348,9 @@ export default function LojaPage() {
         try {
             let url = "";
             let method = "POST";
-            let needsPassword = modalType === 'produto' || modalType === 'user';
 
-            // 1. SE PRECISA DE SENHA E AINDA NÃO TEM: Pede senha e para
-            if (needsPassword && !payload.senha_dono) {
+            // 1. SE NÃO TEM SENHA: Pede senha e para
+            if (!payload.senha_dono || !payload.senha_confirmacao) {
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
                     entidade: modalType,
@@ -364,7 +359,7 @@ export default function LojaPage() {
                 });
                 setShowPermissaoModal(true);
                 setSaving(false);
-                return; // para e espera a senha vir do modal
+                return;
             }
 
             // 2. MONTA URL E METHOD
@@ -383,9 +378,6 @@ export default function LojaPage() {
                 finalPayload = { ...finalPayload, loja_id: lojaId, nivel: payload.role };
                 if (!editingUser && !finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
                 if (editingUser && !finalPayload.senha) delete finalPayload.senha;
-                // injeta senha do dono
-                finalPayload.senha_dono = payload.senha_dono;
-                finalPayload.senha_confirmacao = payload.senha_dono;
             }
 
             if (modalType === 'produto') {
@@ -396,12 +388,10 @@ export default function LojaPage() {
                     preco_custo: Number(payload.preco_custo),
                     estoque: Number(payload.estoque),
                     estoque_minimo: Number(payload.estoque_minimo),
-                    senha_dono: payload.senha_dono,
-                    senha_confirmacao: payload.senha_dono,
                 };
             }
 
-            // 4. ENVIA
+            // 4. ENVIA DIRETO COM SENHA
             await fetchComAuth(url, token, { method, body: JSON.stringify(finalPayload) });
 
             toast.success(
