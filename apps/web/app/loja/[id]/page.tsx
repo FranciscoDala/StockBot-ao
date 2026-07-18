@@ -351,7 +351,6 @@ export default function LojaPage() {
             let url = "";
             let method = "POST";
 
-            // 1. SE NÃO TEM SENHA: Pede senha e GUARDA TUDO no acaoPendente.data
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
                 setAcaoPendente({
@@ -365,7 +364,6 @@ export default function LojaPage() {
                 return;
             }
 
-            // 2. MONTA URL E METHOD
             if (modalType === 'user') {
                 url = editingUser ? `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}` : `${API_URL}/lojas/id/${lojaId}/usuarios`;
                 method = editingUser ? "PUT" : "POST";
@@ -376,16 +374,14 @@ export default function LojaPage() {
 
             console.log("2. URL:", url, "METHOD:", method)
 
-            // 3. MONTA PAYLOAD ÚNICO
             let finalPayload: any = { ...payload };
 
             if (modalType === 'user') {
-                // TIRA OS CAMPOS QUE O BACK NÃO ACEITA NO PUT
-                const { senha_dono, senha_confirmacao, role, loja_id, ...resto } = finalPayload; // <- TIREI loja_id tbm
+                // O BACK ESPERA: nome, email, telefone, role, is_active, senha, senha_dono, senha_confirmacao
+                const { loja_id, ...resto } = finalPayload; // <- só tira loja_id
 
-                finalPayload = { ...resto, nivel: payload.role }; // <- Só manda nivel
+                finalPayload = { ...resto };
 
-                // Se telefone for "", manda null
                 if (finalPayload.telefone === "") finalPayload.telefone = null;
 
                 if (!editingUser && !finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
@@ -404,12 +400,10 @@ export default function LojaPage() {
                 if (!finalPayload.codigo_barras || String(finalPayload.codigo_barras).trim() === "") {
                     finalPayload.codigo_barras = null;
                 }
-                console.log("3. IMAGEM_URL NO FINALPAYLOAD:", finalPayload.imagem_url)
             }
 
             console.log("4. PAYLOAD FINAL ENVIADO PRO BACK:", JSON.stringify(finalPayload, null, 2))
 
-            // 4. ENVIA DIRETO COM SENHA
             const response = await fetchComAuth(url, token, { method, body: JSON.stringify(finalPayload) });
             console.log("5. RESPOSTA DO BACK:", response)
 
@@ -424,8 +418,15 @@ export default function LojaPage() {
             setAcaoPendente(null);
         } catch (err: any) {
             console.error("ERRO NO HANDLE SAVE:", err)
-            setErrorMsg(err.message || "Erro ao salvar");
-            toast.error(err.message || "Erro ao salvar");
+            let msg = "Erro ao salvar";
+            try {
+                const data = JSON.parse(err.message);
+                msg = data.detail || JSON.stringify(data);
+            } catch {
+                msg = err.message || "Erro ao salvar";
+            }
+            setErrorMsg(msg);
+            toast.error(msg);
         } finally {
             setSaving(false);
             console.log("=== FIM HANDLE SAVE ===")
