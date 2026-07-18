@@ -348,21 +348,17 @@ export default function LojaPage() {
             let url = "";
             let method = "POST";
 
+
             // 1. SE NÃO TEM SENHA: Pede senha e para
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
 
-                // CORREÇÃO: Junta os dados antigos + os novos do payload
-                const dataComNovosValores = {
-                    ...(modalType === 'user' ? editingUser : editingProduto),
-                    ...payload // << ISSO AQUI PEGA A imagem_url NOVA
-                }
-
+                // CORREÇÃO: Manda o payload direto. Ele já tem nome, preco, imagem_url
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
                     entidade: modalType,
                     descricao: '',
-                    data: dataComNovosValores // << MANDA ESSE AQUI
+                    data: payload // << MUDEI AQUI. ERA dataComNovosValores
                 });
                 setShowPermissaoModal(true);
                 setSaving(false);
