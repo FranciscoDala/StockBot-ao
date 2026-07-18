@@ -33,7 +33,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
     const initials = getInitials(lojaNome || "");
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+        <div className="min-h-screen">
             <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
                 <header

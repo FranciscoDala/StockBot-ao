@@ -301,10 +301,10 @@ export function RiscoTab({
             {abaAtiva === "estoque" && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" cardStyle={cardStyle} cardSize={cardSize} />  PROPS
-                        <CardRisco titulo="Risco Ruptura" qtd={produtosRuptura.length} descricao="Abaixo do mínimo" cor="yellow" icon={<PackageX size={16} />} cardStyle={cardStyle} cardSize={cardSize} />  PROPS
-                        <CardRisco titulo="Produtos Parados" qtd={produtosParados.length} descricao="+30 dias sem girar" cor="yellow" icon={<Clock size={16} />} cardStyle={cardStyle} cardSize={cardSize} />  PROPS
-                        <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} />  PROPS
+                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" cardStyle={cardStyle} cardSize={cardSize} />  
+                        <CardRisco titulo="Risco Ruptura" qtd={produtosRuptura.length} descricao="Abaixo do mínimo" cor="yellow" icon={<PackageX size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+                        <CardRisco titulo="Produtos Parados" qtd={produtosParados.length} descricao="+30 dias sem girar" cor="yellow" icon={<Clock size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+                        <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div
@@ -324,7 +324,7 @@ export function RiscoTab({
                                             <p className="font-medium text-sm truncate max-w-[200px]" style={{color: 'var(--cor-texto)'}}>{p.nome}</p>
                                             <span className="font-bold text-xs" style={{color: p.estoque <= 0? '#ef4444' : '#f97316'}}>Est: {p.estoque}</span>
                                         </div>
-                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "#ef4444" : "#f97316"} cardStyle={cardStyle} />  PROPS
+                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "#ef4444" : "#f97316"} cardStyle={cardStyle} />
                                         <p className="text-xs mt-1" style={{color: 'var(--cor-texto-sec)'}}>Mínimo: {p.estoque_minimo}</p>
                                     </div>
                                 ))}
@@ -361,10 +361,10 @@ export function RiscoTab({
             {abaAtiva === "financeiro" && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardRisco titulo="Vendas Canceladas" qtd={vendasCanceladas.length} descricao={`${taxaCancelamento.toFixed(1)}% do total`} cor="alerta" icon={<TrendingDown size={16} />} cardStyle={cardStyle} cardSize={cardSize} />  PROPS
-                        <CardRisco titulo="Perda Estimada" qtd={0} descricao={formatCurrency(totalPerdido)} cor="yellow" icon={<Ban size={16} />} cardStyle={cardStyle} cardSize={cardSize} />  PROPS
-                        <CardRisco titulo="Desconto >20%" qtd={vendasComDesconto.length} descricao="Risco de margem" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} />  PROPS
-                        <CardRisco titulo="Vendas no Período" qtd={vendasFiltradas.length} descricao="Total analisado" cor="blue" icon={<BarChart3 size={16} />} cardStyle={cardStyle} cardSize={cardSize} />  PROPS
+                        <CardRisco titulo="Vendas Canceladas" qtd={vendasCanceladas.length} descricao={`${taxaCancelamento.toFixed(1)}% do total`} cor="alerta" icon={<TrendingDown size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+                        <CardRisco titulo="Perda Estimada" qtd={0} descricao={formatCurrency(totalPerdido)} cor="yellow" icon={<Ban size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+                        <CardRisco titulo="Desconto >20%" qtd={vendasComDesconto.length} descricao="Risco de margem" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+                        <CardRisco titulo="Vendas no Período" qtd={vendasFiltradas.length} descricao="Total analisado" cor="blue" icon={<BarChart3 size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
                     </div>
 
                     <div

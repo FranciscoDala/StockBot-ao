@@ -141,8 +141,8 @@
 /* ============ FUNDO DA PÁGINA ============ */
 
 html, body {
-    background-color: var(--cor-fundo) !important;
-    color: var(--cor-texto);
+    background-color: var(--cor-fundo)!important;
+    color: var(--cor-texto)!important;
     font-family: var(--font-zalando);
     transition: background-color 0.3s, color 0.3s;
     min-height: 100vh;
