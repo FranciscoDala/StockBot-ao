@@ -163,15 +163,6 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-xs sm:text-right" style={{color: 'var(--cor-texto-sec)'}}>Ativo</Label>
-                            <Switch
-                                checked={formData.is_active}
-                                onCheckedChange={v => setFormData({...formData, is_active: v})}
-                                className="sm:col-span-3 w-fit data-[state=checked]:bg-[var(--cor-primaria)]"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right" style={{color: 'var(--cor-texto-sec)'}}>Cargo</Label>
                             <select
                                 value={formData.role}
@@ -193,9 +184,19 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 {!editingUser && <option value="DONO">Dono</option>}
                             </select>
                         </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right" style={{color: 'var(--cor-texto-sec)'}}>Ativo</Label>
+                            <Switch
+                                checked={formData.is_active}
+                                onCheckedChange={v => setFormData({...formData, is_active: v})}
+                                className="sm:col-span-3 w-fit data-[state=checked]:bg-[var(--cor-primaria)]"
+                            />
+                        </div>
+
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}> // 25 e 26
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
                         <DialogClose asChild>
                             <Button
                                 type="button"
