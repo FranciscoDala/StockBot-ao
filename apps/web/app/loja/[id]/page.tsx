@@ -336,8 +336,11 @@ export default function LojaPage() {
         }
     }
 
-
     const handleSave = async (payload: any) => {
+        console.log("=== INICIO HANDLE SAVE ===") // DEBUG
+        console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload) // DEBUG
+        console.log("0. payload.imagem_url:", payload.imagem_url) // DEBUG
+
         if (!token) { toast.error("Sessão expirada"); return; }
         setSaving(true);
         setErrorMsg("");
@@ -347,6 +350,7 @@ export default function LojaPage() {
 
             // 1. SE NÃO TEM SENHA: Pede senha e para
             if (!payload.senha_dono || !payload.senha_confirmacao) {
+                console.log("1. SEM SENHA - PEDINDO PERMISSAO") // DEBUG
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
                     entidade: modalType,
@@ -366,6 +370,7 @@ export default function LojaPage() {
                 url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
                 method = editingProduto ? "PATCH" : "POST";
             }
+            console.log("2. URL:", url, "METHOD:", method) // DEBUG
 
             // 3. MONTA PAYLOAD ÚNICO
             let finalPayload: any = { ...payload };
@@ -384,18 +389,20 @@ export default function LojaPage() {
                     preco_custo: Number(payload.preco_custo),
                     estoque: Number(payload.estoque),
                     estoque_minimo: Number(payload.estoque_minimo),
-                    imagem_url: payload.imagem_url || "", // <-- ESSA ERA A LINHA QUE FALTAVA
+                    imagem_url: payload.imagem_url || "", // FORÇA MANDAR
                 };
                 // Garante que codigo_barras vazio vira null
                 if (!finalPayload.codigo_barras || String(finalPayload.codigo_barras).trim() === "") {
                     finalPayload.codigo_barras = null;
                 }
+                console.log("3. IMAGEM_URL NO FINALPAYLOAD:", finalPayload.imagem_url) // DEBUG CRITICO
             }
 
-            console.log("PAYLOAD FINAL ENVIADO:", finalPayload) // DEIXA PRA TESTAR
+            console.log("4. PAYLOAD FINAL ENVIADO PRO BACK:", JSON.stringify(finalPayload, null, 2)) // DEBUG
 
             // 4. ENVIA DIRETO COM SENHA
-            await fetchComAuth(url, token, { method, body: JSON.stringify(finalPayload) });
+            const response = await fetchComAuth(url, token, { method, body: JSON.stringify(finalPayload) });
+            console.log("5. RESPOSTA DO BACK:", response) // DEBUG
 
             toast.success(
                 modalType === 'user' ? (editingUser ? "Membro atualizado!" : "Membro adicionado!") :
@@ -411,12 +418,15 @@ export default function LojaPage() {
             setEditingProduto(null);
             setAcaoPendente(null);
         } catch (err: any) {
+            console.error("ERRO NO HANDLE SAVE:", err) // DEBUG
             setErrorMsg(err.message || "Erro ao salvar");
             toast.error(err.message || "Erro ao salvar");
         } finally {
             setSaving(false);
+            console.log("=== FIM HANDLE SAVE ===") // DEBUG
         }
     }
+
 
 
     const vendasParaRisco = useMemo(() => vendas.map(v => ({ id: String(v.id), data: v.data_venda || new Date().toISOString(), total: v.total, formaPagamento: v.forma_pagamento, itens: v.total_itens, detalhes: (v.itens || []).map((it, idx) => ({ id: String(it.produto_id) + '-' + idx, nome_produto: it.nome || 'Produto', quantidade: it.quantidade, preco_unitario: it.preco_unitario, subtotal: it.subtotal })), status: "concluida" })), [vendas]);

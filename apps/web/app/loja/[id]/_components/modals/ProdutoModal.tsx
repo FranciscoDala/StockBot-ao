@@ -126,6 +126,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file); };
 
 
+
     const handleSaveClick = async () => {
         if (!formData.nome || formData.nome.length < 2) { toast.error("Nome do produto é obrigatório"); return; }
         if ((formData.preco || 0) <= 0) { toast.error("Preço de venda deve ser maior que 0"); return; }
@@ -134,8 +135,11 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         const file = formData.file_to_upload;
         let imagemUrlFinal = formData.imagem_url || "";
 
-        if (file) { // <-- TIREI O && token DAQUI
-            if (!token) { toast.error("Sessão expirada. Faça login novamente"); return; } // Valida separado
+        console.log("1. INICIO SAVE - formData.imagem_url:", formData.imagem_url) // DEBUG 1
+        console.log("1. INICIO SAVE - file:", file) // DEBUG 1
+
+        if (file) {
+            if (!token) { toast.error("Sessão expirada"); return; }
 
             setUploading(true);
             try {
@@ -148,14 +152,11 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     body: formDataUpload
                 });
 
-                if (!resCloud.ok) {
-                    const errData = await resCloud.json().catch(() => ({}));
-                    throw new Error(errData.detail || "Falha no upload para o Cloudinary");
-                }
+                if (!resCloud.ok) throw new Error("Falha no upload");
 
                 const dataCloud = await resCloud.json();
                 imagemUrlFinal = dataCloud.secure_url;
-                setFormData((prev: any) => ({ ...prev, imagem_url: imagemUrlFinal, file_to_upload: null })) // SALVA NO STATE
+                console.log("2. URL VOLTOU DO CLOUDINARY:", imagemUrlFinal) // DEBUG 2
                 toast.success("Imagem enviada com sucesso");
 
             } catch (err: any) {
@@ -168,7 +169,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
         let finalData = {
             ...formData,
-            imagem_url: imagemUrlFinal,
+            imagem_url: imagemUrlFinal, // USA VARIAVEL LOCAL, NÃO O STATE
             public_id: formData.public_id || ""
         };
 
@@ -177,9 +178,10 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.codigo_barras = null;
         }
 
-        console.log("ENVIANDO PRO BACK:", finalData)
+        console.log("3. ENVIANDO PRO BACK:", finalData) // DEBUG 3
         onSave(finalData);
     };
+
 
 
     const handleInputChange = (field: string, value: any) => {
