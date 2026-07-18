@@ -43,6 +43,20 @@
     --cor-texto-sec: #6b7280;
 }
 
+/* ============ BASE DO TEMA - FORÇA SOBRE TAILWIND ============ */
+@layer base {
+  html {
+    background-color: var(--cor-fundo)!important;
+  }
+  body {
+    background-color: var(--cor-fundo)!important;
+    color: var(--cor-texto)!important;
+    font-family: var(--font-zalando);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    min-height: 100vh;
+  }
+}
+
 /* ============ BASE DO CARD ============ */
 .card {
     padding: var(--padding-card);
@@ -50,6 +64,7 @@
     border-radius: var(--radius);
     background-color: var(--cor-card);
     transition: all 0.3s;
+    border: 1px solid var(--cor-borda) !important; /* movi pra cá */
 }
 
 .card:hover {
@@ -138,16 +153,6 @@
 [data-card-size="grande"] .card,
 .card[data-card-size="grande"] { --padding-card: 2.5rem; --radius: 1rem; }
 
-/* ============ FUNDO DA PÁGINA ============ */
-
-html, body {
-    background-color: var(--cor-fundo)!important;
-    color: var(--cor-texto)!important;
-    font-family: var(--font-zalando);
-    transition: background-color 0.3s, color 0.3s;
-    min-height: 100vh;
-}
-
 /* ============ FUNDO DO APP ============ */
 .bg-fundo { background-color: var(--cor-fundo)!important; }
 .text-cor { color: var(--cor-texto)!important; }
@@ -213,11 +218,6 @@ select {
     padding-right: 2.5rem;
 }
 select option { background-color: var(--cor-card); color: var(--cor-texto); }
-
-/* ============ CARDS DE PRODUTOS COM BORDA ============ */
-.card {
-    border: 1px solid var(--cor-borda) !important;
-}
 
 /* ============ FIX SELECT SHADCN ============ */
 [data-radix-select-viewport] { background-color: var(--cor-card) !important; }
