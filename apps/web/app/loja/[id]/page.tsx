@@ -36,7 +36,10 @@ export type ProdutoType = z.infer<typeof ProdutoSchema>;
 export type CarrinhoItem = ProdutoType & { quantidade: number };
 export type UserRole = "DONO" | "GERENTE" | "VENDEDOR" | "CAIXA" | "ESTOQUISTA" | "ADMIN";
 export type UsuarioLojaPage = { id: string; nome: string; email: string; telefone?: string | null; role: UserRole; is_active: boolean; }
-export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: string; role: UserRole; is_active: boolean; }
+
+
+export type UsuarioLoja = UsuarioLojaPage // <- usa o mesmo tipo da lista
+
 export type userread = { id: string; nome: string; email: string; nivel: UserRole; loja?: Loja | null; loja_id?: string | null; }
 export type Loja = { id: string; nome: string; slug: string; is_active: boolean; created_at: string; endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null; theme?: string; card_style?: string; card_size?: string; font_size?: string; cor_primaria?: string; cor_fundo?: string; }
 
@@ -343,14 +346,16 @@ export default function LojaPage() {
 
         console.log("=== INICIO HANDLE SAVE ===")
         console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload)
+        console.log("EDITING_USER:", editingUser)
 
-        if (!token) { toast.error("Sessão expirada"); return; }
+        if (!token || !lojaId) { toast.error("Sessão ou loja expirada"); return; }
         setSaving(true);
         setErrorMsg("");
         try {
             let url = "";
             let method = "POST";
 
+            // 1. SE NÃO TEM SENHA: Pede senha
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
                 setAcaoPendente({
@@ -364,8 +369,10 @@ export default function LojaPage() {
                 return;
             }
 
+            // 2. MONTA URL E METHOD
             if (modalType === 'user') {
-                url = editingUser ? `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}` : `${API_URL}/lojas/id/${lojaId}/usuarios`;
+                if (!editingUser?.id) throw new Error("ID do usuário não encontrado");
+                url = `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}`;
                 method = editingUser ? "PUT" : "POST";
             } else if (modalType === 'produto') {
                 url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
@@ -374,18 +381,35 @@ export default function LojaPage() {
 
             console.log("2. URL:", url, "METHOD:", method)
 
+            // 3. MONTA PAYLOAD ÚNICO
             let finalPayload: any = { ...payload };
 
             if (modalType === 'user') {
-                // O BACK ESPERA: nome, email, telefone, role, is_active, senha, senha_dono, senha_confirmacao
-                const { loja_id, ...resto } = finalPayload; // <- só tira loja_id
-
-                finalPayload = { ...resto };
+                // Para PUT: só manda o que mudou. Para POST: manda tudo
+                if (editingUser) {
+                    finalPayload = {
+                        nome: payload.nome,
+                        telefone: payload.telefone || null,
+                        role: payload.role,
+                        is_active: payload.is_active,
+                        senha_dono: payload.senha_dono,
+                        senha_confirmacao: payload.senha_confirmacao,
+                    };
+                    // só manda senha se digitou
+                    if (payload.senha && payload.senha.trim()) {
+                        finalPayload.senha = payload.senha;
+                    }
+                    // só manda email se mudou
+                    if (payload.email && payload.email !== editingUser.email) {
+                        finalPayload.email = payload.email;
+                    }
+                } else {
+                    // CREATE
+                    finalPayload = { ...payload };
+                    if (!finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
+                }
 
                 if (finalPayload.telefone === "") finalPayload.telefone = null;
-
-                if (!editingUser && !finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
-                if (editingUser && !finalPayload.senha) delete finalPayload.senha;
             }
 
             if (modalType === 'produto') {
