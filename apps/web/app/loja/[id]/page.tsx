@@ -339,7 +339,7 @@ export default function LojaPage() {
 
 
     const handleSave = async (payload: any, e?: React.FormEvent) => {
-        e?.preventDefault(); // <- PARA O REFRESH
+        e?.preventDefault();
 
         console.log("=== INICIO HANDLE SAVE ===")
         console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload)
@@ -354,12 +354,11 @@ export default function LojaPage() {
             // 1. SE NÃO TEM SENHA: Pede senha e GUARDA TUDO no acaoPendente.data
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
-
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
                     entidade: modalType,
                     descricao: '',
-                    data: payload // << AQUI GUARDA TUDO. IMAGEM, NOME, PRECO, TUDO
+                    data: payload
                 });
                 setShowPermissaoModal(true);
                 setSaving(false);
@@ -369,13 +368,11 @@ export default function LojaPage() {
             // 2. MONTA URL E METHOD
             if (modalType === 'user') {
                 url = editingUser ? `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}` : `${API_URL}/lojas/id/${lojaId}/usuarios`;
-                method = editingUser ? "PUT" : "POST"; // <- CORRIGIDO: PATCH -> PUT
+                method = editingUser ? "PUT" : "POST";
             } else if (modalType === 'produto') {
                 url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
                 method = editingProduto ? "PATCH" : "POST";
             }
-            // FUTURO: else if (modalType === 'cliente') { ... }
-            // FUTURO: else if (modalType === 'fornecedor') { ... }
 
             console.log("2. URL:", url, "METHOD:", method)
 
@@ -383,9 +380,13 @@ export default function LojaPage() {
             let finalPayload: any = { ...payload };
 
             if (modalType === 'user') {
-                // TIRA AS SENHAS DE DONO ANTES DE ENVIAR PRO BACK
-                const { senha_dono, senha_confirmacao, ...resto } = finalPayload; // <- CORRIGIDO
-                finalPayload = { ...resto, loja_id: lojaId, nivel: payload.role };
+                // TIRA OS CAMPOS QUE O BACK NÃO ACEITA
+                const { senha_dono, senha_confirmacao, role, ...resto } = finalPayload; // <- TIREI O role
+
+                finalPayload = { ...resto, loja_id: lojaId, nivel: payload.role }; // <- Só manda nivel
+
+                // Se telefone for "", manda null pra não dar 422
+                if (finalPayload.telefone === "") finalPayload.telefone = null;
 
                 if (!editingUser && !finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
                 if (editingUser && !finalPayload.senha) delete finalPayload.senha;
@@ -416,7 +417,6 @@ export default function LojaPage() {
 
             if (modalType === 'user') fetchEquipa(token);
             if (modalType === 'produto') fetchProdutos(token, lojaId);
-            // FUTURO: if (modalType === 'cliente') fetchClientes(token, lojaId);
 
             setShowModal(false);
             setEditingUser(null);
