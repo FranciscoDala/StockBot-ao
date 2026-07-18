@@ -204,8 +204,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                         color: 'var(--cor-texto)',
                         borderColor: 'var(--cor-borda)',
                         borderRadius: 'var(--radius)',
-                        height: '80vh',
-                        maxHeight: '80vh'
+                        height: '90vh',
+                        maxHeight: '90vh'
                     }}
                 >
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
