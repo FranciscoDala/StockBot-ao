@@ -8,7 +8,7 @@ const deleteCookie = (name: string) => {
 }
 
 const getInitials = (name: string) => {
-    if (!name) return "PG"; // fallback
+    if (!name) return "PG";
     const words = name.trim().split(" ").filter(Boolean);
     if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
     return (words[0][0] + words[1][0]).toUpperCase();
@@ -33,7 +33,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
     const initials = getInitials(lojaNome || "");
 
     return (
-        <div className="min-h-screen">
+        <div className="min-h-screen bg-fundo text-cor">
             <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
                 <header
@@ -60,7 +60,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
 
                     <div className="flex items-center gap-3 shrink-0">
                         <button
-                            onClick={() => handleSaveTheme({ theme: theme === 'dark' ? 'light' : 'dark' })}
+                            onClick={() => handleSaveTheme({ theme: theme === 'dark'? 'light' : 'dark' })}
                             className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
                             style={{
                                 width: '50px',

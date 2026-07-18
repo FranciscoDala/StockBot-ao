@@ -148,6 +148,10 @@ html, body {
     min-height: 100vh;
 }
 
+/* ============ FUNDO DO APP ============ */
+.bg-fundo { background-color: var(--cor-fundo)!important; }
+.text-cor { color: var(--cor-texto)!important; }
+
 /* ============ UTILS ============ */
 .bg-card { background-color: var(--cor-card); }
 .bg-primaria { background-color: var(--cor-primaria); }

@@ -178,6 +178,13 @@ export default function LojaPage() {
         socket.onclose = () => { setWs(null); }; return () => socket.close();
     }, [token, lojaId]);
 
+
+    // Sincroniza data-theme no html sempre que o theme mudar
+    useEffect(() => {
+        document.documentElement.setAttribute('data-theme', theme);
+    }, [theme])
+
+
     const adicionarAoCarrinho = (produto: ProdutoType) => { if ((produto.estoque ?? 0) <= 0) { toast.error("Sem estoque"); return; } setCarrinho(prev => { const item = prev.find(i => String(i.id) === String(produto.id)); if (item) { if (item.quantidade + 1 > (produto.estoque ?? 0)) { toast.warning("Estoque max"); return prev; } return prev.map(i => String(i.id) === String(produto.id) ? { ...i, quantidade: i.quantidade + 1 } : i); } return [...prev, { ...produto, quantidade: 1 }]; }); };
     const confirmarRemoverItem = (item: CarrinhoItem) => { setItemParaRemover(item); setShowConfirmarModal(true); };
     const handleConfirmarRemocao = () => { if (itemParaRemover) { setCarrinho(prev => prev.filter(i => i.id !== itemParaRemover.id)); toast.success("Removido"); } setShowConfirmarModal(false); setItemParaRemover(null); };
