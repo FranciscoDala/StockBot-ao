@@ -9,9 +9,9 @@ export function DetalhesModal({ open, onClose, dados }: { open: boolean; onClose
             <DialogContent
                 className="w-full sm:max-w-[700px] border shadow-2xl"
                 style={{
-                    backgroundColor: 'var(--cor-fundo-card, #171717)',
+                    backgroundColor: 'var(--cor-card)', // 1. trocado
                     color: 'var(--cor-texto)',
-                    borderColor: 'var(--cor-primaria)30',
+                    borderColor: 'var(--cor-borda)', // 2. trocado
                     borderRadius: 'var(--radius)'
                 }}
             >
@@ -24,7 +24,7 @@ export function DetalhesModal({ open, onClose, dados }: { open: boolean; onClose
                     <p style={{color: 'var(--cor-texto)'}}><b>Telefone:</b> {dados.telefone || '-'}</p>
                     <p style={{color: 'var(--cor-texto)'}}><b>Cargo:</b> {dados.role}</p>
                     <p style={{color: 'var(--cor-texto)'}}><b>Status:</b>
-                        <span className="ml-1 font-semibold" style={{color: dados.is_active? 'var(--cor-primaria)' : '#ef4444'}}>
+                        <span className="ml-1 font-semibold" style={{color: dados.is_active? 'var(--cor-primaria)' : 'var(--cor-erro)'}}> // 3. trocado
                             {dados.is_active? 'Ativo' : 'Inativo'}
                         </span>
                     </p>
@@ -33,10 +33,11 @@ export function DetalhesModal({ open, onClose, dados }: { open: boolean; onClose
                     <div>
                         <b style={{color: 'var(--cor-texto)'}}>Histórico de Atividades:</b>
                         <ul
-                            className="list-disc pl-4 mt-2 text-xs p-3 space-y-1 overflow-y-auto"
+                            className="list-disc pl-4 mt-2 text-xs p-3 space-y-1 overflow-y-auto border" // 4. add border
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 borderRadius: 'var(--radius)',
+                                borderColor: 'var(--cor-borda)', // 5. add
                                 color: 'var(--cor-texto-sec)',
                                 maxHeight: '200px'
                             }}
@@ -55,8 +56,8 @@ export function DetalhesModal({ open, onClose, dados }: { open: boolean; onClose
                 <div
                     className="p-4 border-t"
                     style={{
-                        borderColor: 'var(--cor-primaria)30',
-                        backgroundColor: 'var(--cor-fundo)'
+                        borderColor: 'var(--cor-borda)', // 6. trocado
+                        backgroundColor: 'var(--cor-card)' // 7. trocado
                     }}
                 >
                     <Button

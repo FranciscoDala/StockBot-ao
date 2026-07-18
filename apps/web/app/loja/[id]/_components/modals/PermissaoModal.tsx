@@ -26,7 +26,7 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
         onConfirm(senha);
     }
 
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' } // 1. ajustado
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -35,9 +35,9 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                 onEscapeKeyDown={(e) => e.preventDefault()}
                 className="sm:max-w-[425px] p-0 shadow-2xl border [&>button]:hidden"
                 style={{
-                    backgroundColor: 'var(--cor-fundo-card, #171717)',
+                    backgroundColor: 'var(--cor-card)', // 2. trocado
                     color: 'var(--cor-texto)',
-                    borderColor: 'var(--cor-primaria)30',
+                    borderColor: 'var(--cor-borda)', // 3. trocado
                     borderRadius: 'var(--radius)'
                 }}
             >
@@ -64,11 +64,11 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
                             className="h-10"
                             style={{
-                                backgroundColor: 'var(--cor-fundo)',
+                                backgroundColor: 'var(--cor-fundo)', // 4. trocado
                                 color: 'var(--cor-texto)',
-                                border: '1px solid var(--cor-primaria)30',
-                                borderRadius: 'var(--radius)',
-                               ...focusStyle
+                                border: '1.5px solid var(--cor-primaria)', // 5. borda primary obrigatoria
+                                borderRadius: 'var(--radius-sm)', // 6. trocado
+                              ...focusStyle
                             }}
                             autoFocus
                             disabled={loading}
@@ -78,8 +78,8 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                 <DialogFooter
                     className="p-4 border-t flex-row justify-end gap-2"
                     style={{
-                        backgroundColor: 'var(--cor-fundo)',
-                        borderColor: 'var(--cor-primaria)30'
+                        backgroundColor: 'var(--cor-card)', // 7. trocado
+                        borderColor: 'var(--cor-borda)' // 8. trocado
                     }}
                 >
                     <Button
@@ -88,9 +88,9 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                         disabled={loading}
                         className="font-semibold"
                         style={{
-                            backgroundColor: 'var(--cor-fundo)',
+                            backgroundColor: 'var(--cor-card)', // 9. trocado
                             color: 'var(--cor-texto)',
-                            border: '1px solid var(--cor-primaria)30',
+                            border: '1px solid var(--cor-borda)', // 10. trocado
                             borderRadius: 'var(--radius)'
                         }}
                     >

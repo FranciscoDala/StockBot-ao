@@ -57,9 +57,9 @@ export function ConfirmarModal({
             <DialogContent
                 className="sm:max-w-[425px] p-0 shadow-2xl border"
                 style={{
-                    backgroundColor: 'var(--cor-fundo-card, #171717)',
+                    backgroundColor: 'var(--cor-card)', // 1. trocado
                     color: 'var(--cor-texto)',
-                    borderColor: 'var(--cor-primaria)30',
+                    borderColor: 'var(--cor-borda)', // 2. trocado
                     borderRadius: 'var(--radius)'
                 }}
                 onPointerDownOutside={(e) => e.preventDefault()}
@@ -87,11 +87,11 @@ export function ConfirmarModal({
                                 onChange={(e) => setSenha(e.target.value)}
                                 className="h-9"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)',
+                                    backgroundColor: 'var(--cor-fundo)', // 3. trocado
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-primaria)30',
-                                    borderRadius: 'var(--radius)',
-                                   ...focusStyle
+                                    border: '1.5px solid var(--cor-primaria)', // 4. borda primary obrigatoria
+                                    borderRadius: 'var(--radius-sm)',
+                                  ...focusStyle
                                 }}
                                 placeholder="******"
                                 disabled={loading}
@@ -104,8 +104,8 @@ export function ConfirmarModal({
                 <DialogFooter
                     className="p-4 border-t flex-row justify-end gap-3"
                     style={{
-                        backgroundColor: 'var(--cor-fundo)',
-                        borderColor: 'var(--cor-primaria)30'
+                        backgroundColor: 'var(--cor-card)', // 5. trocado
+                        borderColor: 'var(--cor-borda)' // 6. trocado
                     }}
                 >
                     <Button
@@ -114,9 +114,9 @@ export function ConfirmarModal({
                         disabled={loading}
                         className="h-9"
                         style={{
-                            backgroundColor: 'var(--cor-fundo)',
+                            backgroundColor: 'var(--cor-card)', // 7. trocado
                             color: 'var(--cor-texto)',
-                            border: '1px solid var(--cor-primaria)30',
+                            border: '1px solid var(--cor-borda)', // 8. trocado
                             borderRadius: 'var(--radius)'
                         }}
                     >

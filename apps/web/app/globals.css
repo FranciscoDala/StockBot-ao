@@ -277,3 +277,50 @@ button[role="combobox"]:focus {
     background-color: var(--cor-primaria)20 !important;
     color: var(--cor-texto) !important;
 }
+
+
+
+/* ============ BOTÕES ESTATISTICAS ============ */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--cor-primaria) !important;
+    color: white !important;
+    border: 1px solid var(--cor-primaria) !important;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: var(--font-zalando);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--cor-primaria)40;
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--cor-card-hover) !important;
+    color: var(--cor-texto) !important;
+    border: 1.5px solid var(--cor-borda) !important;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    font-family: var(--font-zalando);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background-color: var(--cor-card) !important;
+    border-color: var(--cor-primaria) !important;
+    transform: translateY(-1px);
+}

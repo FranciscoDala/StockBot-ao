@@ -29,16 +29,16 @@ interface Props {
 }
 
 export function UserModal({ open, onOpenChange, editingUser, formData, setFormData, onSave, saving, errorMsg, lojaNome }: Props) {
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' } // 1. ajustado
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
                 className="w-full sm:max-w-[600px] p-0 flex-col max-h-[90vh] border shadow-2xl"
                 style={{
-                    backgroundColor: 'var(--cor-fundo-card, #171717)',
+                    backgroundColor: 'var(--cor-card)', // 2. trocado
                     color: 'var(--cor-texto)',
-                    borderColor: 'var(--cor-primaria)30',
+                    borderColor: 'var(--cor-borda)', // 3. trocado
                     borderRadius: 'var(--radius)'
                 }}
                 onInteractOutside={(e) => e.preventDefault()}
@@ -55,9 +55,9 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             <div
                                 className="border text-xs p-3"
                                 style={{
-                                    backgroundColor: '#ef444414',
-                                    borderColor: '#ef444430',
-                                    color: '#ef4444',
+                                    backgroundColor: 'var(--cor-erro)14', // 4. trocado
+                                    borderColor: 'var(--cor-erro)30', // 5. trocado
+                                    color: 'var(--cor-erro)', // 6. trocado
                                     borderRadius: 'var(--radius)'
                                 }}
                             >
@@ -74,11 +74,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 onChange={e => setFormData({...formData, nome: e.target.value})}
                                 className="sm:col-span-3 text-xs h-9"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)',
+                                    backgroundColor: 'var(--cor-fundo)', // 7. trocado
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-primaria)30',
-                                    borderRadius: 'var(--radius)',
-                                 ...focusStyle
+                                    border: '1.5px solid var(--cor-primaria)', // 8. borda primary
+                                    borderRadius: 'var(--radius-sm)', // 9. trocado
+                                ...focusStyle
                                 }}
                                 required
                             />
@@ -93,11 +93,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     onChange={e => setFormData({...formData, email: e.target.value})}
                                     className="sm:col-span-3 text-xs h-9"
                                     style={{
-                                        backgroundColor: 'var(--cor-fundo)',
+                                        backgroundColor: 'var(--cor-fundo)', // 10
                                         color: 'var(--cor-texto)',
-                                        border: '1px solid var(--cor-primaria)30',
-                                        borderRadius: 'var(--radius)',
-                                     ...focusStyle
+                                        border: '1.5px solid var(--cor-primaria)', // 11
+                                        borderRadius: 'var(--radius-sm)', // 12
+                                    ...focusStyle
                                     }}
                                 />
                             ) : (
@@ -114,11 +114,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     onChange={e => setFormData({...formData, senha: e.target.value})}
                                     className="sm:col-span-3 text-xs h-9"
                                     style={{
-                                        backgroundColor: 'var(--cor-fundo)',
+                                        backgroundColor: 'var(--cor-fundo)', // 13
                                         color: 'var(--cor-texto)',
-                                        border: '1px solid var(--cor-primaria)30',
-                                        borderRadius: 'var(--radius)',
-                                     ...focusStyle
+                                        border: '1.5px solid var(--cor-primaria)', // 14
+                                        borderRadius: 'var(--radius-sm)', // 15
+                                    ...focusStyle
                                     }}
                                     required
                                     placeholder="mínimo 6 caracteres"
@@ -135,11 +135,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     onChange={e => setFormData({...formData, senha: e.target.value})}
                                     className="sm:col-span-3 text-xs h-9"
                                     style={{
-                                        backgroundColor: 'var(--cor-fundo)',
+                                        backgroundColor: 'var(--cor-fundo)', // 16
                                         color: 'var(--cor-texto)',
-                                        border: '1px solid var(--cor-primaria)30',
-                                        borderRadius: 'var(--radius)',
-                                     ...focusStyle
+                                        border: '1.5px solid var(--cor-primaria)', // 17
+                                        borderRadius: 'var(--radius-sm)', // 18
+                                    ...focusStyle
                                     }}
                                     placeholder="deixe em branco para não alterar"
                                 />
@@ -153,11 +153,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 onChange={e => setFormData({...formData, telefone: e.target.value})}
                                 className="sm:col-span-3 text-xs h-9"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)',
+                                    backgroundColor: 'var(--cor-fundo)', // 19
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-primaria)30',
-                                    borderRadius: 'var(--radius)',
-                                 ...focusStyle
+                                    border: '1.5px solid var(--cor-primaria)', // 20
+                                    borderRadius: 'var(--radius-sm)', // 21
+                                ...focusStyle
                                 }}
                             />
                         </div>
@@ -178,11 +178,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
                                 className="sm:col-span-3 flex h-9 w-full rounded-md px-3 py-2 text-xs"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)',
+                                    backgroundColor: 'var(--cor-fundo)', // 22
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-primaria)30',
-                                    borderRadius: 'var(--radius)',
-                                 ...focusStyle
+                                    border: '1.5px solid var(--cor-primaria)', // 23
+                                    borderRadius: 'var(--radius-sm)', // 24
+                                ...focusStyle
                                 }}
                             >
                                 <option value="GERENTE">Gerente</option>
@@ -195,15 +195,15 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30'}}>
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}> // 25 e 26
                         <DialogClose asChild>
                             <Button
                                 type="button"
                                 className="text-xs w-full sm:w-auto font-semibold"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)',
+                                    backgroundColor: 'var(--cor-card)', // 27
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-primaria)30',
+                                    border: '1px solid var(--cor-borda)', // 28
                                     borderRadius: 'var(--radius)'
                                 }}
                             >

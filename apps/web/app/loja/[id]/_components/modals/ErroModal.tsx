@@ -14,28 +14,28 @@ interface Props {
 export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Props) {
     const config = {
         erro: {
-            icon: <XCircle size={24} style={{color: '#ef4444'}} />,
+            icon: <XCircle size={24} style={{color: 'var(--cor-erro)'}} />, // 1. trocado
             title: titulo || "Ação não permitida",
-            color: "#ef444430",
-            btnColor: "#ef4444"
+            color: 'var(--cor-erro)', // 2. trocado
+            btnColor: 'var(--cor-erro)' // 3. trocado
         },
         sucesso: {
-            icon: <CheckCircle size={24} style={{color: 'var(--cor-primaria)'}} />,
+            icon: <CheckCircle size={24} style={{color: 'var(--cor-sucesso)'}} />, // 4. trocado
             title: titulo || "Sucesso!",
-            color: "var(--cor-primaria)30",
-            btnColor: "var(--cor-primaria)"
+            color: 'var(--cor-sucesso)', // 5. trocado
+            btnColor: 'var(--cor-sucesso)' // 6. trocado
         },
         alerta: {
-            icon: <AlertTriangle size={24} style={{color: 'var(--cor-primaria)'}} />,
+            icon: <AlertTriangle size={24} style={{color: 'var(--cor-aviso)'}} />, // 7. trocado
             title: titulo || "Atenção",
-            color: "var(--cor-primaria)30",
-            btnColor: "var(--cor-primaria)"
+            color: 'var(--cor-aviso)', // 8. trocado
+            btnColor: 'var(--cor-aviso)' // 9. trocado
         },
         info: {
             icon: <Info size={24} style={{color: 'var(--cor-primaria)'}} />,
             title: titulo || "Informação",
-            color: "var(--cor-primaria)30",
-            btnColor: "var(--cor-primaria)"
+            color: 'var(--cor-primaria)', // 10. trocado
+            btnColor: 'var(--cor-primaria)'
         }
     }
     const current = config[tipo];
@@ -47,7 +47,7 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                 onEscapeKeyDown={(e) => e.preventDefault()}
                 className="sm:max-w-[425px] p-0 shadow-2xl border [&>button]:hidden"
                 style={{
-                    backgroundColor: 'var(--cor-fundo-card, #171717)',
+                    backgroundColor: 'var(--cor-card)', // 11. trocado
                     color: 'var(--cor-texto)',
                     borderColor: current.color,
                     borderRadius: 'var(--radius)'
@@ -65,8 +65,8 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                 <DialogFooter
                     className="p-4 border-t"
                     style={{
-                        backgroundColor: 'var(--cor-fundo)',
-                        borderColor: 'var(--cor-primaria)30'
+                        backgroundColor: 'var(--cor-card)', // 12. trocado
+                        borderColor: 'var(--cor-borda)' // 13. trocado
                     }}
                 >
                     <Button
@@ -74,7 +74,7 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                         className="w-full font-semibold"
                         style={{
                             backgroundColor: current.btnColor,
-                            color: tipo === 'erro'? '#fff' : '#fff',
+                            color: '#fff',
                             borderRadius: 'var(--radius)'
                         }}
                     >

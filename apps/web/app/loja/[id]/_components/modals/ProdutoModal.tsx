@@ -16,7 +16,7 @@ const API_BASE = API_URL.replace('/api/v1', '');
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
 
 const gerarSkuAleatorio = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -70,20 +70,20 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const lucro = (formData.preco || 0) - (formData.preco_custo || 0);
-    const qrLink = formData.sku ? `${APP_URL}/p/${formData.sku}` : null;
+    const qrLink = formData.sku? `${APP_URL}/p/${formData.sku}` : null;
 
     useEffect(() => {
-        if (open && !editingProduto && !formData.sku) {
-            setFormData((prev: any) => ({ ...prev, sku: gerarSkuAleatorio() }));
+        if (open &&!editingProduto &&!formData.sku) {
+            setFormData((prev: any) => ({...prev, sku: gerarSkuAleatorio() }));
         }
         if (editingProduto?.imagem_url) {
-            const url = editingProduto.imagem_url.startsWith('http') ? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
+            const url = editingProduto.imagem_url.startsWith('http')? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
             setPreview(url);
         } else {
             setPreview(null);
         }
         if (editingProduto && editingProduto.codigo_barras === "") {
-            setFormData((prev: any) => ({ ...prev, codigo_barras: undefined }));
+            setFormData((prev: any) => ({...prev, codigo_barras: undefined }));
         }
         if (errorMsg) {
             let mensagemAmigavel = "Ocorreu um erro inesperado. Tente novamente.";
@@ -106,7 +106,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleFile = (file: File) => {
         if (!validateFile(file)) return;
         setPreview(URL.createObjectURL(file));
-        setFormData({ ...formData, file_to_upload: file });
+        setFormData({...formData, file_to_upload: file });
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,7 +121,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         if (!formData.nome || formData.nome.length < 2) { toast.error("Nome do produto é obrigatório"); return; }
         if ((formData.preco || 0) <= 0) { toast.error("Preço de venda deve ser maior que 0"); return; }
 
-        let finalData = { ...formData };
+        let finalData = {...formData };
         const file = finalData.file_to_upload;
         const token = getCookie('token');
         let urls: any = {};
@@ -179,18 +179,18 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     };
 
     const handleInputChange = (field: string, value: any) => {
-        setFormData({ ...formData, [field]: value });
+        setFormData({...formData, [field]: value });
     }
 
     const inputStyle = {
         backgroundColor: 'var(--cor-fundo)',
         color: 'var(--cor-texto)',
-        border: '1px solid var(--cor-primaria)30',
-        borderRadius: 'var(--radius)',
+        border: '1.5px solid var(--cor-primaria)',
+        borderRadius: 'var(--radius-sm)',
         outline: 'none',
         boxShadow: '0 0 0 1px transparent'
     }
-    const focusStyle = { boxShadow: '0 0 0 1px var(--cor-primaria)' }
+    const focusStyle = { boxShadow: '0 0 0 3px var(--cor-primaria)30' }
 
     return (
         <>
@@ -198,16 +198,16 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 <DialogContent
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
-                    className="!max-w-[800px] w-full p-0 h-[90vh] flex-col border shadow-2xl [&>button]:hidden"
+                    className="!max-w-[800px] w-full p-0 h- flex-col border shadow-2xl [&>button]:hidden"
                     style={{
-                        backgroundColor: 'var(--cor-fundo-card, #171717)',
+                        backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
-                        borderColor: 'var(--cor-primaria)30',
+                        borderColor: 'var(--cor-borda)',
                         borderRadius: 'var(--radius)'
                     }}
                 >
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
-                        <DialogTitle className="text-lg sm:text-xl" style={{ color: 'var(--cor-texto)' }}>{editingProduto ? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
+                        <DialogTitle className="text-lg sm:text-xl" style={{ color: 'var(--cor-texto)' }}>{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
                     </DialogHeader>
 
@@ -225,19 +225,19 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 <TabsContent value="dados" className="space-y-5 mt-0">
                                     <div className="space-y-2">
                                         <Label style={{ color: 'var(--cor-texto-sec)' }}>Nome do Produto *</Label>
-                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className="h-11 px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className="h-11 px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label style={{ color: 'var(--cor-texto-sec)' }}>Descrição</Label>
-                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="px-3 py-3 min-h-28" style={{ ...inputStyle, ...focusStyle }} />
+                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="px-3 py-3 min-h-28" style={{...inputStyle,...focusStyle }} />
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
                                             <Label style={{ color: 'var(--cor-texto-sec)' }}>SKU</Label>
                                             <div className="flex gap-2">
-                                                <Input placeholder="Gerado automaticamente" value={formData.sku || ''} disabled className="h-11 flex-1" style={{ ...inputStyle, backgroundColor: 'var(--cor-fundo-card)', color: 'var(--cor-texto-sec)', cursor: 'not-allowed' }} />
+                                                <Input placeholder="Gerado automaticamente" value={formData.sku || ''} disabled className="h-11 flex-1" style={{...inputStyle, backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto-sec)', cursor: 'not-allowed' }} />
                                                 {!editingProduto && (
-                                                    <Button type="button" size="icon" onClick={() => handleInputChange("sku", gerarSkuAleatorio())} className="h-11 w-11 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30' }}>
+                                                    <Button type="button" size="icon" onClick={() => handleInputChange("sku", gerarSkuAleatorio())} className="h-11 w-11 shrink-0" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)' }}>
                                                         <RefreshCw size={16} />
                                                     </Button>
                                                 )}
@@ -245,7 +245,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         </div>
                                         <div className="space-y-2">
                                             <Label style={{ color: 'var(--cor-texto-sec)' }}>Marca</Label>
-                                            <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className="h-11 px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                            <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className="h-11 px-3" style={{...inputStyle,...focusStyle }} />
                                         </div>
                                     </div>
                                 </TabsContent>
@@ -259,15 +259,15 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                             onDrop={handleDrop}
                                             className="relative w-full h-52 sm:h-72 border-2 border-dashed transition-colors"
                                             style={{
-                                                borderColor: dragActive ? 'var(--cor-primaria)' : 'var(--cor-primaria)30',
-                                                backgroundColor: dragActive ? 'var(--cor-primaria)10' : 'var(--cor-fundo)',
+                                                borderColor: dragActive? 'var(--cor-primaria)' : 'var(--cor-borda)',
+                                                backgroundColor: dragActive? 'var(--cor-primaria)10' : 'var(--cor-fundo)',
                                                 borderRadius: 'var(--radius)'
                                             }}
                                         >
-                                            {preview ? (
+                                            {preview? (
                                                 <>
                                                     <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-lg p-2" />
-                                                    <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({ ...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
+                                                    <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
                                                 </>
                                             ) : (
                                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{ color: 'var(--cor-texto-sec)' }}>
@@ -280,7 +280,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         </div>
                                     </div>
                                     {qrLink && (
-                                        <div className="space-y-2 p-4 border" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)' }}>
+                                        <div className="space-y-2 p-4 border" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}>
                                             <Label className="flex items-center gap-2" style={{ color: 'var(--cor-texto-sec)' }}><QrCode size={16} /> QR Code do Produto</Label>
                                             <div className="flex justify-center bg-white p-3 rounded">
                                                 <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrLink)}`} alt="QR Code" className="w-40 h-40" />
@@ -295,17 +295,17 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                         <div className="space-y-2">
                                             <Label style={{ color: 'var(--cor-texto-sec)' }}>Preço de Custo</Label>
-                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="h-11 px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle }} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label style={{ color: 'var(--cor-texto-sec)' }}>Preço de Venda *</Label>
-                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="h-11 px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                            <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle }} />
                                         </div>
                                     </div>
-                                    <div className="p-4 border" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30', borderRadius: 'var(--radius)' }}>
+                                    <div className="p-4 border" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}>
                                         <div className="flex justify-between items-center text-sm">
                                             <span style={{ color: 'var(--cor-texto-sec)' }}>Lucro por unidade</span>
-                                            <span className="font-bold text-base sm:text-lg" style={{ color: lucro >= 0 ? 'var(--cor-primaria)' : '#ef4444' }}>
+                                            <span className="font-bold text-base sm:text-lg" style={{ color: lucro >= 0? 'var(--cor-primaria)' : 'var(--cor-erro)' }}>
                                                 {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(lucro)}
                                             </span>
                                         </div>
@@ -313,32 +313,31 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
                                         <div className="space-y-2">
                                             <Label style={{ color: 'var(--cor-texto-sec)' }}>Estoque Atual</Label>
-                                            <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className="h-11 px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                            <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle }} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label style={{ color: 'var(--cor-texto-sec)' }}>Estoque Mínimo</Label>
-                                            <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className="h-11 px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                            <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className="h-11 px-3" style={{...inputStyle,...focusStyle }} />
                                         </div>
 
                                         <div className="space-y-2 col-span-2 sm:col-span-1">
                                             <Label style={{ color: 'var(--cor-texto-sec)' }}>Unidade</Label>
                                             <Select value={formData.unidade || 'UN'} onValueChange={(val) => handleInputChange("unidade", val)}>
                                                 <SelectTrigger
-                                                    className="h-11 bg-card" // <-- ADICIONEI bg-card
+                                                    className="h-11"
                                                     style={{
-                                                        backgroundColor: 'var(--cor-card)', // <-- E FORÇEI AQUI TAMBÉM
+                                                        backgroundColor: 'var(--cor-card)',
                                                         color: 'var(--cor-texto)',
-                                                        border: '1px solid var(--cor-primaria)40',
-                                                        borderRadius: 'var(--radius)'
+                                                        border: '1.5px solid var(--cor-primaria)',
+                                                        borderRadius: 'var(--radius-sm)'
                                                     }}
                                                 >
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent
-                                                    className="bg-card" // <-- ADICIONEI AQUI PRA DROPDOWN
                                                     style={{
-                                                        backgroundColor: 'var(--cor-card)', // <-- FUNDO DO DROPDOWN
-                                                        borderColor: 'var(--cor-primaria)30',
+                                                        backgroundColor: 'var(--cor-card)',
+                                                        borderColor: 'var(--cor-borda)',
                                                         color: 'var(--cor-texto)'
                                                     }}
                                                 >
@@ -350,20 +349,18 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                                 </SelectContent>
                                             </Select>
                                         </div>
-
-
                                     </div>
                                 </TabsContent>
                             </div>
                         </Tabs>
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30' }}>
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
                         <div className="flex items-center space-x-2 mr-auto">
                             <Checkbox
                                 id="active"
-                                checked={formData.is_active ?? true}
-                                onCheckedChange={(val) => handleInputChange("is_active", !!val)}
+                                checked={formData.is_active?? true}
+                                onCheckedChange={(val) => handleInputChange("is_active",!!val)}
                                 className="data-[state=checked]:bg-[var(--cor-primaria)] data-[state=checked]:border-[var(--cor-primaria)]"
                             />
                             <Label htmlFor="active" className="text-sm font-medium cursor-pointer" style={{ color: 'var(--cor-texto-sec)' }}>Produto Ativo</Label>
@@ -375,9 +372,9 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 disabled={saving || uploading}
                                 className="flex-1 sm:flex-initial h-11 font-semibold"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)',
+                                    backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-primaria)30',
+                                    border: '1px solid var(--cor-borda)',
                                     borderRadius: 'var(--radius)'
                                 }}
                             >
@@ -395,7 +392,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 }}
                             >
                                 {(saving || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {editingProduto ? 'Salvar' : 'Criar'}
+                                {editingProduto? 'Salvar' : 'Criar'}
                             </Button>
                         </div>
                     </DialogFooter>
@@ -409,14 +406,14 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     onEscapeKeyDown={(e) => e.preventDefault()}
                     className="max-w-md border [&>button]:hidden"
                     style={{
-                        backgroundColor: 'var(--cor-fundo-card)',
+                        backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
-                        borderColor: '#ef444430',
+                        borderColor: 'var(--cor-erro)30',
                         borderRadius: 'var(--radius)'
                     }}
                 >
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2" style={{ color: '#ef4444' }}><AlertCircle size={20} /> Erro ao Salvar</DialogTitle>
+                        <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--cor-erro)' }}><AlertCircle size={20} /> Erro ao Salvar</DialogTitle>
                         <DialogDescription style={{ color: 'var(--cor-texto-sec)' }}>Não foi possível concluir a operação</DialogDescription>
                     </DialogHeader>
                     <div className="py-2"><p className="text-sm" style={{ color: 'var(--cor-texto)' }}>{erroModal}</p></div>
@@ -425,7 +422,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                             onClick={() => setErroModal(null)}
                             className="w-full h-11 font-bold"
                             style={{
-                                backgroundColor: '#ef4444',
+                                backgroundColor: 'var(--cor-erro)',
                                 color: '#fff',
                                 borderRadius: 'var(--radius)'
                             }}
