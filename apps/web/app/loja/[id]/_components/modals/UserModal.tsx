@@ -10,7 +10,7 @@ import type { UsuarioLoja, UserRole } from "../../page";
 type FormDataType = {
   nome: string;
   email: string;
-  senha?: string; // senha nova do usuario
+  senha?: string;
   telefone: string;
   role: UserRole;
   is_active: boolean
@@ -29,19 +29,19 @@ interface Props {
 }
 
 export function UserModal({ open, onOpenChange, editingUser, formData, setFormData, onSave, saving, errorMsg, lojaNome }: Props) {
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' } // 1. ajustado
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-full sm:max-w-[600px] p-0 flex flex-col border shadow-2xl [&>button]:hidden"
+                className="w-full max-w-full sm:max-w-[600px] p-0 flex-col border shadow-2xl [&>button]:hidden"
                 style={{
-                    backgroundColor: 'var(--cor-card)', // 2. trocado
+                    backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
-                    borderColor: 'var(--cor-borda)', // 3. trocado
+                    borderColor: 'var(--cor-borda)',
                     borderRadius: 'var(--radius)',
-                    height: '90vh',
-                    maxHeight: '90vh'
+                    height: '80vh',
+                    maxHeight: '80vh'
                 }}
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
@@ -54,15 +54,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
 
                     <div className="grid gap-3 sm:gap-4 py-4 px-4 sm:px-6 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
                         {errorMsg && (
-                            <div
-                                className="border text-xs p-3"
-                                style={{
-                                    backgroundColor: 'var(--cor-erro)14', // 4. trocado
-                                    borderColor: 'var(--cor-erro)30', // 5. trocado
-                                    color: 'var(--cor-erro)', // 6. trocado
-                                    borderRadius: 'var(--radius)'
-                                }}
-                            >
+                            <div className="border text-xs p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
                                 {errorMsg}
                             </div>
                         )}
@@ -76,11 +68,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 onChange={e => setFormData({...formData, nome: e.target.value})}
                                 className="sm:col-span-3 text-xs h-9"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)', // 7. trocado
+                                    backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
-                                    border: '1.5px solid var(--cor-primaria)', // 8. borda primary
-                                    borderRadius: 'var(--radius-sm)', // 9. trocado
-                               ...focusStyle
+                                    border: '1.5px solid var(--cor-primaria)',
+                                    borderRadius: 'var(--radius-sm)',
+                                   ...focusStyle
                                 }}
                                 required
                             />
@@ -95,11 +87,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     onChange={e => setFormData({...formData, email: e.target.value})}
                                     className="sm:col-span-3 text-xs h-9"
                                     style={{
-                                        backgroundColor: 'var(--cor-fundo)', // 10
+                                        backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
-                                        border: '1.5px solid var(--cor-primaria)', // 11
-                                        borderRadius: 'var(--radius-sm)', // 12
-                                   ...focusStyle
+                                        border: '1.5px solid var(--cor-primaria)',
+                                        borderRadius: 'var(--radius-sm)',
+                                       ...focusStyle
                                     }}
                                 />
                             ) : (
@@ -116,11 +108,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     onChange={e => setFormData({...formData, senha: e.target.value})}
                                     className="sm:col-span-3 text-xs h-9"
                                     style={{
-                                        backgroundColor: 'var(--cor-fundo)', // 13
+                                        backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
-                                        border: '1.5px solid var(--cor-primaria)', // 14
-                                        borderRadius: 'var(--radius-sm)', // 15
-                                   ...focusStyle
+                                        border: '1.5px solid var(--cor-primaria)',
+                                        borderRadius: 'var(--radius-sm)',
+                                       ...focusStyle
                                     }}
                                     required
                                     placeholder="mínimo 6 caracteres"
@@ -137,11 +129,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     onChange={e => setFormData({...formData, senha: e.target.value})}
                                     className="sm:col-span-3 text-xs h-9"
                                     style={{
-                                        backgroundColor: 'var(--cor-fundo)', // 16
+                                        backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
-                                        border: '1.5px solid var(--cor-primaria)', // 17
-                                        borderRadius: 'var(--radius-sm)', // 18
-                                   ...focusStyle
+                                        border: '1.5px solid var(--cor-primaria)',
+                                        borderRadius: 'var(--radius-sm)',
+                                       ...focusStyle
                                     }}
                                     placeholder="deixe em branco para não alterar"
                                 />
@@ -155,11 +147,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 onChange={e => setFormData({...formData, telefone: e.target.value})}
                                 className="sm:col-span-3 text-xs h-9"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)', // 19
+                                    backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
-                                    border: '1.5px solid var(--cor-primaria)', // 20
-                                    borderRadius: 'var(--radius-sm)', // 21
-                               ...focusStyle
+                                    border: '1.5px solid var(--cor-primaria)',
+                                    borderRadius: 'var(--radius-sm)',
+                                   ...focusStyle
                                 }}
                             />
                         </div>
@@ -171,11 +163,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
                                 className="sm:col-span-3 flex h-9 w-full rounded-md px-3 py-2 text-xs"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)', // 22
+                                    backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
-                                    border: '1.5px solid var(--cor-primaria)', // 23
-                                    borderRadius: 'var(--radius-sm)', // 24
-                               ...focusStyle
+                                    border: '1.5px solid var(--cor-primaria)',
+                                    borderRadius: 'var(--radius-sm)',
+                                   ...focusStyle
                                 }}
                             >
                                 <option value="GERENTE">Gerente</option>
@@ -198,15 +190,15 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
 
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
                         <DialogClose asChild>
                             <Button
                                 type="button"
-                                className="text-xs w-full sm:w-auto font-semibold"
+                                className="text-xs flex-1 sm:flex-initial font-semibold"
                                 style={{
-                                    backgroundColor: 'var(--cor-card)', // 27
+                                    backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-borda)', // 28
+                                    border: '1px solid var(--cor-borda)',
                                     borderRadius: 'var(--radius)'
                                 }}
                             >
@@ -216,7 +208,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                         <Button
                             type="submit"
                             disabled={saving}
-                            className="gap-2 text-xs w-full sm:w-auto font-bold"
+                            className="gap-2 text-xs flex-1 sm:flex-initial font-bold"
                             style={{
                                 background: 'var(--cor-primaria)',
                                 color: '#fff',

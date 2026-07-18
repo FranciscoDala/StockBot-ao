@@ -374,7 +374,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 type="button"
                                 onClick={() => onOpenChange(false)}
                                 disabled={saving || uploading}
-                                className="flex-1 sm:flex-initial h-11 font-semibold"
+                                className="text-xs flex-1 sm:flex-initial font-semibold"
                                 style={{
                                     backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',
@@ -388,7 +388,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 type="button"
                                 onClick={handleSaveClick}
                                 disabled={saving || uploading}
-                                className="flex-1 sm:flex-initial min-w-28 h-11 font-bold"
+                                className="gap-2 text-xs flex-1 sm:flex-initial font-bold"
                                 style={{
                                     background: 'var(--cor-primaria)',
                                     color: '#fff',
