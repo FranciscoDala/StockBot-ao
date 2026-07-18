@@ -227,23 +227,18 @@ export default function LojaPage() {
         setSaving(true);
         try {
             await fetchComAuth(`${API_URL}/lojas/${lojaId}/verificar-senha`, token, { method: 'POST', body: JSON.stringify({ senha: senha_dono }) });
-
             let url = "";
             if (acaoPendente.entidade === 'user') {
                 url = `${API_URL}/lojas/id/${lojaId}/usuarios/${(acaoPendente.data as UsuarioLojaPage).id}`;
             } else {
                 url = `${API_URL}/produtos/${(acaoPendente.data as ProdutoType).id}`;
             }
-
             await fetchComAuth(url, token, { method: 'DELETE' });
             toast.success("Item apagado com sucesso!");
-
             if (acaoPendente.entidade === 'user') fetchEquipa(token);
             else fetchProdutos(token, lojaId);
-
             setShowPermissaoModal(false);
             setAcaoPendente(null);
-
         } catch (err: any) {
             setErroMsgPermissao(err.message || "Senha incorreta ou erro ao apagar");
             setShowErroModal(true);
@@ -256,49 +251,29 @@ export default function LojaPage() {
         if (!token) { toast.error("Sessão expirada"); return; }
         setSaving(true);
         setErrorMsg("");
-
         try {
             let url = "";
             let method = "POST";
-
             if (modalType === 'user') {
                 url = editingUser? `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}` : `${API_URL}/lojas/id/${lojaId}/usuarios`;
-                method = editingUser? "PUT" : "POST";
-
-                const userPayload = {
-                   ...payload,
-                    loja_id: lojaId,
-                    nivel: payload.role
-                };
+                method = editingUser? "PATCH" : "POST"; // <- troquei PUT por PATCH
+                const userPayload = {...payload, loja_id: lojaId, nivel: payload.role };
                 if (!editingUser &&!userPayload.senha) throw new Error("Senha é obrigatória");
                 if (editingUser &&!userPayload.senha) delete userPayload.senha;
-
                 await fetchComAuth(url, token, { method, body: JSON.stringify(userPayload) });
                 toast.success(editingUser? "Membro atualizado!" : "Membro adicionado!");
                 fetchEquipa(token);
-
             } else {
                 url = editingProduto? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
-                method = editingProduto? "PUT" : "POST";
-
-                const produtoPayload = {
-                   ...payload,
-                    loja_id: lojaId,
-                    preco: Number(payload.preco),
-                    preco_custo: Number(payload.preco_custo),
-                    estoque: Number(payload.estoque),
-                    estoque_minimo: Number(payload.estoque_minimo),
-                };
-
+                method = editingProduto? "PATCH" : "POST"; // <- troquei PUT por PATCH
+                const produtoPayload = {...payload, loja_id: lojaId, preco: Number(payload.preco), preco_custo: Number(payload.preco_custo), estoque: Number(payload.estoque), estoque_minimo: Number(payload.estoque_minimo), };
                 await fetchComAuth(url, token, { method, body: JSON.stringify(produtoPayload) });
                 toast.success(editingProduto? "Produto atualizado!" : "Produto adicionado!");
                 fetchProdutos(token, lojaId);
             }
-
             setShowModal(false);
             setEditingUser(null);
             setEditingProduto(null);
-
         } catch (err: any) {
             setErrorMsg(err.message || "Erro ao salvar");
             toast.error(err.message || "Erro ao salvar");
@@ -334,13 +309,14 @@ export default function LojaPage() {
                         {activeTab === "dados" && <DadosTab loja={loja} user={user} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
                         {activeTab === "produtos" && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")} onView={handleViewUserClick} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
+                            
                         {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "risco" && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "fornecedores" && <FornecedoresTab theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
                         {activeTab === "documentos" && <DocumentosTab loja={loja} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
                         {activeTab === "definicoes" && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} corPrimaria={corPrimaria} corFundo={corFundo} />}
                     </div>
-                    
+
                     <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
                     <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
                     <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
