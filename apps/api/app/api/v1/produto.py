@@ -125,7 +125,7 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
 
     novo = Produto(
         loja_id=loja_id, nome=payload.get("nome"), descricao=payload.get("descricao"),
-        categoria_id=payload.get("categoria_id"), marca=payload.get("marca"), imagem_url=payload.get("imagem_url"),
+        categoria_id=payload.get("categoria_id"), marca=payload.get("marca"), imagem_url=payload.get("imagem_url") or "",
         sku=sku_final, codigo_barras=codigo_barras_final, ncm=payload.get("ncm"),
         estoque=payload.get("estoque", 0), estoque_minimo=payload.get("estoque_minimo", 5),
         estoque_maximo=payload.get("estoque_maximo"), unidade=payload.get("unidade"),
@@ -204,8 +204,6 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     if 'preco_custo' in update_data: produto_db.preco_compra = Decimal(str(update_data.pop('preco_custo')))
 
     for key, value in update_data.items():
-        if key == 'imagem_url' and value == "":
-            continue
         setattr(produto_db, key, value)
 
     if 'nome' in update_data or 'sku' in update_data:
