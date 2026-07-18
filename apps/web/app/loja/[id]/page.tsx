@@ -61,6 +61,8 @@ export default function LojaPage() {
     const [corPrimaria, setCorPrimaria] = useState("#10b981");
     const [corFundo, setCorFundo] = useState("#000");
 
+    const [imagemPendente, setImagemPendente] = useState<string>("")
+
     const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
         return await fetchComAuth(`${API_URL}/lojas/${lojaId}/definicoes`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
     }
@@ -337,9 +339,9 @@ export default function LojaPage() {
     }
 
     const handleSave = async (payload: any) => {
-        console.log("=== INICIO HANDLE SAVE ===") // DEBUG
-        console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload) // DEBUG
-        console.log("0. payload.imagem_url:", payload.imagem_url) // DEBUG
+        console.log("=== INICIO HANDLE SAVE ===")
+        console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload)
+        console.log("0. payload.imagem_url:", payload.imagem_url)
 
         if (!token) { toast.error("Sessão expirada"); return; }
         setSaving(true);
@@ -348,24 +350,22 @@ export default function LojaPage() {
             let url = "";
             let method = "POST";
 
-
-            // 1. SE NÃO TEM SENHA: Pede senha e para
+            // 1. SE NÃO TEM SENHA: Pede senha e GUARDA A IMAGEM
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
 
-                // CORREÇÃO: Manda o payload direto. Ele já tem nome, preco, imagem_url
+                setImagemPendente(payload.imagem_url || "") // << GUARDA A URL AQUI
+
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
                     entidade: modalType,
                     descricao: '',
-                    data: payload // << MUDEI AQUI. ERA dataComNovosValores
+                    data: payload
                 });
                 setShowPermissaoModal(true);
                 setSaving(false);
                 return;
             }
-
-
 
             // 2. MONTA URL E METHOD
             if (modalType === 'user') {
@@ -375,10 +375,10 @@ export default function LojaPage() {
                 url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
                 method = editingProduto ? "PATCH" : "POST";
             }
-            console.log("2. URL:", url, "METHOD:", method) // DEBUG
+            console.log("2. URL:", url, "METHOD:", method)
 
-            // 3. MONTA PAYLOAD ÚNICO
-            let finalPayload: any = { ...payload };
+            // 3. MONTA PAYLOAD ÚNICO - AQUI FORÇA A IMAGEM GUARDADA
+            let finalPayload: any = { ...payload, imagem_url: imagemPendente || payload.imagem_url || "" }; // << ESSA LINHA
 
             if (modalType === 'user') {
                 finalPayload = { ...finalPayload, loja_id: lojaId, nivel: payload.role };
@@ -394,26 +394,20 @@ export default function LojaPage() {
                     preco_custo: Number(payload.preco_custo),
                     estoque: Number(payload.estoque),
                     estoque_minimo: Number(payload.estoque_minimo),
-                    imagem_url: payload.imagem_url || "", // << ISSO AQUI
                 };
-                // Garante que codigo_barras vazio vira null
                 if (!finalPayload.codigo_barras || String(finalPayload.codigo_barras).trim() === "") {
                     finalPayload.codigo_barras = null;
                 }
-                console.log("3. IMAGEM_URL NO FINALPAYLOAD:", finalPayload.imagem_url) // DEBUG CRITICO
+                console.log("3. IMAGEM_URL NO FINALPAYLOAD:", finalPayload.imagem_url)
             }
 
-            console.log("4. PAYLOAD FINAL ENVIADO PRO BACK:", JSON.stringify(finalPayload, null, 2)) // DEBUG
+            console.log("4. PAYLOAD FINAL ENVIADO PRO BACK:", JSON.stringify(finalPayload, null, 2))
 
             // 4. ENVIA DIRETO COM SENHA
             const response = await fetchComAuth(url, token, { method, body: JSON.stringify(finalPayload) });
-            console.log("5. RESPOSTA DO BACK:", response) // DEBUG
+            console.log("5. RESPOSTA DO BACK:", response)
 
-            toast.success(
-                modalType === 'user' ? (editingUser ? "Membro atualizado!" : "Membro adicionado!") :
-                    modalType === 'produto' ? (editingProduto ? "Produto atualizado!" : "Produto adicionado!") :
-                        "Salvo com sucesso!"
-            );
+            toast.success(modalType === 'user' ? (editingUser ? "Membro atualizado!" : "Membro adicionado!") : (editingProduto ? "Produto atualizado!" : "Produto adicionado!"));
 
             if (modalType === 'user') fetchEquipa(token);
             if (modalType === 'produto') fetchProdutos(token, lojaId);
@@ -422,13 +416,14 @@ export default function LojaPage() {
             setEditingUser(null);
             setEditingProduto(null);
             setAcaoPendente(null);
+            setImagemPendente("") // << LIMPA DEPOIS
         } catch (err: any) {
-            console.error("ERRO NO HANDLE SAVE:", err) // DEBUG
+            console.error("ERRO NO HANDLE SAVE:", err)
             setErrorMsg(err.message || "Erro ao salvar");
             toast.error(err.message || "Erro ao salvar");
         } finally {
             setSaving(false);
-            console.log("=== FIM HANDLE SAVE ===") // DEBUG
+            console.log("=== FIM HANDLE SAVE ===")
         }
     }
 
