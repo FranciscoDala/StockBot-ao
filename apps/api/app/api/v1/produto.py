@@ -177,65 +177,40 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     await verify_dono_password(db, loja_id, produto_update.senha_dono, produto_update.senha_confirmacao)
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
 
-    print(f"\n--- PATCH PRODUTO {produto_id} ---")
-    print(f"DB codigo: '{produto_db.codigo_barras}' | RECEBIDO: '{produto_update.codigo_barras}'")
-    print(f"DB imagem: '{produto_db.imagem_url}' | RECEBIDO: '{produto_update.imagem_url}'")
-
-    # Validação de SKU
-    if produto_update.sku and produto_update.sku.strip() and produto_update.sku != produto_db.sku:
-        existing = await db.execute(select(Produto).where(and_(Produto.loja_id == loja_id, Produto.sku == produto_update.sku, Produto.id != produto_id)))
-        if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="SKU já cadastrado nesta loja")
+    if produto_update.sku and produto_update.sku.strip() and produto_update.sku!= produto_db.sku:
+        existing = await db.execute(select(Produto).where(and_(Produto.loja_id == loja_id, Produto.sku == produto_update.sku, Produto.id!= produto_id)))
+        if existing.scalar_one_or_none(): raise HTTPException(status_code=400, detail="SKU já cadastrado nesta loja")
         produto_db.sku = produto_update.sku
 
-    # Validação de Código de Barras
     codigo_recebido = produto_update.codigo_barras
-    if codigo_recebido is not None and codigo_recebido.strip() != "":
+    if codigo_recebido is not None and codigo_recebido.strip()!= "":
         codigo_novo = codigo_recebido.strip()
-        if codigo_novo != (produto_db.codigo_barras or ""):
-            print(f"Validando novo codigo: {codigo_novo}")
-            existing = await db.execute(select(Produto).where(and_(Produto.loja_id == loja_id, Produto.codigo_barras == codigo_novo, Produto.id != produto_id)))
-            if existing.scalar_one_or_none():
-                raise HTTPException(status_code=400, detail="Código de barras já cadastrado nesta loja")
+        if codigo_novo!= (produto_db.codigo_barras or ""):
+            existing = await db.execute(select(Produto).where(and_(Produto.loja_id == loja_id, Produto.codigo_barras == codigo_novo, Produto.id!= produto_id)))
+            if existing.scalar_one_or_none(): raise HTTPException(status_code=400, detail="Código de barras já cadastrado nesta loja")
             produto_db.codigo_barras = codigo_novo
-            print("Codigo atualizado")
-        else:
-            print("Codigo igual, ignorado")
-    else:
-        print("Codigo veio vazio/null, ignorado")
 
-    # Pega todos os dados do payload
     update_data = produto_update.model_dump(exclude_unset=True, exclude={"senha_dono", "senha_confirmacao", "sku"})
 
-    # TRATAMENTO ESPECIAL PRA IMAGEM - FORÇA SALVAR MESMO VAZIO
+    # TRATAMENTO ESPECIAL PRA IMAGEM - ESSA É A LINHA QUE FALTAVA
     if hasattr(produto_update, 'imagem_url'):
-        produto_db.imagem_url = produto_update.imagem_url or "" # Aceita "" pra remover a imagem
+        produto_db.imagem_url = produto_update.imagem_url or ""
 
-    # TRATAMENTO ESPECIAL PRA PUBLIC_ID
-    if hasattr(produto_update, 'public_id'):
-        produto_db.public_id = produto_update.public_id or ""
+    if 'preco' in update_data: produto_db.preco_venda = Decimal(str(update_data.pop('preco')))
+    if 'preco_custo' in update_data: produto_db.preco_compra = Decimal(str(update_data.pop('preco_custo')))
 
-    # Trata preço separado por causa do Decimal
-    if 'preco' in update_data:
-        produto_db.preco_venda = Decimal(str(update_data.pop('preco')))
-    if 'preco_custo' in update_data:
-        produto_db.preco_compra = Decimal(str(update_data.pop('preco_custo')))
-
-    # Atualiza o resto
     for key, value in update_data.items():
         setattr(produto_db, key, value)
 
-    # Regera QR Code se nome ou sku mudar
     if 'nome' in update_data or 'sku' in update_data:
         produto_db.codigo_qr = gerar_qr_code_base64(produto_db.id, produto_db.sku, produto_db.nome)
 
-    # Recalcula margem
     produto_db.margem_lucro = 0 if produto_db.preco_compra == 0 else ((produto_db.preco_venda - produto_db.preco_compra) / produto_db.preco_compra) * 100
 
     await db.commit()
     await db.refresh(produto_db)
-    print("--- FIM PATCH ---\n")
     return to_schema(produto_db)
+
 
 
 

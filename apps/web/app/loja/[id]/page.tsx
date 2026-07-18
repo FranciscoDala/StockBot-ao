@@ -384,8 +384,15 @@ export default function LojaPage() {
                     preco_custo: Number(payload.preco_custo),
                     estoque: Number(payload.estoque),
                     estoque_minimo: Number(payload.estoque_minimo),
+                    imagem_url: payload.imagem_url || "", // <-- ESSA ERA A LINHA QUE FALTAVA
                 };
+                // Garante que codigo_barras vazio vira null
+                if (!finalPayload.codigo_barras || String(finalPayload.codigo_barras).trim() === "") {
+                    finalPayload.codigo_barras = null;
+                }
             }
+
+            console.log("PAYLOAD FINAL ENVIADO:", finalPayload) // DEIXA PRA TESTAR
 
             // 4. ENVIA DIRETO COM SENHA
             await fetchComAuth(url, token, { method, body: JSON.stringify(finalPayload) });
@@ -410,8 +417,6 @@ export default function LojaPage() {
             setSaving(false);
         }
     }
-
-
 
 
     const vendasParaRisco = useMemo(() => vendas.map(v => ({ id: String(v.id), data: v.data_venda || new Date().toISOString(), total: v.total, formaPagamento: v.forma_pagamento, itens: v.total_itens, detalhes: (v.itens || []).map((it, idx) => ({ id: String(it.produto_id) + '-' + idx, nome_produto: it.nome || 'Produto', quantidade: it.quantidade, preco_unitario: it.preco_unitario, subtotal: it.subtotal })), status: "concluida" })), [vendas]);
