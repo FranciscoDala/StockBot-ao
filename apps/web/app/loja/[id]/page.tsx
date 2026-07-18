@@ -62,7 +62,6 @@ export default function LojaPage() {
     const [corFundo, setCorFundo] = useState("#000");
 
     const [imagemPendente, setImagemPendente] = useState<string>("")
-    const [dadosPendentes, setDadosPendentes] = useState<any>(null)
 
     const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
         return await fetchComAuth(`${API_URL}/lojas/${lojaId}/definicoes`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
@@ -300,7 +299,7 @@ export default function LojaPage() {
 
 
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!token || !acaoPendente) return;
+        if (!token || !acaoPendente) return; // <- já tinha, mas agora usamos ele
         setSaving(true);
         try {
             if (acaoPendente.tipo === 'apagar') {
@@ -314,15 +313,19 @@ export default function LojaPage() {
                     ? { senha_dono, senha_confirmacao: senha_dono }
                     : { loja_id: lojaId, senha_dono, senha_confirmacao: senha_dono };
 
-                await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) });
+                await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) }); // <- agora token já não é null aqui
                 toast.success(acaoPendente.entidade === 'user' ? "Membro apagado!" : "Produto apagado!");
                 if (acaoPendente.entidade === 'user') fetchEquipa(token);
                 else fetchProdutos(token, lojaId);
             }
 
             if (acaoPendente.tipo === 'adicionar' || acaoPendente.tipo === 'editar') {
-                // MUDANÇA 1: Usa dadosPendentes em vez de formDataUser/formDataProduto
-                await handleSave({ ...dadosPendentes, senha_dono, senha_confirmacao: senha_dono });
+                if (acaoPendente.entidade === 'user') {
+                    await handleSave({ ...formDataUser, senha_dono, senha_confirmacao: senha_dono });
+                }
+                if (acaoPendente.entidade === 'produto') {
+                    await handleSave({ ...formDataProduto, senha_dono, senha_confirmacao: senha_dono });
+                }
             }
 
             setShowPermissaoModal(false);
