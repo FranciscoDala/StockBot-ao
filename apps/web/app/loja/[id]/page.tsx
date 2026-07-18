@@ -212,12 +212,12 @@ export default function LojaPage() {
     const handleSave = async (payload: any) => { /*...sua logica... */ }
     const vendasParaRisco = useMemo(() => vendas.map(v => ({ id: String(v.id), data: v.data_venda || new Date().toISOString(), total: v.total, formaPagamento: v.forma_pagamento, itens: v.total_itens, detalhes: (v.itens || []).map((it, idx) => ({ id: String(it.produto_id) + '-' + idx, nome_produto: it.nome || 'Produto', quantidade: it.quantidade, preco_unitario: it.preco_unitario, subtotal: it.subtotal })), status: "concluida" })), [vendas]);
 
-    if (!isClient || loading) return (<div className="flex items-center justify-center min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)' }}><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>);
+    if (!isClient || loading) return (<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>);
 
     return (
         <>
-            
-            <Toaster position="top-center" richColors theme={theme as any} />
+
+            <Toaster key={theme} position="top-center" richColors theme={theme as any} />
 
             {activeTab === "venda" ?
                 // TELA DE VENDA SEM HEADER - FULL SCREEN
