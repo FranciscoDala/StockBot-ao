@@ -132,9 +132,11 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
         const token = getCookie('token');
         const file = formData.file_to_upload;
-        let imagemUrlFinal = formData.imagem_url || ""; // PEGA A IMAGEM ANTIGA PRIMEIRO
+        let imagemUrlFinal = formData.imagem_url || "";
 
-        if (file && token) {
+        if (file) { // <-- TIREI O && token DAQUI
+            if (!token) { toast.error("Sessão expirada. Faça login novamente"); return; } // Valida separado
+
             setUploading(true);
             try {
                 const formDataUpload = new FormData();
@@ -152,7 +154,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 }
 
                 const dataCloud = await resCloud.json();
-                imagemUrlFinal = dataCloud.secure_url; // SUBSTITUI PELA NOVA
+                imagemUrlFinal = dataCloud.secure_url;
+                setFormData((prev: any) => ({ ...prev, imagem_url: imagemUrlFinal, file_to_upload: null })) // SALVA NO STATE
                 toast.success("Imagem enviada com sucesso");
 
             } catch (err: any) {
@@ -165,7 +168,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
         let finalData = {
             ...formData,
-            imagem_url: imagemUrlFinal, // FORÇA MANDAR A URL
+            imagem_url: imagemUrlFinal,
             public_id: formData.public_id || ""
         };
 
@@ -174,7 +177,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.codigo_barras = null;
         }
 
-        console.log("ENVIANDO PRO BACK:", finalData) // DEIXA ESSE PRA TESTAR
+        console.log("ENVIANDO PRO BACK:", finalData)
         onSave(finalData);
     };
 
