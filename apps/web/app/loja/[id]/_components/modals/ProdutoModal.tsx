@@ -137,7 +137,6 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
         console.log("1. INICIO SAVE - formData.imagem_url:", formData.imagem_url)
         console.log("1. INICIO SAVE - file:", file)
-        console.log("1. TOKEN:", token ? "OK" : "UNDEFINED")
 
         if (file) {
             if (!token) { toast.error("Sessão expirada. F5"); return; }
@@ -147,21 +146,17 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 const formDataUpload = new FormData();
                 formDataUpload.append('file', file);
 
-                console.log("ENVIANDO PARA:", `${API_URL}/upload/produto/cloudinary`)
-
                 const resCloud = await fetch(`${API_URL}/upload/produto/cloudinary`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formDataUpload
                 });
 
-                console.log("STATUS UPLOAD:", resCloud.status)
                 const dataCloud = await resCloud.json();
                 console.log("RESPOSTA CLOUDINARY:", dataCloud)
 
                 if (!resCloud.ok) throw new Error(dataCloud.detail || "Falha no upload");
 
-                // CORREÇÃO: o back retorna original_url e optimized_url
                 imagemUrlFinal = dataCloud.original_url || dataCloud.optimized_url;
                 console.log("2. URL VOLTOU DO CLOUDINARY:", imagemUrlFinal)
                 toast.success("Imagem enviada com sucesso");
@@ -174,9 +169,10 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             setUploading(false);
         }
 
+        // CORREÇÃO: Não usa mais o state. Manda a variavel local
         let finalData = {
             ...formData,
-            imagem_url: imagemUrlFinal, // agora vai com a url real
+            imagem_url: imagemUrlFinal, // << USA A VARIAVEL AQUI
             public_id: formData.public_id || ""
         };
 
@@ -185,7 +181,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.codigo_barras = null;
         }
 
-        console.log("3. ENVIANDO PRO BACK:", finalData)
+        console.log("3. ENVIANDO PRO BACK:", finalData.imagem_url)
         onSave(finalData);
     };
 

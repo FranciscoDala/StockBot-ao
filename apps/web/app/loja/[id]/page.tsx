@@ -389,7 +389,7 @@ export default function LojaPage() {
                     preco_custo: Number(payload.preco_custo),
                     estoque: Number(payload.estoque),
                     estoque_minimo: Number(payload.estoque_minimo),
-                    imagem_url: payload.imagem_url || "", // FORÇA MANDAR
+                    imagem_url: payload.imagem_url || "", // << ISSO AQUI
                 };
                 // Garante que codigo_barras vazio vira null
                 if (!finalPayload.codigo_barras || String(finalPayload.codigo_barras).trim() === "") {
