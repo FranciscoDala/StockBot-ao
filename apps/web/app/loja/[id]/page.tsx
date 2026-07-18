@@ -102,33 +102,58 @@ export default function LojaPage() {
 
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
 
-
     const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
+        const bg = corF || (t === 'light' ? '#f5f5f5' : '#000'); // se não vier corF usa a do tema
+        const text = t === 'light' ? '#111827' : '#fff';
+
         document.documentElement.style.setProperty('--cor-primaria', corP || '#16a34a');
-        document.documentElement.style.setProperty('--cor-fundo', corF || '#000');
+        document.documentElement.style.setProperty('--cor-fundo', bg);
         document.documentElement.setAttribute('data-theme', t);
         document.documentElement.setAttribute('data-card-style', cs);
         document.documentElement.setAttribute('data-card-size', csz);
         document.documentElement.style.setProperty('--font-size', fsz === 'grande' ? '16px' : fsz === 'pequeno' ? '12px' : '14px');
+
+        // Força direto também
+        document.body.style.backgroundColor = bg;
+        document.body.style.color = text;
     }, []);
 
 
     const handleSaveTheme = useCallback(async (newTheme: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
         if (!token || !lojaId) return;
         try {
-            await updateLojaTheme(lojaId, token, newTheme);
-            const newLoja = { ...loja, ...newTheme } as Loja;
+            // SE TROCOU SÓ O TEMA, DEFINE A COR DE FUNDO AUTOMÁTICA
+            let corFundoParaSalvar = newTheme.cor_fundo;
+            if (newTheme.theme && newTheme.cor_fundo === undefined) {
+                corFundoParaSalvar = newTheme.theme === 'light' ? '#f5f5f5' : '#000';
+            }
+
+            const themeParaSalvar = { ...newTheme, cor_fundo: corFundoParaSalvar };
+
+            await updateLojaTheme(lojaId, token, themeParaSalvar);
+            const newLoja = { ...loja, ...themeParaSalvar } as Loja;
             setLoja(newLoja);
+
             if (newTheme.theme) setTheme(newTheme.theme);
             if (newTheme.card_style) setCardStyle(newTheme.card_style);
             if (newTheme.card_size) setCardSize(newTheme.card_size);
             if (newTheme.font_size) setFontSize(newTheme.font_size);
             if (newTheme.cor_primaria) setCorPrimaria(newTheme.cor_primaria);
-            if (newTheme.cor_fundo) setCorFundo(newTheme.cor_fundo);
-            applyTheme(newTheme.theme || theme, newTheme.card_style || cardStyle, newTheme.card_size || cardSize, newTheme.font_size || fontSize, newTheme.cor_primaria || corPrimaria, newTheme.cor_fundo || corFundo);
+            if (corFundoParaSalvar) setCorFundo(corFundoParaSalvar);
+
+            applyTheme(
+                newTheme.theme || theme,
+                newTheme.card_style || cardStyle,
+                newTheme.card_size || cardSize,
+                newTheme.font_size || fontSize,
+                newTheme.cor_primaria || corPrimaria,
+                corFundoParaSalvar || corFundo
+            );
             toast.success("Aparência salva!");
         } catch (e) { toast.error("Erro ao salvar aparência"); }
     }, [token, lojaId, loja, theme, cardStyle, cardSize, fontSize, corPrimaria, corFundo, applyTheme]);
+
+
 
     const fetchEquipa = async (currentToken: string) => {
         if (!currentToken || !lojaId) return;
@@ -177,18 +202,6 @@ export default function LojaPage() {
         };
         socket.onclose = () => { setWs(null); }; return () => socket.close();
     }, [token, lojaId]);
-
-
-    // Sincroniza data-theme no html sempre que o theme mudar
-    // Força o fundo direto no body/html
-    useEffect(() => {
-        const bg = theme === 'light' ? '#f5f5f5' : '#000';
-        const text = theme === 'light' ? '#111827' : '#fff';
-
-        document.documentElement.style.backgroundColor = bg;
-        document.body.style.backgroundColor = bg;
-        document.body.style.color = text;
-    }, [theme])
 
 
     const adicionarAoCarrinho = (produto: ProdutoType) => { if ((produto.estoque ?? 0) <= 0) { toast.error("Sem estoque"); return; } setCarrinho(prev => { const item = prev.find(i => String(i.id) === String(produto.id)); if (item) { if (item.quantidade + 1 > (produto.estoque ?? 0)) { toast.warning("Estoque max"); return prev; } return prev.map(i => String(i.id) === String(produto.id) ? { ...i, quantidade: i.quantidade + 1 } : i); } return [...prev, { ...produto, quantidade: 1 }]; }); };
