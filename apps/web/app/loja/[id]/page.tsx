@@ -223,13 +223,78 @@ export default function LojaPage() {
         setShowModal(true);
     };
 
-    const handleAddUserClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'user', descricao: 'Tem certeza que deseja adicionar este novo membro?' }); openModal('user'); }
-    const handleEditUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', descricao: `Tem certeza que deseja salvar as alterações de ${u.nome}?`, data: u }); openModal('user', { ...u, telefone: u.telefone ?? undefined }); }
-    const handleDeleteUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', descricao: `Tem certeza que deseja apagar o membro ${u.nome}? Esta ação não pode ser desfeita.`, data: u }); setShowPermissaoModal(true); }
-    const handleViewUserClick = async (u: UsuarioLojaPage) => { if (!token || !lojaId) return; try { setDetalhesUser(await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${u.id}/detalhes`, token)); setShowDetalhesModal(true); } catch (e) { } }
-    const handleAddProdutoClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'produto', descricao: 'Tem certeza que deseja adicionar este novo produto?' }); openModal('produto'); }
-    const handleEditProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'editar', entidade: 'produto', descricao: `Tem certeza que deseja salvar as alterações de ${p.nome}?`, data: p }); openModal('produto', p); }
-    const handleDeleteProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'apagar', entidade: 'produto', descricao: `Tem certeza que deseja apagar o produto ${p.nome}? Esta ação não pode ser desfeita.`, data: p }); setShowPermissaoModal(true); }
+    const handleAddUserClick = () => {
+        setAcaoPendente({
+            tipo: 'adicionar',
+            entidade: 'user',
+            descricao: 'Tem certeza que deseja adicionar este novo membro?',
+            data: null
+        });
+        openModal('user');
+    }
+
+    const handleEditUserClick = (u: UsuarioLojaPage) => {
+        setAcaoPendente({
+            tipo: 'editar',
+            entidade: 'user',
+            descricao: `Tem certeza que deseja salvar as alterações de ${u.nome}?`,
+            data: u
+        });
+        openModal('user', { ...u, telefone: u.telefone ?? undefined });
+    }
+
+    const handleDeleteUserClick = (u: UsuarioLojaPage) => {
+        setAcaoPendente({
+            tipo: 'apagar',
+            entidade: 'user',
+            descricao: `Tem certeza que deseja apagar o membro ${u.nome}? Esta ação não pode ser desfeita.`,
+            data: u
+        });
+        setShowPermissaoModal(true);
+    }
+
+    const handleViewUserClick = async (u: UsuarioLojaPage) => {
+        if (!token || !lojaId) return;
+        try {
+            setDetalhesUser(await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${u.id}/detalhes`, token));
+            setShowDetalhesModal(true);
+        } catch (e) { }
+    }
+
+    const handleAddProdutoClick = () => {
+        setAcaoPendente({
+            tipo: 'adicionar',
+            entidade: 'produto',
+            descricao: 'Tem certeza que deseja adicionar este novo produto?',
+            data: null
+        });
+        openModal('produto');
+    }
+
+    const handleEditProdutoClick = (p: ProdutoType) => {
+        setAcaoPendente({
+            tipo: 'editar',
+            entidade: 'produto',
+            descricao: `Tem certeza que deseja salvar as alterações de ${p.nome}?`,
+            data: p
+        });
+        openModal('produto', p);
+    }
+
+    const handleDeleteProdutoClick = (p: ProdutoType) => {
+        setAcaoPendente({
+            tipo: 'apagar',
+            entidade: 'produto',
+            descricao: `Tem certeza que deseja apagar o produto ${p.nome}? Esta ação não pode ser desfeita.`,
+            data: p
+        });
+        setShowPermissaoModal(true);
+    }
+
+
+
+
+
 
 
 
@@ -239,8 +304,9 @@ export default function LojaPage() {
         try {
             await fetchComAuth(`${API_URL}/lojas/${lojaId}/verificar-senha`, token, { method: 'POST', body: JSON.stringify({ senha: senha_dono }) });
 
-            // CASO 1: APAGAR
             if (acaoPendente.tipo === 'apagar') {
+                if (!acaoPendente.data) return; // <- ADICIONA ESSA LINHA
+
                 const url = acaoPendente.entidade === 'user'
                     ? `${API_URL}/lojas/id/${lojaId}/usuarios/${(acaoPendente.data as UsuarioLojaPage).id}`
                     : `${API_URL}/produtos/${(acaoPendente.data as ProdutoType).id}`;
@@ -255,9 +321,7 @@ export default function LojaPage() {
                 else fetchProdutos(token, lojaId);
             }
 
-            // CASO 2: ADICIONAR/EDITAR
             if (acaoPendente.tipo === 'adicionar' || acaoPendente.tipo === 'editar') {
-                // Injeta a senha no formData e chama o handleSave de novo
                 if (acaoPendente.entidade === 'user') {
                     setFormDataUser((prev: any) => ({ ...prev, senha_dono, senha_confirmacao: senha_dono }));
                     await handleSave({ ...formDataUser, senha_dono, senha_confirmacao: senha_dono });
