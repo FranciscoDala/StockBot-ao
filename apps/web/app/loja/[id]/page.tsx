@@ -296,13 +296,10 @@ export default function LojaPage() {
 
 
 
-
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!acaoPendente) return;
+        if (!token || !acaoPendente) return; // <- já tinha, mas agora usamos ele
         setSaving(true);
         try {
-            // REMOVIDO: await fetchComAuth(`${API_URL}/lojas/${lojaId}/verificar-senha`...)
-
             if (acaoPendente.tipo === 'apagar') {
                 if (!acaoPendente.data) return;
 
@@ -314,10 +311,10 @@ export default function LojaPage() {
                     ? { senha_dono, senha_confirmacao: senha_dono }
                     : { loja_id: lojaId, senha_dono, senha_confirmacao: senha_dono };
 
-                await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) });
+                await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) }); // <- agora token já não é null aqui
                 toast.success(acaoPendente.entidade === 'user' ? "Membro apagado!" : "Produto apagado!");
-                if (acaoPendente.entidade === 'user') fetchEquipa(token!);
-                else fetchProdutos(token!, lojaId);
+                if (acaoPendente.entidade === 'user') fetchEquipa(token);
+                else fetchProdutos(token, lojaId);
             }
 
             if (acaoPendente.tipo === 'adicionar' || acaoPendente.tipo === 'editar') {
@@ -338,7 +335,6 @@ export default function LojaPage() {
             setSaving(false);
         }
     }
-
 
 
     const handleSave = async (payload: any) => {
