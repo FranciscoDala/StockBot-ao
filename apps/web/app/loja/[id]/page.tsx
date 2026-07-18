@@ -346,9 +346,12 @@ export default function LojaPage() {
 
         console.log("=== INICIO HANDLE SAVE ===")
         console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload)
-        console.log("EDITING_USER:", editingUser)
+        console.log("LOJAID:", lojaId, "TOKEN:", !!token, "EDITING_USER:", editingUser)
 
-        if (!token || !lojaId) { toast.error("Sessão ou loja expirada"); return; }
+        if (!token || !lojaId) {
+            toast.error("Sessão ou loja expirada. Recarrega a página");
+            return;
+        }
         setSaving(true);
         setErrorMsg("");
         try {
@@ -369,11 +372,17 @@ export default function LojaPage() {
                 return;
             }
 
-            // 2. MONTA URL E METHOD
+            // 2. MONTA URL E METHOD CORRETO
             if (modalType === 'user') {
-                if (!editingUser?.id) throw new Error("ID do usuário não encontrado");
-                url = `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}`;
-                method = editingUser ? "PUT" : "POST";
+                if (editingUser) {
+                    // UPDATE
+                    url = `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}`;
+                    method = "PUT";
+                } else {
+                    // CREATE
+                    url = `${API_URL}/lojas/id/${lojaId}/usuarios`;
+                    method = "POST";
+                }
             } else if (modalType === 'produto') {
                 url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
                 method = editingProduto ? "PATCH" : "POST";
@@ -385,8 +394,8 @@ export default function LojaPage() {
             let finalPayload: any = { ...payload };
 
             if (modalType === 'user') {
-                // Para PUT: só manda o que mudou. Para POST: manda tudo
                 if (editingUser) {
+                    // UPDATE: só manda o que mudou
                     finalPayload = {
                         nome: payload.nome,
                         telefone: payload.telefone || null,
@@ -395,18 +404,20 @@ export default function LojaPage() {
                         senha_dono: payload.senha_dono,
                         senha_confirmacao: payload.senha_confirmacao,
                     };
-                    // só manda senha se digitou
-                    if (payload.senha && payload.senha.trim()) {
-                        finalPayload.senha = payload.senha;
-                    }
-                    // só manda email se mudou
-                    if (payload.email && payload.email !== editingUser.email) {
-                        finalPayload.email = payload.email;
-                    }
+                    if (payload.senha && payload.senha.trim()) finalPayload.senha = payload.senha;
+                    if (payload.email && payload.email !== editingUser.email) finalPayload.email = payload.email;
                 } else {
-                    // CREATE
-                    finalPayload = { ...payload };
-                    if (!finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
+                    // CREATE: manda tudo. O back gera email automatico se vier vazio
+                    finalPayload = {
+                        nome: payload.nome,
+                        senha: payload.senha,
+                        senha_confirmacao: payload.senha,
+                        telefone: payload.telefone || null,
+                        role: payload.role,
+                        is_active: payload.is_active,
+                        senha_dono: payload.senha_dono,
+                        senha_confirmacao: payload.senha_confirmacao,
+                    };
                 }
 
                 if (finalPayload.telefone === "") finalPayload.telefone = null;
