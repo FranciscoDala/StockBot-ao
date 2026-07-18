@@ -31,6 +31,12 @@
     --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
     --font-heading: var(--font-bricolage), sans-serif;
     --font-zalando: 'Zalando Sans Expanded', sans-serif;
+
+    /* FORÇA TAILWIND USAR NOSSAS VARS */
+    --background: var(--cor-fundo);
+    --foreground: var(--cor-texto);
+    --card: var(--cor-card);
+    --border: var(--cor-borda);
 }
 
 /* TEMA CLARO */
@@ -41,15 +47,20 @@
     --cor-borda: #e5e7eb;
     --cor-texto: #111827;
     --cor-texto-sec: #6b7280;
+
+    --background: var(--cor-fundo);
+    --foreground: var(--cor-texto);
+    --card: var(--cor-card);
+    --border: var(--cor-borda);
 }
 
-/* ============ BASE DO TEMA - FORÇA SOBRE TAILWIND ============ */
+/* ============ BASE DO TEMA - GANHA DO TAILWIND ============ */
 @layer base {
-  html {
-    background-color: var(--cor-fundo)!important;
+    * {
+    border-color: var(--border);
   }
-  body {
-    background-color: var(--cor-fundo)!important;
+  html, body {
+    background: var(--cor-fundo)!important;
     color: var(--cor-texto)!important;
     font-family: var(--font-zalando);
     transition: background-color 0.3s ease, color 0.3s ease;
@@ -63,8 +74,9 @@
     font-family: var(--font-zalando);
     border-radius: var(--radius);
     background-color: var(--cor-card);
+    color: var(--cor-texto);
     transition: all 0.3s;
-    border: 1px solid var(--cor-borda) !important; /* movi pra cá */
+    border: 1px solid var(--cor-borda);
 }
 
 .card:hover {
@@ -156,9 +168,9 @@
 /* ============ FUNDO DO APP ============ */
 .bg-fundo { background-color: var(--cor-fundo)!important; }
 .text-cor { color: var(--cor-texto)!important; }
+.bg-card { background-color: var(--cor-card)!important; }
 
 /* ============ UTILS ============ */
-.bg-card { background-color: var(--cor-card); }
 .bg-primaria { background-color: var(--cor-primaria); }
 .text-secundario { color: var(--cor-texto-sec); }
 .border-cor { border-color: var(--cor-borda); }
