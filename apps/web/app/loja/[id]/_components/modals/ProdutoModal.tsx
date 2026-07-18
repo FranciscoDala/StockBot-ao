@@ -198,12 +198,14 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 <DialogContent
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
-                    className="!max-w-[800px] w-full p-0 h- flex flex-col border shadow-2xl [&>button]:hidden"
+                    className="!max-w-[800px] w-full p-0 flex flex-col border shadow-2xl [&>button]:hidden"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
                         borderColor: 'var(--cor-borda)',
-                        borderRadius: 'var(--radius)'
+                        borderRadius: 'var(--radius)',
+                        height: '80vh',
+                        maxHeight: '80vh'
                     }}
                 >
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
@@ -270,7 +272,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                                     <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
                                                 </>
                                             ) : (
-                                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{ color: 'var(--cor-texto-sec)' }}>
+                                                <div className="absolute inset-0 flex-col items-center justify-center text-center" style={{ color: 'var(--cor-texto-sec)' }}>
                                                     <UploadCloud size={32} className="mb-2" />
                                                     <p className="text-sm font-medium">Arraste e solte ou clique</p>
                                                     <p className="text-xs">PNG, JPG, WEBP até 5MB</p>
