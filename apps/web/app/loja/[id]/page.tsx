@@ -338,7 +338,9 @@ export default function LojaPage() {
 
 
 
-    const handleSave = async (payload: any) => {
+    const handleSave = async (payload: any, e?: React.FormEvent) => {
+        e?.preventDefault(); // <- ESSA LINHA PARA O REFRESH
+
         console.log("=== INICIO HANDLE SAVE ===")
         console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload)
 
@@ -352,8 +354,6 @@ export default function LojaPage() {
             // 1. SE NÃO TEM SENHA: Pede senha e GUARDA TUDO no acaoPendente.data
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
-
-                // REMOVIDO: setImagemPendente
 
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
@@ -379,8 +379,8 @@ export default function LojaPage() {
 
             console.log("2. URL:", url, "METHOD:", method)
 
-            // 3. MONTA PAYLOAD ÚNICO - AGORA VEM DIRETO DO PAYLOAD
-            let finalPayload: any = { ...payload }; // << REMOVIDO imagemPendente
+            // 3. MONTA PAYLOAD ÚNICO
+            let finalPayload: any = { ...payload };
 
             if (modalType === 'user') {
                 finalPayload = { ...finalPayload, loja_id: lojaId, nivel: payload.role };
@@ -419,7 +419,6 @@ export default function LojaPage() {
             setEditingUser(null);
             setEditingProduto(null);
             setAcaoPendente(null);
-            // REMOVIDO: setImagemPendente("")
         } catch (err: any) {
             console.error("ERRO NO HANDLE SAVE:", err)
             setErrorMsg(err.message || "Erro ao salvar");
