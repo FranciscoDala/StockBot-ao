@@ -380,12 +380,12 @@ export default function LojaPage() {
             let finalPayload: any = { ...payload };
 
             if (modalType === 'user') {
-                // TIRA OS CAMPOS QUE O BACK NÃO ACEITA
-                const { senha_dono, senha_confirmacao, role, ...resto } = finalPayload; // <- TIREI O role
+                // TIRA OS CAMPOS QUE O BACK NÃO ACEITA NO PUT
+                const { senha_dono, senha_confirmacao, role, loja_id, ...resto } = finalPayload; // <- TIREI loja_id tbm
 
-                finalPayload = { ...resto, loja_id: lojaId, nivel: payload.role }; // <- Só manda nivel
+                finalPayload = { ...resto, nivel: payload.role }; // <- Só manda nivel
 
-                // Se telefone for "", manda null pra não dar 422
+                // Se telefone for "", manda null
                 if (finalPayload.telefone === "") finalPayload.telefone = null;
 
                 if (!editingUser && !finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
