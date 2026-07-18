@@ -202,7 +202,7 @@
 ::-webkit-scrollbar-thumb { background: var(--cor-primaria); border-radius: var(--radius-sm); }
 ::-webkit-scrollbar-thumb:hover { background: var(--cor-secundaria); }
 
-/* ============ INPUTS E SELECTS ============ */
+/* ============ INPUTS E SELECTS COM BORDA PRIMARY OBRIGATÓRIA ============ */
 input[type="text"],
 input[type="number"],
 input[type="email"],
@@ -223,11 +223,22 @@ select {
     transition: all 0.2s;
 }
 
+input:hover,
+textarea:hover,
+select:hover {
+    border-color: var(--cor-primaria) !important;
+}
+
 input:focus,
 textarea:focus,
 select:focus {
     border: 1.5px solid var(--cor-primaria) !important;
     box-shadow: 0 0 0 3px var(--cor-primaria)30 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--cor-texto-sec);
 }
 
 select {
@@ -239,7 +250,30 @@ select {
 }
 select option { background-color: var(--cor-card); color: var(--cor-texto); }
 
-/* ============ FIX SELECT SHADCN ============ */
-[data-radix-select-viewport] { background-color: var(--cor-card) !important; }
-[data-radix-select-item] { color: var(--cor-texto) !important; }
-[data-radix-select-item][data-highlighted] { background-color: var(--cor-primaria)20 !important; color: var(--cor-texto) !important; }
+/* ============ FIX SELECT SHADCN/RADIX COM BORDA PRIMARY ============ */
+[data-radix-select-trigger],
+button[role="combobox"] {
+    border: 1.5px solid var(--cor-primaria) !important;
+    background-color: var(--cor-card) !important;
+    color: var(--cor-texto) !important;
+}
+
+[data-radix-select-trigger]:focus,
+button[role="combobox"]:focus {
+    border: 1.5px solid var(--cor-primaria) !important;
+    box-shadow: 0 0 0 3px var(--cor-primaria)30 !important;
+}
+
+[data-radix-select-viewport],
+[data-radix-popover-content] {
+    background-color: var(--cor-card) !important;
+    border: 1.5px solid var(--cor-primaria) !important;
+}
+[data-radix-select-item] {
+    color: var(--cor-texto) !important;
+}
+[data-radix-select-item][data-highlighted],
+[data-radix-select-item][data-state="checked"] {
+    background-color: var(--cor-primaria)20 !important;
+    color: var(--cor-texto) !important;
+}

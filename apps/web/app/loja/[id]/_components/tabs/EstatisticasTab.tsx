@@ -67,6 +67,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const isLight = theme === 'light';
 
     const buscarVendas = useCallback(async () => {
         if (!token ||!lojaId) return;
@@ -79,15 +80,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             const data: VendaAPI[] = await res.json()
 
             const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-              .filter(v => v.status?.toLowerCase().trim() === "concluida")
-              .map(v => ({
+             .filter(v => v.status?.toLowerCase().trim() === "concluida")
+             .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                      ...item,
+                     ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -162,15 +163,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-      .header { text-align: center; margin-bottom: 5px; }
-      .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-      .header p { margin: 1px 0; font-size: 10px; }
-      .info p { margin: 1px 0; }
+     .header { text-align: center; margin-bottom: 5px; }
+     .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+     .header p { margin: 1px 0; font-size: 10px; }
+     .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-      .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-      .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+     .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+     .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -302,7 +303,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-          ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+         ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -322,17 +323,17 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+   .scrollbar-hide::-webkit-scrollbar { display: none; }
+   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
             {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="">
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-white">Estatísticas
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>Estatísticas
                         {wsConectado? <Wifi size={16} style={{color: 'var(--cor-primaria)'}} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
-                    <p className="text-xs sm:text-sm text-gray-400">Acompanha o crescimento da sua loja</p>
+                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Acompanha o crescimento da sua loja</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={exportarCSV} className="btn-primary" style={{borderRadius: radius}}>
@@ -348,22 +349,22 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <div
                 className="border p-3 md:p-4"
                 style={{
-                    backgroundColor: '#171717',
-                    borderColor: '#27272a',
+                    backgroundColor: 'var(--cor-card)',
+                    borderColor: 'var(--cor-borda)',
                     borderRadius: radius
                 }}
             >
-                <div className="flex items-center gap-2 mb-3 text-gray-300">
+                <div className="flex items-center gap-2 mb-3" style={{color: 'var(--cor-texto-sec)'}}>
                     <Filter size={16} /> <span className="text-sm font-medium">Filtros</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label className="text-xs text-gray-400">Período</label>
+                        <label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Período</label>
                         <select
                             value={filtroPeriodo}
                             onChange={(e) => setFiltroPeriodo(e.target.value)}
-                            className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{borderRadius: radius}}
+                            className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none"
+                            style={{backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius}}
                         >
                             <option value="7">Últimos 7 dias</option>
                             <option value="15">Últimos 15 dias</option>
@@ -372,12 +373,12 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs text-gray-400">Forma de Pagamento</label>
+                        <label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Forma de Pagamento</label>
                         <select
                             value={filtroForma}
                             onChange={(e) => setFiltroForma(e.target.value)}
-                            className="w-full mt-1 bg-neutral-800 border-neutral-700 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{borderRadius: radius}}
+                            className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none"
+                            style={{backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius}}
                         >
                             <option value="TODAS">Todas</option>
                             <option value="Dinheiro">Dinheiro</option>
@@ -387,12 +388,13 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     </div>
                 </div>
             </div>
-                        {/* ABAS COM SCROLL-X INVISIVEL */}
+
+            {/* ABAS */}
             <div className="overflow-x-auto scrollbar-hide">
                 <div
                     className="flex gap-2 p-1 w-max min-w-full"
                     style={{
-                        backgroundColor: '#171717',
+                        backgroundColor: 'var(--cor-card)',
                         borderRadius: radius
                     }}
                 >
@@ -406,8 +408,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition`}
                             style={abaAtiva === tab.id
-                              ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius}
-                                : {color: '#9ca3af', borderRadius: radius}
+                             ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius}
+                                : {color: 'var(--cor-texto-sec)', borderRadius: radius}
                             }
                         >
                             <tab.icon size={14} /> {tab.label}
@@ -431,6 +433,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             formatCurrency={formatCurrency}
                             cardStyle={cardStyle}
                             cardSize={cardSize}
+                            theme={theme}
                         />
                         <CardStats
                             titulo="Vendas Realizadas"
@@ -441,6 +444,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             formatCurrency={(v) => String(v)}
                             cardStyle={cardStyle}
                             cardSize={cardSize}
+                            theme={theme}
                         />
                         <CardStats
                             titulo="Ticket Médio"
@@ -452,6 +456,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             formatCurrency={formatCurrency}
                             cardStyle={cardStyle}
                             cardSize={cardSize}
+                            theme={theme}
                         />
                         <CardStats
                             titulo="Itens Vendidos"
@@ -462,27 +467,28 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             formatCurrency={(v) => String(v)}
                             cardStyle={cardStyle}
                             cardSize={cardSize}
+                            theme={theme}
                         />
                     </div>
 
-                    {/* GRAFICO BARRAS EMPILHADAS + LINHA */}
+                    {/* GRAFICO */}
                     <div
                         className="p-4 border"
                         style={{
-                            backgroundColor: '#171717',
-                            borderColor: '#27272a',
+                            backgroundColor: 'var(--cor-card)',
+                            borderColor: 'var(--cor-borda)',
                             borderRadius: radius
                         }}
                     >
                         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-3">
-                            <h3 className="font-bold text-white">Desempenho de Vendas</h3>
+                            <h3 className="font-bold" style={{color: 'var(--cor-texto)'}}>Desempenho de Vendas</h3>
                             <div className="flex gap-2">
                                 {["diario", "semanal", "mensal"].map(tipo => (
                                     <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
                                         className="px-3 py-1.5 rounded-lg text-xs font-medium transition"
                                         style={filtroGrafico === tipo
-                                          ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius}
-                                            : {backgroundColor: '#262626', color: '#d1d5db', borderRadius: radius}
+                                         ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius}
+                                            : {backgroundColor: 'var(--cor-card-hover)', color: 'var(--cor-texto)', borderRadius: radius}
                                         }
                                     >
                                         {tipo === "diario"? "Diário" : tipo === "semanal"? "Semanal" : "Mensal"}
@@ -493,17 +499,17 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         <div className="h-80 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={dadosGrafico}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                                    <XAxis dataKey="nome" stroke="#9ca3af" fontSize={12} />
-                                    <YAxis yAxisId="left" stroke="#9ca3af" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                                    <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" fontSize={12} />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--cor-borda)" />
+                                    <XAxis dataKey="nome" stroke="var(--cor-texto-sec)" fontSize={12} />
+                                    <YAxis yAxisId="left" stroke="var(--cor-texto-sec)" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                                    <YAxis yAxisId="right" orientation="right" stroke="var(--cor-texto-sec)" fontSize={12} />
 
                                     <Tooltip
-                                        contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px' }}
+                                        contentStyle={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-borda)', borderRadius: radius, color: 'var(--cor-texto)' }}
                                         formatter={(value: any) => typeof value === 'number'? formatCurrency(value) : ""}
                                     />
 
-                                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                                    <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--cor-texto-sec)' }} />
                                     <Bar yAxisId="left" dataKey="Categoria A" stackId="a" fill="var(--cor-primaria)" name="Categoria A" />
                                     <Bar yAxisId="left" dataKey="Categoria B" stackId="a" fill="#818cf8" name="Categoria B" />
                                     <Bar yAxisId="left" dataKey="Categoria C" stackId="a" fill="#4ade80" name="Categoria C" />
@@ -517,22 +523,22 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     <div
                         className="p-3 md:p-4 border"
                         style={{
-                            backgroundColor: '#171717',
-                            borderColor: '#27272a',
+                            backgroundColor: 'var(--cor-card)',
+                            borderColor: 'var(--cor-borda)',
                             borderRadius: radius
                         }}
                     >
-                        <h3 className="font-bold mb-3 text-white">Últimas Vendas - {vendasFiltradas.length}</h3>
+                        <h3 className="font-bold mb-3" style={{color: 'var(--cor-texto)'}}>Últimas Vendas - {vendasFiltradas.length}</h3>
                         <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-hide">
                             {vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
-                                <div key={v.id} className="flex justify-between items-center border-b border-neutral-800 pb-2 pt-2 px-2 text-xs hover:bg-neutral-800/50 rounded-lg transition">
+                                <div key={v.id} className="flex justify-between items-center border-b pb-2 pt-2 px-2 text-xs transition" style={{borderColor: 'var(--cor-borda)'}}>
                                     <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
-                                        <p className="font-medium text-white">#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
-                                        <p className="text-xs text-gray-400">{v.itens} itens • {v.formaPagamento}</p>
+                                        <p className="font-medium" style={{color: 'var(--cor-texto)'}}>#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
+                                        <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{v.itens} itens • {v.formaPagamento}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <p className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(v.total)}</p>
-                                        <button onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} className="p-1.5 rounded-md hover:bg-neutral-800 transition text-gray-300" title="Imprimir" style={{borderRadius: radius}}>
+                                        <button onClick={(e) => { e.stopPropagation(); handleImprimir(v) }} className="p-1.5 rounded-md transition" style={{borderRadius: radius, color: 'var(--cor-texto-sec)'}} title="Imprimir">
                                             <Printer size={18} />
                                         </button>
                                     </div>
@@ -548,23 +554,23 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 <div
                     className="p-4 border"
                     style={{
-                        backgroundColor: '#171717',
-                        borderColor: '#27272a',
+                        backgroundColor: 'var(--cor-card)',
+                        borderColor: 'var(--cor-borda)',
                         borderRadius: radius
                     }}
                 >
-                    <h3 className="font-bold mb-4 text-white">Top 10 Produtos Mais Vendidos</h3>
+                    <h3 className="font-bold mb-4" style={{color: 'var(--cor-texto)'}}>Top 10 Produtos Mais Vendidos</h3>
                     <div className="space-y-2">
                         {topProdutos.map((p, i) => (
-                            <div key={i} className="flex justify-between items-center p-3" style={{backgroundColor: '#262626', borderRadius: radius}}>
+                            <div key={i} className="flex justify-between items-center p-3" style={{backgroundColor: 'var(--cor-card-hover)', borderRadius: radius}}>
                                 <div>
-                                    <p className="font-medium text-sm text-white">#{i + 1} {p.nome}</p>
-                                    <p className="text-xs text-gray-400">{p.qtd} unidades vendidas</p>
+                                    <p className="font-medium text-sm" style={{color: 'var(--cor-texto)'}}>#{i + 1} {p.nome}</p>
+                                    <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{p.qtd} unidades vendidas</p>
                                 </div>
                                 <p className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(p.total)}</p>
                             </div>
                         ))}
-                        {topProdutos.length === 0 && <p className="text-gray-400 text-center py-8">Sem vendas no período</p>}
+                        {topProdutos.length === 0 && <p className="text-center py-8" style={{color: 'var(--cor-texto-sec)'}}>Sem vendas no período</p>}
                     </div>
                 </div>
             )}
@@ -574,20 +580,20 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 <div
                     className="p-4 border"
                     style={{
-                        backgroundColor: '#171717',
-                        borderColor: '#27272a',
+                        backgroundColor: 'var(--cor-card)',
+                        borderColor: 'var(--cor-borda)',
                         borderRadius: radius
                     }}
                 >
-                    <h3 className="font-bold mb-4 text-white">Faturamento por Forma de Pagamento</h3>
+                    <h3 className="font-bold mb-4" style={{color: 'var(--cor-texto)'}}>Faturamento por Forma de Pagamento</h3>
                     <div className="space-y-3">
                         {vendasPorPagamento.map((p, i) => (
                             <div key={i}>
                                 <div className="flex justify-between mb-1">
-                                    <p className="text-sm font-medium text-white">{p.forma}</p>
-                                    <p className="text-sm font-bold text-white">{formatCurrency(p.total)}</p>
+                                    <p className="text-sm font-medium" style={{color: 'var(--cor-texto)'}}>{p.forma}</p>
+                                    <p className="text-sm font-bold" style={{color: 'var(--cor-texto)'}}>{formatCurrency(p.total)}</p>
                                 </div>
-                                <div className="w-full bg-neutral-800 rounded-full h-2">
+                                <div className="w-full rounded-full h-2" style={{backgroundColor: 'var(--cor-card-hover)'}}>
                                     <div className="h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0? (p.total / statsPeriodo.total) * 100 : 0}%`, backgroundColor: 'var(--cor-primaria)', borderRadius: radius }}></div>
                                 </div>
                             </div>
@@ -602,31 +608,31 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     <div
                         className="shadow-2xl w-full max-w-lg max-h-[90vh] flex-col border"
                         style={{
-                            backgroundColor: '#171717',
-                            borderColor: '#27272a',
+                            backgroundColor: 'var(--cor-card)',
+                            borderColor: 'var(--cor-borda)',
                             borderRadius: radius
                         }}
                         onClick={e => e.stopPropagation()}
                     >
-                        <div className="flex justify-between items-center p-4 border-b border-neutral-800">
-                            <h3 className="font-bold text-lg text-white">Venda #{vendaSelecionada.id.slice(0, 8)}</h3>
+                        <div className="flex justify-between items-center p-4 border-b" style={{borderColor: 'var(--cor-borda)'}}>
+                            <h3 className="font-bold text-lg" style={{color: 'var(--cor-texto)'}}>Venda #{vendaSelecionada.id.slice(0, 8)}</h3>
                             <button onClick={() => setVendaSelecionada(null)} className="hover:text-red-500 transition"><X size={20} /></button>
                         </div>
                         <div className="p-4 space-y-3 overflow-y-auto scrollbar-hide">
                             <div className="grid grid-cols-2 gap-3 text-sm">
-                                <div><p className="text-gray-400">Data</p><p className="font-medium text-white">{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p></div>
-                                <div><p className="text-gray-400">Pagamento</p><p className="font-medium text-white">{vendaSelecionada.formaPagamento}</p></div>
-                                <div><p className="text-gray-400">Qtd Itens</p><p className="font-medium text-white">{vendaSelecionada.itens}</p></div>
-                                <div><p className="text-gray-400">Total</p><p className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(vendaSelecionada.total)}</p></div>
+                                <div><p style={{color: 'var(--cor-texto-sec)'}}>Data</p><p className="font-medium" style={{color: 'var(--cor-texto)'}}>{new Date(vendaSelecionada.data).toLocaleString('pt-AO')}</p></div>
+                                <div><p style={{color: 'var(--cor-texto-sec)'}}>Pagamento</p><p className="font-medium" style={{color: 'var(--cor-texto)'}}>{vendaSelecionada.formaPagamento}</p></div>
+                                <div><p style={{color: 'var(--cor-texto-sec)'}}>Qtd Itens</p><p className="font-medium" style={{color: 'var(--cor-texto)'}}>{vendaSelecionada.itens}</p></div>
+                                <div><p style={{color: 'var(--cor-texto-sec)'}}>Total</p><p className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(vendaSelecionada.total)}</p></div>
                             </div>
-                            <div className="border-t border-neutral-800 pt-3">
-                                <h4 className="font-semibold mb-3 flex items-center gap-2 text-white"><Package size={16} /> Produtos</h4>
+                            <div className="border-t pt-3" style={{borderColor: 'var(--cor-borda)'}}>
+                                <h4 className="font-semibold mb-3 flex items-center gap-2" style={{color: 'var(--cor-texto)'}}><Package size={16} /> Produtos</h4>
                                 <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                                     {vendaSelecionada.detalhes.map((item) => (
-                                        <div key={item.id} className="flex justify-between items-center text-sm p-3" style={{backgroundColor: '#262626', borderRadius: radius}}>
+                                        <div key={item.id} className="flex justify-between items-center text-sm p-3" style={{backgroundColor: 'var(--cor-card-hover)', borderRadius: radius}}>
                                             <div className="flex-1">
-                                                <p className="font-medium text-white">{item.nome_produto}</p>
-                                                <p className="text-xs text-gray-400">{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
+                                                <p className="font-medium" style={{color: 'var(--cor-texto)'}}>{item.nome_produto}</p>
+                                                <p className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
                                             </div>
                                             <p className="font-semibold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(item.subtotal)}</p>
                                         </div>
@@ -650,7 +656,8 @@ function CardStats({
     tendencia,
     formatCurrency,
     cardStyle,
-    cardSize
+    cardSize,
+    theme
 }: {
     titulo: string,
     stats: Stats,
@@ -660,13 +667,15 @@ function CardStats({
     tendencia?: string,
     formatCurrency: (v: number) => string,
     cardStyle: string,
-    cardSize: string
+    cardSize: string,
+    theme: string
 }) {
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const isLight = theme === 'light';
 
     const cores = {
         primaria: { border: 'var(--cor-primaria)30', bg: 'var(--cor-primaria)14', text: 'var(--cor-primaria)' },
-        secundaria: { border: '#27272a', bg: '#18181b', text: '#60a5fa' },
+        secundaria: { border: 'var(--cor-borda)', bg: 'var(--cor-card-hover)', text: '#60a5fa' },
         alerta: { border: '#f9731630', bg: '#f9731614', text: '#f97316' }
     }
 
@@ -683,12 +692,12 @@ function CardStats({
             }}
         >
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium text-gray-300 truncate">{titulo}</p>
+                <p className="text-xs md:text-sm font-medium truncate" style={{color: 'var(--cor-texto-sec)'}}>{titulo}</p>
                 <div className="opacity-80 shrink-0">{icon}</div>
             </div>
-            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate text-white">{formatCurrency(stats.total)}</p>
-            <p className="text-xs md:text-xs mt-1 opacity-80 truncate">{descricao}</p>
-            {tendencia && <p className="text-xs md:text-xs mt-1 opacity-60 truncate">{tendencia}</p>}
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{color: 'var(--cor-texto)'}}>{formatCurrency(stats.total)}</p>
+            <p className="text-xs md:text-xs mt-1 opacity-80 truncate" style={{color: 'var(--cor-texto-sec)'}}>{descricao}</p>
+            {tendencia && <p className="text-xs md:text-xs mt-1 opacity-60 truncate" style={{color: 'var(--cor-texto-sec)'}}>{tendencia}</p>}
         </div>
     )
 }
