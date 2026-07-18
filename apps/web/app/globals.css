@@ -32,7 +32,7 @@
     --font-heading: var(--font-bricolage), sans-serif;
     --font-zalando: 'Zalando Sans Expanded', sans-serif;
 
-    /* FORÇA TAILWIND USAR NOSSAS VARS */
+    /* MAPEAMENTO SHADCN/TAILWIND */
     --background: var(--cor-fundo);
     --foreground: var(--cor-texto);
     --card: var(--cor-card);
@@ -54,18 +54,28 @@
     --border: var(--cor-borda);
 }
 
-/* ============ BASE DO TEMA - GANHA DO TAILWIND ============ */
+/* ============ BASE DO TEMA - PEGA A DIV WRAPPER TAMBEM ============ */
 @layer base {
     * {
     border-color: var(--border);
   }
-  html, body {
+  html, body, #__next {
     background: var(--cor-fundo)!important;
     color: var(--cor-texto)!important;
+  }
+  body {
     font-family: var(--font-zalando);
     transition: background-color 0.3s ease, color 0.3s ease;
     min-height: 100vh;
   }
+}
+
+/* ============ WRAPPER PRINCIPAL DA PAGE.TSX ============ */
+.app-wrapper {
+    background: var(--cor-fundo)!important;
+    color: var(--cor-texto)!important;
+    min-height: 100vh;
+    width: 100%;
 }
 
 /* ============ BASE DO CARD ============ */
@@ -165,12 +175,10 @@
 [data-card-size="grande"] .card,
 .card[data-card-size="grande"] { --padding-card: 2.5rem; --radius: 1rem; }
 
-/* ============ FUNDO DO APP ============ */
+/* ============ UTILS ============ */
 .bg-fundo { background-color: var(--cor-fundo)!important; }
 .text-cor { color: var(--cor-texto)!important; }
 .bg-card { background-color: var(--cor-card)!important; }
-
-/* ============ UTILS ============ */
 .bg-primaria { background-color: var(--cor-primaria); }
 .text-secundario { color: var(--cor-texto-sec); }
 .border-cor { border-color: var(--cor-borda); }
@@ -194,7 +202,7 @@
 ::-webkit-scrollbar-thumb { background: var(--cor-primaria); border-radius: var(--radius-sm); }
 ::-webkit-scrollbar-thumb:hover { background: var(--cor-secundaria); }
 
-/* ============ INPUTS E SELECTS COM BORDA PRIMARY FORÇADA ============ */
+/* ============ INPUTS E SELECTS ============ */
 input[type="text"],
 input[type="number"],
 input[type="email"],
