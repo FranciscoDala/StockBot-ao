@@ -34,12 +34,14 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-full sm:max-w-[600px] p-0 flex-col max-h-[90vh] border shadow-2xl"
+                className="w-full sm:max-w-[600px] p-0 flex flex-col border shadow-2xl [&>button]:hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)', // 2. trocado
                     color: 'var(--cor-texto)',
                     borderColor: 'var(--cor-borda)', // 3. trocado
-                    borderRadius: 'var(--radius)'
+                    borderRadius: 'var(--radius)',
+                    height: '90vh',
+                    maxHeight: '90vh'
                 }}
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
@@ -78,7 +80,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)', // 8. borda primary
                                     borderRadius: 'var(--radius-sm)', // 9. trocado
-                                ...focusStyle
+                               ...focusStyle
                                 }}
                                 required
                             />
@@ -97,7 +99,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)', // 11
                                         borderRadius: 'var(--radius-sm)', // 12
-                                    ...focusStyle
+                                   ...focusStyle
                                     }}
                                 />
                             ) : (
@@ -118,7 +120,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)', // 14
                                         borderRadius: 'var(--radius-sm)', // 15
-                                    ...focusStyle
+                                   ...focusStyle
                                     }}
                                     required
                                     placeholder="mínimo 6 caracteres"
@@ -139,7 +141,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)', // 17
                                         borderRadius: 'var(--radius-sm)', // 18
-                                    ...focusStyle
+                                   ...focusStyle
                                     }}
                                     placeholder="deixe em branco para não alterar"
                                 />
@@ -157,7 +159,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)', // 20
                                     borderRadius: 'var(--radius-sm)', // 21
-                                ...focusStyle
+                               ...focusStyle
                                 }}
                             />
                         </div>
@@ -173,7 +175,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)', // 23
                                     borderRadius: 'var(--radius-sm)', // 24
-                                ...focusStyle
+                               ...focusStyle
                                 }}
                             >
                                 <option value="GERENTE">Gerente</option>
@@ -196,7 +198,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
 
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
                         <DialogClose asChild>
                             <Button
                                 type="button"

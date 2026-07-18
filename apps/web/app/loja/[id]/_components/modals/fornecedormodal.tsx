@@ -39,11 +39,18 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="sm:max-w-[600px] p-0 border shadow-2xl [&>button]:hidden"
-                style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}
+                className="sm:max-w-[600px] p-0 flex flex-col border shadow-2xl [&>button]:hidden"
+                style={{
+                    backgroundColor: 'var(--cor-card)',
+                    color: 'var(--cor-texto)',
+                    borderColor: 'var(--cor-borda)',
+                    borderRadius: 'var(--radius)',
+                    height: '80vh',
+                    maxHeight: '80vh'
+                }}
             >
-                <form onSubmit={(e) => { e.preventDefault(); onSave(); }}>
-                    <DialogHeader className="p-6 pb-2">
+                <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="flex flex-col flex-1 min-h-0">
+                    <DialogHeader className="p-6 pb-2 shrink-0">
                         <div className="flex items-center gap-3">
                             <Truck size={24} style={{color: 'var(--cor-primaria)'}} />
                             <DialogTitle className="text-lg font-bold">{editingFornecedor? "Editar" : "Adicionar"} Fornecedor</DialogTitle>
@@ -53,7 +60,7 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="px-6 py-4 space-y-4">
+                    <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
                         {errorMsg && (
                             <div className="border text-xs p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
                                 {errorMsg}
@@ -87,7 +94,7 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t flex-row justify-end gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
+                    <DialogFooter className="p-4 border-t shrink-0 flex-row justify-end gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
                         <DialogClose asChild>
                             <Button type="button" className="font-semibold" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}>Cancelar</Button>
                         </DialogClose>
