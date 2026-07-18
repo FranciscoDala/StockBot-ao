@@ -125,15 +125,14 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleDrag = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === "dragenter" || e.type === "dragover") setDragActive(true); else if (e.type === "dragleave") setDragActive(false); };
     const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file); };
 
+
     const handleSaveClick = async () => {
         if (!formData.nome || formData.nome.length < 2) { toast.error("Nome do produto é obrigatório"); return; }
         if ((formData.preco || 0) <= 0) { toast.error("Preço de venda deve ser maior que 0"); return; }
 
-        let finalData = { ...formData };
-        const file = finalData.file_to_upload;
         const token = getCookie('token');
-        let urls: any = {};
-
+        const file = formData.file_to_upload;
+        let imagemUrlFinal = formData.imagem_url || ""; // PEGA A IMAGEM ANTIGA PRIMEIRO
 
         if (file && token) {
             setUploading(true);
@@ -153,9 +152,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 }
 
                 const dataCloud = await resCloud.json();
-                finalData.imagem_url = dataCloud.secure_url; // CORRETO
-                finalData.public_id = dataCloud.public_id; // pra deletar depois se precisar
-
+                imagemUrlFinal = dataCloud.secure_url; // SUBSTITUI PELA NOVA
                 toast.success("Imagem enviada com sucesso");
 
             } catch (err: any) {
@@ -166,13 +163,21 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             setUploading(false);
         }
 
+        let finalData = {
+            ...formData,
+            imagem_url: imagemUrlFinal, // FORÇA MANDAR A URL
+            public_id: formData.public_id || ""
+        };
+
         delete finalData.file_to_upload;
         if (!finalData.codigo_barras || String(finalData.codigo_barras).trim() === "") {
             finalData.codigo_barras = null;
         }
 
+        console.log("ENVIANDO PRO BACK:", finalData) // DEIXA ESSE PRA TESTAR
         onSave(finalData);
     };
+
 
     const handleInputChange = (field: string, value: any) => {
         setFormData({ ...formData, [field]: value });
