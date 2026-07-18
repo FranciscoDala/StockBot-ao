@@ -340,7 +340,6 @@ export default function LojaPage() {
 
 
 
-
     const handleSave = async (payload: any, e?: React.FormEvent) => {
         e?.preventDefault();
 
@@ -358,7 +357,7 @@ export default function LojaPage() {
             let url = "";
             let method = "POST";
 
-            // 1. SE NÃO TEM SENHA: Pede senha
+            // 1. SE NÃO TEM SENHA DO DONO: Pede senha
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
                 setAcaoPendente({
@@ -391,32 +390,38 @@ export default function LojaPage() {
             console.log("2. URL:", url, "METHOD:", method)
 
             // 3. MONTA PAYLOAD ÚNICO
-            let finalPayload: any = { ...payload };
+            let finalPayload: any = {};
 
             if (modalType === 'user') {
                 if (editingUser) {
-                    // UPDATE: só manda o que mudou
+                    // UPDATE: só manda o que veio
                     finalPayload = {
                         nome: payload.nome,
                         telefone: payload.telefone || null,
                         role: payload.role,
                         is_active: payload.is_active,
                         senha_dono: payload.senha_dono,
-                        senha_confirmacao: payload.senha_confirmacao,
+                        senha_confirmacao: payload.senha_confirmacao, // <- senha do dono
                     };
-                    if (payload.senha && payload.senha.trim()) finalPayload.senha = payload.senha;
-                    if (payload.email && payload.email !== editingUser.email) finalPayload.email = payload.email;
+                    // só manda senha se digitou nova senha
+                    if (payload.senha && payload.senha.trim()) {
+                        finalPayload.senha = payload.senha;
+                        finalPayload.senha_confirmacao = payload.senha; // confirmação da senha do user
+                    }
+                    // só manda email se mudou
+                    if (payload.email && payload.email !== editingUser.email) {
+                        finalPayload.email = payload.email;
+                    }
                 } else {
-                    // CREATE: manda tudo. O back gera email automatico se vier vazio
+                    // CREATE: manda tudo. O back gera email automatico
                     finalPayload = {
                         nome: payload.nome,
                         senha: payload.senha,
-                        senha_confirmacao: payload.senha,
+                        senha_confirmacao: payload.senha, // confirmação da senha do user novo
                         telefone: payload.telefone || null,
                         role: payload.role,
                         is_active: payload.is_active,
-                        senha_dono: payload.senha_dono,
-                        senha_confirmacao: payload.senha_confirmacao,
+                        senha_dono: payload.senha_dono, // senha do dono
                     };
                 }
 
@@ -425,7 +430,7 @@ export default function LojaPage() {
 
             if (modalType === 'produto') {
                 finalPayload = {
-                    ...finalPayload,
+                    ...payload,
                     loja_id: lojaId,
                     preco: Number(payload.preco),
                     preco_custo: Number(payload.preco_custo),
@@ -467,7 +472,6 @@ export default function LojaPage() {
             console.log("=== FIM HANDLE SAVE ===")
         }
     }
-
 
 
     const vendasParaRisco = useMemo(() => vendas.map(v => ({ id: String(v.id), data: v.data_venda || new Date().toISOString(), total: v.total, formaPagamento: v.forma_pagamento, itens: v.total_itens, detalhes: (v.itens || []).map((it, idx) => ({ id: String(it.produto_id) + '-' + idx, nome_produto: it.nome || 'Produto', quantidade: it.quantidade, preco_unitario: it.preco_unitario, subtotal: it.subtotal })), status: "concluida" })), [vendas]);
