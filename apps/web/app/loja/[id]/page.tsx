@@ -339,7 +339,7 @@ export default function LojaPage() {
 
 
     const handleSave = async (payload: any, e?: React.FormEvent) => {
-        e?.preventDefault(); // <- ESSA LINHA PARA O REFRESH
+        e?.preventDefault(); // <- PARA O REFRESH
 
         console.log("=== INICIO HANDLE SAVE ===")
         console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload)
@@ -369,7 +369,7 @@ export default function LojaPage() {
             // 2. MONTA URL E METHOD
             if (modalType === 'user') {
                 url = editingUser ? `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}` : `${API_URL}/lojas/id/${lojaId}/usuarios`;
-                method = editingUser ? "PATCH" : "POST";
+                method = editingUser ? "PUT" : "POST"; // <- CORRIGIDO: PATCH -> PUT
             } else if (modalType === 'produto') {
                 url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
                 method = editingProduto ? "PATCH" : "POST";
@@ -383,7 +383,10 @@ export default function LojaPage() {
             let finalPayload: any = { ...payload };
 
             if (modalType === 'user') {
-                finalPayload = { ...finalPayload, loja_id: lojaId, nivel: payload.role };
+                // TIRA AS SENHAS DE DONO ANTES DE ENVIAR PRO BACK
+                const { senha_dono, senha_confirmacao, ...resto } = finalPayload; // <- CORRIGIDO
+                finalPayload = { ...resto, loja_id: lojaId, nivel: payload.role };
+
                 if (!editingUser && !finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
                 if (editingUser && !finalPayload.senha) delete finalPayload.senha;
             }
