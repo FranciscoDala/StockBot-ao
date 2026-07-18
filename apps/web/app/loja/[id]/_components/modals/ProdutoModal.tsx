@@ -135,32 +135,21 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         const file = formData.file_to_upload;
         let imagemUrlFinal = formData.imagem_url || "";
 
-        console.log("1. INICIO SAVE - formData.imagem_url:", formData.imagem_url)
-        console.log("1. INICIO SAVE - file:", file)
-
         if (file) {
             if (!token) { toast.error("Sessão expirada. F5"); return; }
-
             setUploading(true);
             try {
                 const formDataUpload = new FormData();
                 formDataUpload.append('file', file);
-
                 const resCloud = await fetch(`${API_URL}/upload/produto/cloudinary`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formDataUpload
                 });
-
                 const dataCloud = await resCloud.json();
-                console.log("RESPOSTA CLOUDINARY:", dataCloud)
-
                 if (!resCloud.ok) throw new Error(dataCloud.detail || "Falha no upload");
-
                 imagemUrlFinal = dataCloud.original_url || dataCloud.optimized_url;
-                console.log("2. URL VOLTOU DO CLOUDINARY:", imagemUrlFinal)
                 toast.success("Imagem enviada com sucesso");
-
             } catch (err: any) {
                 toast.error("Erro ao enviar imagem: " + err.message);
                 setUploading(false);
@@ -169,10 +158,9 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             setUploading(false);
         }
 
-        // CORREÇÃO: Não usa mais o state. Manda a variavel local
         let finalData = {
             ...formData,
-            imagem_url: imagemUrlFinal, // << USA A VARIAVEL AQUI
+            imagem_url: imagemUrlFinal, // << FORÇA AQUI
             public_id: formData.public_id || ""
         };
 
@@ -181,8 +169,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.codigo_barras = null;
         }
 
-        console.log("3. ENVIANDO PRO BACK:", finalData.imagem_url)
-        onSave(finalData);
+        console.log("3. ENVIANDO PRO BACK:", finalData)
+        onSave(finalData); // << MANDA A URL JUNTO
     };
 
 
