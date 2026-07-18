@@ -61,8 +61,6 @@ export default function LojaPage() {
     const [corPrimaria, setCorPrimaria] = useState("#10b981");
     const [corFundo, setCorFundo] = useState("#000");
 
-    const [imagemPendente, setImagemPendente] = useState<string>("")
-
     const updateLojaTheme = async (lojaId: string, token: string, themeData: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
         return await fetchComAuth(`${API_URL}/lojas/${lojaId}/definicoes`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
     }
@@ -299,33 +297,32 @@ export default function LojaPage() {
 
 
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!token || !acaoPendente) return; // <- já tinha, mas agora usamos ele
+        if (!token || !acaoPendente) return;
         setSaving(true);
         try {
-            if (acaoPendente.tipo === 'apagar') {
-                if (!acaoPendente.data) return;
+            // PEGA OS DADOS QUE GUARDAMOS QUANDO CLICOU EM "SALVAR"
+            const dados = acaoPendente.data;
+            if (!dados) throw new Error("Dados perdidos. Feche e tente novamente");
 
+            if (acaoPendente.tipo === 'apagar') {
                 const url = acaoPendente.entidade === 'user'
-                    ? `${API_URL}/lojas/id/${lojaId}/usuarios/${(acaoPendente.data as UsuarioLojaPage).id}`
-                    : `${API_URL}/produtos/${(acaoPendente.data as ProdutoType).id}`;
+                    ? `${API_URL}/lojas/id/${lojaId}/usuarios/${dados.id}`
+                    : `${API_URL}/produtos/${dados.id}`;
 
                 const body = acaoPendente.entidade === 'user'
                     ? { senha_dono, senha_confirmacao: senha_dono }
                     : { loja_id: lojaId, senha_dono, senha_confirmacao: senha_dono };
 
-                await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) }); // <- agora token já não é null aqui
+                await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) });
                 toast.success(acaoPendente.entidade === 'user' ? "Membro apagado!" : "Produto apagado!");
+
                 if (acaoPendente.entidade === 'user') fetchEquipa(token);
-                else fetchProdutos(token, lojaId);
+                if (acaoPendente.entidade === 'produto') fetchProdutos(token, lojaId);
             }
 
             if (acaoPendente.tipo === 'adicionar' || acaoPendente.tipo === 'editar') {
-                if (acaoPendente.entidade === 'user') {
-                    await handleSave({ ...formDataUser, senha_dono, senha_confirmacao: senha_dono });
-                }
-                if (acaoPendente.entidade === 'produto') {
-                    await handleSave({ ...formDataProduto, senha_dono, senha_confirmacao: senha_dono });
-                }
+                // JUNTA OS DADOS SALVOS + SENHA E MANDA PRO handleSave
+                await handleSave({ ...dados, senha_dono, senha_confirmacao: senha_dono });
             }
 
             setShowPermissaoModal(false);
@@ -338,10 +335,12 @@ export default function LojaPage() {
         }
     }
 
+
+
+
     const handleSave = async (payload: any) => {
         console.log("=== INICIO HANDLE SAVE ===")
         console.log("0. PAYLOAD RECEBIDO DO MODAL:", payload)
-        console.log("0. payload.imagem_url:", payload.imagem_url)
 
         if (!token) { toast.error("Sessão expirada"); return; }
         setSaving(true);
@@ -350,17 +349,17 @@ export default function LojaPage() {
             let url = "";
             let method = "POST";
 
-            // 1. SE NÃO TEM SENHA: Pede senha e GUARDA A IMAGEM
+            // 1. SE NÃO TEM SENHA: Pede senha e GUARDA TUDO no acaoPendente.data
             if (!payload.senha_dono || !payload.senha_confirmacao) {
                 console.log("1. SEM SENHA - PEDINDO PERMISSAO")
 
-                setImagemPendente(payload.imagem_url || "") // << GUARDA A URL AQUI
+                // REMOVIDO: setImagemPendente
 
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
                     entidade: modalType,
                     descricao: '',
-                    data: payload
+                    data: payload // << AQUI GUARDA TUDO. IMAGEM, NOME, PRECO, TUDO
                 });
                 setShowPermissaoModal(true);
                 setSaving(false);
@@ -375,10 +374,13 @@ export default function LojaPage() {
                 url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
                 method = editingProduto ? "PATCH" : "POST";
             }
+            // FUTURO: else if (modalType === 'cliente') { ... }
+            // FUTURO: else if (modalType === 'fornecedor') { ... }
+
             console.log("2. URL:", url, "METHOD:", method)
 
-            // 3. MONTA PAYLOAD ÚNICO - AQUI FORÇA A IMAGEM GUARDADA
-            let finalPayload: any = { ...payload, imagem_url: imagemPendente || payload.imagem_url || "" }; // << ESSA LINHA
+            // 3. MONTA PAYLOAD ÚNICO - AGORA VEM DIRETO DO PAYLOAD
+            let finalPayload: any = { ...payload }; // << REMOVIDO imagemPendente
 
             if (modalType === 'user') {
                 finalPayload = { ...finalPayload, loja_id: lojaId, nivel: payload.role };
@@ -411,12 +413,13 @@ export default function LojaPage() {
 
             if (modalType === 'user') fetchEquipa(token);
             if (modalType === 'produto') fetchProdutos(token, lojaId);
+            // FUTURO: if (modalType === 'cliente') fetchClientes(token, lojaId);
 
             setShowModal(false);
             setEditingUser(null);
             setEditingProduto(null);
             setAcaoPendente(null);
-            setImagemPendente("") // << LIMPA DEPOIS
+            // REMOVIDO: setImagemPendente("")
         } catch (err: any) {
             console.error("ERRO NO HANDLE SAVE:", err)
             setErrorMsg(err.message || "Erro ao salvar");
