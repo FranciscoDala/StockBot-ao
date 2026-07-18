@@ -40,12 +40,12 @@ export type UsuarioLoja = { id: string; nome: string; email: string; telefone?: 
 export type userread = { id: string; nome: string; email: string; nivel: UserRole; loja?: Loja | null; loja_id?: string | null; }
 export type Loja = { id: string; nome: string; slug: string; is_active: boolean; created_at: string; endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null; theme?: string; card_style?: string; card_size?: string; font_size?: string; cor_primaria?: string; cor_fundo?: string; }
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
 const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; Secure; SameSite=None`; };
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
 
 const fetchComAuth = async (url: string, token: string, options: RequestInit = {}) => {
-    const res = await fetch(url, {...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`,...options.headers }, credentials: 'include', cache: "no-store" });
+    const res = await fetch(url, { ...options, headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}`, ...options.headers }, credentials: 'include', cache: "no-store" });
     if (!res.ok) { if (res.status === 401) throw new Error("UNAUTHORIZED"); const errorData = await res.json().catch(() => ({})); throw new Error(errorData.detail || res.statusText); }
     if (res.status === 204) { return true; } return await res.json();
 }
@@ -94,37 +94,37 @@ export default function LojaPage() {
     const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar' | 'adicionar'; entidade: 'user' | 'produto'; descricao: string; data?: UsuarioLojaPage | ProdutoType; } | null>(null);
     const [showVendaSucessoModal, setShowVendaSucessoModal] = useState(false); const [vendaConcluida, setVendaConcluida] = useState<Venda | null>(null); const [ws, setWs] = useState<WebSocket | null>(null);
 
-    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
+    const getPreco = (item: CarrinhoItem) => item.preco_venda ?? item.preco ?? 0;
     const subtotal = useMemo(() => carrinho.reduce((acc, item) => acc + (getPreco(item) * item.quantidade), 0), [carrinho]);
     const totalItens = useMemo(() => carrinho.reduce((acc, item) => acc + item.quantidade, 0), [carrinho]);
-    const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
-    const podeFinalizar = useMemo(() => carrinho.length > 0 && (formaPagamento!== "Dinheiro" || Number(valorRecebido) >= subtotal && subtotal > 0), [carrinho, formaPagamento, valorRecebido, subtotal]);
+    const troco = useMemo(() => formaPagamento === "Dinheiro" && Number(valorRecebido) > subtotal ? Number(valorRecebido) - subtotal : 0, [formaPagamento, valorRecebido, subtotal]);
+    const podeFinalizar = useMemo(() => carrinho.length > 0 && (formaPagamento !== "Dinheiro" || Number(valorRecebido) >= subtotal && subtotal > 0), [carrinho, formaPagamento, valorRecebido, subtotal]);
 
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
 
     const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
-        const bg = corF || (t === 'light'? '#f5f5f5' : '#000');
-        const text = t === 'light'? '#111827' : '#fff';
+        const bg = corF || (t === 'light' ? '#f5f5f5' : '#000');
+        const text = t === 'light' ? '#111827' : '#fff';
         document.documentElement.style.setProperty('--cor-primaria', corP || '#16a34a');
         document.documentElement.style.setProperty('--cor-fundo', bg);
         document.documentElement.setAttribute('data-theme', t);
         document.documentElement.setAttribute('data-card-style', cs);
         document.documentElement.setAttribute('data-card-size', csz);
-        document.documentElement.style.setProperty('--font-size', fsz === 'grande'? '16px' : fsz === 'pequeno'? '12px' : '14px');
+        document.documentElement.style.setProperty('--font-size', fsz === 'grande' ? '16px' : fsz === 'pequeno' ? '12px' : '14px');
         document.body.style.backgroundColor = bg;
         document.body.style.color = text;
     }, []);
 
     const handleSaveTheme = useCallback(async (newTheme: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         try {
             let corFundoParaSalvar = newTheme.cor_fundo;
             if (newTheme.theme && newTheme.cor_fundo === undefined) {
-                corFundoParaSalvar = newTheme.theme === 'light'? '#f5f5f5' : '#000';
+                corFundoParaSalvar = newTheme.theme === 'light' ? '#f5f5f5' : '#000';
             }
-            const themeParaSalvar = {...newTheme, cor_fundo: corFundoParaSalvar };
+            const themeParaSalvar = { ...newTheme, cor_fundo: corFundoParaSalvar };
             await updateLojaTheme(lojaId, token, themeParaSalvar);
-            const newLoja = {...loja,...themeParaSalvar } as Loja;
+            const newLoja = { ...loja, ...themeParaSalvar } as Loja;
             setLoja(newLoja);
             if (newTheme.theme) setTheme(newTheme.theme);
             if (newTheme.card_style) setCardStyle(newTheme.card_style);
@@ -145,19 +145,19 @@ export default function LojaPage() {
     }, [token, lojaId, loja, theme, cardStyle, cardSize, fontSize, corPrimaria, corFundo, applyTheme]);
 
     const fetchEquipa = async (currentToken: string) => {
-        if (!currentToken ||!lojaId) return;
+        if (!currentToken || !lojaId) return;
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios`, currentToken);
-            const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data)? data.filter((u: any) => String(u.role).toUpperCase()!== "ADMIN").map((u: any) => ({...u, role: String(u.role).toUpperCase() as UserRole })) : [];
+            const equipaFormatada: UsuarioLojaPage[] = Array.isArray(data) ? data.filter((u: any) => String(u.role).toUpperCase() !== "ADMIN").map((u: any) => ({ ...u, role: String(u.role).toUpperCase() as UserRole })) : [];
             setEquipa(equipaFormatada);
         } catch (e) { setEquipa([]) }
     };
 
-    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken ||!lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { setProdutos([]); } }, []);
-    const fetchVendas = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken ||!lojaId) { setVendas([]); return; } try { const data = await fetchComAuth(`${API_URL}/vendas?loja_id=${lojaId}`, currentToken); setVendas(z.array(VendaSchema).parse(data)); } catch (e) { setVendas([]); } }, []);
+    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { setProdutos([]); } }, []);
+    const fetchVendas = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setVendas([]); return; } try { const data = await fetchComAuth(`${API_URL}/vendas?loja_id=${lojaId}`, currentToken); setVendas(z.array(VendaSchema).parse(data)); } catch (e) { setVendas([]); } }, []);
 
     const fetchLoja = useCallback(async (currentToken: string) => {
-        if (!currentToken ||!lojaId) return;
+        if (!currentToken || !lojaId) return;
         try {
             const data = await fetchComAuth(`${API_URL}/lojas/id/${lojaId}`, currentToken);
             setLoja(data);
@@ -173,79 +173,104 @@ export default function LojaPage() {
 
     useEffect(() => {
         setIsClient(true); const currentToken = getCookie("token"); const userStr = getCookie("user"); setToken(currentToken || null);
-        if (!currentToken ||!userStr) { handleSair(); return; } try {
-            const userData: userread = JSON.parse(userStr); if (userData.loja_id!== lojaId) { handleSair(); return; } setUser(userData);
+        if (!currentToken || !userStr) { handleSair(); return; } try {
+            const userData: userread = JSON.parse(userStr); if (userData.loja_id !== lojaId) { handleSair(); return; } setUser(userData);
             const loadData = async () => { setLoading(true); await Promise.all([fetchLoja(currentToken), fetchEquipa(currentToken), fetchProdutos(currentToken, userData.loja_id || ""), fetchVendas(currentToken, userData.loja_id || "")]); setLoading(false); }
             loadData();
         } catch (err) { handleSair(); }
     }, [router, lojaId, fetchProdutos, fetchLoja, fetchVendas]);
 
     useEffect(() => {
-        if (!token ||!lojaId) return; const WS_URL = process.env.NEXT_PUBLIC_WS_URL; const socket = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`); socket.onopen = () => setWs(socket);
+        if (!token || !lojaId) return; const WS_URL = process.env.NEXT_PUBLIC_WS_URL; const socket = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`); socket.onopen = () => setWs(socket);
         socket.onmessage = (event) => {
             const data = JSON.parse(event.data); if (data.tipo === "stock.updated") {
-                setProdutos(prev => prev.map(p => String(p.id) === String(data.produto_id)? {...p, estoque: data.novo_estoque } : p));
-                setCarrinho(prev => { const novo = prev.map(item => String(item.id) === String(data.produto_id)? {...item, estoque: data.novo_estoque } : item); return novo.map(item => item.quantidade > item.estoque? {...item, quantidade: item.estoque } : item).filter(item => item.quantidade > 0); });
+                setProdutos(prev => prev.map(p => String(p.id) === String(data.produto_id) ? { ...p, estoque: data.novo_estoque } : p));
+                setCarrinho(prev => { const novo = prev.map(item => String(item.id) === String(data.produto_id) ? { ...item, estoque: data.novo_estoque } : item); return novo.map(item => item.quantidade > item.estoque ? { ...item, quantidade: item.estoque } : item).filter(item => item.quantidade > 0); });
                 toast.info(`Estoque: ${data.nome_produto} -> ${data.novo_estoque}`);
             }
         };
         socket.onclose = () => { setWs(null); }; return () => socket.close();
     }, [token, lojaId]);
 
-    const adicionarAoCarrinho = (produto: ProdutoType) => { if ((produto.estoque?? 0) <= 0) { toast.error("Sem estoque"); return; } setCarrinho(prev => { const item = prev.find(i => String(i.id) === String(produto.id)); if (item) { if (item.quantidade + 1 > (produto.estoque?? 0)) { toast.warning("Estoque max"); return prev; } return prev.map(i => String(i.id) === String(produto.id)? {...i, quantidade: i.quantidade + 1 } : i); } return [...prev, {...produto, quantidade: 1 }]; }); };
+    const adicionarAoCarrinho = (produto: ProdutoType) => { if ((produto.estoque ?? 0) <= 0) { toast.error("Sem estoque"); return; } setCarrinho(prev => { const item = prev.find(i => String(i.id) === String(produto.id)); if (item) { if (item.quantidade + 1 > (produto.estoque ?? 0)) { toast.warning("Estoque max"); return prev; } return prev.map(i => String(i.id) === String(produto.id) ? { ...i, quantidade: i.quantidade + 1 } : i); } return [...prev, { ...produto, quantidade: 1 }]; }); };
     const confirmarRemoverItem = (item: CarrinhoItem) => { setItemParaRemover(item); setShowConfirmarModal(true); };
-    const handleConfirmarRemocao = () => { if (itemParaRemover) { setCarrinho(prev => prev.filter(i => i.id!== itemParaRemover.id)); toast.success("Removido"); } setShowConfirmarModal(false); setItemParaRemover(null); };
+    const handleConfirmarRemocao = () => { if (itemParaRemover) { setCarrinho(prev => prev.filter(i => i.id !== itemParaRemover.id)); toast.success("Removido"); } setShowConfirmarModal(false); setItemParaRemover(null); };
     const handleFinalizar = useCallback(() => { if (podeFinalizar) setShowConfirmarFinalizar(true); }, [podeFinalizar]);
 
     const executarFinalizarVenda = async () => {
         if (!token) return; setLoadingVenda(true); setShowConfirmarFinalizar(false); try {
             const itensPayload = carrinho.map(i => ({ produto_id: String(i.id), quantidade: Number(i.quantidade), preco_unitario: Number(getPreco(i)), subtotal: Number(getPreco(i) * i.quantidade) }));
-            const payload = { total: Number(subtotal), total_itens: Number(totalItens), forma_pagamento: formaPagamento, valor_pago: formaPagamento === "Dinheiro"? Number(valorRecebido) : Number(subtotal), troco: Number(troco), loja_id: user?.loja_id || "", itens: itensPayload };
+            const payload = { total: Number(subtotal), total_itens: Number(totalItens), forma_pagamento: formaPagamento, valor_pago: formaPagamento === "Dinheiro" ? Number(valorRecebido) : Number(subtotal), troco: Number(troco), loja_id: user?.loja_id || "", itens: itensPayload };
             const vendaSalva = await fetchComAuth(`${API_URL}/vendas/`, token, { method: "POST", body: JSON.stringify(payload) });
-            const vendaParaModal: Venda = { id: vendaSalva.id,...payload, data_venda: vendaSalva.data_venda || new Date().toISOString(), itens: itensPayload.map(i => ({...i, nome: carrinho.find(c => String(c.id) === i.produto_id)?.nome })) };
+            const vendaParaModal: Venda = { id: vendaSalva.id, ...payload, data_venda: vendaSalva.data_venda || new Date().toISOString(), itens: itensPayload.map(i => ({ ...i, nome: carrinho.find(c => String(c.id) === i.produto_id)?.nome })) };
             setVendaConcluida(VendaSchema.parse(vendaParaModal)); setShowVendaSucessoModal(true); setCarrinho([]); setValorRecebido(""); fetchProdutos(token, user?.loja_id || ""); fetchVendas(token, user?.loja_id || "");
         } catch (err: any) { toast.error(err.message || "Erro ao finalizar"); setShowConfirmarFinalizar(true); } finally { setLoadingVenda(false); }
     };
 
     const openModal = (type: 'user' | 'produto', data: UsuarioLoja | ProdutoType | null = null) => {
         setErrorMsg(""); setModalType(type);
-        if (type === 'user') { setEditingUser(data as UsuarioLoja | null); setFormDataUser({ nome: (data as UsuarioLoja)?.nome || "", email: (data as UsuarioLoja)?.email || "", senha: "", telefone: (data as UsuarioLoja)?.telefone || "", role: ((data as UsuarioLoja)?.role?.toUpperCase() as UserRole) || "VENDEDOR", is_active: (data as UsuarioLoja)?.is_active?? true }); }
-        else { setEditingProduto(data as ProdutoType | null); setFormDataProduto({...formDataProduto, nome: (data as ProdutoType)?.nome || "", sku: (data as ProdutoType)?.sku || "", preco: (data as ProdutoType)?.preco || 0, preco_custo: (data as ProdutoType)?.preco_custo || 0, estoque: (data as ProdutoType)?.estoque || 0, estoque_minimo: (data as ProdutoType)?.estoque_minimo || 5, is_active: (data as ProdutoType)?.is_active?? true, loja_id: (data as ProdutoType)?.loja_id || user?.loja_id || "", descricao: (data as ProdutoType)?.descricao || "", codigo_barras: (data as ProdutoType)?.codigo_barras || null, marca: (data as ProdutoType)?.marca || "", categoria_id: (data as ProdutoType)?.categoria_id || null, unidade: (data as ProdutoType)?.unidade || "UN", localizacao: (data as ProdutoType)?.localizacao || "", fornecedor_id: (data as ProdutoType)?.fornecedor_id || null, data_validade: (data as ProdutoType)?.data_validade || "", ncm: (data as ProdutoType)?.ncm || "", peso_kg: (data as ProdutoType)?.peso_kg || 0, imagem_url: (data as ProdutoType)?.imagem_url || "" }); }
+        if (type === 'user') { setEditingUser(data as UsuarioLoja | null); setFormDataUser({ nome: (data as UsuarioLoja)?.nome || "", email: (data as UsuarioLoja)?.email || "", senha: "", telefone: (data as UsuarioLoja)?.telefone || "", role: ((data as UsuarioLoja)?.role?.toUpperCase() as UserRole) || "VENDEDOR", is_active: (data as UsuarioLoja)?.is_active ?? true }); }
+        else { setEditingProduto(data as ProdutoType | null); setFormDataProduto({ ...formDataProduto, nome: (data as ProdutoType)?.nome || "", sku: (data as ProdutoType)?.sku || "", preco: (data as ProdutoType)?.preco || 0, preco_custo: (data as ProdutoType)?.preco_custo || 0, estoque: (data as ProdutoType)?.estoque || 0, estoque_minimo: (data as ProdutoType)?.estoque_minimo || 5, is_active: (data as ProdutoType)?.is_active ?? true, loja_id: (data as ProdutoType)?.loja_id || user?.loja_id || "", descricao: (data as ProdutoType)?.descricao || "", codigo_barras: (data as ProdutoType)?.codigo_barras || null, marca: (data as ProdutoType)?.marca || "", categoria_id: (data as ProdutoType)?.categoria_id || null, unidade: (data as ProdutoType)?.unidade || "UN", localizacao: (data as ProdutoType)?.localizacao || "", fornecedor_id: (data as ProdutoType)?.fornecedor_id || null, data_validade: (data as ProdutoType)?.data_validade || "", ncm: (data as ProdutoType)?.ncm || "", peso_kg: (data as ProdutoType)?.peso_kg || 0, imagem_url: (data as ProdutoType)?.imagem_url || "" }); }
         setShowModal(true);
     };
 
     const handleAddUserClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'user', descricao: 'Tem certeza que deseja adicionar este novo membro?' }); openModal('user'); }
-    const handleEditUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', descricao: `Tem certeza que deseja salvar as alterações de ${u.nome}?`, data: u }); openModal('user', {...u, telefone: u.telefone?? undefined }); }
+    const handleEditUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'editar', entidade: 'user', descricao: `Tem certeza que deseja salvar as alterações de ${u.nome}?`, data: u }); openModal('user', { ...u, telefone: u.telefone ?? undefined }); }
     const handleDeleteUserClick = (u: UsuarioLojaPage) => { setAcaoPendente({ tipo: 'apagar', entidade: 'user', descricao: `Tem certeza que deseja apagar o membro ${u.nome}? Esta ação não pode ser desfeita.`, data: u }); setShowPermissaoModal(true); }
-    const handleViewUserClick = async (u: UsuarioLojaPage) => { if (!token ||!lojaId) return; try { setDetalhesUser(await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${u.id}/detalhes`, token)); setShowDetalhesModal(true); } catch (e) { } }
+    const handleViewUserClick = async (u: UsuarioLojaPage) => { if (!token || !lojaId) return; try { setDetalhesUser(await fetchComAuth(`${API_URL}/lojas/id/${lojaId}/usuarios/${u.id}/detalhes`, token)); setShowDetalhesModal(true); } catch (e) { } }
     const handleAddProdutoClick = () => { setAcaoPendente({ tipo: 'adicionar', entidade: 'produto', descricao: 'Tem certeza que deseja adicionar este novo produto?' }); openModal('produto'); }
     const handleEditProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'editar', entidade: 'produto', descricao: `Tem certeza que deseja salvar as alterações de ${p.nome}?`, data: p }); openModal('produto', p); }
     const handleDeleteProdutoClick = (p: ProdutoType) => { setAcaoPendente({ tipo: 'apagar', entidade: 'produto', descricao: `Tem certeza que deseja apagar o produto ${p.nome}? Esta ação não pode ser desfeita.`, data: p }); setShowPermissaoModal(true); }
 
+
+
     const executarAcaoComSenha = async (senha_dono: string) => {
-        if (!token ||!acaoPendente) return;
+        if (!token || !acaoPendente) return;
         setSaving(true);
         try {
             await fetchComAuth(`${API_URL}/lojas/${lojaId}/verificar-senha`, token, { method: 'POST', body: JSON.stringify({ senha: senha_dono }) });
-            let url = "";
-            if (acaoPendente.entidade === 'user') {
-                url = `${API_URL}/lojas/id/${lojaId}/usuarios/${(acaoPendente.data as UsuarioLojaPage).id}`;
-            } else {
-                url = `${API_URL}/produtos/${(acaoPendente.data as ProdutoType).id}`;
+
+            // CASO 1: APAGAR
+            if (acaoPendente.tipo === 'apagar') {
+                const url = acaoPendente.entidade === 'user'
+                    ? `${API_URL}/lojas/id/${lojaId}/usuarios/${(acaoPendente.data as UsuarioLojaPage).id}`
+                    : `${API_URL}/produtos/${(acaoPendente.data as ProdutoType).id}`;
+
+                const body = acaoPendente.entidade === 'user'
+                    ? { senha_dono, senha_confirmacao: senha_dono }
+                    : { loja_id: lojaId, senha_dono, senha_confirmacao: senha_dono };
+
+                await fetchComAuth(url, token, { method: 'DELETE', body: JSON.stringify(body) });
+                toast.success(acaoPendente.entidade === 'user' ? "Membro apagado!" : "Produto apagado!");
+                if (acaoPendente.entidade === 'user') fetchEquipa(token);
+                else fetchProdutos(token, lojaId);
             }
-            await fetchComAuth(url, token, { method: 'DELETE' });
-            toast.success("Item apagado com sucesso!");
-            if (acaoPendente.entidade === 'user') fetchEquipa(token);
-            else fetchProdutos(token, lojaId);
+
+            // CASO 2: ADICIONAR/EDITAR
+            if (acaoPendente.tipo === 'adicionar' || acaoPendente.tipo === 'editar') {
+                // Injeta a senha no formData e chama o handleSave de novo
+                if (acaoPendente.entidade === 'user') {
+                    setFormDataUser((prev: any) => ({ ...prev, senha_dono, senha_confirmacao: senha_dono }));
+                    await handleSave({ ...formDataUser, senha_dono, senha_confirmacao: senha_dono });
+                }
+                if (acaoPendente.entidade === 'produto') {
+                    setFormDataProduto((prev: any) => ({ ...prev, senha_dono, senha_confirmacao: senha_dono }));
+                    await handleSave({ ...formDataProduto, senha_dono, senha_confirmacao: senha_dono });
+                }
+            }
+
             setShowPermissaoModal(false);
             setAcaoPendente(null);
         } catch (err: any) {
-            setErroMsgPermissao(err.message || "Senha incorreta ou erro ao apagar");
+            setErroMsgPermissao(err.message || "Senha incorreta");
             setShowErroModal(true);
         } finally {
             setSaving(false);
         }
     }
+
+
+
 
     const handleSave = async (payload: any) => {
         if (!token) { toast.error("Sessão expirada"); return; }
@@ -254,26 +279,71 @@ export default function LojaPage() {
         try {
             let url = "";
             let method = "POST";
-            if (modalType === 'user') {
-                url = editingUser? `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}` : `${API_URL}/lojas/id/${lojaId}/usuarios`;
-                method = editingUser? "PATCH" : "POST"; // <- troquei PUT por PATCH
-                const userPayload = {...payload, loja_id: lojaId, nivel: payload.role };
-                if (!editingUser &&!userPayload.senha) throw new Error("Senha é obrigatória");
-                if (editingUser &&!userPayload.senha) delete userPayload.senha;
-                await fetchComAuth(url, token, { method, body: JSON.stringify(userPayload) });
-                toast.success(editingUser? "Membro atualizado!" : "Membro adicionado!");
-                fetchEquipa(token);
-            } else {
-                url = editingProduto? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
-                method = editingProduto? "PATCH" : "POST"; // <- troquei PUT por PATCH
-                const produtoPayload = {...payload, loja_id: lojaId, preco: Number(payload.preco), preco_custo: Number(payload.preco_custo), estoque: Number(payload.estoque), estoque_minimo: Number(payload.estoque_minimo), };
-                await fetchComAuth(url, token, { method, body: JSON.stringify(produtoPayload) });
-                toast.success(editingProduto? "Produto atualizado!" : "Produto adicionado!");
-                fetchProdutos(token, lojaId);
+            let needsPassword = modalType === 'produto' || modalType === 'user';
+
+            // 1. SE PRECISA DE SENHA E AINDA NÃO TEM: Pede senha e para
+            if (needsPassword && !payload.senha_dono) {
+                setAcaoPendente({
+                    tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
+                    entidade: modalType,
+                    descricao: '',
+                    data: modalType === 'user' ? editingUser : editingProduto
+                });
+                setShowPermissaoModal(true);
+                setSaving(false);
+                return; // para e espera a senha vir do modal
             }
+
+            // 2. MONTA URL E METHOD
+            if (modalType === 'user') {
+                url = editingUser ? `${API_URL}/lojas/id/${lojaId}/usuarios/${editingUser.id}` : `${API_URL}/lojas/id/${lojaId}/usuarios`;
+                method = editingUser ? "PATCH" : "POST";
+            } else if (modalType === 'produto') {
+                url = editingProduto ? `${API_URL}/produtos/${editingProduto.id}` : `${API_URL}/produtos`;
+                method = editingProduto ? "PATCH" : "POST";
+            }
+
+            // 3. MONTA PAYLOAD ÚNICO
+            let finalPayload: any = { ...payload };
+
+            if (modalType === 'user') {
+                finalPayload = { ...finalPayload, loja_id: lojaId, nivel: payload.role };
+                if (!editingUser && !finalPayload.senha) throw new Error("Senha é obrigatória para criar usuário");
+                if (editingUser && !finalPayload.senha) delete finalPayload.senha;
+                // injeta senha do dono
+                finalPayload.senha_dono = payload.senha_dono;
+                finalPayload.senha_confirmacao = payload.senha_dono;
+            }
+
+            if (modalType === 'produto') {
+                finalPayload = {
+                    ...finalPayload,
+                    loja_id: lojaId,
+                    preco: Number(payload.preco),
+                    preco_custo: Number(payload.preco_custo),
+                    estoque: Number(payload.estoque),
+                    estoque_minimo: Number(payload.estoque_minimo),
+                    senha_dono: payload.senha_dono,
+                    senha_confirmacao: payload.senha_dono,
+                };
+            }
+
+            // 4. ENVIA
+            await fetchComAuth(url, token, { method, body: JSON.stringify(finalPayload) });
+
+            toast.success(
+                modalType === 'user' ? (editingUser ? "Membro atualizado!" : "Membro adicionado!") :
+                    modalType === 'produto' ? (editingProduto ? "Produto atualizado!" : "Produto adicionado!") :
+                        "Salvo com sucesso!"
+            );
+
+            if (modalType === 'user') fetchEquipa(token);
+            if (modalType === 'produto') fetchProdutos(token, lojaId);
+
             setShowModal(false);
             setEditingUser(null);
             setEditingProduto(null);
+            setAcaoPendente(null);
         } catch (err: any) {
             setErrorMsg(err.message || "Erro ao salvar");
             toast.error(err.message || "Erro ao salvar");
@@ -282,6 +352,9 @@ export default function LojaPage() {
         }
     }
 
+
+
+
     const vendasParaRisco = useMemo(() => vendas.map(v => ({ id: String(v.id), data: v.data_venda || new Date().toISOString(), total: v.total, formaPagamento: v.forma_pagamento, itens: v.total_itens, detalhes: (v.itens || []).map((it, idx) => ({ id: String(it.produto_id) + '-' + idx, nome_produto: it.nome || 'Produto', quantidade: it.quantidade, preco_unitario: it.preco_unitario, subtotal: it.subtotal })), status: "concluida" })), [vendas]);
 
     if (!isClient || loading) return (<div className="flex items-center justify-center min-h-screen"><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>);
@@ -289,7 +362,7 @@ export default function LojaPage() {
     return (
         <div className="min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
             <Toaster key={theme} position="top-center" richColors theme={theme as any} />
-            {activeTab === "venda"?
+            {activeTab === "venda" ?
                 <VendaTab {...{ produtos, carrinho, busca, setBusca, formaPagamento, setFormaPagamento, valorRecebido, setValorRecebido, subtotal, totalItens, troco, podeFinalizar, adicionarAoCarrinho, confirmarRemoverItem, handleFinalizar, showConfirmarModal, setShowConfirmarModal, itemParaRemover, handleConfirmarRemocao, showConfirmarFinalizar, setShowConfirmarFinalizar, executarFinalizarVenda, loadingVenda, onClose: () => { setActiveTab(initialTabs[0].id); setCarrinho([]) }, token, lojaId, nomeLoja: loja?.nome || "PDV", nifLoja: `NIF: ${loja?.nif || ""}`, enderecoLoja: loja?.endereco || "", theme, cardStyle, cardSize }} />
                 :
                 <LojaLayout theme={theme} handleSaveTheme={handleSaveTheme} lojaNome={loja?.nome}>
@@ -297,7 +370,7 @@ export default function LojaPage() {
                         <div className="p-1 overflow-x-auto scrollbar-hide" style={{ backgroundColor: 'var(--cor-card)', borderRadius: '8px' }}>
                             <div className="flex gap-1 w-max min-w-full">
                                 {initialTabs.map(tab => (
-                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{ backgroundColor: activeTab === tab.id? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id? 'white' : 'var(--cor-texto-sec)', borderRadius: '8px' }}>
+                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition" style={{ backgroundColor: activeTab === tab.id ? 'var(--cor-primaria)' : 'transparent', color: activeTab === tab.id ? 'white' : 'var(--cor-texto-sec)', borderRadius: '8px' }}>
                                         <tab.icon size={14} />
                                         {tab.label}
                                     </button>
@@ -307,9 +380,9 @@ export default function LojaPage() {
                     </div>
                     <div className="pb-8">
                         {activeTab === "dados" && <DadosTab loja={loja} user={user} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
-                        {activeTab === "produtos" && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
-                        {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")} onView={handleViewUserClick} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
-                            
+                        {activeTab === "produtos" && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar ? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar ? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar ? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
+                        {activeTab === "equipa" && <EquipaTab equipa={equipa} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar ? handleAddUserClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar ? handleEditUserClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar ? handleDeleteUserClick : () => toast.error("Apenas Dono/Gerente")} onView={handleViewUserClick} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
+
                         {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "risco" && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "fornecedores" && <FornecedoresTab theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
