@@ -102,14 +102,16 @@ export default function LojaPage() {
 
     const handleSair = () => { deleteCookie("token"); deleteCookie("user"); router.replace("/login"); };
 
+
     const applyTheme = useCallback((t: string, cs: string, csz: string, fsz: string, corP: string, corF: string) => {
-        document.documentElement.style.setProperty('--cor-primaria', corP || '#10b981');
+        document.documentElement.style.setProperty('--cor-primaria', corP || '#16a34a');
         document.documentElement.style.setProperty('--cor-fundo', corF || '#000');
         document.documentElement.setAttribute('data-theme', t);
         document.documentElement.setAttribute('data-card-style', cs);
         document.documentElement.setAttribute('data-card-size', csz);
         document.documentElement.style.setProperty('--font-size', fsz === 'grande' ? '16px' : fsz === 'pequeno' ? '12px' : '14px');
     }, []);
+
 
     const handleSaveTheme = useCallback(async (newTheme: Partial<Pick<Loja, 'theme' | 'card_style' | 'card_size' | 'font_size' | 'cor_primaria' | 'cor_fundo'>>) => {
         if (!token || !lojaId) return;
@@ -214,7 +216,7 @@ export default function LojaPage() {
 
     return (
         <>
-            <style jsx global>{`:root { --cor-primaria: #10b981; --cor-fundo: #000; --cor-card: #171717; --cor-texto: #fff; --cor-texto-sec: #9ca3af; --cor-borda: #2a2a2a; --radius: 8px; --card-padding: 16px; --font-size: 14px; } body { background-color: var(--cor-fundo); }.scrollbar-hide::-webkit-scrollbar { display: none; }`}</style>
+            
             <Toaster position="top-center" richColors theme={theme as any} />
 
             {activeTab === "venda" ?
