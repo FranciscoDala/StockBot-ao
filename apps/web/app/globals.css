@@ -26,12 +26,10 @@
     --radius: 0.75rem;
     --radius-sm: 0.5rem;
     --padding-card: 1.5rem;
-    /* medio padrão */
 
     /* FONTE */
     --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
     --font-heading: var(--font-bricolage), sans-serif;
-
     --font-zalando: 'Zalando Sans Expanded', sans-serif;
 }
 
@@ -59,16 +57,9 @@
 }
 
 /* ============ ESTILOS DE CARD ============ */
-
-/* 1. PADRÃO - limpo, sem nada */
 [data-card-style="padrao"] .card,
-.card[data-card-style="padrao"] {
-    border: none;
-    backdrop-filter: none;
-    box-shadow: none;
-}
+.card[data-card-style="padrao"] { border: none; backdrop-filter: none; box-shadow: none; }
 
-/* 2. GLASS - bem brabo, efeito vidro iOS */
 [data-card-style="glass"] .card,
 .card[data-card-style="glass"] {
     background: rgba(23, 23, 23, 0.25);
@@ -77,7 +68,6 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
-
 [data-theme="light"][data-card-style="glass"] .card,
 [data-theme="light"] .card[data-card-style="glass"] {
     background: rgba(255, 255, 255, 0.45);
@@ -85,146 +75,86 @@
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
 }
 
-/* 3. COM BORDA - profissional, cara de SaaS */
 [data-card-style="borda"] .card,
 .card[data-card-style="borda"] {
     background-color: var(--cor-card);
     border: 1.5px solid var(--cor-borda);
     box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
 }
-
 [data-card-style="borda"] .card:hover,
 .card[data-card-style="borda"]:hover {
     border-color: var(--cor-primaria);
     box-shadow: 0 4px 12px rgba(22, 163, 74, 0.15);
     transform: translateY(-2px);
 }
-
 [data-theme="light"][data-card-style="borda"] .card,
-[data-theme="light"] .card[data-card-style="borda"] {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12);
-}
-
+[data-theme="light"] .card[data-card-style="borda"] { box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.12); }
 [data-theme="light"][data-card-style="borda"] .card:hover,
-[data-theme="light"] .card[data-card-style="borda"]:hover {
-    border-color: var(--cor-primaria);
-    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
-    transform: translateY(-2px);
-}
+[data-theme="light"] .card[data-card-style="borda"]:hover { border-color: var(--cor-primaria); box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1); transform: translateY(-2px); }
 
-/* 4. NEON - gamer / tech */
 [data-card-style="neon"] .card,
 .card[data-card-style="neon"] {
     background-color: var(--cor-card);
     border: 1px solid var(--cor-primaria);
     box-shadow: 0 0 10px var(--cor-primaria)40, 0 0 20px var(--cor-primaria)20;
 }
-
 [data-card-style="neon"] .card:hover,
-.card[data-card-style="neon"]:hover {
-    box-shadow: 0 0 20px var(--cor-primaria)60, 0 0 40px var(--cor-primaria)30;
-    transform: translateY(-3px);
-}
+.card[data-card-style="neon"]:hover { box-shadow: 0 0 20px var(--cor-primaria)60, 0 0 40px var(--cor-primaria)30; transform: translateY(-3px); }
 
-/* 5. GRADIENT - premium */
 [data-card-style="gradient"] .card,
 .card[data-card-style="gradient"] {
     background: linear-gradient(135deg, var(--cor-card) 0%, var(--cor-card-hover) 100%);
     border: 1px solid var(--cor-borda);
 }
-
 [data-card-style="gradient"] .card:hover,
 .card[data-card-style="gradient"]:hover {
     background: linear-gradient(135deg, var(--cor-card-hover) 0%, var(--cor-primaria)15 100%);
     border-color: var(--cor-primaria);
     transform: translateY(-2px);
 }
-
 [data-theme="light"][data-card-style="gradient"] .card,
-[data-theme="light"] .card[data-card-style="gradient"] {
-    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
-}
-
+[data-theme="light"] .card[data-card-style="gradient"] { background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%); }
 [data-theme="light"][data-card-style="gradient"] .card:hover,
-[data-theme="light"] .card[data-card-style="gradient"]:hover {
-    background: linear-gradient(135deg, #f9fafb 0%, var(--cor-primaria)10 100%);
-}
+[data-theme="light"] .card[data-card-style="gradient"]:hover { background: linear-gradient(135deg, #f9fafb 0%, var(--cor-primaria)10 100%); }
 
-/* 6. ELEVADO - 3D destacado */
 [data-card-style="elevado"] .card,
 .card[data-card-style="elevado"] {
     background-color: var(--cor-card);
     border: none;
     box-shadow: 0 10px 30px rgba(0,0,0,0.3);
 }
-
 [data-card-style="elevado"] .card:hover,
-.card[data-card-style="elevado"]:hover {
-    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-    transform: translateY(-5px) scale(1.02);
-}
-
+.card[data-card-style="elevado"]:hover { box-shadow: 0 20px 50px rgba(0,0,0,0.4); transform: translateY(-5px) scale(1.02); }
 [data-theme="light"][data-card-style="elevado"] .card,
-[data-theme="light"] .card[data-card-style="elevado"] {
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
-
+[data-theme="light"] .card[data-card-style="elevado"] { box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 [data-theme="light"][data-card-style="elevado"] .card:hover,
-[data-theme="light"] .card[data-card-style="elevado"]:hover {
-    box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-}
+[data-theme="light"] .card[data-card-style="elevado"]:hover { box-shadow: 0 20px 50px rgba(0,0,0,0.15); }
 
 /* ============ TAMANHOS DE CARD ============ */
 [data-card-size="pequeno"] .card,
-.card[data-card-size="pequeno"] {
-    --padding-card: 0.75rem;
-    --radius: 0.5rem;
-}
-
+.card[data-card-size="pequeno"] { --padding-card: 0.75rem; --radius: 0.5rem; }
 [data-card-size="medio"] .card,
-.card[data-card-size="medio"] {
-    --padding-card: 1.5rem;
-    --radius: 0.75rem;
-}
-
+.card[data-card-size="medio"] { --padding-card: 1.5rem; --radius: 0.75rem; }
 [data-card-size="grande"] .card,
-.card[data-card-size="grande"] {
-    --padding-card: 2.5rem;
-    --radius: 1rem;
-}
+.card[data-card-size="grande"] { --padding-card: 2.5rem; --radius: 1rem; }
 
 /* ============ FUNDO DA PÁGINA ============ */
-body {
-    background-color: var(--cor-fundo);
+
+html, body {
+    background-color: var(--cor-fundo) !important;
     color: var(--cor-texto);
     font-family: var(--font-zalando);
     transition: background-color 0.3s, color 0.3s;
+    min-height: 100vh;
 }
 
 /* ============ UTILS ============ */
-.bg-card {
-    background-color: var(--cor-card);
-}
-
-.bg-primaria {
-    background-color: var(--cor-primaria);
-}
-
-.text-secundario {
-    color: var(--cor-texto-sec);
-}
-
-.border-cor {
-    border-color: var(--cor-borda);
-}
-
-.rounded-padrao {
-    border-radius: var(--radius);
-}
-
-.p-card {
-    padding: var(--padding-card);
-}
+.bg-card { background-color: var(--cor-card); }
+.bg-primaria { background-color: var(--cor-primaria); }
+.text-secundario { color: var(--cor-texto-sec); }
+.border-cor { border-color: var(--cor-borda); }
+.rounded-padrao { border-radius: var(--radius); }
+.p-card { padding: var(--padding-card); }
 
 /* ============ SONNER ============ */
 [data-sonner-toaster] [data-sonner-toast] {
@@ -236,52 +166,39 @@ body {
 }
 
 /* ============ SCROLLBAR ============ */
-.scrollbar-hide::-webkit-scrollbar {
-    display: none;
-}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--cor-card); }
+::-webkit-scrollbar-thumb { background: var(--cor-primaria); border-radius: var(--radius-sm); }
+::-webkit-scrollbar-thumb:hover { background: var(--cor-secundaria); }
 
-.scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--cor-card);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--cor-primaria);
-    border-radius: var(--radius-sm);
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--cor-secundaria);
-}
-
-/* ============ FIX INPUTS MOBILE ============ */
-input,
+/* ============ INPUTS E SELECTS COM BORDA PRIMARY FORÇADA ============ */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+input[type="search"],
+input[type="date"],
 textarea,
 select {
-    border: 1px solid var(--cor-primaria)40;
+    border: 1.5px solid var(--cor-primaria) !important;
     background-color: var(--cor-card);
     color: var(--cor-texto);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     font-family: var(--font-zalando);
     outline: none;
     -webkit-appearance: none;
     appearance: none;
+    transition: all 0.2s;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
-    border: 1px solid var(--cor-primaria);
-    box-shadow: 0 0 0 2px var(--cor-primaria)20;
+    border: 1.5px solid var(--cor-primaria) !important;
+    box-shadow: 0 0 0 3px var(--cor-primaria)30 !important;
 }
 
 select {
@@ -291,22 +208,14 @@ select {
     background-size: 1rem;
     padding-right: 2.5rem;
 }
+select option { background-color: var(--cor-card); color: var(--cor-texto); }
 
-select option {
-    background-color: var(--cor-card);
-    color: var(--cor-texto);
+/* ============ CARDS DE PRODUTOS COM BORDA ============ */
+.card {
+    border: 1px solid var(--cor-borda) !important;
 }
 
 /* ============ FIX SELECT SHADCN ============ */
-[data-radix-select-viewport] {
-    background-color: var(--cor-card) !important;
-}
-
-[data-radix-select-item] {
-    color: var(--cor-texto) !important;
-}
-
-[data-radix-select-item][data-highlighted] {
-    background-color: var(--cor-primaria)20 !important;
-    color: var(--cor-texto) !important;
-}
+[data-radix-select-viewport] { background-color: var(--cor-card) !important; }
+[data-radix-select-item] { color: var(--cor-texto) !important; }
+[data-radix-select-item][data-highlighted] { background-color: var(--cor-primaria)20 !important; color: var(--cor-texto) !important; }
