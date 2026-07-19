@@ -91,6 +91,8 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
     const [formData, setFormData] = useState<FormData>(emptyForm);
     const isLoggingOut = useRef(false);
 
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.3)' }
+
     const handleTerminarSessao = () => {
         isLoggingOut.current = true;
         clearAllAuth();
@@ -164,7 +166,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setFormData({
-              ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
+             ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
                 endereco: data.endereco || "", modoDono: 'existente',
                 dono: data.gerente? {...data.gerente, telefone: data.gerente.telefone?? "" } : null
             });
@@ -236,9 +238,9 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 
     const handleDonoNovoChange = (field: string, value: string) => {
         setFormData(prev => ({
-          ...prev,
+         ...prev,
             dono_novo: {
-              ...prev.dono_novo,
+             ...prev.dono_novo,
                 [field]: value
             }
         }));
@@ -275,70 +277,94 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                     <Plus className="w-4 h-4" /> Adicionar Loja
                 </Button>
 
-                <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingLoja(null); setFormData(emptyForm) } }}>
-                    <DialogContent className="sm:max-w-[600px] bg-black/50 border-white/10 p-0 flex-col max-h-[85vh]" style={{ backdropFilter: 'blur(10px)' }}>
+                <Dialog open={open} onOpenChange={(v) => { if(!v) return; setOpen(v); if (!v) { setEditingLoja(null); setFormData(emptyForm) } }}>
+                    <DialogContent
+                        className="w-full max-w-full sm:max-w-[600px] p-0 flex-col border shadow-2xl"
+                        style={{
+                            backgroundColor: 'var(--cor-card)',
+                            color: 'var(--cor-texto)',
+                            borderColor: 'var(--cor-borda)',
+                            borderRadius: 'var(--radius)',
+                            height: '80vh',
+                            maxHeight: '80vh',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                        onInteractOutside={(e) => e.preventDefault()}
+                        onEscapeKeyDown={(e) => e.preventDefault()}
+                    >
                         <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
-                            <DialogHeader className="p-6 pb-0 shrink-0">
-                                <DialogTitle>{editingLoja? "Editar Loja" : "Criar Nova Loja"}</DialogTitle>
-                                <DialogDescription>{editingLoja? "Altere os dados abaixo." : `Preencha os dados. Slug: /${formData.slug || "minha-loja"}`}</DialogDescription>
+                            <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
+                                <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>{editingLoja? "Editar Loja" : "Criar Nova Loja"}</DialogTitle>
+                                <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{editingLoja? "Altere os dados abaixo." : `Preencha os dados. Slug: /${formData.slug || "minha-loja"}`}</DialogDescription>
                             </DialogHeader>
-                            <div className="grid gap-4 py-4 px-6 overflow-y-auto scrollbar-hide flex-1 min-h-0">
-                                <p className="text-sm font-semibold text-muted-foreground -mb-2">Dados da Loja</p>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="nome" className="text-right">Nome</Label>
-                                    <Input id="nome" value={formData.nome} onChange={e => handleChange('nome', e.target.value)} className="col-span-3 bg-background" required />
+
+                            <div className="grid gap-3 sm:gap-4 py-4 px-4 sm:px-6 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
+                                <p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados da Loja</p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                    <Label htmlFor="nome" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome *</Label>
+                                    <Input id="nome" value={formData.nome} onChange={e => handleChange('nome', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="slug" className="text-right">Slug</Label>
-                                    <Input id="slug" value={formData.slug} onChange={e => handleChange('slug', e.target.value)} className="col-span-3 bg-background" required disabled={!!editingLoja} />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                    <Label htmlFor="slug" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Slug</Label>
+                                    <Input id="slug" value={formData.slug} onChange={e => handleChange('slug', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required disabled={!!editingLoja} />
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="endereco" className="text-right">Endereço</Label>
-                                    <Input id="endereco" value={formData.endereco} onChange={e => handleChange('endereco', e.target.value)} className="col-span-3 bg-background" placeholder="Rua, Bairro, Cidade" />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                    <Label htmlFor="endereco" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Endereço</Label>
+                                    <Input id="endereco" value={formData.endereco} onChange={e => handleChange('endereco', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} placeholder="Rua, Bairro, Cidade" />
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="active" className="text-right">Ativa</Label>
-                                    <Switch id="active" checked={formData.is_active} onCheckedChange={v => handleChange('is_active', v)} className="col-span-3 data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-700" />
+
+                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                    <Label htmlFor="active" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Ativa</Label>
+                                    <Switch id="active" checked={formData.is_active} onCheckedChange={v => handleChange('is_active', v)} className="sm:col-span-3 w-fit data-[state=checked]:bg-[var(--cor-primaria)]" />
                                 </div>
 
                                 {editingLoja && formData.dono && (
                                     <>
-                                        <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold text-muted-foreground -mb-2">Dados do Dono</p></div>
-                                        <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Nome</Label><Input value={formData.dono.nome} onChange={e => handleDonoChange('nome', e.target.value)} className="col-span-3 bg-background" /></div>
-                                        <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Email</Label><Input type="email" value={formData.dono.email} onChange={e => handleDonoChange('email', e.target.value)} className="col-span-3 bg-background" /></div>
-                                        <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Telefone</Label><Input value={formData.dono.telefone?? ""} onChange={e => handleDonoChange('telefone', e.target.value)} placeholder="Ex: 923456789" className="col-span-3 bg-background" /></div>
+                                        <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados do Dono</p></div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4"><Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome</Label><Input value={formData.dono.nome} onChange={e => handleDonoChange('nome', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} /></div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4"><Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label><Input type="email" value={formData.dono.email} onChange={e => handleDonoChange('email', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} /></div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4"><Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Telefone</Label><Input value={formData.dono.telefone?? ""} onChange={e => handleDonoChange('telefone', e.target.value)} placeholder="Ex: 923456789" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} /></div>
                                     </>
                                 )}
 
                                 {!editingLoja && (
                                     <>
-                                        <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold text-muted-foreground -mb-2">Dono da Loja</p></div>
+                                        <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dono da Loja</p></div>
                                         <div className="grid w-full grid-cols-2 gap-2">
-                                            <Button type="button" variant={formData.modoDono === 'existente'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'existente')} className={formData.modoDono === 'existente'? 'bg-green-600 hover:bg-green-700 text-white' : ''}>Dono Existente</Button>
-                                            <Button type="button" variant={formData.modoDono === 'novo'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'novo')} className={formData.modoDono === 'novo'? 'bg-green-600 hover:bg-green-700 text-white' : ''}>Criar Novo Dono</Button>
+                                            <Button type="button" variant={formData.modoDono === 'existente'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'existente')} className={formData.modoDono === 'existente'? 'bg-[var(--cor-primaria)] hover:bg-[var(--cor-primaria)] text-white' : ''}>Dono Existente</Button>
+                                            <Button type="button" variant={formData.modoDono === 'novo'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'novo')} className={formData.modoDono === 'novo'? 'bg-[var(--cor-primaria)] hover:bg-[var(--cor-primaria)] text-white' : ''}>Criar Novo Dono</Button>
                                         </div>
                                         {formData.modoDono === 'existente' && (
-                                            <div className="space-y-4 pt-2">
-                                                <select value={formData.dono_existente_id} onChange={(e) => handleChange('dono_existente_id', e.target.value)} required={formData.modoDono === 'existente'} className="flex h-10 w-full rounded-md border-input bg-background px-3 py-2 text-sm">
+                                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                                <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Selecionar</Label>
+                                                <select value={formData.dono_existente_id} onChange={(e) => handleChange('dono_existente_id', e.target.value)} required={formData.modoDono === 'existente'} className="sm:col-span-3 flex h-9 w-full rounded-md px-3 py-2 text-xs" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}>
                                                     <option value="" disabled>{donos.length > 0? "Seleciona um dono..." : "Nenhum dono cadastrado"}</option>
                                                     {donos.map(d => <option key={d.id} value={d.id}>{d.nome} - {d.email}</option>)}
                                                 </select>
                                             </div>
                                         )}
                                         {formData.modoDono === 'novo' && (
-                                            <div className="space-y-4 pt-2">
-                                                <Input placeholder="Nome do Dono" value={formData.dono_novo.nome} onChange={e => handleDonoNovoChange('nome', e.target.value)} required={formData.modoDono === 'novo'} />
-                                                <Input type="email" placeholder="Email do Dono" value={formData.dono_novo.email} onChange={e => handleDonoNovoChange('email', e.target.value)} required={formData.modoDono === 'novo'} />
-                                                <Input type="password" placeholder="Senha do Dono" value={formData.dono_novo.senha} onChange={e => handleDonoNovoChange('senha', e.target.value)} required={formData.modoDono === 'novo'} />
-                                                <Input placeholder="Telefone Opcional" value={formData.dono_novo.telefone} onChange={e => handleDonoNovoChange('telefone', e.target.value)} />
-                                            </div>
+                                            <>
+                                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4"><Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome *</Label><Input placeholder="Nome do Dono" value={formData.dono_novo.nome} onChange={e => handleDonoNovoChange('nome', e.target.value)} required={formData.modoDono === 'novo'} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} /></div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4"><Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Email *</Label><Input type="email" placeholder="Email do Dono" value={formData.dono_novo.email} onChange={e => handleDonoNovoChange('email', e.target.value)} required={formData.modoDono === 'novo'} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} /></div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4"><Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Senha *</Label><Input type="password" placeholder="Senha do Dono" value={formData.dono_novo.senha} onChange={e => handleDonoNovoChange('senha', e.target.value)} required={formData.modoDono === 'novo'} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} /></div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4"><Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Telefone</Label><Input placeholder="Telefone Opcional" value={formData.dono_novo.telefone} onChange={e => handleDonoNovoChange('telefone', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} /></div>
+                                            </>
                                         )}
                                     </>
                                 )}
                             </div>
-                            <DialogFooter className="p-6 pt-0 bg-background shrink-0 border-t border-white/10">
-                                <DialogClose asChild><Button type="button" className="bg-gray-500 hover:bg-gray-600 text-white">Cancelar</Button></DialogClose>
-                                <Button type="submit" disabled={isSaving} className="gap-2 bg-green-600 hover:bg-green-700">{isSaving && <Loader2 className="w-4 h-4 animate-spin" />}{editingLoja? "Salvar Alterações" : "Salvar Loja"}</Button>
+                            <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
+                                <DialogClose asChild>
+                                    <Button type="button" className="text-xs flex-1 sm:flex-initial font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>
+                                </DialogClose>
+                                <Button type="submit" disabled={isSaving} className="gap-2 text-xs flex-1 sm:flex-initial font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
+                                    {isSaving && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    {editingLoja? "Salvar Alterações" : "Salvar Loja"}
+                                </Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
@@ -467,6 +493,8 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                 ))}
                             </div>
                         </div>
+
+                        
                         {/* DESKTOP: GRID NORMAL */}
                         <div className="hidden sm:grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                             {lojas.map((loja) => (
