@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react"; // 👈 import do useState
+import { useState } from "react";
 import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings, Power, Palette, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ConfirmarModal } from "@/app/loja/[id]/_components/modals/ConfirmacaoModal"; // 👈 importa teu modal
+import { ConfirmarModal } from "@/components/ConfirmarModal";
+import { toast } from "sonner";
 
 const deleteCookie = (name: string) => {
     if (typeof window === "undefined") return;
@@ -25,12 +26,37 @@ interface LojaLayoutProps {
 
 export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome }: LojaLayoutProps) {
     const router = useRouter();
-    const [showLogoutModal, setShowLogoutModal] = useState(false); // 👈 estado do modal
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [loadingLogout, setLoadingLogout] = useState(false);
 
-    const handleSair = () => {
-        deleteCookie("token");
-        deleteCookie("user");
-        router.replace("/login");
+    // Igual ao handleConfirmarRemocao do carrinho
+    const handleConfirmarLogout = async (senha?: string) => {
+        if (!senha) return;
+
+        setLoadingLogout(true);
+        try {
+            const res = await fetch("/api/loja/validar-senha", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ senha })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                toast.error(data.message || "Senha incorreta");
+                setLoadingLogout(false);
+                return;
+            }
+
+            deleteCookie("token");
+            deleteCookie("user");
+            router.replace("/login");
+            setShowLogoutModal(false);
+
+        } catch (error) {
+            toast.error("Erro ao sair. Tente novamente.");
+            setLoadingLogout(false);
+        }
     };
 
     const initials = getInitials(lojaNome || "");
@@ -76,7 +102,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                         </button>
 
                         <button
-                            onClick={() => setShowLogoutModal(true)} // 👈 abre o modal
+                            onClick={() => setShowLogoutModal(true)}
                             className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
                             style={{
                                 width: '40px',
@@ -92,16 +118,15 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                 {children}
             </div>
 
-            {/* Modal de confirmação de logout */}
             <ConfirmarModal
                 open={showLogoutModal}
                 onClose={() => setShowLogoutModal(false)}
-                onConfirm={handleSair} // 👈 se clicar em Sim faz logout
+                onConfirm={handleConfirmarLogout} // recebe a senha
                 titulo="Sair da Loja"
                 descricao="Tem certeza que deseja sair? Você precisará fazer login novamente para acessar."
-                loading={false}
+                loading={loadingLogout}
                 textoConfirmar="Sim, Sair"
-                tipo="delete" // 👈 não pede senha
+                tipo="delete" // 👈 isso força o campo de senha igual ao remover carrinho com delete
             />
         </div>
     );
