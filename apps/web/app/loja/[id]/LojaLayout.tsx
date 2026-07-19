@@ -43,17 +43,12 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                     <div
                         className="flex items-center justify-center font-bold shrink-0"
                         style={{
-                            width: '50px',
-                            height: '50px',
                             backgroundColor: 'var(--cor-primaria)15',
-                            padding: '0 10px',
-                            fontSize: '1.5rem',
                             color: 'var(--cor-primaria)',
                             fontFamily: 'var(--font-zalando)',
-                            textTransform: 'capitalize'
                         }}
                     >
-                        <Store className="h-10 w-10 text-green-500" />
+                        <Store size={50} />
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
@@ -86,6 +81,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                     </div>
                 </header>
 
+                {children}
             </div>
         </div>
     );
