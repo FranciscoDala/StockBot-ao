@@ -43,7 +43,7 @@ const applyTheme = (theme: string, cardStyle: string, cardSize: string, font: st
     root.style.setProperty('--cor-primaria', '#10b981');
     root.style.setProperty('--radius', cardStyle === 'arredondado'? '16px' : '8px');
     root.style.setProperty('--padding-card', cardSize === 'grande'? '24px' : '16px');
-    root.style.setProperty('--font-zalando', font || 'var(--font-zalando)');
+    root.style.setProperty('--font-zalando', font || 'Inter, sans-serif'); // 👈 fonte do body
     if(isDark) root.classList.add('dark'); else root.classList.remove('dark');
 }
 
@@ -59,7 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const savedTheme = getCookie("theme") || "dark";
         const savedCardStyle = getCookie("card_style") || "arredondado";
         const savedCardSize = getCookie("card_size") || "medio";
-        const savedFont = getCookie("font_family") || "";
+        const savedFont = getCookie("font_family") || "Inter, sans-serif";
 
         setTheme(savedTheme as 'dark' | 'light');
         setCardStyle(savedCardStyle);
@@ -85,10 +85,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
 
     return (
-        <div className="min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+        <div
+            className="min-h-screen bg-fundo text-cor"
+            style={{ fontFamily: 'var(--font-zalando)' }} // 👈 AQUI aplica pro body todo
+        >
             <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
-                {/* HEADER IGUAL LOJALAYOUT */}
                 <header
                     className="sticky top-0 z-20 w-full h-14 flex items-center justify-between px-0 border-b"
                     style={{
@@ -98,27 +100,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         marginBottom: '10px'
                     }}
                 >
-                    {/* ESQUERDA: LOGO PG 100px com font-zalando */}
                     <div
                         className="flex items-center justify-center font-bold shrink-0"
                         style={{
-                            width: '100px',
-                            height: '100px',
                             backgroundColor: 'var(--cor-primaria)15',
-                            border: '2px solid var(--cor-primaria)',
-                            borderRadius: 'var(--radius)',
-                            fontSize: '2.5rem',
                             color: 'var(--cor-primaria)',
-                            fontFamily: 'var(--font-zalando)' // 👈 mantido
+                            fontFamily: 'var(--font-zalando)', // PG continua com a fonte
                         }}
                     >
                         PG
                     </div>
 
-                    {/* DIREITA: BOTÕES 40px igual loja */}
                     <div className="flex items-center gap-3 shrink-0">
-
-                        {/* BOTÃO TEMA 40px */}
                         <button
                             onClick={toggleTheme}
                             className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
@@ -134,7 +127,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             {theme === 'dark'? <Sun size={22} /> : <Moon size={22} />}
                         </button>
 
-                        {/* BOTÃO SAIR 40px */}
                         <button
                             onClick={handleLogout}
                             className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
@@ -146,7 +138,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         >
                             <LogOut size={22} color="#fff" strokeWidth={2.5} />
                         </button>
-
                     </div>
                 </header>
 
