@@ -3,7 +3,6 @@ import { useState } from "react";
 import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings, Power, Palette, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ConfirmarModal } from "@/components/ConfirmarModal";
-import { toast } from "sonner";
 
 const deleteCookie = (name: string) => {
     if (typeof window === "undefined") return;
@@ -27,36 +26,13 @@ interface LojaLayoutProps {
 export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome }: LojaLayoutProps) {
     const router = useRouter();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [loadingLogout, setLoadingLogout] = useState(false);
 
-    // Igual ao handleConfirmarRemocao do carrinho
-    const handleConfirmarLogout = async (senha?: string) => {
-        if (!senha) return;
-
-        setLoadingLogout(true);
-        try {
-            const res = await fetch("/api/loja/validar-senha", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ senha })
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                toast.error(data.message || "Senha incorreta");
-                setLoadingLogout(false);
-                return;
-            }
-
-            deleteCookie("token");
-            deleteCookie("user");
-            router.replace("/login");
-            setShowLogoutModal(false);
-
-        } catch (error) {
-            toast.error("Erro ao sair. Tente novamente.");
-            setLoadingLogout(false);
-        }
+    // Agora não recebe senha e não chama API
+    const handleConfirmarLogout = () => {
+        deleteCookie("token");
+        deleteCookie("user");
+        router.replace("/login");
+        setShowLogoutModal(false);
     };
 
     const initials = getInitials(lojaNome || "");
@@ -118,15 +94,16 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                 {children}
             </div>
 
+            {/* Modal só pra confirmar, sem senha */}
             <ConfirmarModal
                 open={showLogoutModal}
                 onClose={() => setShowLogoutModal(false)}
-                onConfirm={handleConfirmarLogout} // recebe a senha
+                onConfirm={handleConfirmarLogout}
                 titulo="Sair da Loja"
                 descricao="Tem certeza que deseja sair? Você precisará fazer login novamente para acessar."
-                loading={loadingLogout}
+                loading={false}
                 textoConfirmar="Sim, Sair"
-                tipo="delete" // 👈 isso força o campo de senha igual ao remover carrinho com delete
+                tipo="venda" // 👈 igual ao finalizar venda, não pede senha
             />
         </div>
     );
