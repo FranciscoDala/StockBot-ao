@@ -208,10 +208,10 @@ export function EquipaTab({
                             className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:brightness-105 transition"
                             style={{
                                 backgroundColor: 'var(--cor-card)',
-                                border: `1.5px solid ${u.is_active ? 'var(--cor-primaria)40' : 'var(--cor-primaria)15'}`,
+                                border: `1px solid ${u.is_active ? 'var(--cor-primaria)' : 'var(--cor-primaria)40'}`, // <- BORDA PRIMARY AJUSTADA
                                 borderRadius: radius,
                                 padding: cardSize === 'grande' ? '16px' : '12px',
-                                opacity: u.is_active ? 1 : 0.6
+                                opacity: u.is_active ? 1 : 0.6 // <- INATIVO FICA MAIS APAGADO
                             }}
                         >
                             <div className="min-w-0 flex-1">

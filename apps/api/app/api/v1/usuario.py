@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi import APIRouter, Depends, HTTPException, status, Body, Query # <- ADICIONA Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from uuid import UUID
@@ -109,15 +109,20 @@ async def ler_usuario_me(current_user: Usuario = Depends(get_current_user)):
 @router.get("", response_model=List[UsuarioLojaOut])
 async def listar_usuarios(
     loja_id: UUID,
+    incluir_inativos: bool = Query(False), # <- NOVO PARAM
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
     current_role: UserRole = m["role"]
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
         UsuarioLoja.loja_id == loja_id,
-        UsuarioLoja.is_active == True,
-        Usuario.is_active == True
+        Usuario.is_active == True # <- só o user do sistema precisa estar ativo
     )
+
+    # <- SÓ FILTRA POR ATIVO DO VINCULO SE NÃO PEDIR INATIVOS
+    if not incluir_inativos:
+        stmt = stmt.where(UsuarioLoja.is_active == True)
+
     if current_role == UserRole.GERENTE:
         stmt = stmt.where(UsuarioLoja.role == UserRole.VENDEDOR)
 
@@ -129,13 +134,12 @@ async def listar_usuarios(
             "email": u.email,
             "telefone": ul.telefone or u.telefone,
             "role": ul.role,
-            "is_active": ul.is_active,
+            "is_active": ul.is_active, # <- is_active do vinculo
             "loja_id": ul.loja_id,
             "usuario_id": ul.usuario_id
         })
         for u, ul in result.all()
     ]
-
 
 @router.get("/{user_id}", response_model=UsuarioLojaOut)
 async def ler_usuario(
@@ -144,10 +148,10 @@ async def ler_usuario(
     db: AsyncSession = Depends(get_db),
     m: dict = Depends(require_role(UserRole.DONO, UserRole.GERENTE))
 ):
+    # <- TAMBEM TIRA O FILTRO AQUI PRA CONSEGUIR VER INATIVO
     stmt = select(Usuario, UsuarioLoja).join(UsuarioLoja, Usuario.id == UsuarioLoja.usuario_id).where(
         Usuario.id == user_id,
-        UsuarioLoja.loja_id == loja_id,
-        UsuarioLoja.is_active == True
+        UsuarioLoja.loja_id == loja_id
     )
     res = (await db.execute(stmt)).first()
     if not res:
