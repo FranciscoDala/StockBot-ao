@@ -60,14 +60,14 @@ const getCookie = (name: string): string | undefined => {
     if (typeof document === "undefined") return undefined;
     return document.cookie.split('; ').reduce((r, v) => {
         const parts = v.split('=');
-        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+        return parts[0] === name? decodeURIComponent(parts[1]) : r;
     }, '');
 };
 
 const deleteCookie = (name: string) => {
     const isProd = process.env.NODE_ENV === 'production';
-    const secure = isProd ? '; Secure' : '';
-    const sameSite = isProd ? '; SameSite=None' : '; SameSite=Lax';
+    const secure = isProd? '; Secure' : '';
+    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${secure}${sameSite}`;
 };
 
@@ -116,11 +116,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 clearTimeout(timeout);
 
                 if (lojasRes.status === 401 || donosRes.status === 401) return handleTerminarSessao();
-                if (!lojasRes.ok || !donosRes.ok) throw new Error("Erro ao buscar dados");
+                if (!lojasRes.ok ||!donosRes.ok) throw new Error("Erro ao buscar dados");
 
                 const lojasData = await lojasRes.json();
                 const donosData = await donosRes.json();
-                setLojas(Array.isArray(lojasData) ? lojasData : lojasData.data ?? lojasData.lojas ?? []);
+                setLojas(Array.isArray(lojasData)? lojasData : lojasData.data?? lojasData.lojas?? []);
                 setDonos(donosData);
             } catch (err) {
                 console.error(err);
@@ -150,7 +150,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 fetch(`${API_URL}/lojas/donos`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
             ]);
             if (lojasRes.status === 401 || donosRes.status === 401) return handleTerminarSessao();
-            if (!lojasRes.ok || !donosRes.ok) throw new Error("Erro ao atualizar");
+            if (!lojasRes.ok ||!donosRes.ok) throw new Error("Erro ao atualizar");
             setLojas(await lojasRes.json());
             setDonos(await donosRes.json());
         } catch { handleTerminarSessao(); }
@@ -164,9 +164,9 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setFormData({
-                ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active ?? true,
+               ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
                 endereco: data.endereco || "", modoDono: 'existente',
-                dono: data.gerente ? { ...data.gerente, telefone: data.gerente.telefone ?? "" } : null
+                dono: data.gerente? {...data.gerente, telefone: data.gerente.telefone?? "" } : null
             });
         } else { setFormData(emptyForm); }
         setOpen(true);
@@ -179,22 +179,22 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
     }
 
     const handleConfirmSave = async () => {
-        if (editingLoja && !formData.adminSenha) { toast.error("Digite a senha do ADMIN para confirmar"); return; }
+        if (editingLoja &&!formData.adminSenha) { toast.error("Digite a senha do ADMIN para confirmar"); return; }
         setIsSaving(true);
         const token = getCookie("token");
-        const isEditing = !!editingLoja;
-        const url = isEditing ? `${API_URL}/lojas/${editingLoja.id}` : `${API_URL}/lojas`;
-        const method = isEditing ? 'PATCH' : 'POST';
+        const isEditing =!!editingLoja;
+        const url = isEditing? `${API_URL}/lojas/${editingLoja.id}` : `${API_URL}/lojas`;
+        const method = isEditing? 'PATCH' : 'POST';
         let payload: any = { nome: formData.nome, slug: formData.slug, is_active: formData.is_active, endereco: formData.endereco || null, };
         if (isEditing) {
             payload.senha_admin = formData.adminSenha
-            payload.dono = { ...formData.dono, telefone: formData.dono?.telefone?.trim() || null };
+            payload.dono = {...formData.dono, telefone: formData.dono?.telefone?.trim() || null };
         } else {
             if (formData.modoDono === 'existente') {
                 if (!formData.dono_existente_id) { toast.error("Seleciona um dono existente"); setIsSaving(false); return; }
                 payload.dono_existente_id = formData.dono_existente_id;
             } else {
-                if (!formData.dono_novo.nome || !formData.dono_novo.email || !formData.dono_novo.senha) { toast.error("Preenche todos os dados do novo dono"); setIsSaving(false); return; }
+                if (!formData.dono_novo.nome ||!formData.dono_novo.email ||!formData.dono_novo.senha) { toast.error("Preenche todos os dados do novo dono"); setIsSaving(false); return; }
                 payload.dono_novo = { nome: formData.dono_novo.nome, email: formData.dono_novo.email, senha: formData.dono_novo.senha, telefone: formData.dono_novo.telefone?.trim() || null, };
             }
         }
@@ -203,15 +203,15 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (res.status === 401) return handleTerminarSessao();
             if (res.status === 403) { toast.error("Senha do ADMIN incorreta"); setIsSaving(false); return; }
             if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Erro ao salvar loja'); }
-            toast.success(isEditing ? "Loja atualizada" : "Loja criada");
+            toast.success(isEditing? "Loja atualizada" : "Loja criada");
             setOpen(false); setConfirmModalOpen(false); setEditingLoja(null); setFormData(emptyForm);
             await refreshData();
         } catch (err: any) { toast.error(err.message || "Erro ao salvar loja. Verifique o slug/email."); }
-        finally { setIsSaving(false); setFormData(prev => ({ ...prev, adminSenha: "" })); }
+        finally { setIsSaving(false); setFormData(prev => ({...prev, adminSenha: "" })); }
     }
 
     const handleDeleteLoja = async () => {
-        if (!lojaToDelete || !adminSenhaDelete) { toast.error("Digite a senha do ADMIN para apagar"); return; }
+        if (!lojaToDelete ||!adminSenhaDelete) { toast.error("Digite a senha do ADMIN para apagar"); return; }
         setIsDeleting(true);
         const token = getCookie("token");
         try {
@@ -228,11 +228,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
     };
 
     const handleChange = (field: string, value: string | boolean) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-        if (field === 'nome' && !editingLoja) { setFormData(prev => ({ ...prev, slug: value.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') })); }
+        setFormData(prev => ({...prev, [field]: value }));
+        if (field === 'nome' &&!editingLoja) { setFormData(prev => ({...prev, slug: value.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') })); }
     }
-    const handleDonoChange = (field: string, value: string) => { setFormData(prev => ({ ...prev, dono: prev.dono ? { ...prev.dono, [field]: value } : null })); }
-    const handleDonoNovoChange = (field: string, value: string) => { setFormData(prev => ({ ...prev, dono_novo: { ...prev.dono_novo, [field]: value } })); }
+    const handleDonoChange = (field: string, value: string) => { setFormData(prev => ({...prev, dono: prev.dono? {...prev.dono, [field]: value } : null })); }
+    const handleDonoNovoChange = (field: string, value: string) => { setFormData(prev => ({...prev, dono_novo: {...prev.dono_novo, [field]: value })); }
 
     return (
         <div className="space-y-8">
@@ -255,8 +255,8 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                     <DialogContent className="sm:max-w-[600px] bg-black/50 border-white/10 p-0 flex-col max-h-[85vh]" style={{ backdropFilter: 'blur(10px)' }}>
                         <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
                             <DialogHeader className="p-6 pb-0 shrink-0">
-                                <DialogTitle>{editingLoja ? "Editar Loja" : "Criar Nova Loja"}</DialogTitle>
-                                <DialogDescription>{editingLoja ? "Altere os dados abaixo." : `Preencha os dados. Slug: /${formData.slug || "minha-loja"}`}</DialogDescription>
+                                <DialogTitle>{editingLoja? "Editar Loja" : "Criar Nova Loja"}</DialogTitle>
+                                <DialogDescription>{editingLoja? "Altere os dados abaixo." : `Preencha os dados. Slug: /${formData.slug || "minha-loja"}`}</DialogDescription>
                             </DialogHeader>
                             <div className="grid gap-4 py-4 px-6 overflow-y-auto hide-scrollbar flex-1 min-h-0">
                                 <p className="text-sm font-semibold text-muted-foreground -mb-2">Dados da Loja</p>
@@ -282,7 +282,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                         <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold text-muted-foreground -mb-2">Dados do Dono</p></div>
                                         <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Nome</Label><Input value={formData.dono.nome} onChange={e => handleDonoChange('nome', e.target.value)} className="col-span-3 bg-background" /></div>
                                         <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Email</Label><Input type="email" value={formData.dono.email} onChange={e => handleDonoChange('email', e.target.value)} className="col-span-3 bg-background" /></div>
-                                        <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Telefone</Label><Input value={formData.dono.telefone ?? ""} onChange={e => handleDonoChange('telefone', e.target.value)} placeholder="Ex: 923456789" className="col-span-3 bg-background" /></div>
+                                        <div className="grid grid-cols-4 items-center gap-4"><Label className="text-right">Telefone</Label><Input value={formData.dono.telefone?? ""} onChange={e => handleDonoChange('telefone', e.target.value)} placeholder="Ex: 923456789" className="col-span-3 bg-background" /></div>
                                     </>
                                 )}
 
@@ -290,13 +290,13 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                     <>
                                         <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold text-muted-foreground -mb-2">Dono da Loja</p></div>
                                         <div className="grid w-full grid-cols-2 gap-2">
-                                            <Button type="button" variant={formData.modoDono === 'existente' ? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'existente')} className={formData.modoDono === 'existente' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}>Dono Existente</Button>
-                                            <Button type="button" variant={formData.modoDono === 'novo' ? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'novo')} className={formData.modoDono === 'novo' ? 'bg-green-600 hover:bg-green-700 text-white' : ''}>Criar Novo Dono</Button>
+                                            <Button type="button" variant={formData.modoDono === 'existente'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'existente')} className={formData.modoDono === 'existente'? 'bg-green-600 hover:bg-green-700 text-white' : ''}>Dono Existente</Button>
+                                            <Button type="button" variant={formData.modoDono === 'novo'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'novo')} className={formData.modoDono === 'novo'? 'bg-green-600 hover:bg-green-700 text-white' : ''}>Criar Novo Dono</Button>
                                         </div>
                                         {formData.modoDono === 'existente' && (
                                             <div className="space-y-4 pt-2">
                                                 <select value={formData.dono_existente_id} onChange={(e) => handleChange('dono_existente_id', e.target.value)} required={formData.modoDono === 'existente'} className="flex h-10 w-full rounded-md border-input bg-background px-3 py-2 text-sm">
-                                                    <option value="" disabled>{donos.length > 0 ? "Seleciona um dono..." : "Nenhum dono cadastrado"}</option>
+                                                    <option value="" disabled>{donos.length > 0? "Seleciona um dono..." : "Nenhum dono cadastrado"}</option>
                                                     {donos.map(d => <option key={d.id} value={d.id}>{d.nome} - {d.email}</option>)}
                                                 </select>
                                             </div>
@@ -314,16 +314,16 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                             </div>
                             <DialogFooter className="p-6 pt-0 bg-background shrink-0 border-t border-white/10">
                                 <DialogClose asChild><Button type="button" className="bg-gray-500 hover:bg-gray-600 text-white">Cancelar</Button></DialogClose>
-                                <Button type="submit" disabled={isSaving} className="gap-2 bg-green-600 hover:bg-green-700">{isSaving && <Loader2 className="w-4 h-4 animate-spin" />}{editingLoja ? "Salvar Alterações" : "Salvar Loja"}</Button>
+                                <Button type="submit" disabled={isSaving} className="gap-2 bg-green-600 hover:bg-green-700">{isSaving && <Loader2 className="w-4 h-4 animate-spin" />}{editingLoja? "Salvar Alterações" : "Salvar Loja"}</Button>
                             </DialogFooter>
                         </form>
                     </DialogContent>
                 </Dialog>
             </div>
 
-            {/* KPIS */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+            {/* KPIS COM SCROLL-X NO MOBILE */}
+            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible">
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm min-w-full md:min-w-0 snap-start">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total de Lojas</CardTitle>
                         <Store className="h-5 w-5 text-green-500" />
@@ -333,7 +333,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                         <p className="text-xs text-muted-foreground mt-1">Cadastradas na plataforma</p>
                     </CardContent>
                 </Card>
-                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm min-w-full md:min-w-0 snap-start">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Ativas</CardTitle>
                         <TrendingUp className="h-5 w-5 text-green-500" />
@@ -343,31 +343,31 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                         <p className="text-xs text-muted-foreground mt-1">Operando agora</p>
                     </CardContent>
                 </Card>
-                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm min-w-full md:min-w-0 snap-start">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Inativas</CardTitle>
                         <Users className="h-5 w-5 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{lojas.filter((l) => !l.is_active).length}</div>
+                        <div className="text-3xl font-bold">{lojas.filter((l) =>!l.is_active).length}</div>
                         <p className="text-xs text-muted-foreground mt-1">Precisam de atenção</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* CARDS COM SCROLL-X NO MOBILE */}
+            {/* CARDS LOJAS COM SCROLL-X NO MOBILE */}
             <div>
-                {loading ? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0 ? (<p>Nenhuma loja cadastrada ainda.</p>) : (
+                {loading? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0? (<p>Nenhuma loja cadastrada ainda.</p>) : (
                     <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible">
                         {lojas.map((loja) => (
-                            <Card key={loja.id} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 min-w-[85%] sm:min-w-[400px] md:min-w-0 snap-start">
+                            <Card key={loja.id} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 min-w-full md:min-w-0 snap-start">
                                 <CardHeader className="pb-4">
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
                                             <Store className="w-6 h-6 text-green-500" />
                                         </div>
-                                        <Badge variant={loja.is_active ? "default" : "secondary"} className={cn("font-semibold", loja.is_active ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
-                                            {loja.is_active ? "Ativa" : "Inativa"}
+                                        <Badge variant={loja.is_active? "default" : "secondary"} className={cn("font-semibold", loja.is_active? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
+                                            {loja.is_active? "Ativa" : "Inativa"}
                                         </Badge>
                                     </div>
                                     <CardTitle className="text-xl">{loja.nome}</CardTitle>
@@ -376,11 +376,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                 <CardContent className="flex-grow space-y-3 text-sm">
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <User size={14} />
-                                        <span className="font-medium">{loja.gerente?.nome ?? "Sem dono"}</span>
+                                        <span className="font-medium">{loja.gerente?.nome?? "Sem dono"}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-muted-foreground">
                                         <Mail size={14} />
-                                        <span className="text-xs break-all">{loja.gerente?.email ?? "-"}</span>
+                                        <span className="text-xs break-all">{loja.gerente?.email?? "-"}</span>
                                     </div>
                                     {loja.endereco && (
                                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -393,7 +393,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                 <div className="p-4 pt-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100">
                                     <Link href={`/admin/empresas/${loja.slug}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }), "flex-1 gap-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10")}>
                                         <Eye size={14} /> Ver
-                                    </Link> {/* <- era </button> */}
+                                    </Link>
                                     <Button size="sm" variant="outline" className="flex-1 gap-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10" onClick={() => handleOpenModal(loja)}>
                                         <Edit size={14} /> Editar
                                     </Button>
@@ -401,19 +401,17 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                         <Trash2 size={14} />
                                     </Button>
                                 </div>
-
-
                             </Card>
                         ))}
                     </div>
                 )}
             </div>
 
-            <Dialog open={confirmModalOpen} onOpenChange={(v) => { if (!v) { setConfirmModalOpen(false); setFormData(prev => ({ ...prev, adminSenha: "" })) } }}>
+            <Dialog open={confirmModalOpen} onOpenChange={(v) => { if (!v) { setConfirmModalOpen(false); setFormData(prev => ({...prev, adminSenha: "" })) } }}>
                 <DialogContent className="sm:max-w-[425px] bg-black/50 border-white/10" onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-yellow-500" />Confirmar Edição</DialogTitle><DialogDescription>Para editar esta loja, digite a sua senha de ADMIN.</DialogDescription></DialogHeader>
                     <div className="grid gap-4 py-4"><Input type="password" placeholder="Senha do ADMIN" value={formData.adminSenha} onChange={(e) => handleChange('adminSenha', e.target.value)} className="bg-background" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleConfirmSave()} /></div>
-                    <DialogFooter><Button className="bg-gray-500 hover:bg-gray-600 text-white" onClick={() => { setConfirmModalOpen(false); setFormData(prev => ({ ...prev, adminSenha: "" })); }}>Cancelar</Button><Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirmSave} disabled={isSaving || !formData.adminSenha}>{isSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Confirmar</Button></DialogFooter>
+                    <DialogFooter><Button className="bg-gray-500 hover:bg-gray-600 text-white" onClick={() => { setConfirmModalOpen(false); setFormData(prev => ({...prev, adminSenha: "" })); }}>Cancelar</Button><Button className="bg-green-600 hover:bg-green-700 text-white" onClick={handleConfirmSave} disabled={isSaving ||!formData.adminSenha}>{isSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Confirmar</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
 
@@ -421,7 +419,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 <DialogContent className="sm:max-w-[425px] bg-black/50 border-white/10" onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader><DialogTitle>Apagar {lojaToDelete?.nome}?</DialogTitle><DialogDescription>Esta ação é irreversível. Digita a tua senha de ADMIN para confirmar.</DialogDescription></DialogHeader>
                     <div className="grid gap-4 py-4"><Input type="password" placeholder="Senha do ADMIN" value={adminSenhaDelete} onChange={(e) => setAdminSenhaDelete(e.target.value)} className="bg-background" onKeyDown={(e) => e.key === 'Enter' && handleDeleteLoja()} /></div>
-                    <DialogFooter><Button className="bg-gray-500 hover:bg-gray-600 text-white" onClick={() => { setDeleteModalOpen(false); setAdminSenhaDelete(""); }}>Cancelar</Button><Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDeleteLoja} disabled={isDeleting || !adminSenhaDelete}>{isDeleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Apagar para sempre</Button></DialogFooter>
+                    <DialogFooter><Button className="bg-gray-500 hover:bg-gray-600 text-white" onClick={() => { setDeleteModalOpen(false); setAdminSenhaDelete(""); }}>Cancelar</Button><Button className="bg-red-600 hover:bg-red-700 text-white" onClick={handleDeleteLoja} disabled={isDeleting ||!adminSenhaDelete}>{isDeleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Apagar para sempre</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

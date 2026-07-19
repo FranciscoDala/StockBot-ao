@@ -181,13 +181,13 @@ export default function SelectLojaPage() {
             </p>
         </div>
 
-        {/* CARDS COM SCROLL-X NO MOBILE */}
+        {/* CARDS COM SCROLL-X NO MOBILE - 100% LARGURA */}
         <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible">
             {lojas.map((loja) => (
                 <Card
                     key={loja.id}
                     onClick={() => handleSelectLoja(loja)}
-                    className="p-6 cursor-pointer border-2 hover:bg-accent transition-all group disabled:opacity-50 disabled:cursor-not-allowed min-w-[85%] sm:min-w-[380px] md:min-w-0 snap-start"
+                    className="p-6 cursor-pointer border-2 hover:bg-accent transition-all group disabled:opacity-50 disabled:cursor-not-allowed min-w-full md:min-w-0 snap-start"
                     style={{ borderColor: 'var(--cor-primaria)' }} // BORDA PRIMARY
                 >
                     <div className="flex items-start justify-between mb-4">
@@ -203,7 +203,7 @@ export default function SelectLojaPage() {
                         <div className="flex flex-col gap-2 items-end">
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                 loja.is_active
-                                  ? "bg-green-500/20 text-green-500 border-green-500/30"
+                                 ? "bg-green-500/20 text-green-500 border-green-500/30"
                                     : "bg-red-500/20 text-red-500 border-red-500/30"
                             }`}>
                                 {loja.is_active? "Ativa" : "Inativa"}
