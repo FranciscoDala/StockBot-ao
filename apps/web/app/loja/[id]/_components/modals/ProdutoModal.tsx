@@ -169,7 +169,6 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.codigo_barras = null;
         }
 
-        console.log("3. ENVIANDO PRO BACK:", finalData)
         onSave(finalData); // << MANDA A URL JUNTO
     };
 
