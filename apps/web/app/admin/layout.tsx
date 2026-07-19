@@ -1,14 +1,37 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { LogOut, Sun, Moon } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Toaster } from "sonner";
-import { useState, useEffect } from "react";
+import { Building, AlertTriangle, Power, Palette, Store } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Zalando_Sans_Expanded } from "next/font/google"; // 👈 IMPORTA A FONTE
 
-const LOGIN_ROUTE = "/login";
+const zalando = Zalando_Sans_Expanded({ // 👈 DEFINE A FONTE
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-zalando",
+});
 
-// FUNÇÕES DE COOKIE
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+type Loja = {
+  id: string;
+  nome: string;
+  slug: string;
+  role: "dono" | "gerente" | "vendedor";
+  endereco?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+type UserTemp = {
+  id: string;
+  nome: string;
+  email: string;
+  nivel: "admin" | "gerente" | "vendedor" | "dono";
+}
+
 const getCookie = (name: string): string | undefined => {
     if (typeof document === "undefined") return undefined;
     return document.cookie.split('; ').reduce((r, v) => {
@@ -32,118 +55,236 @@ const deleteCookie = (name: string) => {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${secure}${sameSite}`;
 };
 
-// Aplica tema igual do LojaLayout
-const applyTheme = (theme: string, cardStyle: string, cardSize: string, font: string) => {
+const applyTheme = (theme: string, cardStyle: string, cardSize: string) => {
     const root = document.documentElement;
     const isDark = theme === 'dark';
     root.style.setProperty('--cor-fundo', isDark? '#0a0a0a' : '#f8fafc');
-    root.style.setProperty('--cor-card', isDark? '#111111' : '#ffffff');
-    root.style.setProperty('--cor-texto', isDark? '#f1f5f9' : '#1e293b');
+    root.style.setProperty('--cor-card', isDark? '#111111' : '#ffffff'); // 👈 CARD MUDA NO LIGHT
+    root.style.setProperty('--cor-texto', isDark? '#f1f5f9' : '#1e293b'); // 👈 TEXTO MUDA TAMBEM
     root.style.setProperty('--cor-texto-sec', isDark? '#94a3b8' : '#64748b');
     root.style.setProperty('--cor-primaria', '#10b981');
     root.style.setProperty('--radius', cardStyle === 'arredondado'? '16px' : '8px');
     root.style.setProperty('--padding-card', cardSize === 'grande'? '24px' : '16px');
-    root.style.setProperty('--font-zalando', font || 'Inter, sans-serif'); // 👈 fonte do body
     if(isDark) root.classList.add('dark'); else root.classList.remove('dark');
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const router = useRouter();
-    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
-    const [cardStyle, setCardStyle] = useState("arredondado");
-    const [cardSize, setCardSize] = useState("medio");
-    const [font, setFont] = useState("");
+export default function SelectLojaPage() {
+  const router = useRouter();
+  const [lojas, setLojas] = useState<Loja[]>([]);
+  const [user, setUser] = useState<UserTemp | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erroModalOpen, setErroModalOpen] = useState(false);
+  const [erroMsg, setErroMsg] = useState("");
+  const [theme, setTheme] = useState("dark");
+  const [cardStyle, setCardStyle] = useState("arredondado");
+  const [cardSize, setCardSize] = useState("medio");
+  const isMounted = useRef(true);
+  const isLoggingOut = useRef(false);
 
-    useEffect(() => {
-        // Lê do cookie igual LojaLayout
-        const savedTheme = getCookie("theme") || "dark";
-        const savedCardStyle = getCookie("card_style") || "arredondado";
-        const savedCardSize = getCookie("card_size") || "medio";
-        const savedFont = getCookie("font_family") || "Inter, sans-serif";
+  useEffect(() => {
+    isMounted.current = true;
+    const savedTheme = getCookie("theme") || "dark";
+    const savedCardStyle = getCookie("card_style") || "arredondado";
+    const savedCardSize = getCookie("card_size") || "medio";
+    setTheme(savedTheme); setCardStyle(savedCardStyle); setCardSize(savedCardSize);
+    applyTheme(savedTheme, savedCardStyle, savedCardSize);
+    return () => { isMounted.current = false }
+  }, [])
 
-        setTheme(savedTheme as 'dark' | 'light');
-        setCardStyle(savedCardStyle);
-        setCardSize(savedCardSize);
-        setFont(savedFont);
-        applyTheme(savedTheme, savedCardStyle, savedCardSize, savedFont);
-    }, []);
+  const handleSaveTheme = () => {
+    const newTheme = theme === 'dark'? 'light' : 'dark';
+    setTheme(newTheme);
+    setCookie("theme", newTheme);
+    applyTheme(newTheme, cardStyle, cardSize);
+  }
 
-    const toggleTheme = () => {
-        const newTheme = theme === 'dark'? 'light' : 'dark';
-        setTheme(newTheme);
-        setCookie("theme", newTheme);
-        applyTheme(newTheme, cardStyle, cardSize, font);
+  const handleTerminarSessao = () => {
+    isLoggingOut.current = true;
+    deleteCookie("temp_token");
+    deleteCookie("lojas_temp");
+    deleteCookie("user_temp");
+    window.onpopstate = null;
+    router.replace("/login");
+  }
+
+  useEffect(() => {
+    const tempToken = getCookie("temp_token");
+    const userStr = getCookie("user_temp");
+    if (!tempToken ||!userStr) {
+      handleTerminarSessao();
+      return;
+    }
+    const fetchLojas = async () => {
+      try {
+        const res = await fetch(`${API_URL}/lojas/minhas-temp`, {
+          headers: { "Authorization": `Bearer ${tempToken}` }
+        });
+        if (!res.ok) throw new Error("Erro ao buscar lojas");
+        const lojasReais = await res.json();
+        if(isMounted.current){
+            setLojas(lojasReais);
+            setUser(JSON.parse(userStr));
+            setLoading(false);
+            window.history.pushState(null, '', window.location.href);
+            window.history.pushState(null, '', window.location.href);
+            window.onpopstate = () => {
+              if(!isLoggingOut.current) {
+                window.history.pushState(null, '', window.location.href);
+              }
+            };
+        }
+      } catch {
+        handleTerminarSessao();
+      }
     };
+    fetchLojas();
+    return () => { window.onpopstate = null; }
+  }, [router]);
 
-    const handleLogout = () => {
-        deleteCookie('token');
-        deleteCookie('user');
-        deleteCookie('temp_token');
-        deleteCookie('lojas_temp');
-        deleteCookie('user_temp');
-        router.replace(LOGIN_ROUTE);
-    };
+  const handleSelectLoja = async (loja: Loja) => {
+    const tempToken = getCookie("temp_token");
+    try {
+      const res = await fetch(`${API_URL}/auth/select-loja`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tempToken}` },
+        body: JSON.stringify({ loja_id: loja.id })
+      });
+      if(!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Erro ao selecionar loja");
+      }
+      const data = await res.json();
+      if(isMounted.current){
+          window.onpopstate = null;
+          setCookie("token", data.access_token, 7);
+          setCookie("user", JSON.stringify(data.user), 7);
+          deleteCookie("temp_token");
+          deleteCookie("lojas_temp");
+          deleteCookie("user_temp");
+          router.push(`/loja/${loja.id}`);
+      }
+    } catch (err: any) {
+      if(isMounted.current) {
+        setErroMsg(err.message || "Não foi possível entrar na loja");
+        setErroModalOpen(true);
+      }
+    }
+  };
 
-    return (
-        <div
-            className="min-h-screen bg-fundo text-cor"
-            style={{ fontFamily: 'var(--font-zalando)' }} // 👈 AQUI aplica pro body todo
-        >
-            <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
+  if (loading) {
+    return <div className="flex items-center justify-center py-20" style={{backgroundColor: 'var(--cor-fundo)'}}><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{borderColor: 'var(--cor-primaria)'}}></div></div>
+  }
 
-                <header
-                    className="sticky top-0 z-20 w-full h-14 flex items-center justify-between px-0 border-b"
-                    style={{
-                        borderColor: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
-                        backgroundColor: 'var(--cor-fundo)',
-                        backdropFilter: 'blur(8px)',
-                        marginBottom: '10px'
-                    }}
-                >
-                    <div
-                        className="flex items-center justify-center font-bold shrink-0"
+  return (
+    <div
+        className={`min-h-screen ${zalando.variable}`} // 👈 APLICA A FONTE AQUI
+        style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', fontFamily: 'var(--font-zalando)'}} // 👈 FORÇA FONTE NO BODY
+    >
+        <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
+
+            <header
+                className="sticky top-0 z-20 w-full h-14 flex items-center justify-between px-0 border-b mb-6"
+                style={{
+                    borderColor: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
+                    backgroundColor: 'var(--cor-fundo)',
+                    backdropFilter: 'blur(8px)',
+                }}
+            >
+                <div className="flex items-center gap-3">
+                    <Store size={32} style={{color: 'var(--cor-primaria)'}} />
+                    <h2 className="text-2xl font-bold">Minhas Lojas</h2>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleSaveTheme}
+                        className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
                         style={{
-                            backgroundColor: 'var(--cor-primaria)15',
-                            color: 'var(--cor-primaria)',
-                            fontFamily: 'var(--font-zalando)', // PG continua com a fonte
+                            width: '40px',
+                            height: '40px',
+                            backgroundColor: 'var(--cor-card)',
+                            border: '1px solid var(--cor-primaria)40',
+                            borderRadius: 'var(--radius)',
+                            color: 'var(--cor-primaria)'
                         }}
                     >
-                        PG
-                    </div>
+                        <Palette size={20} />
+                    </button>
+                    <button
+                        onClick={handleTerminarSessao}
+                        className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
+                        style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: 'var(--radius)'
+                        }}
+                    >
+                        <Power size={20} color="#fff" strokeWidth={2.5} />
+                    </button>
+                </div>
+            </header>
 
-                    <div className="flex items-center gap-3 shrink-0">
-                        <button
-                            onClick={toggleTheme}
-                            className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
-                            style={{
-                                width: '40px',
-                                height: '40px',
-                                backgroundColor: 'var(--cor-card)',
-                                border: '1px solid var(--cor-primaria)40',
-                                borderRadius: 'var(--radius)',
-                                color: 'var(--cor-primaria)'
-                            }}
-                        >
-                            {theme === 'dark'? <Sun size={22} /> : <Moon size={22} />}
-                        </button>
+            <p className="text-sm mb-8" style={{color: 'var(--cor-texto-sec)'}}>Olá {user?.nome}, selecione uma loja para gerenciar</p>
 
-                        <button
-                            onClick={handleLogout}
-                            className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
-                            style={{
-                                width: '40px',
-                                height: '40px',
-                                borderRadius: 'var(--radius)'
-                            }}
-                        >
-                            <LogOut size={22} color="#fff" strokeWidth={2.5} />
-                        </button>
-                    </div>
-                </header>
-
-                {children}
-                <Toaster richColors position="top-right" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {lojas.map((loja) => (
+                    <button
+                        key={loja.id}
+                        onClick={() => handleSelectLoja(loja)}
+                        className="text-left transition-all group"
+                        style={{
+                            backgroundColor: 'var(--cor-card)', // 👈 AGORA MUDA COM TEMA
+                            color: 'var(--cor-texto)', // 👈 FORÇA TEXTO USAR VARIAVEL
+                            border: '1px solid var(--cor-primaria)20',
+                            borderRadius: 'var(--radius)',
+                            padding: 'var(--padding-card)'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
+                        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
+                    >
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                                <Building className="h-6 w-6 group-hover:scale-110 transition" style={{color: 'var(--cor-primaria)'}} />
+                                <h3 className="text-xl font-bold" style={{color: 'var(--cor-texto)'}}>{loja.nome}</h3> {/* 👈 TEXTO USA VARIAVEL */}
+                            </div>
+                            <div className="flex flex-col gap-2 items-end">
+                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                    loja.is_active? "bg-green-600 text-white" : "bg-red-600 text-white"
+                                }`}>
+                                    {loja.is_active? "Ativa" : "Inativa"}
+                                </span>
+                                <span className="px-3 py-1 rounded-full text-xs font-semibold border uppercase" style={{borderColor: 'var(--cor-primaria)30', color: 'var(--cor-texto-sec)'}}>
+                                    {loja.role}
+                                </span>
+                            </div>
+                        </div>
+                        <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>
+                            {loja.endereco || "Endereço não informado"}
+                        </p>
+                    </button>
+                ))}
             </div>
+
+            <Dialog open={erroModalOpen} onOpenChange={setErroModalOpen}>
+                <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
+                <DialogContent className="sm:max-w-[425px] border-red-500/50 z-50" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)'}}>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-red-500 text-xl">
+                            <AlertTriangle className="w-6 h-6" />
+                            Erro ao acessar loja
+                        </DialogTitle>
+                        <DialogDescription className="pt-2 text-base" style={{color: 'var(--cor-texto-sec)'}}>
+                            {erroMsg}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold" onClick={() => setErroModalOpen(false)}>
+                            Entendi
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
-    )
+    </div>
+  )
 }
