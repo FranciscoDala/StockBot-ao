@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { Building, AlertTriangle, Power, Palette, Store } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Zalando_Sans_Expanded } from "next/font/google"; // 👈 IMPORTA A FONTE
+import { Zalando_Sans_Expanded } from "next/font/google";
 
-const zalando = Zalando_Sans_Expanded({ // 👈 DEFINE A FONTE
+const zalando = Zalando_Sans_Expanded({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-zalando",
@@ -59,8 +59,8 @@ const applyTheme = (theme: string, cardStyle: string, cardSize: string) => {
     const root = document.documentElement;
     const isDark = theme === 'dark';
     root.style.setProperty('--cor-fundo', isDark? '#0a0a0a' : '#f8fafc');
-    root.style.setProperty('--cor-card', isDark? '#111111' : '#ffffff'); // 👈 CARD MUDA NO LIGHT
-    root.style.setProperty('--cor-texto', isDark? '#f1f5f9' : '#1e293b'); // 👈 TEXTO MUDA TAMBEM
+    root.style.setProperty('--cor-card', isDark? '#111111' : '#ffffff');
+    root.style.setProperty('--cor-texto', isDark? '#f1f5f9' : '#1e293b');
     root.style.setProperty('--cor-texto-sec', isDark? '#94a3b8' : '#64748b');
     root.style.setProperty('--cor-primaria', '#10b981');
     root.style.setProperty('--radius', cardStyle === 'arredondado'? '16px' : '8px');
@@ -98,6 +98,7 @@ export default function SelectLojaPage() {
     applyTheme(newTheme, cardStyle, cardSize);
   }
 
+  // MUDANÇA 1: Não apaga token principal. Só temp
   const handleTerminarSessao = () => {
     isLoggingOut.current = true;
     deleteCookie("temp_token");
@@ -110,10 +111,19 @@ export default function SelectLojaPage() {
   useEffect(() => {
     const tempToken = getCookie("temp_token");
     const userStr = getCookie("user_temp");
+    const mainToken = getCookie("token"); // MUDANÇA 2: verifica se já tem token
+
+    // MUDANÇA 3: Se já tem token principal, não precisa estar aqui. Manda pro admin
+    if (mainToken &&!tempToken) {
+        router.replace("/admin");
+        return;
+    }
+
     if (!tempToken ||!userStr) {
       handleTerminarSessao();
       return;
     }
+
     const fetchLojas = async () => {
       try {
         const res = await fetch(`${API_URL}/lojas/minhas-temp`, {
@@ -177,8 +187,8 @@ export default function SelectLojaPage() {
 
   return (
     <div
-        className={`min-h-screen ${zalando.variable}`} // 👈 APLICA A FONTE AQUI
-        style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', fontFamily: 'var(--font-zalando)'}} // 👈 FORÇA FONTE NO BODY
+        className={`min-h-screen ${zalando.variable}`}
+        style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', fontFamily: 'var(--font-zalando)'}}
     >
         <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
@@ -199,7 +209,6 @@ export default function SelectLojaPage() {
                     <button
                         onClick={handleSaveTheme}
                         className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
-
                         style={{
                             width: '40px',
                             height: '40px',
@@ -214,7 +223,6 @@ export default function SelectLojaPage() {
                     <button
                         onClick={handleTerminarSessao}
                         className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
-
                         style={{
                                 width: '40px',
                                 height: '40px',
@@ -238,8 +246,8 @@ export default function SelectLojaPage() {
                         onClick={() => handleSelectLoja(loja)}
                         className="text-left transition-all group"
                         style={{
-                            backgroundColor: 'var(--cor-card)', // 👈 AGORA MUDA COM TEMA
-                            color: 'var(--cor-texto)', // 👈 FORÇA TEXTO USAR VARIAVEL
+                            backgroundColor: 'var(--cor-card)',
+                            color: 'var(--cor-texto)',
                             border: '1px solid var(--cor-primaria)20',
                             borderRadius: 'var(--radius)',
                             padding: 'var(--padding-card)'
@@ -250,7 +258,7 @@ export default function SelectLojaPage() {
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <Building className="h-6 w-6 group-hover:scale-110 transition" style={{color: 'var(--cor-primaria)'}} />
-                                <h3 className="text-xl font-bold" style={{color: 'var(--cor-texto)'}}>{loja.nome}</h3> {/* 👈 TEXTO USA VARIAVEL */}
+                                <h3 className="text-xl font-bold" style={{color: 'var(--cor-texto)'}}>{loja.nome}</h3>
                             </div>
                             <div className="flex flex-col gap-2 items-end">
                                 <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
