@@ -235,7 +235,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
     const handleDonoChange = (field: string, value: string) => { setFormData(prev => ({ ...prev, dono: prev.dono ? { ...prev.dono, [field]: value } : null })); }
     const handleDonoNovoChange = (field: string, value: string) => { setFormData(prev => ({ ...prev, dono_novo: { ...prev.dono_novo, [field]: value } })); }
 
-    
+
     return (
         <div className="space-y-8">
             <style jsx global>{`.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}.hide-scrollbar::-webkit-scrollbar{display:none;}`}</style>
@@ -324,7 +324,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             </div>
 
             {/* KPIS COM SCROLL-X NO MOBILE */}
-            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible">
+            <div className="flex gap-4 overflow-x-auto pb-4 px-4 -mx-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-3 md:overflow-visible md:px-0 md:mx-0">
                 <Card className="border-white/10 bg-card/50 backdrop-blur-sm min-w-full md:min-w-0 snap-start">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total de Lojas</CardTitle>
@@ -360,7 +360,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             {/* CARDS LOJAS COM SCROLL-X NO MOBILE */}
             <div>
                 {loading ? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0 ? (<p>Nenhuma loja cadastrada ainda.</p>) : (
-                    <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible">
+                    <div className="flex gap-6 overflow-x-auto pb-4 px-4 -mx-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible md:px-0 md:mx-0">
                         {lojas.map((loja) => (
                             <Card key={loja.id} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 min-w-full md:min-w-0 snap-start">
                                 <CardHeader className="pb-4">
