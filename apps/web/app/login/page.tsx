@@ -190,22 +190,22 @@ export default function LoginPage() {
         <main className="flex min-h-screen items-center justify-center p-4 bg-black">
             <div className="w-full max-w-sm space-y-6 rounded-2xl border-zinc-800 bg-zinc-950 p-8 shadow-2xl shadow-green-900/20">
                 <div className="flex flex-col items-center gap-2">
-                    <Store className="h-30 w-30 text-green-500" />
+                    <Store className="h-20 w-20 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot-ao</h1>
-                    <p className="text-sm text-zinc-400">Com o stockbot gerências e controlas melhor a sua loja, acessar! </p>
+                    <p className="text-sm text-zinc-400">O melhor gernciador de lojas em Angola! </p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">
-                        <label className="flex items-center gap-2 text-sm text-zinc-300"><User size={16} /> email</label>
+                        <label className="flex items-center gap-2 text-sm text-zinc-300"><User size={16} /> E-mail</label>
                         <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full rounded-md border-zinc-700 bg-zinc-900 p-2 text-white focus:border-green-500 outline-none" required />
                     </div>
                     <div className="space-y-1">
-                        <label className="flex items-center gap-2 text-sm text-zinc-300"><Lock size={16} /> senha</label>
+                        <label className="flex items-center gap-2 text-sm text-zinc-300"><Lock size={16} /> Palavra-passe</label>
                         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-md border-zinc-700 bg-zinc-900 p-2 text-white focus:border-green-500 outline-none" required />
                     </div>
                     {error && <p className="text-sm text-red-500">{error}</p>}
                     <button type="submit" disabled={loading} className="w-full rounded-md bg-green-600 p-2 font-bold text-white disabled:opacity-50 hover:bg-green-500 transition">
-                        {loading? "entrando..." : "entrar"}
+                        {loading? "Acessando..." : "Acessar"}
                     </button>
                 </form>
             </div>
