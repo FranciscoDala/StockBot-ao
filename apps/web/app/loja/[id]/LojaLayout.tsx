@@ -1,5 +1,5 @@
 "use client";
-import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings, Power, Palette } from "lucide-react";
+import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings, Power, Palette, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const deleteCookie = (name: string) => {
@@ -46,16 +46,14 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                             width: '50px',
                             height: '50px',
                             backgroundColor: 'var(--cor-primaria)15',
-                            border: '2px solid var(--cor-primaria)',
-                            borderRadius: 'var(--radius)',
                             padding: '0 10px',
-                            fontSize: '1.2rem',
+                            fontSize: '1.5rem',
                             color: 'var(--cor-primaria)',
                             fontFamily: 'var(--font-zalando)',
                             textTransform: 'capitalize'
                         }}
                     >
-                        {initials}
+                        <Store className="h-10 w-10 text-green-500" />
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
@@ -88,7 +86,6 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                     </div>
                 </header>
 
-                {children}
             </div>
         </div>
     );
