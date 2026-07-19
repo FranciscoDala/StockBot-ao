@@ -192,7 +192,7 @@ export default function LoginPage() {
                 <div className="flex flex-col items-center gap-2">
                     <Store className="h-10 w-10 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot-ao</h1>
-                    <p className="text-sm text-zinc-400">use: admin@stockbot.ao / admin123</p>
+                    <p className="text-sm text-zinc-400">Com stockbot você gerencia e controlas melhor a sua loja, restaurante, bar, mini-mercados ou até mesmo seu cantinho a dintância! </p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">
