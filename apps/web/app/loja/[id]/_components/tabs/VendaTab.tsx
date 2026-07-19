@@ -1,12 +1,11 @@
 "use client";
 import { useMemo, useEffect, useCallback } from "react";
-import { Search, ShoppingCart, CreditCard, Banknote, Smartphone, ArrowLeft, PackageX, Printer } from "lucide-react";
+import { Search, ShoppingCart, CreditCard, Banknote, Smartphone, ArrowLeft, PackageX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmarModal } from "../modals/ConfirmacaoModal";
-import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
@@ -116,19 +115,19 @@ export function VendaTab({
     cardSize
 }: Props) {
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '24px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    //const padding = cardSize === 'grande' ? '24px' : '16px';
 
-    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
+    const getPreco = (item: CarrinhoItem) => item.preco_venda ?? item.preco ?? 0;
 
-    const gerarHeaderFactura = () => `
+    const gerarHeaderFactura = useCallback(() => `
         <div class="header">
             <h1>${nomeLoja.toUpperCase()}</h1>
             <p>${nifLoja}</p>
             <p>${enderecoLoja}</p>
         </div>
         <hr>
-    `
+    `, [nomeLoja, nifLoja, enderecoLoja])
 
     const handleImprimir = useCallback((venda: any) => {
         const itensHtml = venda.detalhes.map((item: ItemVenda) => `
@@ -145,7 +144,7 @@ export function VendaTab({
         <html lang="pt-AO">
         <head>
             <meta charset="UTF-8">
-            <title>Recibo #${venda.id.slice(0,8)}</title>
+            <title>Recibo #${venda.id.slice(0, 8)}</title>
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
@@ -163,7 +162,7 @@ export function VendaTab({
         <body onload="window.print()">
             ${gerarHeaderFactura()}
             <div class="info">
-                <p>RECIBO: #${venda.id.slice(0,8).toUpperCase()}</p>
+                <p>RECIBO: #${venda.id.slice(0, 8).toUpperCase()}</p>
                 <p>DATA: ${new Date(venda.data).toLocaleString('pt-AO')}</p>
             </div>
             <hr>
@@ -173,7 +172,7 @@ export function VendaTab({
             <div class="total"><span>TOTAL</span><span>${formatCurrency(venda.total)}</span></div>
             <hr>
             <p style="text-align:center">Tipo de Pagamento: ${venda.formaPagamento}</p>
-            <div className="footer"><p>Obrigado e volte sempre!</p></div>
+            <div class="footer"><p>Obrigado e volte sempre!</p></div>
         </body>
         </html>
         `;
@@ -183,11 +182,18 @@ export function VendaTab({
             printWindow.document.write(html);
             printWindow.document.close();
             printWindow.focus();
+            printWindow.onafterprint = () => printWindow.close(); // <- fecha sozinha
         }
     }, [formatCurrency, gerarHeaderFactura]);
 
     useEffect(() => {
-        if(vendaAtual){
+        if (formaPagamento !== "Dinheiro") {
+            setValorRecebido("")
+        }
+    }, [formaPagamento, setValorRecebido])
+
+    useEffect(() => {
+        if (vendaAtual) {
             handleImprimir(vendaAtual)
         }
     }, [vendaAtual, handleImprimir]);
@@ -206,7 +212,9 @@ export function VendaTab({
             }
             if (e.key === 'F2') {
                 e.preventDefault();
-                document.getElementById('busca-produto')?.focus();
+                if (window.innerWidth > 1024) { // <- só foca no desktop
+                    document.getElementById('busca-produto')?.focus();
+                }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -222,31 +230,56 @@ export function VendaTab({
     }, [produtos, busca]);
 
     return (
-        <div className="flex flex-col min-h-screen" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)'}}>
-            <div className="flex items-center justify-between p-3 border-b sticky top-0 z-20" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}>
-                <Button variant="ghost" onClick={onClose} className="hover:bg-neutral-800 gap-2 h-9" style={{color: 'var(--cor-texto)'}}>
+        <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+            <div className="flex items-center justify-between p-3 border-b sticky top-0 z-20" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                <Button
+                    variant="ghost"
+                    onClick={() => {
+                        setBusca(""); // limpa busca ao sair
+                        onClose();
+                    }}
+                    className="gap-2 h-9 transition"
+                    style={{
+                        color: 'var(--cor-texto)',
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--cor-primaria)';
+                        e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = 'var(--cor-texto)';
+                    }}
+                >
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
+                
                 <h2 className="font-bold text-base truncate max-w-[200px]">{nomeLoja}</h2>
-                <div className="text-xs hidden lg:block" style={{color: 'var(--cor-texto-sec)'}}>F2: Buscar | ESC: Sair</div>
+                <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Sair</div>
             </div>
             <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1">
                 <div className="lg:col-span-2 p-3">
-                    <div className="relative mb-3 sticky top-12 z-10 pb-2" style={{backgroundColor: 'var(--cor-fundo)'}}>
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{color: 'var(--cor-texto-sec)'}} />
+                    <div className="relative mb-3 sticky top-12 z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
                         <Input
                             id="busca-produto"
                             placeholder="Buscar produto... [F2]"
-                            className="pl-9 h-10 text-sm"
-                            style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}
+                            className="pl-9 h-10 text-base sm:text-sm" // <- text-base no mobile = 16px
+                            style={{
+                                backgroundColor: 'var(--cor-card)',
+                                color: 'var(--cor-texto)',
+                                border: '1px solid var(--cor-primaria)30',
+                                borderRadius: radius,
+                                fontSize: '16px' // <- força 16px pra não dar zoom no ios
+                            }}
                             value={busca}
                             onChange={(e) => setBusca(e.target.value)}
-                            autoFocus
+                        // autoFocus removido // <- TIRA ISSO
                         />
                     </div>
 
                     {produtosFiltrados.length === 0 && (
-                        <div className="flex flex-col items-center justify-center h-64" style={{color: 'var(--cor-texto-sec)'}}>
+                        <div className="flex flex-col items-center justify-center h-64" style={{ color: 'var(--cor-texto-sec)' }}>
                             <PackageX size={40} />
                             <p className="mt-2 text-sm">Nenhum produto encontrado</p>
                         </div>
@@ -254,7 +287,7 @@ export function VendaTab({
 
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
-                            const preco = p.preco_venda?? p.preco?? 0;
+                            const preco = p.preco_venda ?? p.preco ?? 0;
                             return (
                                 <button
                                     key={p.id}
@@ -269,19 +302,19 @@ export function VendaTab({
                                     onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
                                     onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
                                 >
-                                    <div className="relative w-full aspect-square" style={{backgroundColor: 'var(--cor-fundo)'}}>
-                                        {p.imagem_url? (
-                                            <img src={p.imagem_url.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
+                                    <div className="relative w-full aspect-square" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                                        {p.imagem_url ? (
+                                            <img src={p.imagem_url.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-xs" style={{color: 'var(--cor-primaria)', opacity: 0.3}}>Sem Img</div>
+                                            <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
                                         )}
-                                        {p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{backgroundColor: '#ef4444'}}>0</Badge>)}
-                                        {p.estoque > 0 && (<Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{backgroundColor: 'var(--cor-primaria)'}}>{p.estoque}</Badge>)}
+                                        {p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>)}
+                                        {p.estoque > 0 && (<Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>{p.estoque}</Badge>)}
                                     </div>
                                     <div className="p-2">
-                                        <h4 className="font-semibold text-xs truncate" style={{color: 'var(--cor-texto)'}}>{p.nome}</h4>
+                                        <h4 className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
                                         <div className="flex justify-between items-center mt-1">
-                                            <span className="font-bold text-xs" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco)}</span>
+                                            <span className="font-bold text-xs" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
                                         </div>
                                     </div>
                                 </button>
@@ -290,12 +323,12 @@ export function VendaTab({
                     </div>
                     {/* MOBILE CARRINHO */}
                     <div className="lg:hidden mt-4">
-                        <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{color: 'var(--cor-texto)'}}>
+                        <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}>
                             <ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}
                         </h3>
-                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}>
+                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
                             {carrinho.length === 0 && (
-                                <div className="flex flex-col items-center justify-center h-24" style={{color: 'var(--cor-texto-sec)'}}>
+                                <div className="flex flex-col items-center justify-center h-24" style={{ color: 'var(--cor-texto-sec)' }}>
                                     <ShoppingCart size={24} />
                                     <p className="mt-1 text-xs">Adiciona produtos na lista para fazer venda</p>
                                 </div>
@@ -307,14 +340,14 @@ export function VendaTab({
                                         key={item.id}
                                         onClick={() => confirmarRemoverItem(item)}
                                         className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
-                                        style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}}
+                                        style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}
                                     >
                                         <span className="text-xs font-bold w-8 text-center">{item.quantidade}</span>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-semibold truncate" style={{color: 'var(--cor-texto)'}}>{item.nome}</p>
-                                            <p className="text-xs font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco)}</p>
+                                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--cor-texto)' }}>{item.nome}</p>
+                                            <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</p>
                                         </div>
-                                        <p className="text-xs font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco * item.quantidade)}</p>
+                                        <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco * item.quantidade)}</p>
                                     </div>
                                 )
                             })}
@@ -322,50 +355,74 @@ export function VendaTab({
                     </div>
 
                     {/* MOBILE PAGAMENTO */}
-                    <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}>
+                    <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                            <SelectTrigger className="h-10 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}>
+                            <SelectTrigger className="h-10 text-sm" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius }}>
                                 <SelectValue />
                             </SelectTrigger>
-                            <SelectContent style={{backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30'}}>
-                                <SelectItem value="Dinheiro" style={{color: 'var(--cor-texto)'}}><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
-                                <SelectItem value="TPA" style={{color: 'var(--cor-texto)'}}><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
-                                <SelectItem value="Transferencia" style={{color: 'var(--cor-texto)'}}><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
+                            <SelectContent style={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30' }}>
+                                <SelectItem value="Dinheiro" style={{ color: 'var(--cor-texto)' }}><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
+                                <SelectItem value="TPA" style={{ color: 'var(--cor-texto)' }}><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
+                                <SelectItem value="Transferencia" style={{ color: 'var(--cor-texto)' }}><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
                             </SelectContent>
                         </Select>
 
                         {formaPagamento === "Dinheiro" && (
-                            <Input type="number" placeholder="Valor Recebido" className="h-10 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                            <Input
+                                type="text" // <- troca number por text
+                                inputMode="decimal" // <- abre teclado numérico no mobile
+                                placeholder="Valor Recebido"
+                                className="h-10 text-base sm:text-sm" // <- 16px no mobile
+                                style={{
+                                    backgroundColor: 'var(--cor-fundo)',
+                                    color: 'var(--cor-texto)',
+                                    border: '1px solid var(--cor-primaria)30',
+                                    borderRadius: radius,
+                                    fontSize: '16px' // <- impede zoom no ios
+                                }}
+                                value={valorRecebido}
+                                onChange={(e) => {
+                                    let val = e.target.value.replace(/[^0-9.,]/g, '') // só aceita número
+                                    val = val.replace(/,/g, '.') // transforma vírgula em ponto
+                                    val = val.replace(/(\..*)\./g, '$1') // só deixa 1 ponto
+                                    setValorRecebido(val)
+                                }}
+                            />
                         )}
                         {formaPagamento === "Dinheiro" && troco > 0 && (
-                            <div className="flex justify-between text-xs font-semibold" style={{color: '#fbbf24'}}><span>Troco</span><span>{formatCurrency(troco)}</span></div>
+                            <div className="flex justify-between text-xs font-semibold" style={{ color: '#fbbf24' }}>
+                                <span>Troco</span>
+                                <span>{formatCurrency(troco)}</span>
+                            </div>
                         )}
 
+
+
                         <div className="flex justify-between items-center">
-                            <span className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Total</span>
-                            <span className="font-bold text-lg" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(subtotal)}</span>
+                            <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total</span>
+                            <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(subtotal)}</span>
                         </div>
 
                         <Button
                             onClick={handleFinalizar}
                             disabled={!podeFinalizar || loadingVenda}
                             className="w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius}}
+                            style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
                         >
-                            {loadingVenda? "Finalizando..." : "Finalizar Venda"}
+                            {loadingVenda ? "Finalizando..." : "Finalizar Venda"}
                         </Button>
                     </div>
                 </div>
 
                 {/* DESKTOP CARRINHO */}
-                <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}>
-                    <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b" style={{color: 'var(--cor-texto)', borderColor: 'var(--cor-primaria)30'}}>
+                <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                    <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b" style={{ color: 'var(--cor-texto)', borderColor: 'var(--cor-primaria)30' }}>
                         <ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}
                     </h3>
 
                     <div className="flex-1 overflow-y-auto p-3 space-y-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {carrinho.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-full" style={{color: 'var(--cor-texto-sec)'}}>
+                            <div className="flex flex-col items-center justify-center h-full" style={{ color: 'var(--cor-texto-sec)' }}>
                                 <ShoppingCart size={32} />
                                 <p className="mt-2 text-xs">Vazio</p>
                             </div>
@@ -377,47 +434,74 @@ export function VendaTab({
                                     key={item.id}
                                     onClick={() => confirmarRemoverItem(item)}
                                     className="p-2.5 rounded-lg cursor-pointer hover:bg-red-950/30 transition-colors"
-                                    style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}}
+                                    style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}
                                 >
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="min-w-0">
-                                            <p className="font-semibold text-xs truncate" style={{color: 'var(--cor-texto)'}}>{item.nome}</p>
-                                            <p className="text-xs font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco)} x {item.quantidade}</p>
+                                            <p className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{item.nome}</p>
+                                            <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)} x {item.quantidade}</p>
                                         </div>
                                         <span className="text-sm font-bold">{item.quantidade}</span>
                                     </div>
                                     <div className="flex justify-end mt-1">
-                                        <p className="font-bold text-sm" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(preco * item.quantidade)}</p>
+                                        <p className="font-bold text-sm" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco * item.quantidade)}</p>
                                     </div>
                                 </div>
                             )
                         })}
                     </div>
 
-                    <div className="border-t p-3 space-y-2 mt-auto" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30'}}>
-                        <div className="flex justify-between text-xs"><span style={{color: 'var(--cor-texto-sec)'}}>Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span></div>
-                        <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(subtotal)}</span></div>
+                    <div className="border-t p-3 space-y-2 mt-auto" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                        <div className="flex justify-between text-xs"><span style={{ color: 'var(--cor-texto-sec)' }}>Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span></div>
+                        <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(subtotal)}</span></div>
 
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
-                            <SelectTrigger className="h-9 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}><SelectValue /></SelectTrigger>
-                            <SelectContent style={{backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30'}}>
-                                <SelectItem value="Dinheiro" style={{color: 'var(--cor-texto)'}}><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
-                                <SelectItem value="TPA" style={{color: 'var(--cor-texto)'}}><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
-                                <SelectItem value="Transferencia" style={{color: 'var(--cor-texto)'}}><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
+                            <SelectTrigger className="h-9 text-sm" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius }}><SelectValue /></SelectTrigger>
+                            <SelectContent style={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30' }}>
+                                <SelectItem value="Dinheiro" style={{ color: 'var(--cor-texto)' }}><Banknote size={14} className="inline mr-2" />Dinheiro</SelectItem>
+                                <SelectItem value="TPA" style={{ color: 'var(--cor-texto)' }}><CreditCard size={14} className="inline mr-2" />TPA</SelectItem>
+                                <SelectItem value="Transferencia" style={{ color: 'var(--cor-texto)' }}><Smartphone size={14} className="inline mr-2" />Transferência</SelectItem>
                             </SelectContent>
                         </Select>
 
                         {formaPagamento === "Dinheiro" && (
-                            <Input type="number" placeholder="Valor Recebido" className="h-9 text-sm" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}} value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} />
+                            <Input
+                                type="text"
+                                inputMode="decimal"
+                                placeholder="Valor Recebido"
+                                className="h-9 text-base sm:text-sm"
+                                style={{
+                                    backgroundColor: 'var(--cor-fundo)',
+                                    color: 'var(--cor-texto)',
+                                    border: '1px solid var(--cor-primaria)30',
+                                    borderRadius: radius,
+                                    fontSize: '16px'
+                                }}
+                                value={valorRecebido}
+                                onChange={(e) => {
+                                    let val = e.target.value.replace(/[^0-9.,]/g, '') // só aceita número
+                                    val = val.replace(/,/g, '.') // transforma vírgula em ponto
+                                    val = val.replace(/(\..*)\./g, '$1') // só deixa 1 ponto
+                                    setValorRecebido(val)
+                                }}
+                            />
                         )}
-                        {formaPagamento === "Dinheiro" && troco > 0 && (<div className="flex justify-between text-xs font-semibold" style={{color: '#fbbf24'}}><span>Troco</span><span>{formatCurrency(troco)}</span></div>)}
+                        {formaPagamento === "Dinheiro" && troco > 0 && (
+                            <div className="flex justify-between text-xs font-semibold" style={{ color: '#fbbf24' }}>
+                                <span>Troco</span>
+                                <span>{formatCurrency(troco)}</span>
+                            </div>
+                        )}
+
+
+
                         <Button
                             onClick={handleFinalizar}
                             disabled={!podeFinalizar || loadingVenda}
                             className="w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius}}
+                            style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
                         >
-                            {loadingVenda? "Finalizando..." : "Finalizar [Enter]"}
+                            {loadingVenda ? "Finalizando..." : "Finalizar [Enter]"}
                         </Button>
                     </div>
                 </div>
