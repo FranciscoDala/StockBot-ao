@@ -447,27 +447,30 @@ export default function LojaPage() {
                         role: payload.role,
                         is_active: payload.is_active,
                         senha_dono: payload.senha_dono,
-                        senha_confirmacao: payload.senha_confirmacao, // <- senha do dono
+                        senha_confirmacao: payload.senha_confirmacao, // <- confirmação da senha do DONO
                     };
                     // só manda senha se digitou nova senha
                     if (payload.senha && payload.senha.trim()) {
                         finalPayload.senha = payload.senha;
-                        finalPayload.senha_confirmacao = payload.senha; // confirmação da senha do user
+                        finalPayload.senha_confirmacao_user = payload.senha; // <- confirmação da senha do USER
                     }
-                    // só manda email se mudou
-                    if (payload.email && payload.email !== editingUser.email) {
+                    // só manda email se mudou E não estiver vazio
+                    if (payload.email && payload.email.trim() && payload.email !== editingUser.email) {
                         finalPayload.email = payload.email;
                     }
                 } else {
                     // CREATE: manda tudo. O back gera email automatico
                     finalPayload = {
                         nome: payload.nome,
+                        // NÃO MANDA EMAIL VAZIO. Se veio vazio, o back gera
+                        ...(payload.email && payload.email.trim() && { email: payload.email }),
                         senha: payload.senha,
-                        senha_confirmacao: payload.senha, // confirmação da senha do user novo
+                        senha_confirmacao: payload.senha, // <- confirmação da senha do USER
                         telefone: payload.telefone || null,
                         role: payload.role,
                         is_active: payload.is_active,
                         senha_dono: payload.senha_dono, // senha do dono
+                        senha_confirmacao_dono: payload.senha_confirmacao // <- confirmação da senha do DONO
                     };
                 }
 
