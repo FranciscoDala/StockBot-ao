@@ -360,9 +360,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             {/* CARDS LOJAS COM SCROLL-X NO MOBILE */}
             <div>
                 {loading ? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0 ? (<p>Nenhuma loja cadastrada ainda.</p>) : (
-                    <div className="flex gap-6 overflow-x-auto pb-4 px-4 -mx-4 hide-scrollbar snap-x snap-center md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible md:px-0 md:mx-0">
+                    <div className="flex gap-6 overflow-x-auto py-4 px-4 -mx-4 hide-scrollbar snap-x snap-center md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible md:px-0 md:mx-0">
                         {lojas.map((loja) => (
-                            <Card key={loja.id} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 min-w-full md:min-w-0 snap-start">
+
+                            <Card key={loja.id} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 min-w-[calc(100vw-2rem)] md:min-w-0 snap-center">
+
                                 <CardHeader className="pb-4">
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
