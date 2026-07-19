@@ -37,8 +37,12 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
             <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
                 <header
-                    className="flex items-center justify-between gap-3 mb-4 sm:mb-6 border-b pb-4"
-                    style={{ borderColor: 'var(--cor-primaria)20' }}
+                    className="sticky top-0 z-20 w-full h-14 flex items-center justify-between px-4 border-b"
+                    style={{
+                        borderColor: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
+                        backgroundColor: 'var(--cor-fundo)',
+                        backdropFilter: 'blur(8px)'
+                    }}
                 >
                     <div
                         className="flex items-center justify-center font-bold shrink-0"
@@ -48,7 +52,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                             fontFamily: 'var(--font-zalando)',
                         }}
                     >
-                        <Store size={50} />
+                        <Store size={40} />
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
@@ -56,8 +60,8 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                             onClick={() => handleSaveTheme({ theme: theme === 'dark'? 'light' : 'dark' })}
                             className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
                             style={{
-                                width: '50px',
-                                height: '50px',
+                                width: '40px',
+                                height: '40px',
                                 backgroundColor: 'var(--cor-card)',
                                 border: '1px solid var(--cor-primaria)40',
                                 borderRadius: 'var(--radius)',
@@ -71,8 +75,8 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                             onClick={handleSair}
                             className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
                             style={{
-                                width: '50px',
-                                height: '50px',
+                                width: '40px',
+                                height: '40px',
                                 borderRadius: 'var(--radius)'
                             }}
                         >
