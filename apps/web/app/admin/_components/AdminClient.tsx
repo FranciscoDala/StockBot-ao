@@ -56,7 +56,6 @@ const emptyForm: FormData = {
     dono: null, adminSenha: ""
 };
 
-// PADRONIZADO IGUAL LOGIN
 const getCookie = (name: string): string | undefined => {
     if (typeof document === "undefined") return undefined;
     return document.cookie.split('; ').reduce((r, v) => {
@@ -165,7 +164,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if(res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setFormData({
-             ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
+            ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
                 endereco: data.endereco || "", modoDono: 'existente',
                 dono: data.gerente? {...data.gerente, telefone: data.gerente.telefone?? "" } : null
             });
@@ -252,7 +251,6 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                     <Plus className="w-4 h-4" /> Nova Loja
                 </Button>
 
-                {/* SEU DIALOG FICOU IGUAL */}
                 <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingLoja(null); setFormData(emptyForm) } }}>
                     <DialogContent className="sm:max-w-[600px] bg-black/50 border-white/10 p-0 flex-col max-h-[85vh]" style={{ backdropFilter: 'blur(10px)' }}>
                         <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
@@ -323,7 +321,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 </Dialog>
             </div>
 
-            {/* KPIS NOVOS */}
+            {/* KPIS */}
             <div className="grid gap-4 md:grid-cols-3">
                 <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -357,12 +355,12 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 </Card>
             </div>
 
-            {/* CARDS NOVOS */}
+            {/* CARDS COM SCROLL-X NO MOBILE */}
             <div>
                 {loading? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500"/></div>) : lojas.length === 0? (<p>Nenhuma loja cadastrada ainda.</p>) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-2 xl:grid-cols-3 md:overflow-visible">
                         {lojas.map((loja) => (
-                            <Card key={loja.id} className="group flex flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300">
+                            <Card key={loja.id} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 min-w-[85%] sm:min-w-[400px] md:min-w-0 snap-start">
                                 <CardHeader className="pb-4">
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
@@ -391,10 +389,10 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                         </div>
                                     )}
                                 </CardContent>
-                                <div className="p-4 pt-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="p-4 pt-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100">
                                     <Link href={`/admin/empresas/${loja.slug}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }), "flex-1 gap-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10")}>
                                         <Eye size={14} /> Ver
-                                    </Link>
+                                    </button>
                                     <Button size="sm" variant="outline" className="flex-1 gap-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10" onClick={() => handleOpenModal(loja)}>
                                         <Edit size={14} /> Editar
                                     </Button>
@@ -408,7 +406,6 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 )}
             </div>
 
-            {/* SEUS MODAIS FICARAM IGUAIS */}
             <Dialog open={confirmModalOpen} onOpenChange={(v) => { if (!v) { setConfirmModalOpen(false); setFormData(prev => ({...prev, adminSenha: "" })) } }}>
                 <DialogContent className="sm:max-w-[425px] bg-black/50 border-white/10" onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-yellow-500" />Confirmar Edição</DialogTitle><DialogDescription>Para editar esta loja, digite a sua senha de ADMIN.</DialogDescription></DialogHeader>

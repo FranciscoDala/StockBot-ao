@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Building, AlertTriangle } from "lucide-react";
+import { Building, AlertTriangle, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -53,6 +54,7 @@ export default function SelectLojaPage() {
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [user, setUser] = useState<UserTemp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selecting, setSelecting] = useState<string | null>(null);
   const [erroModalOpen, setErroModalOpen] = useState(false);
   const [erroMsg, setErroMsg] = useState("");
   const isMounted = useRef(true);
@@ -114,6 +116,7 @@ export default function SelectLojaPage() {
   }, [router]);
 
   const handleSelectLoja = async (loja: Loja) => {
+    setSelecting(loja.id);
     const tempToken = getCookie("temp_token");
     try {
       const res = await fetch(`${API_URL}/auth/select-loja`, {
@@ -143,6 +146,7 @@ export default function SelectLojaPage() {
 
     } catch (err: any) {
       if(isMounted.current) {
+        setSelecting(null);
         setErroMsg(err.message || "Não foi possível entrar na loja");
         setErroModalOpen(true);
       }
@@ -150,64 +154,86 @@ export default function SelectLojaPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div></div>
+    return <div className="flex items-center justify-center py-20"><Loader2 className="animate-spin h-12 w-12 text-primary" /></div>
   }
 
   return (
-    <div>
-        <div className="flex items-center justify-between mb-2">
-            <h3 className="text-3xl font-bold">Minhas Lojas</h3>
+    <div className="space-y-8">
+        <style jsx global>{`.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}.hide-scrollbar::-webkit-scrollbar{display:none;}`}</style>
+
+        {/* OVERLAY SPINNER */}
+        {selecting && (
+            <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                    <p className="text-foreground text-lg font-semibold">Carregando loja...</p>
+                </div>
+            </div>
+        )}
+
+        <div>
+            <div className="flex items-center justify-between mb-2">
+                <h3 className="text-3xl font-bold tracking-tight">Minhas Lojas</h3>
+            </div>
+            <p className="text-muted-foreground mb-8">
+                Olá <b className="text-primary"> {user?.nome}</b>,
+                selecione uma loja para gerenciar
+            </p>
         </div>
-        <p className="text-zinc-400 mb-8">Olá
-            <b style={{color: 'var(--cor-primaria)'}}>{user?.nome}</b>,
-            selecione uma loja para gerenciar
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* CARDS COM SCROLL-X NO MOBILE */}
+        <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible">
             {lojas.map((loja) => (
-                <button
+                <Card
                     key={loja.id}
                     onClick={() => handleSelectLoja(loja)}
-                    className="text-left rounded-xl border-zinc-800 bg-zinc-950 p-6 hover:border-green-500 hover:bg-zinc-900 transition-all group"
-                    style={{
-                        border: '1px solid var(--cor-primaria)40'
-                    }}
+                    className="p-6 cursor-pointer border-2 hover:bg-accent transition-all group disabled:opacity-50 disabled:cursor-not-allowed min-w-[85%] sm:min-w-[380px] md:min-w-0 snap-start"
+                    style={{ borderColor: 'var(--cor-primaria)' }} // BORDA PRIMARY
                 >
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">
-                            <Building className="h-6 w-6 text-green-500 group-hover:scale-110 transition" />
-                            <h3 className="text-xl font-bold">{loja.nome}</h3>
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Building className="h-6 w-6 text-primary group-hover:scale-110 transition" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold">{loja.nome}</h3>
+                                <p className="text-xs text-muted-foreground">/{loja.slug}</p>
+                            </div>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
                             <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                loja.is_active? "bg-green-600 text-white" : "bg-red-600 text-white"
+                                loja.is_active
+                                  ? "bg-green-500/20 text-green-500 border-green-500/30"
+                                    : "bg-red-500/20 text-red-500 border-red-500/30"
                             }`}>
                                 {loja.is_active? "Ativa" : "Inativa"}
                             </span>
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold border-zinc-700 text-zinc-300">
+                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground capitalize">
                                 {loja.role}
                             </span>
                         </div>
                     </div>
-                    <p className="text-sm text-zinc-400">
+                    <p className="text-sm text-muted-foreground">
                         {loja.endereco || "Endereço não informado"}
                     </p>
-                </button>
+                </Card>
             ))}
         </div>
+
         <Dialog open={erroModalOpen} onOpenChange={setErroModalOpen}>
-            <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
-            <DialogContent className="sm:max-w-[425px] bg-zinc-950/85 backdrop-blur-xl border-red-500/50 z-50">
+            <DialogOverlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md" />
+            <DialogContent className="sm:max-w-[425px] bg-card border-destructive">
                 <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-red-500 text-xl">
+                    <DialogTitle className="flex items-center gap-2 text-destructive text-xl">
                         <AlertTriangle className="w-6 h-6" />
                         Erro ao acessar loja
                     </DialogTitle>
-                    <DialogDescription className="text-zinc-300 pt-2 text-base">
+                    <DialogDescription className="text-muted-foreground pt-2 text-base">
                         {erroMsg}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold" onClick={() => setErroModalOpen(false)}>
+                    <Button variant="destructive" className="w-full font-bold" onClick={() => setErroModalOpen(false)}>
                         Entendi
                     </Button>
                 </DialogFooter>
