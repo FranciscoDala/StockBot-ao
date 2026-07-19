@@ -123,9 +123,19 @@ async def listar_usuarios(
 
     result = await db.execute(stmt)
     return [
-        UsuarioLojaOut.model_validate({**u.__dict__, **ul.__dict__, "loja_id": ul.loja_id})
+        UsuarioLojaOut.model_validate({
+            "id": ul.usuario_id,
+            "nome": u.nome,
+            "email": u.email,
+            "telefone": ul.telefone or u.telefone,
+            "role": ul.role,
+            "is_active": ul.is_active,
+            "loja_id": ul.loja_id,
+            "usuario_id": ul.usuario_id
+        })
         for u, ul in result.all()
     ]
+
 
 @router.get("/{user_id}", response_model=UsuarioLojaOut)
 async def ler_usuario(

@@ -165,7 +165,7 @@ export default function LojaPage() {
                     .filter((u: any) => String(u.role).toUpperCase() !== "ADMIN")
                     .map((u: any) => ({
                         ...u,
-                        id: u.usuario_id, // <- ESSA É A LINHA QUE FALTAVA
+                        id: u.id,
                         role: String(u.role).toUpperCase() as UserRole
                     }))
                 : [];
@@ -227,12 +227,50 @@ export default function LojaPage() {
         } catch (err: any) { toast.error(err.message || "Erro ao finalizar"); setShowConfirmarFinalizar(true); } finally { setLoadingVenda(false); }
     };
 
+
     const openModal = (type: 'user' | 'produto', data: UsuarioLoja | ProdutoType | null = null) => {
         setErrorMsg(""); setModalType(type);
-        if (type === 'user') { setEditingUser(data as UsuarioLoja | null); setFormDataUser({ nome: (data as UsuarioLoja)?.nome || "", email: (data as UsuarioLoja)?.email || "", senha: "", telefone: (data as UsuarioLoja)?.telefone || "", role: ((data as UsuarioLoja)?.role?.toUpperCase() as UserRole) || "VENDEDOR", is_active: (data as UsuarioLoja)?.is_active ?? true }); }
-        else { setEditingProduto(data as ProdutoType | null); setFormDataProduto({ ...formDataProduto, nome: (data as ProdutoType)?.nome || "", sku: (data as ProdutoType)?.sku || "", preco: (data as ProdutoType)?.preco || 0, preco_custo: (data as ProdutoType)?.preco_custo || 0, estoque: (data as ProdutoType)?.estoque || 0, estoque_minimo: (data as ProdutoType)?.estoque_minimo || 5, is_active: (data as ProdutoType)?.is_active ?? true, loja_id: (data as ProdutoType)?.loja_id || user?.loja_id || "", descricao: (data as ProdutoType)?.descricao || "", codigo_barras: (data as ProdutoType)?.codigo_barras || null, marca: (data as ProdutoType)?.marca || "", categoria_id: (data as ProdutoType)?.categoria_id || null, unidade: (data as ProdutoType)?.unidade || "UN", localizacao: (data as ProdutoType)?.localizacao || "", fornecedor_id: (data as ProdutoType)?.fornecedor_id || null, data_validade: (data as ProdutoType)?.data_validade || "", ncm: (data as ProdutoType)?.ncm || "", peso_kg: (data as ProdutoType)?.peso_kg || 0, imagem_url: (data as ProdutoType)?.imagem_url || "" }); }
+        if (type === 'user') {
+            console.log("ABRINDO MODAL COM:", data)
+            setEditingUser(data as UsuarioLoja | null);
+            setFormDataUser({
+                nome: (data as UsuarioLoja)?.nome || "",
+                email: (data as UsuarioLoja)?.email || "",
+                senha: "",
+                telefone: (data as UsuarioLoja)?.telefone || "",
+                role: ((data as UsuarioLoja)?.role?.toUpperCase() as UserRole) || "VENDEDOR",
+                is_active: (data as UsuarioLoja)?.is_active ?? true
+            });
+        }
+        else {
+            setEditingProduto(data as ProdutoType | null);
+            setFormDataProduto({
+                ...formDataProduto,
+                nome: (data as ProdutoType)?.nome || "",
+                sku: (data as ProdutoType)?.sku || "",
+                preco: (data as ProdutoType)?.preco || 0,
+                preco_custo: (data as ProdutoType)?.preco_custo || 0,
+                estoque: (data as ProdutoType)?.estoque || 0,
+                estoque_minimo: (data as ProdutoType)?.estoque_minimo || 5,
+                is_active: (data as ProdutoType)?.is_active ?? true,
+                loja_id: (data as ProdutoType)?.loja_id || user?.loja_id || "",
+                descricao: (data as ProdutoType)?.descricao || "",
+                codigo_barras: (data as ProdutoType)?.codigo_barras || null,
+                marca: (data as ProdutoType)?.marca || "",
+                categoria_id: (data as ProdutoType)?.categoria_id || null,
+                unidade: (data as ProdutoType)?.unidade || "UN",
+                localizacao: (data as ProdutoType)?.localizacao || "",
+                fornecedor_id: (data as ProdutoType)?.fornecedor_id || null,
+                data_validade: (data as ProdutoType)?.data_validade || "",
+                ncm: (data as ProdutoType)?.ncm || "",
+                peso_kg: (data as ProdutoType)?.peso_kg || 0,
+                imagem_url: (data as ProdutoType)?.imagem_url || ""
+            });
+        }
         setShowModal(true);
     };
+
+
 
     const handleAddUserClick = () => {
         setAcaoPendente({
