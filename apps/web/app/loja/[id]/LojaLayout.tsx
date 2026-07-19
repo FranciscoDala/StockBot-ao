@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings, Power, Palette, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ConfirmarModal } from "@/components/ConfirmarModal";
+import { ConfirmarModal } from "@/app/loja/[id]/_components/modals/ConfirmacaoModal";
 
 const deleteCookie = (name: string) => {
     if (typeof window === "undefined") return;
@@ -27,8 +27,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
     const router = useRouter();
     const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-    // Agora não recebe senha e não chama API
-    const handleConfirmarLogout = () => {
+    const handleSair = () => {
         deleteCookie("token");
         deleteCookie("user");
         router.replace("/login");
@@ -94,11 +93,11 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                 {children}
             </div>
 
-            {/* Modal só pra confirmar, sem senha */}
+            {/* Modal de confirmação de logout - sem senha */}
             <ConfirmarModal
                 open={showLogoutModal}
                 onClose={() => setShowLogoutModal(false)}
-                onConfirm={handleConfirmarLogout}
+                onConfirm={handleSair}
                 titulo="Sair da Loja"
                 descricao="Tem certeza que deseja sair? Você precisará fazer login novamente para acessar."
                 loading={false}
