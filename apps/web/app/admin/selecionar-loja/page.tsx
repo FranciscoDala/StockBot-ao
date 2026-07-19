@@ -173,7 +173,7 @@ export default function SelectLojaPage() {
 
         <div>
             <div className="flex items-center justify-between mb-2">
-                <h3 className="text-3xl font-bold tracking-tight">Minhas Lojas</h3>
+                <h3 className="text-2xl font-bold tracking-tight">Minhas Lojas</h3>
             </div>
             <p className="text-muted-foreground mb-8">
                 Olá <b className="text-primary"> {user?.nome}</b>,
@@ -182,7 +182,7 @@ export default function SelectLojaPage() {
         </div>
 
         {/* CARDS COM SCROLL-X NO MOBILE - 100% LARGURA */}
-        <div className="flex gap-6 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory md:grid md:grid-cols-2 md:overflow-visible">
+        <div className="flex gap-4 overflow-x-auto pb-4 px-4 -mx-4 hide-scrollbar snap-x snap-center md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:mx-0">
             {lojas.map((loja) => (
                 <Card
                     key={loja.id}
