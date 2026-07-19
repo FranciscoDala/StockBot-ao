@@ -254,7 +254,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 `}</style>
 
             {/* HEADER */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-3">
                 <div>
                     <h3 className="text-2xl font-bold tracking-tight flex items-center gap-3">
                         Painel Administrativo
@@ -263,7 +263,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 </div>
 
                 <Button onClick={() => handleOpenModal()} className="gap-2 w-full md:w-auto bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20 transition-all">
-                    <Plus className="w-4 h-4" /> Nova Loja
+                    <Plus className="w-4 h-4" /> Adicionar Loja
                 </Button>
 
                 <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingLoja(null); setFormData(emptyForm) } }}>
@@ -338,7 +338,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 
             {/* KPIS - MOBILE SCROLL | DESKTOP GRID */}
             {/* MOBILE */}
-            <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-4">
+            <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-0">
                 <div className="flex w-max gap-4">
                     <Card className="border-white/10 bg-card/50 backdrop-blur-sm w-[calc(100vw-32px)] snap-center shrink-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -411,7 +411,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 {loading? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0? (<p>Nenhuma loja cadastrada ainda.</p>) : (
                     <>
                         {/* MOBILE: SCROLL HORIZONTAL */}
-                        <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-4">
+                        <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-0">
                             <div className="flex w-max gap-6">
                                 {lojas.map((loja) => (
                                     <Card key={`mobile-${loja.id}`} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 w-[calc(100vw-32px)] snap-center shrink-0">
