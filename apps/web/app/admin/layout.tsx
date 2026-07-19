@@ -191,14 +191,15 @@ export default function SelectLojaPage() {
                 }}
             >
                 <div className="flex items-center gap-3">
-                    <Store size={32} style={{color: 'var(--cor-primaria)'}} />
-                    <h2 className="text-2xl font-bold">Minhas Lojas</h2>
+                    <Store size={40} style={{color: 'var(--cor-primaria)'}} />
+                    <h2 className="text-2xl font-bold"></h2>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleSaveTheme}
                         className="p-0 hover:scale-110 transition-transform flex items-center justify-center"
+
                         style={{
                             width: '40px',
                             height: '40px',
@@ -208,23 +209,27 @@ export default function SelectLojaPage() {
                             color: 'var(--cor-primaria)'
                         }}
                     >
-                        <Palette size={20} />
+                        <Palette size={22} />
                     </button>
                     <button
                         onClick={handleTerminarSessao}
                         className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
+
                         style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: 'var(--radius)'
-                        }}
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: 'var(--radius)'
+                            }}
                     >
-                        <Power size={20} color="#fff" strokeWidth={2.5} />
+                        <Power size={22} color="#fff" strokeWidth={2.5} />
                     </button>
                 </div>
             </header>
 
-            <p className="text-sm mb-8" style={{color: 'var(--cor-texto-sec)'}}>Olá {user?.nome}, selecione uma loja para gerenciar</p>
+            <p className="text-sm mb-8"
+                style={{color: 'var(--cor-texto-sec)'}}>
+                    Olá <b style={{color: 'var(--cor-primaria)'}}>{user?.nome}</b>, selecione uma loja para gerenciar
+            </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {lojas.map((loja) => (
