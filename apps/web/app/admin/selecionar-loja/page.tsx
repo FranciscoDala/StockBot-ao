@@ -155,16 +155,22 @@ export default function SelectLojaPage() {
 
   return (
     <div>
-        <div className="flex items-center justify-between mb-6">
-            <h2 className="text-3xl font-bold">Minhas Lojas</h2>
+        <div className="flex items-center justify-between mb-2">
+            <h3 className="text-3xl font-bold">Minhas Lojas</h3>
         </div>
-        <p className="text-zinc-400 mb-8">Olá {user?.nome}, selecione uma loja para gerenciar</p>
+        <p className="text-zinc-400 mb-8">Olá
+            <b style={{color: 'var(--cor-primaria)'}}>{user?.nome}</b>,
+            selecione uma loja para gerenciar
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {lojas.map((loja) => (
                 <button
                     key={loja.id}
                     onClick={() => handleSelectLoja(loja)}
                     className="text-left rounded-xl border-zinc-800 bg-zinc-950 p-6 hover:border-green-500 hover:bg-zinc-900 transition-all group"
+                    style={{
+                        border: '1px solid var(--cor-primaria)40'
+                    }}
                 >
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-center gap-3">

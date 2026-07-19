@@ -17,7 +17,7 @@ import {
     DialogFooter,
     DialogClose,
 } from "@/components/ui/dialog";
-import { Shield, Store, Users, Plus, Edit, Eye, User, Loader2, Trash2, AlertTriangle } from "lucide-react";
+import { Shield, Store, Users, Plus, Edit, Eye, User, Loader2, Trash2, AlertTriangle, Mail, MapPin, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -79,7 +79,7 @@ const clearAllAuth = () => {
 export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIniciais: Loja[], donosIniciais: Dono[] }) {
     const [lojas, setLojas] = useState<Loja[]>(lojasIniciais || []);
     const [donos, setDonos] = useState<Dono[]>(donosIniciais || []);
-    const [loading, setLoading] = useState(true); // 👈 MUDANÇA 1: COMEÇA TRUE
+    const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [open, setOpen] = useState(false);
     const [editingLoja, setEditingLoja] = useState<Loja | null>(null);
@@ -98,12 +98,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         router.replace(LOGIN_ROUTE);
     };
 
-    // BUSCAR TUDO 1 VEZ SÓ + TIMEOUT
     useEffect(() => {
         const token = getCookie("token");
         if (!token) return handleTerminarSessao();
 
-        let timeout = setTimeout(() => { // 👈 ANTI-TRAVAMENTO 4s
+        let timeout = setTimeout(() => {
             toast.error("Tempo de resposta excedido");
             handleTerminarSessao();
         }, 4000);
@@ -128,12 +127,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 console.error(err);
                 handleTerminarSessao();
             } finally {
-                setLoading(false); // 👈 SEMPRE PARA O SPINNER
+                setLoading(false);
             }
         }
         loadData();
 
-        // TRAVA DE VOLTAR
         window.history.pushState(null, '', window.location.href);
         const handlePopState = () => {
             if (!isLoggingOut.current) {
@@ -144,7 +142,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         return () => { window.removeEventListener('popstate', handlePopState); clearTimeout(timeout) }
     }, [router]);
 
-    const refreshData = async () => { // 👈 MUDANÇA 2: TRATA 401 AQUI TAMBEM
+    const refreshData = async () => {
         const token = getCookie("token");
         if (!token) return handleTerminarSessao();
         try {
@@ -167,7 +165,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if(res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setFormData({
-              ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
+             ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
                 endereco: data.endereco || "", modoDono: 'existente',
                 dono: data.gerente? {...data.gerente, telefone: data.gerente.telefone?? "" } : null
             });
@@ -208,7 +206,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Erro ao salvar loja'); }
             toast.success(isEditing? "Loja atualizada" : "Loja criada");
             setOpen(false); setConfirmModalOpen(false); setEditingLoja(null); setFormData(emptyForm);
-            await refreshData(); // 👈
+            await refreshData();
         } catch (err: any) { toast.error(err.message || "Erro ao salvar loja. Verifique o slug/email."); }
         finally { setIsSaving(false); setFormData(prev => ({...prev, adminSenha: "" })); }
     }
@@ -226,7 +224,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (res.status === 403) { toast.error("Senha do ADMIN incorreta"); setIsDeleting(false); return; }
             if (!res.ok) throw new Error("Erro ao apagar loja");
             toast.success(`Loja ${lojaToDelete.nome} apagada`);
-            setDeleteModalOpen(false); setLojaToDelete(null); setAdminSenhaDelete(""); await refreshData(); // 👈
+            setDeleteModalOpen(false); setLojaToDelete(null); setAdminSenhaDelete(""); await refreshData();
         } catch (err: any) { toast.error(err.message); } finally { setIsDeleting(false); }
     };
 
@@ -238,18 +236,23 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
     const handleDonoNovoChange = (field: string, value: string) => { setFormData(prev => ({...prev, dono_novo: {...prev.dono_novo, [field]: value }})); }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <style jsx global>{`.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}.hide-scrollbar::-webkit-scrollbar{display:none;}`}</style>
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+
+            {/* HEADER */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-6">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2"><Shield className="w-8 h-8 text-green-500" />Painel Admin</h1>
-                    <p className="text-muted-foreground">Gestão de todas as lojas da plataforma</p>
+                    <h3 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+                        <Shield className="w-8 h-8 text-green-500" /> Painel Admin
+                    </h3>
+                    <p className="text-muted-foreground mt-1">Gestão centralizada de todas as lojas da plataforma</p>
                 </div>
 
-                <Button onClick={() => handleOpenModal()} className="gap-2 w-full md:w-auto bg-green-600 hover:bg-green-700 text-white shadow-md">
+                <Button onClick={() => handleOpenModal()} className="gap-2 w-full md:w-auto bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/20 transition-all">
                     <Plus className="w-4 h-4" /> Nova Loja
                 </Button>
 
+                {/* SEU DIALOG FICOU IGUAL */}
                 <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setEditingLoja(null); setFormData(emptyForm) } }}>
                     <DialogContent className="sm:max-w-[600px] bg-black/50 border-white/10 p-0 flex-col max-h-[85vh]" style={{ backdropFilter: 'blur(10px)' }}>
                         <form onSubmit={handleSubmitForm} className="flex flex-col flex-1 min-h-0">
@@ -320,22 +323,84 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 </Dialog>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0"><CardTitle className="text-sm font-medium">Total de Lojas</CardTitle><Store className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{lojas.length}</div></CardContent></Card>
-                <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-0"><CardTitle className="text-sm font-medium">Lojas Ativas</CardTitle><Users className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{lojas.filter((l) => l.is_active).length}</div></CardContent></Card>
+            {/* KPIS NOVOS */}
+            <div className="grid gap-4 md:grid-cols-3">
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Total de Lojas</CardTitle>
+                        <Store className="h-5 w-5 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{lojas.length}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Cadastradas na plataforma</p>
+                    </CardContent>
+                </Card>
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Ativas</CardTitle>
+                        <TrendingUp className="h-5 w-5 text-green-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{lojas.filter((l) => l.is_active).length}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Operando agora</p>
+                    </CardContent>
+                </Card>
+                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Inativas</CardTitle>
+                        <Users className="h-5 w-5 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-3xl font-bold">{lojas.filter((l) =>!l.is_active).length}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Precisam de atenção</p>
+                    </CardContent>
+                </Card>
             </div>
 
+            {/* CARDS NOVOS */}
             <div>
                 {loading? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500"/></div>) : lojas.length === 0? (<p>Nenhuma loja cadastrada ainda.</p>) : (
-                    <div className="grid grid-flow-col auto-cols-[100%] sm:auto-cols-[calc(50%-0.5rem)] md:auto-cols-[calc(33.333%-0.666rem)] lg:auto-cols-[calc(25%-0.75rem)] gap-4 overflow-x-auto pb-2 hide-scrollbar snap-x snap-mandatory">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {lojas.map((loja) => (
-                            <Card key={loja.id} className="flex flex-col hover:border-green-500 transition-colors snap-start">
-                                <CardHeader><div className="flex justify-between items-start"><Store className="w-6 h-6 text-green-500" /><Badge variant={loja.is_active? "default" : "secondary"} className={loja.is_active? "bg-green-600 hover:bg-green-700" : ""}>{loja.is_active? "Ativa" : "Inativa"}</Badge></div><CardTitle className="pt-2">{loja.nome}</CardTitle><CardDescription>/{loja.slug}</CardDescription></CardHeader>
-                                <CardContent className="flex-grow space-y-2 text-sm"><div className="flex items-center gap-2 text-muted-foreground"><User size={14} /><span>{loja.gerente?.nome?? "Sem dono"}</span></div><div className="text-xs text-muted-foreground break-all">{loja.gerente?.email?? "-"}</div></CardContent>
-                                <div className="p-4 pt-0 flex gap-2">
-                                    <Link href={`/admin/empresas/${loja.slug}`} className={cn(buttonVariants({ size: "sm" }), "flex-1 gap-1 bg-blue-600 hover:bg-blue-700 text-white")}><Eye size={14} /></Link>
-                                    <Button size="sm" className="flex-1 gap-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={() => handleOpenModal(loja)}><Edit size={14} /></Button>
-                                    <Button size="sm" className="flex-1 gap-1 bg-red-600 hover:bg-red-700 text-white" onClick={() => { setLojaToDelete(loja); setDeleteModalOpen(true); }}><Trash2 size={14} /></Button>
+                            <Card key={loja.id} className="group flex flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300">
+                                <CardHeader className="pb-4">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+                                            <Store className="w-6 h-6 text-green-500" />
+                                        </div>
+                                        <Badge variant={loja.is_active? "default" : "secondary"} className={cn("font-semibold", loja.is_active? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
+                                            {loja.is_active? "Ativa" : "Inativa"}
+                                        </Badge>
+                                    </div>
+                                    <CardTitle className="text-xl">{loja.nome}</CardTitle>
+                                    <CardDescription className="text-sm">/{loja.slug}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="flex-grow space-y-3 text-sm">
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <User size={14} />
+                                        <span className="font-medium">{loja.gerente?.nome?? "Sem dono"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-muted-foreground">
+                                        <Mail size={14} />
+                                        <span className="text-xs break-all">{loja.gerente?.email?? "-"}</span>
+                                    </div>
+                                    {loja.endereco && (
+                                        <div className="flex items-center gap-2 text-muted-foreground">
+                                            <MapPin size={14} />
+                                            <span className="text-xs">{loja.endereco}</span>
+                                        </div>
+                                    )}
+                                </CardContent>
+                                <div className="p-4 pt-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Link href={`/admin/empresas/${loja.slug}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }), "flex-1 gap-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10")}>
+                                        <Eye size={14} /> Ver
+                                    </Link>
+                                    <Button size="sm" variant="outline" className="flex-1 gap-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10" onClick={() => handleOpenModal(loja)}>
+                                        <Edit size={14} /> Editar
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="flex-1 gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => { setLojaToDelete(loja); setDeleteModalOpen(true); }}>
+                                        <Trash2 size={14} />
+                                    </Button>
                                 </div>
                             </Card>
                         ))}
@@ -343,6 +408,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 )}
             </div>
 
+            {/* SEUS MODAIS FICARAM IGUAIS */}
             <Dialog open={confirmModalOpen} onOpenChange={(v) => { if (!v) { setConfirmModalOpen(false); setFormData(prev => ({...prev, adminSenha: "" })) } }}>
                 <DialogContent className="sm:max-w-[425px] bg-black/50 border-white/10" onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader><DialogTitle className="flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-yellow-500" />Confirmar Edição</DialogTitle><DialogDescription>Para editar esta loja, digite a sua senha de ADMIN.</DialogDescription></DialogHeader>

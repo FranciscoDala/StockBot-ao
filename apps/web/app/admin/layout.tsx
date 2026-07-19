@@ -79,8 +79,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 }}
             >
                 <div className="flex items-center gap-3">
-                    <Shield size={40} style={{color: 'var(--cor-primaria)'}} />
-                    <h2 className="text-2xl font-bold">Painel Admin</h2>
+                    <Store size={40} style={{color: 'var(--cor-primaria)'}} />
+                    <h2 className="text-2xl font-bold"></h2>
                 </div>
 
                 <div className="flex items-center gap-3">
