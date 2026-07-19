@@ -13,7 +13,7 @@ const zalando = Zalando_Sans_Expanded({
   variable: "--font-zalando",
 });
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
 
 type Loja = {
   id: string;
@@ -55,11 +55,19 @@ const deleteCookie = (name: string) => {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${secure}${sameSite}`;
 };
 
+const clearAllAuth = () => { // 👈 NOVA FUNÇÃO PRA LIMPAR TUDO
+    deleteCookie("token");
+    deleteCookie("user");
+    deleteCookie("temp_token");
+    deleteCookie("lojas_temp");
+    deleteCookie("user_temp");
+}
+
 const applyTheme = (theme: string, cardStyle: string, cardSize: string) => {
     const root = document.documentElement;
     const isDark = theme === 'dark';
     root.style.setProperty('--cor-fundo', isDark? '#0a0a0a' : '#f8fafc');
-    root.style.setProperty('--cor-card', isDark? '#111111' : '#ffffff');
+    root.style.setProperty('--cor-card', isDark? '#111' : '#ffffff');
     root.style.setProperty('--cor-texto', isDark? '#f1f5f9' : '#1e293b');
     root.style.setProperty('--cor-texto-sec', isDark? '#94a3b8' : '#64748b');
     root.style.setProperty('--cor-primaria', '#10b981');
@@ -98,12 +106,9 @@ export default function SelectLojaPage() {
     applyTheme(newTheme, cardStyle, cardSize);
   }
 
-  // MUDANÇA 1: Não apaga token principal. Só temp
   const handleTerminarSessao = () => {
     isLoggingOut.current = true;
-    deleteCookie("temp_token");
-    deleteCookie("lojas_temp");
-    deleteCookie("user_temp");
+    clearAllAuth(); // 👈 LIMPA TUDO MESMO
     window.onpopstate = null;
     router.replace("/login");
   }
@@ -111,25 +116,36 @@ export default function SelectLojaPage() {
   useEffect(() => {
     const tempToken = getCookie("temp_token");
     const userStr = getCookie("user_temp");
-    const mainToken = getCookie("token"); // MUDANÇA 2: verifica se já tem token
+    const mainToken = getCookie("token");
 
-    // MUDANÇA 3: Se já tem token principal, não precisa estar aqui. Manda pro admin
+    // Se já tem token principal, manda pra admin
     if (mainToken &&!tempToken) {
         router.replace("/admin");
         return;
     }
 
+    // Se não tem nem temp nem main, manda pro login direto
     if (!tempToken ||!userStr) {
-      handleTerminarSessao();
+      clearAllAuth();
+      router.replace("/login");
       return;
     }
 
     const fetchLojas = async () => {
       try {
         const res = await fetch(`${API_URL}/lojas/minhas-temp`, {
-          headers: { "Authorization": `Bearer ${tempToken}` }
+          headers: { "Authorization": `Bearer ${tempToken}` },
+          cache: 'no-store'
         });
+
+        if (res.status === 401) { // 👈 TOKEN EXPIRADO
+            clearAllAuth();
+            router.replace("/login");
+            return;
+        }
+
         if (!res.ok) throw new Error("Erro ao buscar lojas");
+
         const lojasReais = await res.json();
         if(isMounted.current){
             setLojas(lojasReais);
@@ -144,7 +160,9 @@ export default function SelectLojaPage() {
             };
         }
       } catch {
-        handleTerminarSessao();
+        // Qualquer erro = manda pro login
+        clearAllAuth();
+        router.replace("/login");
       }
     };
     fetchLojas();
@@ -159,6 +177,13 @@ export default function SelectLojaPage() {
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tempToken}` },
         body: JSON.stringify({ loja_id: loja.id })
       });
+
+      if (res.status === 401) { // 👈 TOKEN EXPIRADO AQUI TAMBEM
+        clearAllAuth();
+        router.replace("/login");
+        return;
+      }
+
       if(!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.detail || "Erro ao selecionar loja");
@@ -173,16 +198,14 @@ export default function SelectLojaPage() {
           deleteCookie("user_temp");
           router.push(`/loja/${loja.id}`);
       }
-    } catch (err: any) {
-      if(isMounted.current) {
-        setErroMsg(err.message || "Não foi possível entrar na loja");
-        setErroModalOpen(true);
-      }
+    } catch {
+      clearAllAuth(); // 👈 ERRO QUALQUER = LOGIN
+      router.replace("/login");
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20" style={{backgroundColor: 'var(--cor-fundo)'}}><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{borderColor: 'var(--cor-primaria)'}}></div></div>
+    return <div className="flex items-center justify-center py-20 min-h-screen" style={{backgroundColor: 'var(--cor-fundo)'}}><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{borderColor: 'var(--cor-primaria)'}}></div></div>
   }
 
   return (
@@ -239,6 +262,12 @@ export default function SelectLojaPage() {
                     Olá <b style={{color: 'var(--cor-primaria)'}}>{user?.nome}</b>, selecione uma loja para gerenciar
             </p>
 
+            {lojas.length === 0 && (
+                <div className="text-center py-10" style={{color: 'var(--cor-texto-sec)'}}>
+                    Você não tem lojas para gerenciar.
+                </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {lojas.map((loja) => (
                     <button
@@ -277,26 +306,6 @@ export default function SelectLojaPage() {
                     </button>
                 ))}
             </div>
-
-            <Dialog open={erroModalOpen} onOpenChange={setErroModalOpen}>
-                <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
-                <DialogContent className="sm:max-w-[425px] border-red-500/50 z-50" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)'}}>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-500 text-xl">
-                            <AlertTriangle className="w-6 h-6" />
-                            Erro ao acessar loja
-                        </DialogTitle>
-                        <DialogDescription className="pt-2 text-base" style={{color: 'var(--cor-texto-sec)'}}>
-                            {erroMsg}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold" onClick={() => setErroModalOpen(false)}>
-                            Entendi
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     </div>
   )
