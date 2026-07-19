@@ -190,9 +190,9 @@ export default function LoginPage() {
         <main className="flex min-h-screen items-center justify-center p-4 bg-black">
             <div className="w-full max-w-sm space-y-6 rounded-2xl border-zinc-800 bg-zinc-950 p-8 shadow-2xl shadow-green-900/20">
                 <div className="flex flex-col items-center gap-2">
-                    <Store className="h-10 w-10 text-green-500" />
+                    <Store className="h-30 w-30 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot-ao</h1>
-                    <p className="text-sm text-zinc-400">Com o stockbot você gerencia e controlas melhor a sua loja, acessar! </p>
+                    <p className="text-sm text-zinc-400">Com o stockbot gerências e controlas melhor a sua loja, acessar! </p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">
