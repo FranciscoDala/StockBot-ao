@@ -193,7 +193,7 @@ export default function LoginPage() {
                     <Store className="h-20 w-20 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot</h1>
                     <p className="text-sm text-zinc-400 text-center text-justify">
-                        Com o stockbot tu gerências e controlas melhor a sua loja, apartir de qualquer lugar do mundo!
+                        Com o stockbot tu gerências e controlas melhor a sua loja apartir de qualquer lugar do mundo, acessar!
                     </p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
