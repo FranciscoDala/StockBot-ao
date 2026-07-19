@@ -1,6 +1,8 @@
 "use client";
+import { useState } from "react"; // 👈 import do useState
 import { FileText, BarChart3, ShieldAlert, Users, Package, Truck, ShoppingCart, Settings, Power, Palette, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ConfirmarModal } from "@/app/loja/[id]/_components/modals/ConfirmacaoModal"; // 👈 importa teu modal
 
 const deleteCookie = (name: string) => {
     if (typeof window === "undefined") return;
@@ -23,6 +25,7 @@ interface LojaLayoutProps {
 
 export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome }: LojaLayoutProps) {
     const router = useRouter();
+    const [showLogoutModal, setShowLogoutModal] = useState(false); // 👈 estado do modal
 
     const handleSair = () => {
         deleteCookie("token");
@@ -42,7 +45,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                         borderColor: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
                         backgroundColor: 'var(--cor-fundo)',
                         backdropFilter: 'blur(8px)',
-                        marginBottom: '10px' // 👈 espaço pras abas
+                        marginBottom: '10px'
                     }}
                 >
                     <div
@@ -73,7 +76,7 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
                         </button>
 
                         <button
-                            onClick={handleSair}
+                            onClick={() => setShowLogoutModal(true)} // 👈 abre o modal
                             className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
                             style={{
                                 width: '40px',
@@ -88,6 +91,18 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
 
                 {children}
             </div>
+
+            {/* Modal de confirmação de logout */}
+            <ConfirmarModal
+                open={showLogoutModal}
+                onClose={() => setShowLogoutModal(false)}
+                onConfirm={handleSair} // 👈 se clicar em Sim faz logout
+                titulo="Sair da Loja"
+                descricao="Tem certeza que deseja sair? Você precisará fazer login novamente para acessar."
+                loading={false}
+                textoConfirmar="Sim, Sair"
+                tipo="delete" // 👈 não pede senha
+            />
         </div>
     );
 }
