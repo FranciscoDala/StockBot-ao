@@ -1,53 +1,41 @@
-"use client"; // <- MUDANÇA 1: vira client
+"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import AdminClient from "./_components/AdminClient";
-
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? "http://127.0.0.1:8000/api/v1"
-    : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
-
+import AdminClient from "./_componente/AdminClient"; // 👈 CORRIGIDO: _componente com E
 
 const getCookie = (name: string): string | undefined => {
-    if (typeof window === "undefined") return undefined;
-    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-    return match? decodeURIComponent(match[2]) : undefined;
+    if (typeof document === "undefined") return undefined;
+    return document.cookie.split('; ').reduce((r, v) => {
+        const parts = v.split('=');
+        return parts[0] === name? decodeURIComponent(parts[1]) : r;
+    }, '');
 };
+
+const clearAllAuth = () => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const secure = isProd? '; Secure' : '';
+    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
+    ['token', 'user', 'role'].forEach(name => {
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${secure}${sameSite}`;
+    });
+}
 
 export default function AdminDashboard() {
     const router = useRouter();
-    const [data, setData] = useState<{lojas: any[], donos: any[]} | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [checking, setChecking] = useState(true);
 
-    useEffect(() => { // <- MUDANÇA 3: busca no client
+    useEffect(() => {
         const token = getCookie('token');
-        if (!token) { router.replace('/login'); return; }
-
-        const getData = async () => {
-            try {
-                const [lojasRes, donosRes] = await Promise.all([
-                    fetch(`${API_URL}/lojas`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }),
-                    fetch(`${API_URL}/lojas/donos`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
-                ]);
-                if (lojasRes.status === 401 || donosRes.status === 401) { router.replace('/login'); return; }
-
-                const lojas = await lojasRes.json();
-                const donos = await donosRes.json();
-                setData({ lojas, donos });
-            } catch {
-                router.replace('/login');
-            } finally {
-                setLoading(false);
-            }
+        if (!token) {
+            clearAllAuth();
+            router.replace('/login');
+            return;
         }
-        getData();
+        setChecking(false); // Tem token, libera o AdminClient buscar os dados
     }, [router]);
 
-    if (loading) return <div className="flex items-center justify-center min-h-screen bg-black"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div></div>;
-    if (!data) return null;
+    if (checking) return <div className="flex items-center justify-center min-h-screen bg-black"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div></div>;
 
-    return <AdminClient lojasIniciais={data.lojas} donosIniciais={data.donos} />;
+    return <AdminClient />; // 👈 SEM PROPS
 }

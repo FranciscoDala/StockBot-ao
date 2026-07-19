@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Building, AlertTriangle, Power, Palette, Store } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Power, Palette, Store, Shield } from "lucide-react";
 import { Zalando_Sans_Expanded } from "next/font/google";
 
 const zalando = Zalando_Sans_Expanded({
@@ -12,25 +10,6 @@ const zalando = Zalando_Sans_Expanded({
   weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-zalando",
 });
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
-
-type Loja = {
-  id: string;
-  nome: string;
-  slug: string;
-  role: "dono" | "gerente" | "vendedor";
-  endereco?: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
-type UserTemp = {
-  id: string;
-  nome: string;
-  email: string;
-  nivel: "admin" | "gerente" | "vendedor" | "dono";
-}
 
 const getCookie = (name: string): string | undefined => {
     if (typeof document === "undefined") return undefined;
@@ -40,14 +19,6 @@ const getCookie = (name: string): string | undefined => {
     }, '');
 };
 
-const setCookie = (name: string, value: string, days = 7) => {
-    const expires = new Date(Date.now() + days * 864e5).toUTCString();
-    const isProd = process.env.NODE_ENV === 'production';
-    const secure = isProd? '; Secure' : '';
-    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
-    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${secure}${sameSite}`;
-};
-
 const deleteCookie = (name: string) => {
     const isProd = process.env.NODE_ENV === 'production';
     const secure = isProd? '; Secure' : '';
@@ -55,15 +26,11 @@ const deleteCookie = (name: string) => {
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${secure}${sameSite}`;
 };
 
-const clearAllAuth = () => { // 👈 NOVA FUNÇÃO PRA LIMPAR TUDO
-    deleteCookie("token");
-    deleteCookie("user");
-    deleteCookie("temp_token");
-    deleteCookie("lojas_temp");
-    deleteCookie("user_temp");
+const clearAllAuth = () => {
+    ['token', 'user', 'role'].forEach(deleteCookie);
 }
 
-const applyTheme = (theme: string, cardStyle: string, cardSize: string) => {
+const applyTheme = (theme: string) => {
     const root = document.documentElement;
     const isDark = theme === 'dark';
     root.style.setProperty('--cor-fundo', isDark? '#0a0a0a' : '#f8fafc');
@@ -71,141 +38,29 @@ const applyTheme = (theme: string, cardStyle: string, cardSize: string) => {
     root.style.setProperty('--cor-texto', isDark? '#f1f5f9' : '#1e293b');
     root.style.setProperty('--cor-texto-sec', isDark? '#94a3b8' : '#64748b');
     root.style.setProperty('--cor-primaria', '#10b981');
-    root.style.setProperty('--radius', cardStyle === 'arredondado'? '16px' : '8px');
-    root.style.setProperty('--padding-card', cardSize === 'grande'? '24px' : '16px');
     if(isDark) root.classList.add('dark'); else root.classList.remove('dark');
 }
 
-export default function SelectLojaPage() {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [lojas, setLojas] = useState<Loja[]>([]);
-  const [user, setUser] = useState<UserTemp | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [erroModalOpen, setErroModalOpen] = useState(false);
-  const [erroMsg, setErroMsg] = useState("");
   const [theme, setTheme] = useState("dark");
-  const [cardStyle, setCardStyle] = useState("arredondado");
-  const [cardSize, setCardSize] = useState("medio");
-  const isMounted = useRef(true);
-  const isLoggingOut = useRef(false);
 
   useEffect(() => {
-    isMounted.current = true;
     const savedTheme = getCookie("theme") || "dark";
-    const savedCardStyle = getCookie("card_style") || "arredondado";
-    const savedCardSize = getCookie("card_size") || "medio";
-    setTheme(savedTheme); setCardStyle(savedCardStyle); setCardSize(savedCardSize);
-    applyTheme(savedTheme, savedCardStyle, savedCardSize);
-    return () => { isMounted.current = false }
+    setTheme(savedTheme);
+    applyTheme(savedTheme);
   }, [])
 
   const handleSaveTheme = () => {
     const newTheme = theme === 'dark'? 'light' : 'dark';
     setTheme(newTheme);
-    setCookie("theme", newTheme);
-    applyTheme(newTheme, cardStyle, cardSize);
+    document.cookie = `theme=${newTheme}; path=/; max-age=31536000`;
+    applyTheme(newTheme);
   }
 
   const handleTerminarSessao = () => {
-    isLoggingOut.current = true;
-    clearAllAuth(); // 👈 LIMPA TUDO MESMO
-    window.onpopstate = null;
+    clearAllAuth();
     router.replace("/login");
-  }
-
-  useEffect(() => {
-    const tempToken = getCookie("temp_token");
-    const userStr = getCookie("user_temp");
-    const mainToken = getCookie("token");
-
-    // Se já tem token principal, manda pra admin
-    if (mainToken &&!tempToken) {
-        router.replace("/admin");
-        return;
-    }
-
-    // Se não tem nem temp nem main, manda pro login direto
-    if (!tempToken ||!userStr) {
-      clearAllAuth();
-      router.replace("/login");
-      return;
-    }
-
-    const fetchLojas = async () => {
-      try {
-        const res = await fetch(`${API_URL}/lojas/minhas-temp`, {
-          headers: { "Authorization": `Bearer ${tempToken}` },
-          cache: 'no-store'
-        });
-
-        if (res.status === 401) { // 👈 TOKEN EXPIRADO
-            clearAllAuth();
-            router.replace("/login");
-            return;
-        }
-
-        if (!res.ok) throw new Error("Erro ao buscar lojas");
-
-        const lojasReais = await res.json();
-        if(isMounted.current){
-            setLojas(lojasReais);
-            setUser(JSON.parse(userStr));
-            setLoading(false);
-            window.history.pushState(null, '', window.location.href);
-            window.history.pushState(null, '', window.location.href);
-            window.onpopstate = () => {
-              if(!isLoggingOut.current) {
-                window.history.pushState(null, '', window.location.href);
-              }
-            };
-        }
-      } catch {
-        // Qualquer erro = manda pro login
-        clearAllAuth();
-        router.replace("/login");
-      }
-    };
-    fetchLojas();
-    return () => { window.onpopstate = null; }
-  }, [router]);
-
-  const handleSelectLoja = async (loja: Loja) => {
-    const tempToken = getCookie("temp_token");
-    try {
-      const res = await fetch(`${API_URL}/auth/select-loja`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${tempToken}` },
-        body: JSON.stringify({ loja_id: loja.id })
-      });
-
-      if (res.status === 401) { // 👈 TOKEN EXPIRADO AQUI TAMBEM
-        clearAllAuth();
-        router.replace("/login");
-        return;
-      }
-
-      if(!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || "Erro ao selecionar loja");
-      }
-      const data = await res.json();
-      if(isMounted.current){
-          window.onpopstate = null;
-          setCookie("token", data.access_token, 7);
-          setCookie("user", JSON.stringify(data.user), 7);
-          deleteCookie("temp_token");
-          deleteCookie("lojas_temp");
-          deleteCookie("user_temp");
-          router.push(`/loja/${loja.id}`);
-      }
-    } catch {
-      clearAllAuth(); // 👈 ERRO QUALQUER = LOGIN
-      router.replace("/login");
-    }
-  };
-
-  if (loading) {
-    return <div className="flex items-center justify-center py-20 min-h-screen" style={{backgroundColor: 'var(--cor-fundo)'}}><div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{borderColor: 'var(--cor-primaria)'}}></div></div>
   }
 
   return (
@@ -224,8 +79,8 @@ export default function SelectLojaPage() {
                 }}
             >
                 <div className="flex items-center gap-3">
-                    <Store size={40} style={{color: 'var(--cor-primaria)'}} />
-                    <h2 className="text-2xl font-bold"></h2>
+                    <Shield size={40} style={{color: 'var(--cor-primaria)'}} />
+                    <h2 className="text-2xl font-bold">Painel Admin</h2>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -237,7 +92,7 @@ export default function SelectLojaPage() {
                             height: '40px',
                             backgroundColor: 'var(--cor-card)',
                             border: '1px solid var(--cor-primaria)40',
-                            borderRadius: 'var(--radius)',
+                            borderRadius: '8px',
                             color: 'var(--cor-primaria)'
                         }}
                     >
@@ -249,7 +104,7 @@ export default function SelectLojaPage() {
                         style={{
                                 width: '40px',
                                 height: '40px',
-                                borderRadius: 'var(--radius)'
+                                borderRadius: '8px'
                             }}
                     >
                         <Power size={22} color="#fff" strokeWidth={2.5} />
@@ -257,55 +112,7 @@ export default function SelectLojaPage() {
                 </div>
             </header>
 
-            <p className="text-sm mb-8"
-                style={{color: 'var(--cor-texto-sec)'}}>
-                    Olá <b style={{color: 'var(--cor-primaria)'}}>{user?.nome}</b>, selecione uma loja para gerenciar
-            </p>
-
-            {lojas.length === 0 && (
-                <div className="text-center py-10" style={{color: 'var(--cor-texto-sec)'}}>
-                    Você não tem lojas para gerenciar.
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {lojas.map((loja) => (
-                    <button
-                        key={loja.id}
-                        onClick={() => handleSelectLoja(loja)}
-                        className="text-left transition-all group"
-                        style={{
-                            backgroundColor: 'var(--cor-card)',
-                            color: 'var(--cor-texto)',
-                            border: '1px solid var(--cor-primaria)20',
-                            borderRadius: 'var(--radius)',
-                            padding: 'var(--padding-card)'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
-                        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <Building className="h-6 w-6 group-hover:scale-110 transition" style={{color: 'var(--cor-primaria)'}} />
-                                <h3 className="text-xl font-bold" style={{color: 'var(--cor-texto)'}}>{loja.nome}</h3>
-                            </div>
-                            <div className="flex flex-col gap-2 items-end">
-                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                    loja.is_active? "bg-green-600 text-white" : "bg-red-600 text-white"
-                                }`}>
-                                    {loja.is_active? "Ativa" : "Inativa"}
-                                </span>
-                                <span className="px-3 py-1 rounded-full text-xs font-semibold border uppercase" style={{borderColor: 'var(--cor-primaria)30', color: 'var(--cor-texto-sec)'}}>
-                                    {loja.role}
-                                </span>
-                            </div>
-                        </div>
-                        <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>
-                            {loja.endereco || "Endereço não informado"}
-                        </p>
-                    </button>
-                ))}
-            </div>
+            {children} {/* 👈 AQUI RENDERIZA O page.tsx */}
         </div>
     </div>
   )
