@@ -159,7 +159,21 @@ export default function SelectLojaPage() {
 
   return (
     <div className="space-y-8">
-        <style jsx global>{`.hide-scrollbar{-ms-overflow-style:none;scrollbar-width:none;}.hide-scrollbar::-webkit-scrollbar{display:none;}`}</style>
+        <style jsx global>{`
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.snap-x { scroll-snap-type: x mandatory; }
+.snap-center { scroll-snap-align: center; }
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.shadow-primary {
+  box-shadow: 0 8px 30px 0 rgba(34, 197, 94, 0.20);
+}
+`}</style>
 
         {/* OVERLAY SPINNER */}
         {selecting && (
@@ -181,44 +195,90 @@ export default function SelectLojaPage() {
             </p>
         </div>
 
-        {/* CARDS COM SCROLL-X NO MOBILE - 100% LARGURA */}
-        <div className="flex gap-4 overflow-x-auto pb-4 px-4 -mx-4 hide-scrollbar snap-x snap-center md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:mx-0">
-            {lojas.map((loja) => (
-                <Card
-                    key={loja.id}
-                    onClick={() => handleSelectLoja(loja)}
-                    className="p-6 cursor-pointer border-2 hover:bg-accent transition-all group disabled:opacity-50 disabled:cursor-not-allowed min-w-full md:min-w-0 snap-start"
-                    style={{ borderColor: 'var(--cor-primaria)' }} // BORDA PRIMARY
-                >
-                    <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <Building className="h-6 w-6 text-primary group-hover:scale-110 transition" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-bold">{loja.nome}</h3>
-                                <p className="text-xs text-muted-foreground">/{loja.slug}</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col gap-2 items-end">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                loja.is_active
-                                 ? "bg-green-500/20 text-green-500 border-green-500/30"
-                                    : "bg-red-500/20 text-red-500 border-red-500/30"
-                            }`}>
-                                {loja.is_active? "Ativa" : "Inativa"}
-                            </span>
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground capitalize">
-                                {loja.role}
-                            </span>
-                        </div>
+        {/* CARDS LOJAS - MOBILE SCROLL | DESKTOP GRID */}
+        {lojas.length === 0? (
+            <p>Nenhuma loja disponível.</p>
+        ) : (
+            <>
+                {/* MOBILE: SCROLL HORIZONTAL */}
+                <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-4">
+                    <div className="flex w-max gap-4">
+                        {lojas.map((loja) => (
+                            <Card
+                                key={`mobile-${loja.id}`}
+                                onClick={() => handleSelectLoja(loja)}
+                                className="p-6 cursor-pointer glass-card shadow-primary hover:shadow-[0_8px_40px_0_rgba(34,197,94,0.30)] transition-all group disabled:opacity-50 disabled:cursor-not-allowed w-[calc(100vw-32px)] snap-center shrink-0"
+                            >
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                                            <Building className="h-6 w-6 text-primary group-hover:scale-110 transition" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold">{loja.nome}</h3>
+                                            <p className="text-xs text-muted-foreground">/{loja.slug}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 items-end">
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                            loja.is_active
+                                           ? "bg-green-500/20 text-green-500 border-green-500/30"
+                                                : "bg-red-500/20 text-red-500 border-red-500/30"
+                                        }`}>
+                                            {loja.is_active? "Ativa" : "Inativa"}
+                                        </span>
+                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground capitalize">
+                                            {loja.role}
+                                        </span>
+                                    </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    {loja.endereco || "Endereço não informado"}
+                                </p>
+                            </Card>
+                        ))}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                        {loja.endereco || "Endereço não informado"}
-                    </p>
-                </Card>
-            ))}
-        </div>
+                </div>
+
+                {/* DESKTOP: GRID NORMAL */}
+                <div className="hidden sm:grid sm:grid-cols-2 gap-4">
+                    {lojas.map((loja) => (
+                        <Card
+                            key={`desktop-${loja.id}`}
+                            onClick={() => handleSelectLoja(loja)}
+                            className="p-6 cursor-pointer glass-card shadow-primary hover:shadow-[0_8px_40px_0_rgba(34,197,94,0.30)] transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <Building className="h-6 w-6 text-primary group-hover:scale-110 transition" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold">{loja.nome}</h3>
+                                        <p className="text-xs text-muted-foreground">/{loja.slug}</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2 items-end">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                        loja.is_active
+                                       ? "bg-green-500/20 text-green-500 border-green-500/30"
+                                            : "bg-red-500/20 text-red-500 border-red-500/30"
+                                    }`}>
+                                        {loja.is_active? "Ativa" : "Inativa"}
+                                    </span>
+                                    <span className="px-3 py-1 rounded-full text-xs font-semibold bg-muted text-muted-foreground capitalize">
+                                        {loja.role}
+                                    </span>
+                                </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                {loja.endereco || "Endereço não informado"}
+                            </p>
+                        </Card>
+                    ))}
+                </div>
+            </>
+        )}
 
         <Dialog open={erroModalOpen} onOpenChange={setErroModalOpen}>
             <DialogOverlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-md" />

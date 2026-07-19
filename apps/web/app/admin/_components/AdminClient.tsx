@@ -164,7 +164,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setFormData({
-               ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
+              ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
                 endereco: data.endereco || "", modoDono: 'existente',
                 dono: data.gerente? {...data.gerente, telefone: data.gerente.telefone?? "" } : null
             });
@@ -236,9 +236,9 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 
     const handleDonoNovoChange = (field: string, value: string) => {
         setFormData(prev => ({
-           ...prev,
+          ...prev,
             dono_novo: {
-               ...prev.dono_novo,
+              ...prev.dono_novo,
                 [field]: value
             }
         }));
@@ -251,6 +251,15 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .snap-x { scroll-snap-type: x mandatory; }
 .snap-center { scroll-snap-align: center; }
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.shadow-primary {
+  box-shadow: 0 8px 30px 0 rgba(34, 197, 94, 0.20);
+}
 `}</style>
 
             {/* HEADER */}
@@ -340,7 +349,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             {/* MOBILE */}
             <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-0">
                 <div className="flex w-max gap-4">
-                    <Card className="border-white/10 bg-card/50 backdrop-blur-sm w-[calc(100vw-32px)] snap-center shrink-0">
+                    <Card className="glass-card shadow-primary w-[calc(100vw-32px)] snap-center shrink-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Total de Lojas</CardTitle>
                             <Store className="h-5 w-5 text-green-500" />
@@ -350,7 +359,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                             <p className="text-xs text-muted-foreground mt-1">Cadastradas na plataforma</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-white/10 bg-card/50 backdrop-blur-sm w-[calc(100vw-32px)] snap-center shrink-0">
+                    <Card className="glass-card shadow-primary w-[calc(100vw-32px)] snap-center shrink-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Ativas</CardTitle>
                             <TrendingUp className="h-5 w-5 text-green-500" />
@@ -360,7 +369,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                             <p className="text-xs text-muted-foreground mt-1">Operando agora</p>
                         </CardContent>
                     </Card>
-                    <Card className="border-white/10 bg-card/50 backdrop-blur-sm w-[calc(100vw-32px)] snap-center shrink-0">
+                    <Card className="glass-card shadow-primary w-[calc(100vw-32px)] snap-center shrink-0">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Inativas</CardTitle>
                             <Users className="h-5 w-5 text-red-500" />
@@ -374,7 +383,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             </div>
             {/* DESKTOP */}
             <div className="hidden sm:grid sm:grid-cols-3 gap-4">
-                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                <Card className="glass-card shadow-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Total de Lojas</CardTitle>
                         <Store className="h-5 w-5 text-green-500" />
@@ -384,7 +393,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                         <p className="text-xs text-muted-foreground mt-1">Cadastradas na plataforma</p>
                     </CardContent>
                 </Card>
-                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                <Card className="glass-card shadow-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Ativas</CardTitle>
                         <TrendingUp className="h-5 w-5 text-green-500" />
@@ -394,7 +403,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                         <p className="text-xs text-muted-foreground mt-1">Operando agora</p>
                     </CardContent>
                 </Card>
-                <Card className="border-white/10 bg-card/50 backdrop-blur-sm">
+                <Card className="glass-card shadow-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">Lojas Inativas</CardTitle>
                         <Users className="h-5 w-5 text-red-500" />
@@ -414,7 +423,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                         <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-0">
                             <div className="flex w-max gap-6">
                                 {lojas.map((loja) => (
-                                    <Card key={`mobile-${loja.id}`} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 w-[calc(100vw-32px)] snap-center shrink-0">
+                                    <Card key={`mobile-${loja.id}`} className="group flex-col glass-card shadow-primary hover:shadow-[0_8px_40px_0_rgba(34,197,94,0.30)] transition-all duration-300 w-[calc(100vw-32px)] snap-center shrink-0">
                                         <CardHeader className="pb-4">
                                             <div className="flex justify-between items-start mb-3">
                                                 <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
@@ -461,7 +470,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                         {/* DESKTOP: GRID NORMAL */}
                         <div className="hidden sm:grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                             {lojas.map((loja) => (
-                                <Card key={`desktop-${loja.id}`} className="group flex-col border-white/10 bg-card/50 backdrop-blur-sm hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300">
+                                <Card key={`desktop-${loja.id}`} className="group flex-col glass-card shadow-primary hover:shadow-[0_8px_40px_0_rgba(34,197,94,0.30)] transition-all duration-300">
                                     <CardHeader className="pb-4">
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
