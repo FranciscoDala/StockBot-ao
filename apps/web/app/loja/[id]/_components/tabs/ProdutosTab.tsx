@@ -41,8 +41,8 @@ export function ProdutosTab({
 }: Props) {
     const [qrProduto, setQrProduto] = useState<any>(null);
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '20px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '20px' : '16px';
 
     const getEstoqueStatus = (estoque: number, minimo: number) => {
         if (estoque === 0) return { color: "#ef4444", bg: "#ef444414", border: "#ef444430", label: "Sem Estoque", icon: <AlertTriangle size={12} /> };
@@ -100,7 +100,7 @@ export function ProdutosTab({
                         <button
                             onClick={onAdd}
                             className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
-                            style={{ background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande'? '12px 20px' : '8px 16px', borderRadius: radius }}
+                            style={{ background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}
                         >
                             <Plus size={14} /> Adicionar Produto
                         </button>
@@ -185,7 +185,7 @@ export function ProdutosTab({
 
                 {/* GRID DE PRODUTOS - MOBILE SCROLL | DESKTOP GRID */}
                 <div className="">
-                    {produtos.length === 0? (
+                    {produtos.length === 0 ? (
                         <div
                             className="text-center py-16 border-2 border-dashed mt-4"
                             style={{ borderColor: 'var(--cor-primaria)30', borderRadius: radius }}
@@ -202,23 +202,23 @@ export function ProdutosTab({
                                     {produtos.map(p => {
                                         const preco = p.preco_venda || p.preco || 0;
                                         const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                        const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                        const imgSrc = p.imagem_url?.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`;
 
                                         return (
                                             <div
                                                 key={`mobile-${p.id}`}
-                                                className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active? 'opacity-50' : ''}
-                                                w-[calc(100vw-32px)] snap-center shrink-0 mx-auto`}
+                                                className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''} w-[calc(100vw-32px)] snap-center shrink-0 mx-auto`}
                                                 style={{
                                                     backgroundColor: 'var(--cor-card)',
-                                                    border: '1px solid var(--cor-primaria)30',
+                                                    border: `1px solid ${p.is_active ? 'var(--cor-primaria)' : 'var(--cor-primaria)40'}`,
                                                     borderRadius: radius,
-                                                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                                                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                                                    opacity: p.is_active ? 1 : 0.6
                                                 }}
                                             >
                                                 {/* IMAGEM */}
                                                 <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                    {p.imagem_url? (
+                                                    {p.imagem_url ? (
                                                         <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
@@ -258,22 +258,23 @@ export function ProdutosTab({
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                    const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                    const imgSrc = p.imagem_url?.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`;
 
                                     return (
                                         <div
                                             key={`desktop-${p.id}`}
-                                            className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active? 'opacity-50' : ''}`}
+                                            className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''}`}
                                             style={{
                                                 backgroundColor: 'var(--cor-card)',
-                                                border: '1px solid var(--cor-primaria)30',
+                                                border: `1px solid ${p.is_active ? 'var(--cor-primaria)' : 'var(--cor-primaria)40'}`, // <- AQUI
                                                 borderRadius: radius,
-                                                boxShadow: '0 4px 16px rgba(0,0,0,0.2)'
+                                                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                                                opacity: p.is_active ? 1 : 0.6 // <- opcional
                                             }}
                                         >
                                             {/* IMAGEM */}
                                             <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                {p.imagem_url? (
+                                                {p.imagem_url ? (
                                                     <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
@@ -336,7 +337,7 @@ export function ProdutosTab({
                         >
                             {qrProduto?.imagem_url && (
                                 <img
-                                    src={qrProduto.imagem_url.startsWith('http')? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
+                                    src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
                                     alt={qrProduto.nome}
                                     className="w-16 h-16 rounded-full object-cover border-2"
                                     style={{ borderColor: 'var(--cor-primaria)30' }}
