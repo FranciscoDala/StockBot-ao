@@ -37,11 +37,12 @@ export default function LojaLayout({ children, theme, handleSaveTheme, lojaNome 
             <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-6">
 
                 <header
-                    className="sticky top-0 z-20 w-full h-14 flex items-center justify-between px-4 border-b"
+                    className="sticky top-0 z-20 w-full h-14 flex items-center justify-between px-0 border-b"
                     style={{
                         borderColor: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
                         backgroundColor: 'var(--cor-fundo)',
-                        backdropFilter: 'blur(8px)'
+                        backdropFilter: 'blur(8px)',
+                        marginBottom: '10px' // 👈 espaço pras abas
                     }}
                 >
                     <div
