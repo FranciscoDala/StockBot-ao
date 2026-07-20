@@ -5,6 +5,15 @@
 @tailwind components;
 @tailwind utilities;
 
+
+
+@font-face {
+    font-family: 'Zalando';
+    src: url('/fonts/ZalandoSans-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
 /* ============ TEMA BASE ============ */
 :root {
     /* CORES */
@@ -31,6 +40,7 @@
     --font-sans: var(--font-zalando), var(--font-bricolage), var(--font-geist), ui-sans-serif, system-ui, sans-serif;
     --font-heading: var(--font-bricolage), sans-serif;
     --font-zalando: 'Zalando Sans Expanded', sans-serif;
+
 
     /* MAPEAMENTO SHADCN/TAILWIND */
     --background: var(--cor-fundo);
