@@ -184,9 +184,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const pdf = new jsPDF('p', 'mm', 'a4')
             const pageWidth = pdf.internal.pageSize.getWidth()
 
-            // CORES DO MODELO
+            // CORES
             const corHeader = [220, 228, 235]
-            const corBorda = [180, 180, 180]
+            const corBorda = [200, 200, 200]
             const corTextoCinza = [120, 120, 120]
 
             // 1. CABEÇALHO
@@ -211,17 +211,17 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
             let y = 55
 
-            // 2. TABELA PRINCIPAL COM BORDAS
-            const headers = ["Data", "Venda", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
-            const colWidths = [20, 30, 20, 20, 25, 25, 30]
+            // 2. TABELA PRINCIPAL - MANTEM "Venda" E TIRA "Usuario"
+            const headers = ["Data", "Venda", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"] // <-- "Venda" voltou
+            const colWidths = [20, 30, 20, 20, 25, 25, 30] // <-- Largura da Venda maior
             const startX = 15
             const rowHeight = 7
 
-            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2]) // <-- CORRIGIDO
+            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
             pdf.setLineWidth(0.2)
 
             // HEADER
-            pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2]) // <-- CORRIGIDO
+            pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
             pdf.setTextColor(0)
             pdf.setFontSize(9).setFont("helvetica", "bold")
             headers.forEach((h, i) => {
@@ -231,23 +231,45 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             })
             y += rowHeight
 
-            // 2 LINHAS VAZIAS
-            for (let r = 0; r < 2; r++) {
-                pdf.setFillColor(245, 247, 250)
-                headers.forEach((_, i) => {
-                    const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
-                    pdf.rect(x, y - 4, colWidths[i], rowHeight, "FD")
-                })
-                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]) // <-- CORRIGIDO
-                pdf.text("$", startX + colWidths.slice(0, 6).reduce((a, b) => a + b, 0) + 2, y)
-                pdf.text("-", pageWidth - 18, y, { align: "right" })
+            // LINHAS COM TUAS VENDAS REAIS
+            pdf.setFont("helvetica", "normal")
+            pdf.setFontSize(8)
+
+            if (vendasFiltradas.length === 0) {
+                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+                pdf.text("Nenhuma venda no período", startX + 2, y + 2)
                 y += rowHeight
+            } else {
+                vendasFiltradas.forEach((v) => {
+                    if (y > 270) { pdf.addPage(); y = 20 }
+
+                    const x = startX
+                    const data = new Date(v.data).toLocaleDateString('pt-AO')
+                    const total = v.total
+
+                    // Desenha borda de cada célula
+                    headers.forEach((_, i) => {
+                        const cellX = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
+                        pdf.rect(cellX, y - 4, colWidths[i], rowHeight, "D")
+                    })
+
+                    // Escreve os dados
+                    pdf.setTextColor(0)
+                    pdf.text(data, x + 2, y) // Data
+                    pdf.text(v.nome_vendedor.substring(0, 15), x + colWidths[0] + 2, y) // Venda = nome_vendedor
+                    pdf.text(formatCurrency(total), x + colWidths[0] + colWidths[1] + 2, y) // Entrada
+                    pdf.text(formatCurrency(0), x + colWidths[0] + colWidths[1] + colWidths[2] + 2, y) // Saida
+                    pdf.text(formatCurrency(total), x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2, y) // Subtotal
+                    pdf.text(formatCurrency(total), x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2, y) // Lucro
+                    pdf.text(formatCurrency(total), x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5] + 2, y) // Total Geral
+
+                    y += rowHeight
+                })
             }
             y += 5
 
             // 3. TEXTO
-            pdf.setFont("helvetica", "normal")
-            pdf.setFontSize(9).setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]) // <-- CORRIGIDO
+            pdf.setFontSize(9).setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
             pdf.text("Reminder: Please include the statement number on your check.", 15, y)
             y += 5
             pdf.text("Terms: Balance due in 30 days.", 15, y)
@@ -265,16 +287,16 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             ]
 
             const resumoWidth = 90
-            pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2]) // <-- CORRIGIDO
+            pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
             pdf.rect(15, y - 4, resumoWidth, rowHeight, "FD")
             pdf.setTextColor(0).setFont("helvetica", "bold").setFontSize(9)
-            pdf.text("Este mês", 17, y)
+            pdf.text(`Período: ${periodoTexto}`, 17, y)
             y += rowHeight
 
             pdf.setFont("helvetica", "normal")
             resumoMes.forEach(([label, valor]) => {
                 pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
-                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text(label, 17, y) // <-- CORRIGIDO
+                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text(label, 17, y)
                 pdf.setTextColor(0).setFont("helvetica", "bold").text(valor, 15 + resumoWidth - 3, y, { align: "right" })
                 pdf.setFont("helvetica", "normal")
                 y += rowHeight
@@ -288,9 +310,6 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             setLoading(null)
         }
     }
-
-
-    
 
     const exportarWord = async () => {
         setLoading('word')
