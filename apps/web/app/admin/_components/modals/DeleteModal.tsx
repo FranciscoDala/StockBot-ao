@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, AlertCircle } from "lucide-react";
 import type { Loja } from "../AdminClient";
 
 interface Props {
@@ -15,9 +15,10 @@ interface Props {
     setAdminSenha: (v: string) => void;
     onDelete: () => void;
     deleting: boolean;
+    error?: string | null; // 👈 vem do AdminClient
 }
 
-export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenha, onDelete, deleting }: Props) {
+export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenha, onDelete, deleting, error }: Props) {
 
     useEffect(() => {
         if (!open) setAdminSenha("");
@@ -34,11 +35,12 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
     }
 
     const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
+    const errorStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-erro)' }
 
     return (
         <Dialog open={open} onOpenChange={() => {}}>
             <DialogContent
-                className="w-[95vw] max-w-[425px] p-0 shadow-2xl border" // 👈 95vw pra mobile
+                className="w- max-w-[425px] p-0 shadow-2xl border"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -50,13 +52,13 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <DialogHeader className="p-4 pb-2">
-                    <div className="flex items-center gap-3 pr-2">
+                    <div className="flex items-center gap-3 pr-8"> {/* 👈 pr-8 pra não colar no X */}
                         <Trash2 size={20} style={{color: 'var(--cor-erro)'}} className="shrink-0" />
-                        <DialogTitle className="text-base font-bold break-words" style={{color: 'var(--cor-texto)'}}> {/* 👈 quebra texto longo */}
+                        <DialogTitle className="text-base font-bold break-words" style={{color: 'var(--cor-texto)'}}>
                             Apagar {loja?.nome}?
                         </DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm pt-2 text-left break-words" style={{color: 'var(--cor-texto-sec)'}}> {/* 👈 quebra texto */}
+                    <DialogDescription className="text-sm pt-2 text-left break-words" style={{color: 'var(--cor-texto-sec)'}}>
                         Esta ação é irreversível. Digita a tua senha de ADMIN para confirmar.
                     </DialogDescription>
                 </DialogHeader>
@@ -69,24 +71,30 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                             type="password"
                             value={adminSenha}
                             onChange={(e) => setAdminSenha(e.target.value)}
-                            className="h-10 text-base" // 👈 h-10 e text-base pra mobile não dar zoom
+                            className="h-10 text-base"
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
-                                border: '1.5px solid var(--cor-primaria)',
+                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`, // 👈 borda vermelha se erro
                                 borderRadius: 'var(--radius-sm)',
-                             ...focusStyle
+                             ...(error? errorStyle : focusStyle)
                             }}
                             placeholder="******"
                             disabled={deleting}
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleDelete()}
                         />
+                        {error && ( // 👈 mensagem de erro
+                            <div className="flex items-center gap-2 text-xs" style={{color: 'var(--cor-erro)'}}>
+                                <AlertCircle size={14} />
+                                {error}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <DialogFooter
-                    className="p-4 border-t flex-col sm:flex-row justify-end gap-2" // 👈 coluna no mobile
+                    className="p-4 border-t flex-col gap-2" // 👈 SEMPRE coluna, igual print
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -96,7 +104,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                         variant="secondary"
                         onClick={handleClose}
                         disabled={deleting}
-                        className="h-10 w-full sm:w-auto font-semibold" // 👈 w-full no mobile
+                        className="h-10 w-full font-semibold" // 👈 w-full
                         style={{
                             backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
@@ -109,16 +117,15 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     <Button
                         onClick={handleDelete}
                         disabled={deleting || adminSenha.length < 4}
-                        className="gap-2 font-bold h-10 w-full sm:w-auto" // 👈 w-full no mobile
+                        className="gap-2 font-bold h-10 w-full" // 👈 w-full
                         style={{
-                            background: 'var(--cor-erro)',
+                            background: deleting || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-erro) 50%, transparent)' : 'var(--cor-erro)', // 👈 rosa claro quando disabled
                             color: '#fff',
-                            borderRadius: 'var(--radius)',
-                            opacity: (deleting || adminSenha.length < 4)? 0.5 : 1 // 👈 feedback de disabled
+                            borderRadius: 'var(--radius)'
                         }}
                     >
                         {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Apagar
+                        Apagar para sempre
                     </Button>
                 </DialogFooter>
             </DialogContent>

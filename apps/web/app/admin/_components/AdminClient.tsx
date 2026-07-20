@@ -80,6 +80,8 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
     const [adminSenhaDelete, setAdminSenhaDelete] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [confirmError, setConfirmError] = useState<string | null>(null); // 👈 erro edição
+    const [deleteError, setDeleteError] = useState<string | null>(null); // 👈 erro delete
     const router = useRouter();
     const [formData, setFormData] = useState<FormData>(emptyForm);
     const isLoggingOut = useRef(false);
@@ -157,7 +159,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setFormData({
-           ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
+          ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
                 endereco: data.endereco || "", modoDono: 'existente',
                 dono: data.gerente? {...data.gerente, telefone: data.gerente.telefone?? "" } : null
             });
@@ -167,13 +169,14 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 
     const handleSubmitForm = (e: React.FormEvent) => {
         e.preventDefault();
-        if (editingLoja) { setConfirmModalOpen(true); }
+        if (editingLoja) { setConfirmModalOpen(true); setConfirmError(null); } // 👈 limpa erro
         else { handleConfirmSave(); }
     }
 
     const handleConfirmSave = async () => {
-        if (editingLoja &&!formData.adminSenha) { toast.error("Digite a senha do ADMIN para confirmar"); return; }
+        if (editingLoja &&!formData.adminSenha) { setConfirmError("Digite a senha do ADMIN para confirmar"); return; }
         setIsSaving(true);
+        setConfirmError(null); // 👈 limpa erro antes de tentar
         const token = getCookie("token");
         const isEditing =!!editingLoja;
         const url = isEditing? `${API_URL}/lojas/${editingLoja.id}` : `${API_URL}/lojas`;
@@ -194,18 +197,25 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         try {
             const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(payload) });
             if (res.status === 401) return handleTerminarSessao();
-            if (res.status === 403) { toast.error("Senha do ADMIN incorreta"); setIsSaving(false); return; }
+            if (res.status === 403) {
+                setConfirmError("Senha do ADMIN incorreta"); // 👈 mostra erro na modal
+                setIsSaving(false);
+                return;
+            }
             if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Erro ao salvar loja'); }
             toast.success(isEditing? "Loja atualizada" : "Loja criada");
             setOpen(false); setConfirmModalOpen(false); setEditingLoja(null); setFormData(emptyForm);
             await refreshData();
-        } catch (err: any) { toast.error(err.message || "Erro ao salvar loja. Verifique o slug/email."); }
+        } catch (err: any) {
+            setConfirmError(err.message || "Erro ao salvar loja. Verifique o slug/email.");
+        }
         finally { setIsSaving(false); setFormData(prev => ({...prev, adminSenha: "" })); }
     }
 
     const handleDeleteLoja = async () => {
-        if (!lojaToDelete ||!adminSenhaDelete) { toast.error("Digite a senha do ADMIN para apagar"); return; }
+        if (!lojaToDelete ||!adminSenhaDelete) { setDeleteError("Digite a senha do ADMIN para apagar"); return; }
         setIsDeleting(true);
+        setDeleteError(null); // 👈 limpa erro
         const token = getCookie("token");
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaToDelete.id}`, {
@@ -213,15 +223,22 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 body: JSON.stringify({ senha_admin: adminSenhaDelete })
             });
             if (res.status === 401) return handleTerminarSessao();
-            if (res.status === 403) { toast.error("Senha do ADMIN incorreta"); setIsDeleting(false); return; }
+            if (res.status === 403) {
+                setDeleteError("Senha do ADMIN incorreta"); // 👈 mostra erro na modal
+                setIsDeleting(false);
+                return;
+            }
             if (!res.ok) throw new Error("Erro ao apagar loja");
             toast.success(`Loja ${lojaToDelete.nome} apagada`);
             setDeleteModalOpen(false); setLojaToDelete(null); setAdminSenhaDelete(""); await refreshData();
-        } catch (err: any) { toast.error(err.message); } finally { setIsDeleting(false); }
+        } catch (err: any) {
+            setDeleteError(err.message || "Erro ao apagar loja");
+        } finally { setIsDeleting(false); }
     };
 
     const handleChange = (field: string, value: string | boolean) => {
         setFormData(prev => ({...prev, [field]: value }));
+        if (field === 'adminSenha') setConfirmError(null); // 👈 limpa erro ao digitar
         if (field === 'nome' &&!editingLoja) { setFormData(prev => ({...prev, slug: value.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') })); }
     }
 
@@ -229,9 +246,9 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 
     const handleDonoNovoChange = (field: string, value: string) => {
         setFormData(prev => ({
-       ...prev,
+      ...prev,
             dono_novo: {
-           ...prev.dono_novo,
+          ...prev.dono_novo,
                 [field]: value
             }
         }));
@@ -268,7 +285,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                     <Plus className="w-4 h-4" /> Adicionar Loja
                 </Button>
 
-                {/* MODAL CRIAR/EDITAR LOJA - AJUSTADO AQUI */}
+                {/* MODAL CRIAR/EDITAR LOJA */}
                 <LojaModal
                     open={open}
                     onOpenChange={(v) => {
@@ -287,12 +304,10 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                     handleChange={handleChange}
                     handleDonoChange={handleDonoChange}
                     handleDonoNovoChange={handleDonoNovoChange}
-                    // APAGUEI emptyForm e setEditingLoja daqui
                 />
             </div>
 
             {/* KPIS - MOBILE SCROLL | DESKTOP GRID */}
-            {/* MOBILE */}
             <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-0">
                 <div className="flex w-max gap-4">
                     <Card className="glass-card shadow-primary w-[calc(100vw-32px)] snap-center shrink-0">
@@ -327,7 +342,6 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                     </Card>
                 </div>
             </div>
-            {/* DESKTOP */}
             <div className="hidden sm:grid sm:grid-cols-3 gap-4">
                 <Card className="glass-card shadow-primary">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -361,11 +375,10 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 </Card>
             </div>
 
-            {/* CARDS LOJAS - MOBILE SCROLL | DESKTOP GRID */}
+            {/* CARDS LOJAS */}
             <div>
                 {loading? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0? (<p>Nenhuma loja cadastrada ainda.</p>) : (
                     <>
-                        {/* MOBILE: SCROLL HORIZONTAL */}
                         <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-0">
                             <div className="flex w-max gap-6">
                                 {lojas.map((loja) => (
@@ -405,7 +418,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                             <Button size="sm" variant="outline" className="flex-1 gap-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10" onClick={() => handleOpenModal(loja)}>
                                                 <Edit size={14} /> Editar
                                             </Button>
-                                            <Button size="sm" variant="outline" className="flex-1 gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => { setLojaToDelete(loja); setDeleteModalOpen(true); }}>
+                                            <Button size="sm" variant="outline" className="flex-1 gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => { setLojaToDelete(loja); setDeleteModalOpen(true); setDeleteError(null); }}> {/* 👈 limpa erro */}
                                                 <Trash2 size={14} />
                                             </Button>
                                         </div>
@@ -414,7 +427,6 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                             </div>
                         </div>
 
-                        {/* DESKTOP: GRID NORMAL */}
                         <div className="hidden sm:grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
                             {lojas.map((loja) => (
                                 <Card key={`desktop-${loja.id}`} className="group flex-col glass-card shadow-primary hover:shadow-[0_8px_40px_0_rgba(34,197,94,0.30)] transition-all duration-300">
@@ -453,7 +465,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                         <Button size="sm" variant="outline" className="flex-1 gap-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10" onClick={() => handleOpenModal(loja)}>
                                             <Edit size={14} /> Editar
                                         </Button>
-                                        <Button size="sm" variant="outline" className="flex-1 gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => { setLojaToDelete(loja); setDeleteModalOpen(true); }}>
+                                        <Button size="sm" variant="outline" className="flex-1 gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => { setLojaToDelete(loja); setDeleteModalOpen(true); setDeleteError(null); }}> {/* 👈 limpa erro */}
                                             <Trash2 size={14} />
                                         </Button>
                                     </div>
@@ -467,22 +479,24 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             {/* MODAL CONFIRMAR EDIÇÃO */}
             <ConfirmModal
                 open={confirmModalOpen}
-                onOpenChange={setConfirmModalOpen}
+                onOpenChange={(v) => { setConfirmModalOpen(v); if(!v) setConfirmError(null); }} // 👈 limpa erro ao fechar
                 adminSenha={formData.adminSenha}
                 setAdminSenha={(v) => handleChange('adminSenha', v)}
                 onConfirm={handleConfirmSave}
                 saving={isSaving}
+                error={confirmError} // 👈 passa erro
             />
 
             {/* MODAL DELETAR */}
             <DeleteModal
                 open={deleteModalOpen}
-                onOpenChange={setDeleteModalOpen}
+                onOpenChange={(v) => { setDeleteModalOpen(v); if(!v) setDeleteError(null); }} // 👈 limpa erro ao fechar
                 loja={lojaToDelete}
                 adminSenha={adminSenhaDelete}
-                setAdminSenha={setAdminSenhaDelete}
+                setAdminSenha={(v) => { setAdminSenhaDelete(v); setDeleteError(null); }} // 👈 limpa erro ao digitar
                 onDelete={handleDeleteLoja}
                 deleting={isDeleting}
+                error={deleteError} // 👈 passa erro
             />
         </div>
     );
