@@ -53,7 +53,7 @@ function CardRisco({
     titulo,
     qtd,
     descricao,
-    cor,
+    cor, // vamos ignorar e forçar primary
     icon,
     tendencia,
     cardStyle,
@@ -68,43 +68,39 @@ function CardRisco({
     cardStyle: string,
     cardSize: string
 }) {
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '20px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '20px' : '16px';
 
-    const cores: Record<"primaria" | "alerta" | "yellow" | "blue", CorRisco> = {
-        primaria: { bg: 'var(--cor-primaria)', text: '#fff' },
-        alerta: { bg: '#ef4444', text: '#fff' },
-        yellow: { bg: 'var(--cor-card)', text: '#facc15', border: '#eab30830' },
-        blue: { bg: 'var(--cor-card)', text: '#60a5fa', border: '#3b82f630' }
-    }
-    const c = cores[cor]
     return (
         <div
             className="transition hover:scale-[1.02]"
             style={{
-                backgroundColor: c.bg,
-                color: c.text,
-                border: c.border? `1px solid ${c.border}` : 'none',
+                background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                backdropFilter: 'blur(12px)',
+                border: 'none', // 👈 remove borda
                 borderRadius: radius,
-                padding
+                padding,
+                boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)', // 👈 shadow primary
+                color: 'var(--cor-primaria)' // 👈 letras primary
             }}
         >
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium" style={{opacity: 0.9}}>{titulo}</p>
-                {icon}
+                <p className="text-xs md:text-sm font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
+                <div style={{ color: 'var(--cor-primaria)' }}>{icon}</div>
             </div>
-            <p className="text-2xl md:text-3xl font-bold">{qtd}</p>
-            <p className="text-xs mt-1" style={{opacity: 0.8}}>{descricao}</p>
-            {tendencia && <p className="text-xs mt-1" style={{opacity: 0.7}}>{tendencia}</p>}
+            <p className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{qtd}</p>
+            <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
+            {tendencia && <p className="text-xs mt-1" style={{ opacity: 0.7, color: 'var(--cor-primaria)' }}>{tendencia}</p>}
         </div>
     )
 }
 
-function BarraProgresso({ valor, max, cor, cardStyle }: { valor: number, max: number, cor: string, cardStyle: string }) {  cardStyle
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const pct = max > 0? (valor / max) * 100 : 0
+function BarraProgresso({ valor, max, cor, cardStyle }: { valor: number, max: number, cor: string, cardStyle: string }) {
+    cardStyle
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const pct = max > 0 ? (valor / max) * 100 : 0
     return (
-        <div className="w-full rounded-full h-2" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}}>
+        <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
             <div className="h-2 rounded-full" style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: cor, borderRadius: radius }}></div>
         </div>
     )
@@ -123,8 +119,8 @@ export function RiscoTab({
     const [filtroCategoria, setFiltroCategoria] = useState("TODAS")
     const [busca, setBusca] = useState("")
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '24px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '24px' : '16px';
 
     const hoje = new Date()
     const diasAtras = new Date()
@@ -161,7 +157,7 @@ export function RiscoTab({
         return dataVenda.toDateString() === hoje.toDateString()
     }), [vendasFiltradas, hoje])
     const vendasCanceladas = useMemo(() => vendasFiltradas.filter(v => v.status?.toLowerCase() === "cancelada"), [vendasFiltradas])
-    const taxaCancelamento = vendasFiltradas.length > 0? (vendasCanceladas.length / vendasFiltradas.length) * 100 : 0
+    const taxaCancelamento = vendasFiltradas.length > 0 ? (vendasCanceladas.length / vendasFiltradas.length) * 100 : 0
     const totalPerdido = useMemo(() => vendasCanceladas.reduce((acc, v) => acc + v.total, 0), [vendasCanceladas])
 
     const vendasComDesconto = useMemo(() => vendasFiltradas.filter(v => {
@@ -174,8 +170,8 @@ export function RiscoTab({
     const exportarCSV = () => {
         const linhas = [
             ["Tipo", "Produto", "Estoque", "Minimo"],
-     ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
-     ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
+            ...produtosZerados.map(p => ["Zerado", p.nome, p.estoque, p.estoque_minimo]),
+            ...produtosRuptura.map(p => ["Ruptura", p.nome, p.estoque, p.estoque_minimo])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -201,15 +197,15 @@ export function RiscoTab({
             {/* HEADER + FILTROS */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>Painel de Riscos
-                    {totalRiscos === 0? <CheckCircle2 size={16} style={{color: 'var(--cor-primaria)'}} /> : <AlertTriangle size={16} className="text-red-500" />}
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Painel de Riscos
+                        {totalRiscos === 0 ? <CheckCircle2 size={16} style={{ color: 'var(--cor-primaria)' }} /> : <AlertTriangle size={16} className="text-red-500" />}
                     </h2>
-                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Observe e controle os riscos diários</p>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Observe e controle os riscos diários</p>
                 </div>
                 <button
                     onClick={exportarCSV}
                     className="flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
-                    style={{background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande'? '12px 20px' : '8px 16px', borderRadius: radius}}
+                    style={{ background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}
                 >
                     <Download size={14} /> Exportar CSV
                 </button>
@@ -225,17 +221,17 @@ export function RiscoTab({
                     padding
                 }}
             >
-                <div className="flex items-center gap-2 mb-3" style={{color: 'var(--cor-texto)'}}>
+                <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--cor-texto)' }}>
                     <Filter size={16} /> <span className="text-sm font-medium">Filtros Inteligentes</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                        <label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Período de Análise</label>
+                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Período de Análise</label>
                         <select
                             value={filtroPeriodo}
                             onChange={(e) => setFiltroPeriodo(e.target.value)}
                             className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}
+                            style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius }}
                         >
                             <option value="7">Últimos 7 dias</option>
                             <option value="15">Últimos 15 dias</option>
@@ -244,27 +240,27 @@ export function RiscoTab({
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Categoria</label>
+                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Categoria</label>
                         <select
                             value={filtroCategoria}
                             onChange={(e) => setFiltroCategoria(e.target.value)}
                             className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none"
-                            style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}
+                            style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius }}
                         >
                             <option value="TODAS">Todas Categorias</option>
                             {categorias.map(c => <option key={String(c)} value={String(c)}>Categoria {c}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Buscar Produto</label>
+                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Buscar Produto</label>
                         <div className="relative mt-1">
-                            <Search size={14} className="absolute left-3 top-2.5" style={{color: 'var(--cor-texto-sec)'}} />
+                            <Search size={14} className="absolute left-3 top-2.5" style={{ color: 'var(--cor-texto-sec)' }} />
                             <input
                                 value={busca}
                                 onChange={(e) => setBusca(e.target.value)}
                                 placeholder="Nome do produto..."
                                 className="w-full rounded-lg pl-9 pr-3 py-2 text-sm outline-none"
-                                style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}
+                                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius }}
                             />
                         </div>
                     </div>
@@ -275,20 +271,20 @@ export function RiscoTab({
             <div className="overflow-x-auto scrollbar-hide">
                 <div
                     className="flex gap-2 p-1 w-max min-w-full"
-                    style={{backgroundColor: 'var(--cor-card)', borderRadius: radius}}
+                    style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}
                 >
                     {[
-                        {id: "estoque", label: "Estoque", icon: PackageX},
-                        {id: "financeiro", label: "Financeiro", icon: TrendingDown},
-                        {id: "operacional", label: "Operacional", icon: BarChart3}
+                        { id: "estoque", label: "Estoque", icon: PackageX },
+                        { id: "financeiro", label: "Financeiro", icon: TrendingDown },
+                        { id: "operacional", label: "Operacional", icon: BarChart3 }
                     ].map(tab => (
                         <button
                             key={tab.id}
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition whitespace-nowrap"
                             style={abaAtiva === tab.id
-                         ? {backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius}
-                                : {color: 'var(--cor-texto-sec)', borderRadius: radius}
+                                ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
+                                : { color: 'var(--cor-texto-sec)', borderRadius: radius }
                             }
                         >
                             <tab.icon size={14} /> {tab.label}
@@ -301,10 +297,16 @@ export function RiscoTab({
             {abaAtiva === "estoque" && (
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" cardStyle={cardStyle} cardSize={cardSize} />  
+
+                        <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" cardStyle={cardStyle} cardSize={cardSize} />
+
                         <CardRisco titulo="Risco Ruptura" qtd={produtosRuptura.length} descricao="Abaixo do mínimo" cor="yellow" icon={<PackageX size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+
                         <CardRisco titulo="Produtos Parados" qtd={produtosParados.length} descricao="+30 dias sem girar" cor="yellow" icon={<Clock size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+
                         <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
+
+
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div
@@ -316,19 +318,19 @@ export function RiscoTab({
                                 padding
                             }}
                         >
-                            <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{color: 'var(--cor-texto)'}}><PackageX size={16} style={{color: '#ef4444'}} /> Alertas Críticos</h3>
+                            <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}><PackageX size={16} style={{ color: '#ef4444' }} /> Alertas Críticos</h3>
                             <div className="space-y-2 max-h-[350px] overflow-y-auto scrollbar-hide">
-                                {[...produtosZerados,...produtosRuptura].slice(0, 15).map(p => (
-                                    <div key={p.id} className="p-3" style={{backgroundColor: 'var(--cor-fundo)', borderRadius: radius}}>
+                                {[...produtosZerados, ...produtosRuptura].slice(0, 15).map(p => (
+                                    <div key={p.id} className="p-3" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
                                         <div className="flex justify-between items-center mb-2">
-                                            <p className="font-medium text-sm truncate max-w-[200px]" style={{color: 'var(--cor-texto)'}}>{p.nome}</p>
-                                            <span className="font-bold text-xs" style={{color: p.estoque <= 0? '#ef4444' : '#f97316'}}>Est: {p.estoque}</span>
+                                            <p className="font-medium text-sm truncate max-w-[200px]" style={{ color: 'var(--cor-texto)' }}>{p.nome}</p>
+                                            <span className="font-bold text-xs" style={{ color: p.estoque <= 0 ? '#ef4444' : '#f97316' }}>Est: {p.estoque}</span>
                                         </div>
-                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "#ef4444" : "#f97316"} cardStyle={cardStyle} />
-                                        <p className="text-xs mt-1" style={{color: 'var(--cor-texto-sec)'}}>Mínimo: {p.estoque_minimo}</p>
+                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0 ? "#ef4444" : "#f97316"} cardStyle={cardStyle} />
+                                        <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>Mínimo: {p.estoque_minimo}</p>
                                     </div>
                                 ))}
-                                {produtosZerados.length === 0 && produtosRuptura.length === 0 && <p className="text-center py-8 text-sm" style={{color: 'var(--cor-texto-sec)'}}>Estoque saudável ✅</p>}
+                                {produtosZerados.length === 0 && produtosRuptura.length === 0 && <p className="text-center py-8 text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Estoque saudável ✅</p>}
                             </div>
                         </div>
 
@@ -342,13 +344,13 @@ export function RiscoTab({
                                     padding
                                 }}
                             >
-                                <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{color: 'var(--cor-texto)'}}><Flame size={16} style={{color: '#f97316'}} /> Próximos do Vencimento</h3>
+                                <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}><Flame size={16} style={{ color: '#f97316' }} /> Próximos do Vencimento</h3>
                                 <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto scrollbar-hide">
                                     {produtosValidade.map(p => (
-                                        <div key={p.id} className="p-3 text-xs" style={{backgroundColor: '#f9731614', border: '1px solid #f9731630', borderRadius: radius}}>
-                                            <p className="font-medium truncate" style={{color: 'var(--cor-texto)'}}>{p.nome}</p>
-                                            <p style={{color: 'var(--cor-texto-sec)'}}>Vence: {new Date(p.data_validade!).toLocaleDateString('pt-AO')}</p>
-                                            <p className="font-bold mt-1" style={{color: 'var(--cor-texto)'}}>Est: {p.estoque} un</p>
+                                        <div key={p.id} className="p-3 text-xs" style={{ backgroundColor: '#f9731614', border: '1px solid #f9731630', borderRadius: radius }}>
+                                            <p className="font-medium truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</p>
+                                            <p style={{ color: 'var(--cor-texto-sec)' }}>Vence: {new Date(p.data_validade!).toLocaleDateString('pt-AO')}</p>
+                                            <p className="font-bold mt-1" style={{ color: 'var(--cor-texto)' }}>Est: {p.estoque} un</p>
                                         </div>
                                     ))}
                                 </div>
@@ -376,18 +378,18 @@ export function RiscoTab({
                             padding
                         }}
                     >
-                        <h3 className="font-bold text-base mb-3" style={{color: 'var(--cor-texto)'}}>Últimas Vendas Canceladas</h3>
+                        <h3 className="font-bold text-base mb-3" style={{ color: 'var(--cor-texto)' }}>Últimas Vendas Canceladas</h3>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                             {vendasCanceladas.slice(0, 10).map(v => (
-                                <div key={v.id} className="flex justify-between items-center p-3 text-xs" style={{backgroundColor: '#ef444414', border: '1px solid #ef444430', borderRadius: radius}}>
+                                <div key={v.id} className="flex justify-between items-center p-3 text-xs" style={{ backgroundColor: '#ef444414', border: '1px solid #ef444430', borderRadius: radius }}>
                                     <div>
-                                        <p className="font-medium" style={{color: 'var(--cor-texto)'}}>#{v.id.slice(0,8)}</p>
-                                        <p style={{color: 'var(--cor-texto-sec)'}}>{new Date(v.data).toLocaleDateString('pt-AO')}</p>
+                                        <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>#{v.id.slice(0, 8)}</p>
+                                        <p style={{ color: 'var(--cor-texto-sec)' }}>{new Date(v.data).toLocaleDateString('pt-AO')}</p>
                                     </div>
-                                    <p className="font-bold" style={{color: '#ef4444'}}>{formatCurrency(v.total)}</p>
+                                    <p className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(v.total)}</p>
                                 </div>
                             ))}
-                            {vendasCanceladas.length === 0 && <p className="text-center py-4 text-sm" style={{color: 'var(--cor-texto-sec)'}}>Nenhum cancelamento no período</p>}
+                            {vendasCanceladas.length === 0 && <p className="text-center py-4 text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Nenhum cancelamento no período</p>}
                         </div>
                     </div>
                 </div>
@@ -400,12 +402,12 @@ export function RiscoTab({
                         backgroundColor: 'var(--cor-card)',
                         border: '1px solid var(--cor-primaria)30',
                         borderRadius: radius,
-                        padding: cardSize === 'grande'? '24px' : '16px'
+                        padding: cardSize === 'grande' ? '24px' : '16px'
                     }}
                 >
-                    <CheckCircle2 size={32} style={{color: 'var(--cor-primaria)', margin: '0 auto 8px'}} />
-                    <p className="font-semibold" style={{color: 'var(--cor-texto)'}}>Operação Estável</p>
-                    <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Sem anomalias operacionais detectadas nos últimos {filtroPeriodo} dias</p>
+                    <CheckCircle2 size={32} style={{ color: 'var(--cor-primaria)', margin: '0 auto 8px' }} />
+                    <p className="font-semibold" style={{ color: 'var(--cor-texto)' }}>Operação Estável</p>
+                    <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Sem anomalias operacionais detectadas nos últimos {filtroPeriodo} dias</p>
                 </div>
             )}
 

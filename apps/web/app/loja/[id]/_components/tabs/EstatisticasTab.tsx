@@ -427,7 +427,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             titulo="Faturamento"
                             stats={statsPeriodo}
                             icon={<DollarSign size={16} />}
-                            cor="primaria"
+                            cor="primaria" // 👈 é isso que ativa o glass + shadow
                             descricao="Total do período"
                             tendencia="+8.5% vs mês ant"
                             formatCurrency={formatCurrency}
@@ -450,7 +450,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             titulo="Ticket Médio"
                             stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
                             icon={<TrendingUp size={16} />}
-                            cor="primaria"
+                            cor="primaria" // 👈 glass + shadow ativado
                             descricao="Valor por venda"
                             tendencia="+2.3% vs mês ant"
                             formatCurrency={formatCurrency}
@@ -674,9 +674,24 @@ function CardStats({
     const isLight = theme === 'light';
 
     const cores = {
-        primaria: { border: 'var(--cor-primaria)30', bg: 'var(--cor-primaria)14', text: 'var(--cor-primaria)' },
-        secundaria: { border: 'var(--cor-borda)', bg: 'var(--cor-card-hover)', text: '#60a5fa' },
-        alerta: { border: '#f9731630', bg: '#f9731614', text: '#f97316' }
+        primaria: {
+            border: 'var(--cor-primaria)40', // 👈 aumentei opacidade
+            bg: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', // 👈 glass
+            text: 'var(--cor-primaria)',
+            shadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' // 👈 shadow
+        },
+        secundaria: {
+            border: 'var(--cor-borda)',
+            bg: 'var(--cor-card-hover)',
+            text: '#60a5fa',
+            shadow: 'none'
+        },
+        alerta: {
+            border: '#f9731630',
+            bg: '#f9731614',
+            text: '#f97316',
+            shadow: 'none'
+        }
     }
 
     const c = cores[cor]
@@ -686,9 +701,11 @@ function CardStats({
             className="p-3 md:p-4 transition hover:scale-[1.02]"
             style={{
                 border: `1px solid ${c.border}`,
-                backgroundColor: c.bg,
+                background: c.bg, // 👈 troquei backgroundColor por background
+                backdropFilter: cor === 'primaria' ? 'blur(12px)' : 'none', // 👈 glass só na primaria
                 color: c.text,
-                borderRadius: radius
+                borderRadius: radius,
+                boxShadow: c.shadow // 👈 shadow primary
             }}
         >
             <div className="flex items-center justify-between mb-2">

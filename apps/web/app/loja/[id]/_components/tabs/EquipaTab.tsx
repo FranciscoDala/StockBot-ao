@@ -115,11 +115,13 @@ export function EquipaTab({
                 <div
                     className="transition hover:scale-[1.02]"
                     style={{
-                        background: 'var(--cor-card)',
-                        border: '1px solid var(--cor-primaria)30',
+                        background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', // 👈 glass
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid var(--cor-primaria)40',
                         borderRadius: radius,
                         color: 'var(--cor-texto)',
-                        padding: padding
+                        padding: padding,
+                        boxShadow: '0 0 20px color-mix(in srgb, var(--cor-primaria) 15%, transparent)' // 👈 shadow primary
                     }}
                 >
                     <div className="flex items-center justify-between mb-2">
@@ -132,15 +134,17 @@ export function EquipaTab({
                 <div
                     className="transition hover:scale-[1.02]"
                     style={{
-                        background: 'var(--cor-card)',
-                        border: '1px solid var(--cor-primaria)30',
+                        background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', // 👈 glass
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid #ef444430', // borda vermelha pra inativos
                         borderRadius: radius,
                         color: 'var(--cor-texto)',
-                        padding: padding
+                        padding: padding,
+                        boxShadow: '0 0 20px color-mix(in srgb, #ef4444 15%, transparent)' // 👈 shadow vermelha
                     }}
                 >
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Inativos</p> {/* <- NOVO CARD */}
+                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Inativos</p>
                         <UserX size={16} style={{ color: '#ef4444' }} />
                     </div>
                     <p className="text-lg sm:text-xl font-bold" style={{ color: '#ef4444' }}>{totalInativos}</p>
@@ -149,11 +153,13 @@ export function EquipaTab({
                 <div
                     className="transition hover:scale-[1.02]"
                     style={{
-                        background: 'var(--cor-card)',
-                        border: '1px solid var(--cor-primaria)30',
+                        background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', // 👈 glass
+                        backdropFilter: 'blur(12px)',
+                        border: '1px solid var(--cor-primaria)40',
                         borderRadius: radius,
                         color: 'var(--cor-texto)',
-                        padding: padding
+                        padding: padding,
+                        boxShadow: '0 0 20px color-mix(in srgb, var(--cor-primaria) 15%, transparent)' // 👈 shadow primary
                     }}
                 >
                     <div className="flex items-center justify-between mb-2">
@@ -162,6 +168,10 @@ export function EquipaTab({
                     </div>
                     <p className="text-lg sm:text-xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{totalGerentes}</p>
                 </div>
+
+
+
+
             </div>
 
             {/* ABAS DE FILTRO */}
