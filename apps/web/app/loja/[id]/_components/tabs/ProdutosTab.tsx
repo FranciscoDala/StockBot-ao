@@ -112,74 +112,83 @@ export function ProdutosTab({
                     <div
                         className="transition hover:scale-[1.02] min-w-0"
                         style={{
-                            background: 'var(--cor-primaria)',
-                            color: '#fff',
+                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                            backdropFilter: 'blur(12px)',
+                            color: 'var(--cor-primaria)', // 👈 letras primary
                             borderRadius: radius,
-                            padding
+                            padding,
+                            border: 'none', // 👈 remove borda
+                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9 }}>Valor em Estoque</p>
-                            <DollarSign size={16} className="opacity-90 shrink-0" />
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Valor em Estoque</p>
+                            <DollarSign size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" title={formatCurrency(kpis.valorTotalEstoque)}>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-primaria)' }} title={formatCurrency(kpis.valorTotalEstoque)}>
                             {formatCurrency(kpis.valorTotalEstoque)}
                         </p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8 }}>Total do estoque atual</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total do estoque atual</p>
                     </div>
 
                     <div
                         className="transition hover:scale-[1.02] min-w-0"
                         style={{
-                            background: 'var(--cor-card)',
-                            border: '1px solid var(--cor-primaria)30',
-                            color: 'var(--cor-texto)',
+                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                            backdropFilter: 'blur(12px)',
+                            color: 'var(--cor-primaria)', // 👈 letras primary
                             borderRadius: radius,
-                            padding
+                            padding,
+                            border: 'none', // 👈 remove borda
+                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Em Estoque</p>
-                            <TrendingUp size={16} className="opacity-80 shrink-0" />
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Em Estoque</p>
+                            <TrendingUp size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{kpis.totalEmEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Produtos com estoque ok</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.totalEmEstoque}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos com estoque ok</p>
                     </div>
 
                     <div
                         className="transition hover:scale-[1.02] min-w-0"
                         style={{
-                            background: 'var(--cor-card)',
-                            border: '1px solid var(--cor-primaria)30',
-                            color: 'var(--cor-texto)',
+                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                            backdropFilter: 'blur(12px)',
+                            color: 'var(--cor-primaria)', // 👈 letras primary
                             borderRadius: radius,
-                            padding
+                            padding,
+                            border: 'none', // 👈 remove borda
+                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Estoque Baixo</p>
-                            <AlertTriangle size={16} className="opacity-80 shrink-0" />
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Estoque Baixo</p>
+                            <AlertTriangle size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{kpis.estoqueBaixo}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Abaixo do mínimo</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.estoqueBaixo}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Abaixo do mínimo</p>
                     </div>
 
                     <div
                         className="transition hover:scale-[1.02] min-w-0"
                         style={{
-                            background: 'var(--cor-card)',
-                            border: '1px solid var(--cor-primaria)30',
-                            color: 'var(--cor-texto)',
+                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                            backdropFilter: 'blur(12px)',
+                            color: 'var(--cor-primaria)', // 👈 letras primary
                             borderRadius: radius,
-                            padding
+                            padding,
+                            border: 'none', // 👈 remove borda
+                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Sem Estoque</p>
-                            <TrendingDown size={16} className="opacity-80 shrink-0" />
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Sem Estoque</p>
+                            <TrendingDown size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{kpis.semEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-texto-sec)' }}>Produtos zerados</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.semEstoque}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos zerados</p>
                     </div>
                 </div>
 
@@ -187,8 +196,13 @@ export function ProdutosTab({
                 <div className="">
                     {produtos.length === 0 ? (
                         <div
-                            className="text-center py-16 border-2 border-dashed mt-4"
-                            style={{ borderColor: 'var(--cor-primaria)30', borderRadius: radius }}
+                            className="text-center py-16 border mt-4"
+                            style={{
+                                borderColor: 'color-mix(in srgb, var(--cor-primaria) 20%, transparent)', // 👈 borda bem fraca
+                                borderRadius: radius,
+                                background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)',
+                                boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 10%, transparent)` // 👈 shadow leve
+                            }}
                         >
                             <Package className="mx-auto mb-3" size={48} style={{ color: 'var(--cor-primaria)', opacity: 0.5 }} />
                             <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>Nenhum produto cadastrado</p>
@@ -206,13 +220,14 @@ export function ProdutosTab({
 
                                         return (
                                             <div
-                                                key={`mobile-${p.id}`}
+                                                key={`mobile-${p.id}`} // ou desktop
                                                 className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''} w-[calc(100vw-32px)] snap-center shrink-0 mx-auto`}
                                                 style={{
-                                                    backgroundColor: 'var(--cor-card)',
-                                                    border: `1px solid ${p.is_active ? 'var(--cor-primaria)' : 'var(--cor-primaria)40'}`,
+                                                    background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)', // 👈 glass leve
+                                                    backdropFilter: 'blur(8px)',
+                                                    border: `1px solid color-mix(in srgb, var(--cor-primaria) 15%, transparent)`, // 👈 borda quase invisivel primary
                                                     borderRadius: radius,
-                                                    boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                                                    boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 12%, transparent), 0 4px 16px rgba(0,0,0,0.15)`, // 👈 shadow primary + leve
                                                     opacity: p.is_active ? 1 : 0.6
                                                 }}
                                             >
@@ -265,11 +280,12 @@ export function ProdutosTab({
                                             key={`desktop-${p.id}`}
                                             className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''}`}
                                             style={{
-                                                backgroundColor: 'var(--cor-card)',
-                                                border: `1px solid ${p.is_active ? 'var(--cor-primaria)' : 'var(--cor-primaria)40'}`, // <- AQUI
+                                                background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)', // 👈 glass leve
+                                                backdropFilter: 'blur(8px)',
+                                                border: `1px solid color-mix(in srgb, var(--cor-primaria) 15%, transparent)`, // 👈 borda quase invisivel
                                                 borderRadius: radius,
-                                                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
-                                                opacity: p.is_active ? 1 : 0.6 // <- opcional
+                                                boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 12%, transparent), 0 4px 16px rgba(0,0,0,0.15)`, // 👈 shadow primary
+                                                opacity: p.is_active ? 1 : 0.6
                                             }}
                                         >
                                             {/* IMAGEM */}
