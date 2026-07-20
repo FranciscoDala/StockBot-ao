@@ -190,7 +190,7 @@ export default function LoginPage() {
         <main className="flex min-h-screen items-center justify-center p-4 bg-black">
             <div className="w-full max-w-sm space-y-6 rounded-2xl border-zinc-800 bg-zinc-950 p-8 shadow-2xl shadow-green-900/20">
                 <div className="flex flex-col items-center gap-2">
-                    <Store className="h-20 w-20 text-green-500" />
+                    <Store className="h-15 w-15 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot</h1>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
@@ -209,7 +209,15 @@ export default function LoginPage() {
                 </form>
                 <div className="py-2">
                     <p className="text-sm text-zinc-400 text-center text-justify">
-                        Com o <b className="text-green-500">stockbot</b> tu <b className="text-green-400">gerências</b> e <b className="text-green-400">controlas</b> melhor a sua loja apartir de qualquer lugar do mundo, acessar!
+                        Com o <b className="text-green-500">stockbot</b> tu <b className="text-green-400">gerências</b> e <b className="text-green-400">controlas</b> melhor a sua loja apartir de qualquer lugar do mundo,
+                        <a
+                            href="https://wa.me/244930438947?text=Ola%20quero%20criar%20uma%20loja"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block"
+                        >
+                            <b className="text-red-400">criar uma loja</b>.
+                        </a>
                     </p>
                 </div>
             </div>

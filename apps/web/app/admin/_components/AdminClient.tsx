@@ -53,14 +53,14 @@ const getCookie = (name: string): string | undefined => {
     if (typeof document === "undefined") return undefined;
     return document.cookie.split('; ').reduce((r, v) => {
         const parts = v.split('=');
-        return parts[0] === name? decodeURIComponent(parts[1]) : r;
+        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
     }, '');
 };
 
 const deleteCookie = (name: string) => {
     const isProd = process.env.NODE_ENV === 'production';
-    const secure = isProd? '; Secure' : '';
-    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
+    const secure = isProd ? '; Secure' : '';
+    const sameSite = isProd ? '; SameSite=None' : '; SameSite=Lax';
     document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/${secure}${sameSite}`;
 };
 
@@ -111,11 +111,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 clearTimeout(timeout);
 
                 if (lojasRes.status === 401 || donosRes.status === 401) return handleTerminarSessao();
-                if (!lojasRes.ok ||!donosRes.ok) throw new Error("Erro ao buscar dados");
+                if (!lojasRes.ok || !donosRes.ok) throw new Error("Erro ao buscar dados");
 
                 const lojasData = await lojasRes.json();
                 const donosData = await donosRes.json();
-                setLojas(Array.isArray(lojasData)? lojasData : lojasData.data?? lojasData.lojas?? []);
+                setLojas(Array.isArray(lojasData) ? lojasData : lojasData.data ?? lojasData.lojas ?? []);
                 setDonos(donosData);
             } catch (err) {
                 console.error(err);
@@ -145,7 +145,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 fetch(`${API_URL}/lojas/donos`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' })
             ]);
             if (lojasRes.status === 401 || donosRes.status === 401) return handleTerminarSessao();
-            if (!lojasRes.ok ||!donosRes.ok) throw new Error("Erro ao atualizar");
+            if (!lojasRes.ok || !donosRes.ok) throw new Error("Erro ao atualizar");
             setLojas(await lojasRes.json());
             setDonos(await donosRes.json());
         } catch { handleTerminarSessao(); }
@@ -159,9 +159,9 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             if (res.status === 401) return handleTerminarSessao();
             const data = await res.json();
             setFormData({
-          ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active?? true,
+                ...emptyForm, nome: data.nome || "", slug: data.slug || "", is_active: data.is_active ?? true,
                 endereco: data.endereco || "", modoDono: 'existente',
-                dono: data.gerente? {...data.gerente, telefone: data.gerente.telefone?? "" } : null
+                dono: data.gerente ? { ...data.gerente, telefone: data.gerente.telefone ?? "" } : null
             });
         } else { setFormData(emptyForm); }
         setOpen(true);
@@ -174,23 +174,23 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
     }
 
     const handleConfirmSave = async () => {
-        if (editingLoja &&!formData.adminSenha) { setConfirmError("Digite a senha do ADMIN para confirmar"); return; }
+        if (editingLoja && !formData.adminSenha) { setConfirmError("Digite a senha do ADMIN para confirmar"); return; }
         setIsSaving(true);
         setConfirmError(null); // 👈 limpa erro antes de tentar
         const token = getCookie("token");
-        const isEditing =!!editingLoja;
-        const url = isEditing? `${API_URL}/lojas/${editingLoja.id}` : `${API_URL}/lojas`;
-        const method = isEditing? 'PATCH' : 'POST';
+        const isEditing = !!editingLoja;
+        const url = isEditing ? `${API_URL}/lojas/${editingLoja.id}` : `${API_URL}/lojas`;
+        const method = isEditing ? 'PATCH' : 'POST';
         let payload: any = { nome: formData.nome, slug: formData.slug, is_active: formData.is_active, endereco: formData.endereco || null, };
         if (isEditing) {
             payload.senha_admin = formData.adminSenha
-            payload.dono = {...formData.dono, telefone: formData.dono?.telefone?.trim() || null };
+            payload.dono = { ...formData.dono, telefone: formData.dono?.telefone?.trim() || null };
         } else {
             if (formData.modoDono === 'existente') {
                 if (!formData.dono_existente_id) { toast.error("Seleciona um dono existente"); setIsSaving(false); return; }
                 payload.dono_existente_id = formData.dono_existente_id;
             } else {
-                if (!formData.dono_novo.nome ||!formData.dono_novo.email ||!formData.dono_novo.senha) { toast.error("Preenche todos os dados do novo dono"); setIsSaving(false); return; }
+                if (!formData.dono_novo.nome || !formData.dono_novo.email || !formData.dono_novo.senha) { toast.error("Preenche todos os dados do novo dono"); setIsSaving(false); return; }
                 payload.dono_novo = { nome: formData.dono_novo.nome, email: formData.dono_novo.email, senha: formData.dono_novo.senha, telefone: formData.dono_novo.telefone?.trim() || null, };
             }
         }
@@ -203,19 +203,19 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 return;
             }
             if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Erro ao salvar loja'); }
-            toast.success(isEditing? "Loja atualizada" : "Loja criada");
+            toast.success(isEditing ? "Loja atualizada" : "Loja criada");
             setOpen(false); setConfirmModalOpen(false); setEditingLoja(null); setFormData(emptyForm);
             await refreshData();
         } catch (err: any) {
             setConfirmError(err.message || "Erro ao salvar loja. Verifique o slug/email.");
         }
-        finally { setIsSaving(false); setFormData(prev => ({...prev, adminSenha: "" })); }
+        finally { setIsSaving(false); setFormData(prev => ({ ...prev, adminSenha: "" })); }
     }
 
     const handleDeleteLoja = async () => {
-        if (!lojaToDelete ||!adminSenhaDelete) { setDeleteError("Digite a senha do ADMIN para apagar"); return; }
+        if (!lojaToDelete || !adminSenhaDelete) { setDeleteError("Digite a senha do ADMIN para apagar"); return; }
         setIsDeleting(true);
-        setDeleteError(null); // 👈 limpa erro
+        setDeleteError(null);
         const token = getCookie("token");
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaToDelete.id}`, {
@@ -224,31 +224,38 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             });
             if (res.status === 401) return handleTerminarSessao();
             if (res.status === 403) {
-                setDeleteError("Senha do ADMIN incorreta"); // 👈 mostra erro na modal
+                setDeleteError("Senha do ADMIN incorreta");
                 setIsDeleting(false);
                 return;
             }
-            if (!res.ok) throw new Error("Erro ao apagar loja");
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({})); // 👈 evita erro se não tiver json
+                throw new Error(data.detail || data.message || "Erro ao apagar loja");
+            }
             toast.success(`Loja ${lojaToDelete.nome} apagada`);
             setDeleteModalOpen(false); setLojaToDelete(null); setAdminSenhaDelete(""); await refreshData();
         } catch (err: any) {
-            setDeleteError(err.message || "Erro ao apagar loja");
+            if (err.name === 'TypeError') { // 👈 é o Failed to fetch
+                setDeleteError("Erro de conexão. Verifica a internet ou o servidor.");
+            } else {
+                setDeleteError(err.message);
+            }
         } finally { setIsDeleting(false); }
     };
 
     const handleChange = (field: string, value: string | boolean) => {
-        setFormData(prev => ({...prev, [field]: value }));
+        setFormData(prev => ({ ...prev, [field]: value }));
         if (field === 'adminSenha') setConfirmError(null); // 👈 limpa erro ao digitar
-        if (field === 'nome' &&!editingLoja) { setFormData(prev => ({...prev, slug: value.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') })); }
+        if (field === 'nome' && !editingLoja) { setFormData(prev => ({ ...prev, slug: value.toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') })); }
     }
 
-    const handleDonoChange = (field: string, value: string) => { setFormData(prev => ({...prev, dono: prev.dono? {...prev.dono, [field]: value } : null })); }
+    const handleDonoChange = (field: string, value: string) => { setFormData(prev => ({ ...prev, dono: prev.dono ? { ...prev.dono, [field]: value } : null })); }
 
     const handleDonoNovoChange = (field: string, value: string) => {
         setFormData(prev => ({
-      ...prev,
+            ...prev,
             dono_novo: {
-          ...prev.dono_novo,
+                ...prev.dono_novo,
                 [field]: value
             }
         }));
@@ -336,7 +343,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                             <Users className="h-5 w-5 text-red-500" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold">{lojas.filter((l) =>!l.is_active).length}</div>
+                            <div className="text-3xl font-bold">{lojas.filter((l) => !l.is_active).length}</div>
                             <p className="text-xs text-muted-foreground mt-1">Precisam de atenção</p>
                         </CardContent>
                     </Card>
@@ -369,7 +376,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                         <Users className="h-5 w-5 text-red-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold">{lojas.filter((l) =>!l.is_active).length}</div>
+                        <div className="text-3xl font-bold">{lojas.filter((l) => !l.is_active).length}</div>
                         <p className="text-xs text-muted-foreground mt-1">Precisam de atenção</p>
                     </CardContent>
                 </Card>
@@ -377,7 +384,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
 
             {/* CARDS LOJAS */}
             <div>
-                {loading? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0? (<p>Nenhuma loja cadastrada ainda.</p>) : (
+                {loading ? (<div className="flex items-center justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-green-500" /></div>) : lojas.length === 0 ? (<p>Nenhuma loja cadastrada ainda.</p>) : (
                     <>
                         <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-0">
                             <div className="flex w-max gap-6">
@@ -388,8 +395,8 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                                 <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
                                                     <Store className="w-6 h-6 text-green-500" />
                                                 </div>
-                                                <Badge variant={loja.is_active? "default" : "secondary"} className={cn("font-semibold", loja.is_active? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
-                                                    {loja.is_active? "Ativa" : "Inativa"}
+                                                <Badge variant={loja.is_active ? "default" : "secondary"} className={cn("font-semibold", loja.is_active ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
+                                                    {loja.is_active ? "Ativa" : "Inativa"}
                                                 </Badge>
                                             </div>
                                             <CardTitle className="text-xl">{loja.nome}</CardTitle>
@@ -398,11 +405,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                         <CardContent className="flex-grow space-y-3 text-sm">
                                             <div className="flex items-center gap-2 text-muted-foreground">
                                                 <User size={14} />
-                                                <span className="font-medium">{loja.gerente?.nome?? "Sem dono"}</span>
+                                                <span className="font-medium">{loja.gerente?.nome ?? "Sem dono"}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-muted-foreground">
                                                 <Mail size={14} />
-                                                <span className="text-xs break-all">{loja.gerente?.email?? "-"}</span>
+                                                <span className="text-xs break-all">{loja.gerente?.email ?? "-"}</span>
                                             </div>
                                             {loja.endereco && (
                                                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -435,8 +442,8 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                             <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
                                                 <Store className="w-6 h-6 text-green-500" />
                                             </div>
-                                            <Badge variant={loja.is_active? "default" : "secondary"} className={cn("font-semibold", loja.is_active? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
-                                                {loja.is_active? "Ativa" : "Inativa"}
+                                            <Badge variant={loja.is_active ? "default" : "secondary"} className={cn("font-semibold", loja.is_active ? "bg-green-500/20 text-green-400 border-green-500/30" : "bg-red-500/20 text-red-400 border-red-500/30")}>
+                                                {loja.is_active ? "Ativa" : "Inativa"}
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-xl">{loja.nome}</CardTitle>
@@ -445,11 +452,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                     <CardContent className="flex-grow space-y-3 text-sm">
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <User size={14} />
-                                            <span className="font-medium">{loja.gerente?.nome?? "Sem dono"}</span>
+                                            <span className="font-medium">{loja.gerente?.nome ?? "Sem dono"}</span>
                                         </div>
                                         <div className="flex items-center gap-2 text-muted-foreground">
                                             <Mail size={14} />
-                                            <span className="text-xs break-all">{loja.gerente?.email?? "-"}</span>
+                                            <span className="text-xs break-all">{loja.gerente?.email ?? "-"}</span>
                                         </div>
                                         {loja.endereco && (
                                             <div className="flex items-center gap-2 text-muted-foreground">
@@ -479,7 +486,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             {/* MODAL CONFIRMAR EDIÇÃO */}
             <ConfirmModal
                 open={confirmModalOpen}
-                onOpenChange={(v) => { setConfirmModalOpen(v); if(!v) setConfirmError(null); }} // 👈 limpa erro ao fechar
+                onOpenChange={(v) => { setConfirmModalOpen(v); if (!v) setConfirmError(null); }} // 👈 limpa erro ao fechar
                 adminSenha={formData.adminSenha}
                 setAdminSenha={(v) => handleChange('adminSenha', v)}
                 onConfirm={handleConfirmSave}
@@ -490,7 +497,7 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
             {/* MODAL DELETAR */}
             <DeleteModal
                 open={deleteModalOpen}
-                onOpenChange={(v) => { setDeleteModalOpen(v); if(!v) setDeleteError(null); }} // 👈 limpa erro ao fechar
+                onOpenChange={(v) => { setDeleteModalOpen(v); if (!v) setDeleteError(null); }} // 👈 limpa erro ao fechar
                 loja={lojaToDelete}
                 adminSenha={adminSenhaDelete}
                 setAdminSenha={(v) => { setAdminSenhaDelete(v); setDeleteError(null); }} // 👈 limpa erro ao digitar

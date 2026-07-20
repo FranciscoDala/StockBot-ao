@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ interface Props {
     setAdminSenha: (v: string) => void;
     onDelete: () => void;
     deleting: boolean;
-    error?: string | null; // 👈 vem do AdminClient
+    error?: string | null;
 }
 
 export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenha, onDelete, deleting, error }: Props) {
@@ -40,7 +40,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
     return (
         <Dialog open={open} onOpenChange={() => {}}>
             <DialogContent
-                className="w- max-w-[425px] p-0 shadow-2xl border"
+                className="w- max-w-[425px] p-0 shadow-2xl border gap-0" // 👈 gap-0
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -52,7 +52,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <DialogHeader className="p-4 pb-2">
-                    <div className="flex items-center gap-3 pr-8"> {/* 👈 pr-8 pra não colar no X */}
+                    <div className="flex items-center gap-3 pr-8">
                         <Trash2 size={20} style={{color: 'var(--cor-erro)'}} className="shrink-0" />
                         <DialogTitle className="text-base font-bold break-words" style={{color: 'var(--cor-texto)'}}>
                             Apagar {loja?.nome}?
@@ -63,7 +63,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="px-4 pb-2">
+                <div className="px-4 pb-4">
                     <div className="grid gap-2">
                         <Label htmlFor="senha-admin-delete" className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Digite a senha do ADMIN para confirmar</Label>
                         <Input
@@ -75,7 +75,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
-                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`, // 👈 borda vermelha se erro
+                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`,
                                 borderRadius: 'var(--radius-sm)',
                              ...(error? errorStyle : focusStyle)
                             }}
@@ -84,27 +84,32 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleDelete()}
                         />
-                        {error && ( // 👈 mensagem de erro
+                        {error && (
                             <div className="flex items-center gap-2 text-xs" style={{color: 'var(--cor-erro)'}}>
                                 <AlertCircle size={14} />
-                                {error}
+                                {error === 'Failed to fetch'? 'Erro de conexão com o servidor' : error} {/* 👈 trata o erro */}
                             </div>
                         )}
                     </div>
                 </div>
 
-                <DialogFooter
-                    className="p-4 border-t flex-col gap-2" // 👈 SEMPRE coluna, igual print
+                {/* 👇 TIREI DialogFooter e usei div normal pra não bugar no mobile */}
+                <div
+                    className="p-4 border-t flex-col gap-2"
                     style={{
                         backgroundColor: 'var(--cor-card)',
-                        borderColor: 'var(--cor-borda)'
+                        borderColor: 'var(--cor-borda)',
+                        borderTopLeftRadius: 0,
+                        borderTopRightRadius: 0,
+                        borderBottomLeftRadius: 'var(--radius)',
+                        borderBottomRightRadius: 'var(--radius)'
                     }}
                 >
                     <Button
                         variant="secondary"
                         onClick={handleClose}
                         disabled={deleting}
-                        className="h-10 w-full font-semibold" // 👈 w-full
+                        className="h-10 w-full font-semibold"
                         style={{
                             backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
@@ -117,9 +122,9 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     <Button
                         onClick={handleDelete}
                         disabled={deleting || adminSenha.length < 4}
-                        className="gap-2 font-bold h-10 w-full" // 👈 w-full
+                        className="gap-2 font-bold h-10 w-full"
                         style={{
-                            background: deleting || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-erro) 50%, transparent)' : 'var(--cor-erro)', // 👈 rosa claro quando disabled
+                            background: deleting || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-erro) 50%, transparent)' : 'var(--cor-erro)',
                             color: '#fff',
                             borderRadius: 'var(--radius)'
                         }}
@@ -127,7 +132,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                         {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
                         Apagar para sempre
                     </Button>
-                </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     )
