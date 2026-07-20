@@ -36,9 +36,9 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
     const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
 
     return (
-        <Dialog open={open} onOpenChange={() => {}}> {/* trava: não fecha clicando fora */}
+        <Dialog open={open} onOpenChange={() => {}}>
             <DialogContent
-                className="sm:max-w-[425px] p-0 shadow-2xl border"
+                className="w-[95vw] max-w-[425px] p-0 shadow-2xl border" // 👈 95vw pra mobile
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -46,15 +46,17 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     borderRadius: 'var(--radius)',
                     backdropFilter: 'blur(10px)'
                 }}
-                onInteractOutside={(e) => e.preventDefault()} // trava clique fora
-                onEscapeKeyDown={(e) => e.preventDefault()} // trava tecla ESC
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <DialogHeader className="p-4 pb-2">
-                    <div className="flex items-center gap-3">
-                        <Trash2 size={20} style={{color: 'var(--cor-erro)'}} />
-                        <DialogTitle className="text-base font-bold" style={{color: 'var(--cor-texto)'}}>Apagar {loja?.nome}?</DialogTitle>
+                    <div className="flex items-center gap-3 pr-2">
+                        <Trash2 size={20} style={{color: 'var(--cor-erro)'}} className="shrink-0" />
+                        <DialogTitle className="text-base font-bold break-words" style={{color: 'var(--cor-texto)'}}> {/* 👈 quebra texto longo */}
+                            Apagar {loja?.nome}?
+                        </DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm pt-2 text-left" style={{color: 'var(--cor-texto-sec)'}}>
+                    <DialogDescription className="text-sm pt-2 text-left break-words" style={{color: 'var(--cor-texto-sec)'}}> {/* 👈 quebra texto */}
                         Esta ação é irreversível. Digita a tua senha de ADMIN para confirmar.
                     </DialogDescription>
                 </DialogHeader>
@@ -67,13 +69,13 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                             type="password"
                             value={adminSenha}
                             onChange={(e) => setAdminSenha(e.target.value)}
-                            className="h-9"
+                            className="h-10 text-base" // 👈 h-10 e text-base pra mobile não dar zoom
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
                                 border: '1.5px solid var(--cor-primaria)',
                                 borderRadius: 'var(--radius-sm)',
-                              ...focusStyle
+                             ...focusStyle
                             }}
                             placeholder="******"
                             disabled={deleting}
@@ -84,7 +86,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                 </div>
 
                 <DialogFooter
-                    className="p-4 border-t flex-row justify-end gap-3"
+                    className="p-4 border-t flex-col sm:flex-row justify-end gap-2" // 👈 coluna no mobile
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -92,9 +94,9 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                 >
                     <Button
                         variant="secondary"
-                        onClick={handleClose} // só aqui fecha
+                        onClick={handleClose}
                         disabled={deleting}
-                        className="h-9"
+                        className="h-10 w-full sm:w-auto font-semibold" // 👈 w-full no mobile
                         style={{
                             backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
@@ -107,15 +109,16 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     <Button
                         onClick={handleDelete}
                         disabled={deleting || adminSenha.length < 4}
-                        className="gap-2 font-bold h-9"
+                        className="gap-2 font-bold h-10 w-full sm:w-auto" // 👈 w-full no mobile
                         style={{
-                            background: 'var(--cor-erro)', // vermelho pra deletar
+                            background: 'var(--cor-erro)',
                             color: '#fff',
-                            borderRadius: 'var(--radius)'
+                            borderRadius: 'var(--radius)',
+                            opacity: (deleting || adminSenha.length < 4)? 0.5 : 1 // 👈 feedback de disabled
                         }}
                     >
                         {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Apagar para sempre
+                        Apagar
                     </Button>
                 </DialogFooter>
             </DialogContent>

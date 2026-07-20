@@ -114,7 +114,7 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
                         </DialogClose>
                         <Button type="submit" disabled={saving} className="gap-2 text-xs flex-1 sm:flex-initial font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {editingLoja? "Salvar Alterações" : "Salvar Loja"}
+                            {editingLoja? "Salvar Alterações" : "Salvar"}
                         </Button>
                     </DialogFooter>
                 </form>

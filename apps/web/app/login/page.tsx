@@ -192,9 +192,6 @@ export default function LoginPage() {
                 <div className="flex flex-col items-center gap-2">
                     <Store className="h-20 w-20 text-green-500" />
                     <h1 className="text-2xl font-bold text-white">stockbot</h1>
-                    <p className="text-sm text-zinc-400 text-center text-justify">
-                        Com o stockbot tu gerências e controlas melhor a sua loja apartir de qualquer lugar do mundo, acessar!
-                    </p>
                 </div>
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1">
@@ -210,6 +207,11 @@ export default function LoginPage() {
                         {loading ? "Acessando..." : "Acessar"}
                     </button>
                 </form>
+                <div className="py-2">
+                    <p className="text-sm text-zinc-400 text-center text-justify">
+                        Com o <b className="text-green-500">stockbot</b> tu <b className="text-green-400">gerências</b> e <b className="text-green-400">controlas</b> melhor a sua loja apartir de qualquer lugar do mundo, acessar!
+                    </p>
+                </div>
             </div>
 
             <Dialog open={lojaBloqueadaOpen} onOpenChange={(open) => { if (!open) return; }}>
