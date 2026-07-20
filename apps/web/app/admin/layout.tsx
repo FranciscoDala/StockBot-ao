@@ -28,7 +28,7 @@ const deleteCookie = (name: string) => {
 };
 
 const clearAllAuth = () => {
-    ['token', 'user', 'role'].forEach(deleteCookie);
+    ['token', 'user', 'role', 'temp_token', 'lojas_temp', 'user_temp'].forEach(deleteCookie); // 👈 limpa tudo
 }
 
 const applyTheme = (theme: string) => {
@@ -45,7 +45,8 @@ const applyTheme = (theme: string) => {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [theme, setTheme] = useState("dark");
-  const [showLogoutModal, setShowLogoutModal] = useState(false); // 👈 state da modal
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // 👈 loading da modal
 
   useEffect(() => {
     const savedTheme = getCookie("theme") || "dark";
@@ -60,10 +61,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     applyTheme(newTheme);
   }
 
-  const handleSair = () => { // 👈 renomeei pra ficar igual da loja
+  const handleSair = () => {
+    setIsLoggingOut(true);
     clearAllAuth();
-    router.replace("/login");
     setShowLogoutModal(false);
+
+    // 👈 FORÇA SAIR IMEDIATO. router.replace não funciona bem em layout
+    window.location.href = "/login";
   }
 
   return (
@@ -102,8 +106,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <Palette size={22} />
                     </button>
                     <button
-                        onClick={() => setShowLogoutModal(true)} // 👈 abre a modal agora
-                        className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
+                        onClick={() => setShowLogoutModal(true)}
+                        disabled={isLoggingOut}
+                        className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform disabled:opacity-50"
                         style={{
                                 width: '40px',
                                 height: '40px',
@@ -115,7 +120,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
             </header>
 
-            {children} {/* 👈 AQUI RENDERIZA O page.tsx */}
+            {children}
         </div>
 
         {/* Modal de confirmação de logout - sem senha */}
@@ -125,9 +130,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             onConfirm={handleSair}
             titulo="Sair do Admin"
             descricao="Tem certeza que deseja sair? Você precisará fazer login novamente para acessar."
-            loading={false}
+            loading={isLoggingOut} // 👈 mostra spinner no "Sim, Sair"
             textoConfirmar="Sim, Sair"
-            tipo="venda" // 👈 igual ao da loja, não pede senha
+            tipo="venda"
         />
     </div>
   )
