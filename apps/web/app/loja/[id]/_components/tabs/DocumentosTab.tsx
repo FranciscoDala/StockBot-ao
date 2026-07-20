@@ -28,7 +28,7 @@ type VendaAPI = {
     forma_pagamento: string
     data_venda: string
     status: string
-    funcionario_nome?: string | null // <-- ADICIONADO
+    nome_vendedor: string | null // <-- ADICIONA ESSA LINHA
     itens: ItemVenda[]
 }
 
@@ -38,7 +38,7 @@ type Venda = {
     total: number
     formaPagamento: string
     itens: number
-    funcionario: string // <-- ADICIONADO
+    nome_vendedor: string
     detalhes: ItemVenda[]
 }
 
@@ -69,18 +69,22 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     const [loadingVendas, setLoadingVendas] = useState(true)
     const [vendas, setVendas] = useState<Venda[]>([])
     const [activeTab, setActiveTab] = useState("7dias")
-    const [dataInicio, setDataInicio] = useState("")
-    const [dataFim, setDataFim] = useState("")
+
+    const hojeStr = new Date().toISOString().split('T')[0]
+    const [dataInicio, setDataInicio] = useState(hojeStr)
+    const [dataFim, setDataFim] = useState(hojeStr)
+
+
     const [page, setPage] = useState(1)
     const itemsPerPage = 10 // <-- MUDADO PRA 10
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const isLight = theme === 'light';
 
     const nomeLoja = loja?.nome || "StockBot AO"
 
     const buscarVendas = async () => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         setLoadingVendas(true) // <-- SÓ SPINNER NA TABELA
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
@@ -89,17 +93,17 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().trim() === "concluida")
-               .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
-                    funcionario: v.funcionario_nome || "N/A", // <-- ADICIONADO
+                    nome_vendedor: v.nome_vendedor || "Sem vendedor",
                     detalhes: (v.itens || []).map(item => ({
-                       ...item,
+                        ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -149,7 +153,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
     const totalVendas = vendasFiltradas.reduce((acc, v) => acc + v.total, 0)
     const totalItens = vendasFiltradas.reduce((acc, v) => acc + v.itens, 0)
-    const ticketMedio = vendasFiltradas.length > 0? totalVendas / vendasFiltradas.length : 0
+    const ticketMedio = vendasFiltradas.length > 0 ? totalVendas / vendasFiltradas.length : 0
 
     const totalPages = Math.ceil(vendasFiltradas.length / itemsPerPage)
     const vendasPaginadas = vendasFiltradas.slice((page - 1) * itemsPerPage, page * itemsPerPage)
@@ -162,7 +166,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
         try {
             const input = reportRef.current
             if (!input) return
-            const canvas = await html2canvas(input, { scale: 2, backgroundColor: isLight? '#ffffff' : '#1f2937' })
+            const canvas = await html2canvas(input, { scale: 2, backgroundColor: isLight ? '#ffffff' : '#1f2937' })
             const imgData = canvas.toDataURL('image/png')
             const pdf = new jsPDF('p', 'mm', 'a4')
             const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -196,10 +200,10 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
                     new TableRow({ tableHeader: true, children: ['Data', 'Funcionário', 'Total KZ', 'Pagamento', 'Itens'].map(text => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })] })], shading: { fill: "6366F1" } })) }),
-                   ...vendasFiltradas.map((v) => new TableRow({
+                    ...vendasFiltradas.map((v) => new TableRow({
                         children: [
                             new TableCell({ children: [new Paragraph(new Date(v.data).toLocaleDateString('pt-AO'))] }),
-                            new TableCell({ children: [new Paragraph(v.funcionario)] }), // <-- ADICIONADO
+                            new TableCell({ children: [new Paragraph(v.nome_vendedor)] }), // <-- ADICIONADO
                             new TableCell({ children: [new Paragraph(formatCurrency(v.total))] }),
                             new TableCell({ children: [new Paragraph(v.formaPagamento)] }),
                             new TableCell({ children: [new Paragraph(String(v.itens))] }),
@@ -239,7 +243,14 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2">
-                    <Select value={activeTab} onValueChange={setActiveTab}>
+                    <Select value={activeTab} onValueChange={(value) => {
+                        setActiveTab(value)
+                        if (value === "personalizado") {
+                            const hojeStr = new Date().toISOString().split('T')[0]
+                            setDataInicio(hojeStr)
+                            setDataFim(hojeStr)
+                        }
+                    }}>
                         <SelectTrigger className="w-full sm:w-[240px]" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>
                             <SelectValue placeholder="Selecione o período" />
                         </SelectTrigger>
@@ -252,9 +263,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
                     {activeTab === "personalizado" && (
                         <div className="flex gap-2 items-center flex-wrap">
-                            <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}/>
+                            <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} />
                             <span style={{ color: 'var(--cor-texto-sec)' }}>até</span>
-                            <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}/>
+                            <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }} />
                         </div>
                     )}
                 </div>
@@ -265,11 +276,18 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                         {PERIODOS.map(p => (
                             <button
                                 key={p.value}
-                                onClick={() => setActiveTab(p.value)}
+                                onClick={() => {
+                                    setActiveTab(p.value)
+                                    if (p.value === "personalizado") {
+                                        const hojeStr = new Date().toISOString().split('T')[0]
+                                        setDataInicio(hojeStr)
+                                        setDataFim(hojeStr)
+                                    }
+                                }}
                                 className="px-3 py-1.5 text-xs md:text-sm font-medium whitespace-nowrap transition-all"
                                 style={{
-                                    backgroundColor: activeTab === p.value? 'var(--cor-primaria)' : 'var(--cor-card-hover)',
-                                    color: activeTab === p.value? 'white' : 'var(--cor-texto-sec)',
+                                    backgroundColor: activeTab === p.value ? 'var(--cor-primaria)' : 'var(--cor-card-hover)',
+                                    color: activeTab === p.value ? 'white' : 'var(--cor-texto-sec)',
                                     borderRadius: radius,
                                     border: '1px solid var(--cor-borda)'
                                 }}
@@ -283,21 +301,36 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
             {/* CARDS */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                <div className="p-3 md:p-4" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
-                    <div className="flex items-center justify-between mb-2"><p className="text-xs md:text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Total Vendido</p><TrendingUp size={16} style={{ color: 'var(--cor-primaria)' }}/></div>
-                    <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(totalVendas)}</p>
+                <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Total Vendido</p>
+                        <TrendingUp size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
+                    </div>
+                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(totalVendas)}</p>
                 </div>
-                <div className="p-3 md:p-4" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
-                    <div className="flex items-center justify-between mb-2"><p className="text-xs md:text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Nº Transações</p><Wallet size={16} style={{ color: 'var(--cor-primaria)' }}/></div>
-                    <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{vendasFiltradas.length}</p>
+
+                <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Nº Transações</p>
+                        <Wallet size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
+                    </div>
+                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{vendasFiltradas.length}</p>
                 </div>
-                <div className="p-3 md:p-4" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
-                    <div className="flex items-center justify-between mb-2"><p className="text-xs md:text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Ticket Médio</p><TrendingUp size={16} style={{ color: 'var(--cor-primaria)' }}/></div>
-                    <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(ticketMedio)}</p>
+
+                <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Ticket Médio</p>
+                        <TrendingUp size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
+                    </div>
+                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(ticketMedio)}</p>
                 </div>
-                <div className="p-3 md:p-4" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
-                    <div className="flex items-center justify-between mb-2"><p className="text-xs md:text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Itens Vendidos</p><Package size={16} style={{ color: 'var(--cor-primaria)' }}/></div>
-                    <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-texto)' }}>{totalItens}</p>
+
+                <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Itens Vendidos</p>
+                        <Package size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
+                    </div>
+                    <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{totalItens}</p>
                 </div>
             </div>
 
@@ -310,24 +343,24 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={buscarVendas} size="sm" variant="outline" disabled={loadingVendas} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>
-                            {loadingVendas? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
+                            {loadingVendas ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
                         </Button>
-                        <Button onClick={exportarPDF} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'pdf'? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
-                        <Button onClick={exportarWord} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'word'? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Word</Button>
+                        <Button onClick={exportarPDF} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
+                        <Button onClick={exportarWord} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'word' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Word</Button>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto scrollbar-hide">
-                    {loadingVendas? (
-                        <div className="flex justify-center py-10"><Loader2 className="animate-spin" style={{ color: 'var(--cor-primaria)' }}/></div>
+                    {loadingVendas ? (
+                        <div className="flex justify-center py-10"><Loader2 className="animate-spin" style={{ color: 'var(--cor-primaria)' }} /></div>
                     ) : (
                         <table className="w-full text-sm">
                             <thead><tr style={{ backgroundColor: 'var(--cor-primaria)', color: 'white' }}><th className="p-3 text-left">Data</th><th className="p-3 text-left">Funcionário</th><th className="p-3 text-right">Total</th><th className="p-3 text-left">Pagamento</th><th className="p-3 text-center">Itens</th></tr></thead>
                             <tbody>
-                                {vendasPaginadas.length > 0? vendasPaginadas.map((v) => (
+                                {vendasPaginadas.length > 0 ? vendasPaginadas.map((v) => (
                                     <tr key={v.id} className="border-b hover:bg-opacity-50" style={{ borderColor: 'var(--cor-borda)' }}>
                                         <td className="p-3" style={{ color: 'var(--cor-texto)' }}>{new Date(v.data).toLocaleDateString('pt-AO')}</td>
-                                        <td className="p-3" style={{ color: 'var(--cor-texto)' }}><div className="flex items-center gap-2"><User size={14}/>{v.funcionario}</div></td>
+                                        <td className="p-3" style={{ color: 'var(--cor-texto)' }}><div className="flex items-center gap-2"><User size={14} />{v.nome_vendedor}</div></td>
                                         <td className="p-3 text-right font-semibold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(v.total)}</td>
                                         <td className="p-3" style={{ color: 'var(--cor-texto)' }}>{v.formaPagamento}</td>
                                         <td className="p-3 text-center" style={{ color: 'var(--cor-texto)' }}>{v.itens}</td>
