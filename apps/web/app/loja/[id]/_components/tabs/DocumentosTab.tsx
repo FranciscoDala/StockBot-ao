@@ -184,41 +184,67 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const pdf = new jsPDF('p', 'mm', 'a4')
             const pageWidth = pdf.internal.pageSize.getWidth()
 
-            // 1. REGISTRAR FONTE ZALANDO PRA TUDO
+            // 1. REGISTRAR FONTE
             pdf.addFileToVFS('ZalandoSansExpanded-Light.ttf', zalandoBase64)
             pdf.addFont('ZalandoSansExpanded-Light.ttf', 'Zalando', 'normal')
-            pdf.setFont('Zalando')
 
-            const corHeader = [220, 228, 235] // Azul claro do modelo
-            const corBorda = [180, 190, 200]
-            const corTextoCinza = [120, 120, 120]
+            const setZalando = (style: 'normal' | 'bold' | 'italic' = 'normal') => {
+                pdf.setFont('Zalando', style)
+            }
+            setZalando()
 
-            // 2. CABEÇALHO IGUAL MODELO
+            const corHeader = [220, 228, 235]
+            const corBorda = [200, 210, 220]
+            const corTextoCinza = [100, 100, 100]
+
+            // 2. CABEÇALHO
             pdf.setDrawColor(0)
             pdf.setLineWidth(0.5)
-            pdf.rect(15, 15, 80, 25, "D") // Logo com borda
-            pdf.setFontSize(10).setFont('Zalando', 'normal').text("Logo", 55, 28, { align: "center" })
+            pdf.rect(15, 15, 80, 25, "D")
+            setZalando('normal')
+            pdf.setFontSize(10)
+            pdf.text("Logo", 55, 28, { align: "center" })
 
             let yDireita = 18
+            setZalando('normal')
             pdf.setFontSize(9)
-            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Empresa", 110, yDireita, { align: "right" })
-            pdf.setFont('Zalando', 'bold').setTextColor(0).text(nomeLoja, 115, yDireita)
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+            pdf.text("Empresa", 110, yDireita, { align: "right" })
+            setZalando('bold')
+            pdf.setTextColor(0)
+            pdf.text(nomeLoja, 115, yDireita)
 
             yDireita += 6
-            pdf.setFont('Zalando', 'normal').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("NIF", 110, yDireita, { align: "right" })
-            pdf.setFont('Zalando', 'bold').setTextColor(0).text(loja?.nif || "XXXXX", 115, yDireita)
+            setZalando('normal')
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+            pdf.text("NIF", 110, yDireita, { align: "right" })
+            setZalando('bold')
+            pdf.setTextColor(0)
+            pdf.text(loja?.nif || "XXXXX", 115, yDireita)
 
             yDireita += 6
-            pdf.setFont('Zalando', 'normal').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Endereço", 110, yDireita, { align: "right" })
-            pdf.setFont('Zalando', 'bold').setTextColor(0).text(loja?.endereco || "XXXXX", 115, yDireita)
+            setZalando('normal')
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+            pdf.text("Endereço", 110, yDireita, { align: "right" })
+            setZalando('bold')
+            pdf.setTextColor(0)
+            pdf.text(loja?.endereco || "XXXXX", 115, yDireita)
 
             yDireita += 6
-            pdf.setFont('Zalando', 'normal').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Phone", 110, yDireita, { align: "right" })
-            pdf.setFont('Zalando', 'bold').setTextColor(0).text("(xxx) xxx-xxxx", 115, yDireita)
+            setZalando('normal')
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+            pdf.text("Phone", 110, yDireita, { align: "right" })
+            setZalando('bold')
+            pdf.setTextColor(0)
+            pdf.text("(xxx) xxx-xxxx", 115, yDireita)
 
             yDireita += 6
-            pdf.setFont('Zalando', 'normal').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("E-mail", 110, yDireita, { align: "right" })
-            pdf.setFont('Zalando', 'bold').setTextColor(0).text("email@empresa.com", 115, yDireita)
+            setZalando('normal')
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+            pdf.text("E-mail", 110, yDireita, { align: "right" })
+            setZalando('bold')
+            pdf.setTextColor(0)
+            pdf.text("email@empresa.com", 115, yDireita)
 
             let y = 55
 
@@ -234,89 +260,110 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 new Date(b[0].split('/').reverse().join('-')).getTime() - new Date(a[0].split('/').reverse().join('-')).getTime()
             )
 
-            // 4. TABELA PRINCIPAL - MODELO AZUL CLARO
+            // 4. TABELA
             const headers = ["Data", "Venda", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
             const colWidths = [20, 30, 20, 20, 25, 25, 30]
             const startX = 15
             const rowHeight = 8
+            const totalTableWidth = colWidths.reduce((a, b) => a + b)
 
-            // HEADER AZUL CLARO COM BORDA
             pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
-            pdf.setTextColor(0)
-            pdf.setFont('Zalando', 'bold')
-            pdf.setFontSize(9)
+            pdf.rect(startX, y - 4, totalTableWidth, rowHeight, "F")
 
+            setZalando('bold')
+            pdf.setTextColor(0)
+            pdf.setFontSize(9)
             headers.forEach((h, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
-                pdf.rect(x, y - 4, colWidths[i], rowHeight, "FD") // F = fill, D = border
+                pdf.rect(x, y - 4, colWidths[i], rowHeight, "D")
                 pdf.text(h, x + 2, y)
             })
             y += rowHeight
 
-            // LINHA TOTAL VAZIA IGUAL MODELO
-            pdf.setFont('Zalando', 'normal')
+            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
+            pdf.rect(startX, y - 4, totalTableWidth - colWidths[6], rowHeight, "D")
+            pdf.rect(startX + totalTableWidth - colWidths[6], y - 4, colWidths[6], rowHeight, "D")
+            setZalando('normal')
             pdf.setFontSize(8)
-            pdf.rect(startX, y - 4, colWidths.reduce((a, b) => a + b) - colWidths[6], rowHeight, "D")
-            pdf.rect(startX + colWidths.reduce((a, b) => a + b) - colWidths[6], y - 4, colWidths[6], rowHeight, "D")
-            pdf.text("$", startX + colWidths.reduce((a, b) => a + b) - colWidths[6] + 2, y)
-            pdf.text("-", startX + colWidths.reduce((a, b) => a + b) - 5, y)
+            pdf.text("$", startX + totalTableWidth - colWidths[6] + 2, y)
+            pdf.text("-", startX + totalTableWidth - 5, y)
             y += rowHeight
 
-            // DADOS AGRUPADOS
+            setZalando('normal')
+            pdf.setFontSize(8.5)
             dadosAgrupados.forEach(([data, info], index) => {
-                if (y > 270) { pdf.addPage(); y = 20 }
+                if (y > 270) {
+                    pdf.addPage()
+                    y = 20
+                    setZalando() // reforça fonte na nova pagina
+                }
 
                 const x = startX
                 const total = info.total
 
-                // Efeito zebra azul claro
                 if (index % 2 === 0) {
                     pdf.setFillColor(248, 250, 252)
-                    pdf.rect(startX, y - 4, colWidths.reduce((a, b) => a + b), rowHeight, "FD")
+                    pdf.rect(startX, y - 4, totalTableWidth, rowHeight, "F")
                 }
 
-                let currentX = x + 2
-                pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
-
-                pdf.setFont('Zalando', 'bold').text(data, currentX, y) // Data
-
-                currentX = x + colWidths[0] + 2
-                pdf.setFont('Zalando', 'normal').text("-", currentX, y) // Venda - sem nome
-
-                currentX = x + colWidths[0] + colWidths[1] + 2
-                pdf.setFont('Zalando', 'bold').text(formatCurrency(total), currentX, y) // Entrada
-
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + 2
-                pdf.setFont('Zalando', 'normal').text(formatCurrency(0), currentX, y) // Saida
-
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2
-                pdf.setFont('Zalando', 'bold').text(formatCurrency(total), currentX, y) // Subtotal
-
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2
-                pdf.setFont('Zalando', 'bold').text(formatCurrency(total), currentX, y) // Lucro
-
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5] + 2
-                pdf.setFont('Zalando', 'bold').text(formatCurrency(total), currentX, y) // Total Geral
-
-                // Desenha bordas das células
                 headers.forEach((_, i) => {
                     const cellX = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
                     pdf.rect(cellX, y - 4, colWidths[i], rowHeight, "D")
                 })
 
+                let currentX = x + 2
+                setZalando('bold')
+                pdf.text(data, currentX, y)
+
+                currentX = x + colWidths[0] + 2
+                setZalando('normal')
+                pdf.text("-", currentX, y)
+
+                currentX = x + colWidths[0] + colWidths[1] + 2
+                setZalando('bold')
+                pdf.text(formatCurrency(total), currentX, y)
+
+                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + 2
+                setZalando('normal')
+                pdf.text(formatCurrency(0), currentX, y)
+
+                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2
+                setZalando('bold')
+                pdf.text(formatCurrency(total), currentX, y)
+
+                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2
+                setZalando('bold')
+                pdf.text(formatCurrency(total), currentX, y)
+
+                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5] + 2
+                setZalando('bold')
+                pdf.text(formatCurrency(total), currentX, y)
+
                 y += rowHeight
             })
             y += 8
 
-            // 6. TABELA "ESTE MÊS" - MODELO
+            // 5. REMINDER
+            setZalando('normal')
+            pdf.setFontSize(8)
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+            pdf.text("Reminder: Please include the statement number on your check.", 15, y)
+            y += 5
+            pdf.text("Terms: Balance due in 30 days.", 15, y)
+            y += 10
+
+            // 6. TABELA "ESTE MÊS"
             const totalGeral = dadosAgrupados.reduce((sum, [, info]) => sum + info.total, 0)
             const resumoWidth = 90
 
             pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
-            pdf.setFont('Zalando', 'bold').setTextColor(0).setFontSize(9)
-            pdf.rect(15, y - 4, resumoWidth, rowHeight, "FD")
+            pdf.rect(15, y - 4, resumoWidth, rowHeight, "F")
+            setZalando('bold')
+            pdf.setTextColor(0)
+            pdf.setFontSize(9)
+            pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
             pdf.text("Este mês", 17, y)
             y += rowHeight
 
@@ -329,14 +376,28 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
             resumoMes.forEach(([label, valor]) => {
                 pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
-                pdf.setFont('Zalando', 'italic').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text(label, 17, y)
-                pdf.setFont('Zalando', 'bold').setTextColor(0).text(valor, 15 + resumoWidth - 3, y, { align: "right" })
+                setZalando('italic')
+                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
+                pdf.text(label, 17, y)
+                setZalando('bold')
+                pdf.setTextColor(0)
+                pdf.text(valor, 15 + resumoWidth - 3, y, { align: "right" })
                 y += rowHeight
             })
 
+            // RODAPÉ
+            const totalPages = pdf.internal.getNumberOfPages()
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i)
+                setZalando('normal')
+                pdf.setFontSize(8)
+                pdf.setTextColor(150)
+                pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
+            }
+
             pdf.save(`Relatorio-Modelo-${nomeArquivo}.pdf`)
         } catch (error) {
-            console.error(error);
+            console.error(error)
             alert("Erro ao gerar PDF.")
         } finally {
             setLoading(null)
