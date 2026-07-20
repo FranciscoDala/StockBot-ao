@@ -3,12 +3,12 @@
 import { useEffect, useState, useMemo, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { FileText, FileDown, Loader2, Calendar, TrendingUp, Wallet, ChevronLeft, ChevronRight, RefreshCw, Package } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { FileText, FileDown, Loader2, Calendar, TrendingUp, Wallet, ChevronLeft, ChevronRight, RefreshCw, Package, User } from "lucide-react"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import { saveAs } from "file-saver"
 import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, AlignmentType, TextRun } from "docx"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -28,6 +28,7 @@ type VendaAPI = {
     forma_pagamento: string
     data_venda: string
     status: string
+    funcionario_nome?: string | null // <-- ADICIONADO
     itens: ItemVenda[]
 }
 
@@ -37,17 +38,30 @@ type Venda = {
     total: number
     formaPagamento: string
     itens: number
+    funcionario: string // <-- ADICIONADO
     detalhes: ItemVenda[]
 }
 
 type Props = {
     lojaId: string
     token: string | null
-    loja: { nome?: string | null; logo?: string | null; nif?: string | null; endereco?: string | null } | null // <-- ACEITA NULL AGORA
+    loja: { nome?: string | null; logo?: string | null; nif?: string | null; endereco?: string | null } | null
     formatCurrency: (v: number) => string
-    theme: string; // <-- ADICIONADO
-    cardStyle: string; // <-- ADICIONADO
+    theme: string;
+    cardStyle: string;
 }
+
+const PERIODOS = [
+    { value: "7dias", label: "Últimos 7 dias" },
+    { value: "15dias", label: "Últimos 15 dias" },
+    { value: "30dias", label: "Últimos 30 dias" },
+    { value: "90dias", label: "Últimos 90 dias" },
+    { value: "semana", label: "Esta Semana" },
+    { value: "mes", label: "Este Mês" },
+    { value: "trimestre", label: "Este Trimestre" },
+    { value: "ano", label: "Este Ano" },
+    { value: "personalizado", label: "Personalizado" },
+]
 
 export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, cardStyle }: Props) {
     const reportRef = useRef<HTMLDivElement>(null)
@@ -58,16 +72,16 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     const [dataInicio, setDataInicio] = useState("")
     const [dataFim, setDataFim] = useState("")
     const [page, setPage] = useState(1)
-    const itemsPerPage = 20
+    const itemsPerPage = 10 // <-- MUDADO PRA 10
 
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const isLight = theme === 'light';
 
     const nomeLoja = loja?.nome || "StockBot AO"
 
     const buscarVendas = async () => {
-        if (!token || !lojaId) return;
-        setLoadingVendas(true)
+        if (!token ||!lojaId) return;
+        setLoadingVendas(true) // <-- SÓ SPINNER NA TABELA
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
@@ -75,16 +89,17 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluida")
-                .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
+               .filter(v => v.status?.toLowerCase().trim() === "concluida")
+               .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
+                    funcionario: v.funcionario_nome || "N/A", // <-- ADICIONADO
                     detalhes: (v.itens || []).map(item => ({
-                        ...item,
+                       ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -134,7 +149,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
     const totalVendas = vendasFiltradas.reduce((acc, v) => acc + v.total, 0)
     const totalItens = vendasFiltradas.reduce((acc, v) => acc + v.itens, 0)
-    const ticketMedio = vendasFiltradas.length > 0 ? totalVendas / vendasFiltradas.length : 0
+    const ticketMedio = vendasFiltradas.length > 0? totalVendas / vendasFiltradas.length : 0
 
     const totalPages = Math.ceil(vendasFiltradas.length / itemsPerPage)
     const vendasPaginadas = vendasFiltradas.slice((page - 1) * itemsPerPage, page * itemsPerPage)
@@ -147,7 +162,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
         try {
             const input = reportRef.current
             if (!input) return
-            const canvas = await html2canvas(input, { scale: 2, backgroundColor: isLight ? '#ffffff' : '#1f2937' })
+            const canvas = await html2canvas(input, { scale: 2, backgroundColor: isLight? '#ffffff' : '#1f2937' })
             const imgData = canvas.toDataURL('image/png')
             const pdf = new jsPDF('p', 'mm', 'a4')
             const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -180,10 +195,11 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const table = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
-                    new TableRow({ tableHeader: true, children: ['Data', 'Total KZ', 'Pagamento', 'Itens'].map(text => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })] })], shading: { fill: "6366F1" } })) }),
-                    ...vendasFiltradas.map((v) => new TableRow({
+                    new TableRow({ tableHeader: true, children: ['Data', 'Funcionário', 'Total KZ', 'Pagamento', 'Itens'].map(text => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })] })], shading: { fill: "6366F1" } })) }),
+                   ...vendasFiltradas.map((v) => new TableRow({
                         children: [
                             new TableCell({ children: [new Paragraph(new Date(v.data).toLocaleDateString('pt-AO'))] }),
+                            new TableCell({ children: [new Paragraph(v.funcionario)] }), // <-- ADICIONADO
                             new TableCell({ children: [new Paragraph(formatCurrency(v.total))] }),
                             new TableCell({ children: [new Paragraph(v.formaPagamento)] }),
                             new TableCell({ children: [new Paragraph(String(v.itens))] }),
@@ -202,16 +218,14 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
         }
     }
 
-    if(loadingVendas) return <div className="flex justify-center py-10"><Loader2 className="animate-spin" style={{ color: 'var(--cor-primaria)' }}/></div>
-
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-                .scrollbar-hide::-webkit-scrollbar { display: none; }
-                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+               .scrollbar-hide::-webkit-scrollbar { display: none; }
+               .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
-            {/* FILTROS */}
+            {/* FILTROS COM SELECT */}
             <div
                 className="border p-3 md:p-4"
                 style={{
@@ -223,22 +237,48 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 <div className="flex items-center gap-2 mb-3" style={{ color: 'var(--cor-texto-sec)' }}>
                     <Calendar size={16} /> <span className="text-sm font-medium">Período do Relatório</span>
                 </div>
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-3 lg:grid-cols-9" style={{ backgroundColor: 'var(--cor-card-hover)', borderRadius: radius }}>
-                        {["7dias","15dias","30dias","90dias","semana","mes","trimestre","ano","personalizado"].map(tab => (
-                            <TabsTrigger key={tab} value={tab} style={{ borderRadius: radius, color: 'var(--cor-texto-sec)' }}>
-                                {tab === "7dias" ? "7 Dias" : tab === "15dias" ? "15 Dias" : tab === "30dias" ? "30 Dias" : tab === "90dias" ? "90 Dias" : tab === "semana" ? "Semana" : tab === "mes" ? "Mês" : tab === "trimestre" ? "Trimestre" : tab === "ano" ? "Ano" : "Personalizado"}
-                            </TabsTrigger>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <Select value={activeTab} onValueChange={setActiveTab}>
+                        <SelectTrigger className="w-full sm:w-[240px]" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>
+                            <SelectValue placeholder="Selecione o período" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PERIODOS.map(p => (
+                                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {activeTab === "personalizado" && (
+                        <div className="flex gap-2 items-center flex-wrap">
+                            <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}/>
+                            <span style={{ color: 'var(--cor-texto-sec)' }}>até</span>
+                            <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}/>
+                        </div>
+                    )}
+                </div>
+
+                {/* ABAS SCROLL COM BG PRIMARY */}
+                <div className="mt-3 overflow-x-auto scrollbar-hide">
+                    <div className="flex gap-2 w-max">
+                        {PERIODOS.map(p => (
+                            <button
+                                key={p.value}
+                                onClick={() => setActiveTab(p.value)}
+                                className="px-3 py-1.5 text-xs md:text-sm font-medium whitespace-nowrap transition-all"
+                                style={{
+                                    backgroundColor: activeTab === p.value? 'var(--cor-primaria)' : 'var(--cor-card-hover)',
+                                    color: activeTab === p.value? 'white' : 'var(--cor-texto-sec)',
+                                    borderRadius: radius,
+                                    border: '1px solid var(--cor-borda)'
+                                }}
+                            >
+                                {p.label}
+                            </button>
                         ))}
-                    </TabsList>
-                </Tabs>
-                {activeTab === "personalizado" && (
-                    <div className="flex gap-2 mt-4 items-center flex-wrap">
-                        <Input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}/>
-                        <span style={{ color: 'var(--cor-texto-sec)' }}>até</span>
-                        <Input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} className="w-auto" style={{ backgroundColor: 'var(--cor-card-hover)', border: '1px solid var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}/>
                     </div>
-                )}
+                </div>
             </div>
 
             {/* CARDS */}
@@ -269,27 +309,44 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                         <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{vendasFiltradas.length} vendas encontradas</p>
                     </div>
                     <div className="flex gap-2">
-                        <Button onClick={buscarVendas} size="sm" variant="outline" style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}><RefreshCw className="mr-2 h-4 w-4" /> Atualizar</Button>
+                        <Button onClick={buscarVendas} size="sm" variant="outline" disabled={loadingVendas} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>
+                            {loadingVendas? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
+                        </Button>
                         <Button onClick={exportarPDF} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'pdf'? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
                         <Button onClick={exportarWord} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'word'? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Word</Button>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full text-sm">
-                        <thead><tr style={{ backgroundColor: 'var(--cor-primaria)', color: 'white' }}><th className="p-3 text-left">Data</th><th className="p-3 text-right">Total</th><th className="p-3 text-left">Pagamento</th><th className="p-3 text-center">Itens</th></tr></thead>
-                        <tbody>
-                            {vendasPaginadas.length > 0? vendasPaginadas.map((v) => (
-                                <tr key={v.id} className="border-b hover:bg-opacity-50" style={{ borderColor: 'var(--cor-borda)' }}>
-                                    <td className="p-3" style={{ color: 'var(--cor-texto)' }}>{new Date(v.data).toLocaleDateString('pt-AO')}</td>
-                                    <td className="p-3 text-right font-semibold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(v.total)}</td>
-                                    <td className="p-3" style={{ color: 'var(--cor-texto)' }}>{v.formaPagamento}</td>
-                                    <td className="p-3 text-center" style={{ color: 'var(--cor-texto)' }}>{v.itens}</td>
-                                </tr>
-                            )) : (<tr><td colSpan={4} className="p-8 text-center" style={{ color: 'var(--cor-texto-sec)' }}>Nenhuma venda neste período</td></tr>)}
-                        </tbody>
-                    </table>
+                    {loadingVendas? (
+                        <div className="flex justify-center py-10"><Loader2 className="animate-spin" style={{ color: 'var(--cor-primaria)' }}/></div>
+                    ) : (
+                        <table className="w-full text-sm">
+                            <thead><tr style={{ backgroundColor: 'var(--cor-primaria)', color: 'white' }}><th className="p-3 text-left">Data</th><th className="p-3 text-left">Funcionário</th><th className="p-3 text-right">Total</th><th className="p-3 text-left">Pagamento</th><th className="p-3 text-center">Itens</th></tr></thead>
+                            <tbody>
+                                {vendasPaginadas.length > 0? vendasPaginadas.map((v) => (
+                                    <tr key={v.id} className="border-b hover:bg-opacity-50" style={{ borderColor: 'var(--cor-borda)' }}>
+                                        <td className="p-3" style={{ color: 'var(--cor-texto)' }}>{new Date(v.data).toLocaleDateString('pt-AO')}</td>
+                                        <td className="p-3" style={{ color: 'var(--cor-texto)' }}><div className="flex items-center gap-2"><User size={14}/>{v.funcionario}</div></td>
+                                        <td className="p-3 text-right font-semibold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(v.total)}</td>
+                                        <td className="p-3" style={{ color: 'var(--cor-texto)' }}>{v.formaPagamento}</td>
+                                        <td className="p-3 text-center" style={{ color: 'var(--cor-texto)' }}>{v.itens}</td>
+                                    </tr>
+                                )) : (<tr><td colSpan={5} className="p-8 text-center" style={{ color: 'var(--cor-texto-sec)' }}>Nenhuma venda neste período</td></tr>)}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
+
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                        <span className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Página {page} de {totalPages}</span>
+                        <div className="flex gap-2">
+                            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} style={{ borderColor: 'var(--cor-borda)', borderRadius: radius }}><ChevronLeft className="w-4 h-4" /></Button>
+                            <Button size="sm" variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ borderColor: 'var(--cor-borda)', borderRadius: radius }}><ChevronRight className="w-4 h-4" /></Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )
