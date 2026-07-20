@@ -325,23 +325,28 @@ async def atualizar_dono_loja(loja_id: UUID, body: DonoUpdateInWithAuth, db: Asy
 
 @router.delete("/{loja_id}", status_code=204)
 async def apagar_loja(loja_id: UUID, body: AdminAuth, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
-    await verify_admin_password(db, body.senha_admin)
+    await verify_admin_password(db, admin, body.senha_admin) # 👈 tu esqueceu o 'admin' aqui
     loja = await db.get(Loja, loja_id)
     if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
-    membros_stmt = select(UsuarioLoja).where(UsuarioLoja.loja_id == loja_id)
-    membros_da_loja = (await db.execute(membros_stmt)).scalars().all()
-    donos_da_loja = [m for m in membros_da_loja if m.role == UserRole.DONO]
-    ids_donos = {m.usuario_id for m in donos_da_loja}
+
     try:
+        membros_stmt = select(UsuarioLoja).where(UsuarioLoja.loja_id == loja_id)
+        membros_da_loja = (await db.execute(membros_stmt)).scalars().all()
+        donos_da_loja = [m for m in membros_da_loja if m.role == UserRole.DONO]
+        ids_donos = {m.usuario_id for m in donos_da_loja}
+
         for m in membros_da_loja: await db.delete(m)
         await db.delete(loja)
+
         for user_id in ids_donos:
             usuario = await db.get(Usuario, user_id)
             if not usuario or usuario.is_superuser: continue
             stmt_count = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.usuario_id == user_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True)
             total_lojas_dono = (await db.execute(stmt_count)).scalar_one()
             if total_lojas_dono <= 1: await db.delete(usuario)
+
         await db.commit()
     except Exception as e:
         await db.rollback()
+        print(f"ERRO DELETE LOJA: {e}") # 👈 log pra ver no railway
         raise HTTPException(status_code=500, detail=f"Erro ao apagar loja: {e}")

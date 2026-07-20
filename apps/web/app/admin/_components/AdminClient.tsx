@@ -219,9 +219,11 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
         const token = getCookie("token");
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaToDelete.id}`, {
-                method: 'DELETE', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ senha_admin: adminSenhaDelete })
             });
+
             if (res.status === 401) return handleTerminarSessao();
             if (res.status === 403) {
                 setDeleteError("Senha do ADMIN incorreta");
@@ -229,14 +231,16 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                 return;
             }
             if (!res.ok) {
-                const data = await res.json().catch(() => ({})); // 👈 evita erro se não tiver json
-                throw new Error(data.detail || data.message || "Erro ao apagar loja");
+                const data = await res.json().catch(() => ({})); // evita crash se não tiver json
+                throw new Error(data.detail || "Erro ao apagar loja");
             }
+
             toast.success(`Loja ${lojaToDelete.nome} apagada`);
             setDeleteModalOpen(false); setLojaToDelete(null); setAdminSenhaDelete(""); await refreshData();
         } catch (err: any) {
-            if (err.name === 'TypeError') { // 👈 é o Failed to fetch
-                setDeleteError("Erro de conexão. Verifica a internet ou o servidor.");
+            console.error("ERRO DELETE:", err);
+            if (err.name === 'TypeError') {
+                setDeleteError("Erro de conexão. Verifica se o servidor está online.");
             } else {
                 setDeleteError(err.message);
             }

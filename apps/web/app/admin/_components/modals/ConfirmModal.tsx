@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldAlert, AlertCircle } from "lucide-react"; // 👈 add AlertCircle
+import { Loader2, ShieldAlert, AlertCircle } from "lucide-react";
 
 interface Props {
     open: boolean;
@@ -13,7 +13,7 @@ interface Props {
     setAdminSenha: (v: string) => void;
     onConfirm: () => void;
     saving: boolean;
-    error?: string | null; // 👈 add essa prop
+    error?: string | null;
 }
 
 export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, onConfirm, saving, error }: Props) {
@@ -27,11 +27,16 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
         onConfirm();
     }
 
+    const handleClose = () => {
+        setAdminSenha("");
+        onOpenChange(false);
+    }
+
     const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
     const errorStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-erro)' }
 
     return (
-        <Dialog open={open} onOpenChange={() => {}}>
+        <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
                 className="w- max-w-[425px] p-0 shadow-2xl border"
                 style={{
@@ -68,16 +73,16 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
-                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`, // 👈 borda vermelha se erro
+                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`,
                                 borderRadius: 'var(--radius-sm)',
-                              ...(error? errorStyle : focusStyle)
+                             ...(error? errorStyle : focusStyle)
                             }}
                             placeholder="******"
                             disabled={saving}
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
                         />
-                        {error && ( // 👈 mostra erro
+                        {error && (
                             <div className="flex items-center gap-2 text-xs" style={{color: 'var(--cor-erro)'}}>
                                 <AlertCircle size={14} />
                                 {error}
@@ -86,8 +91,9 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                     </div>
                 </div>
 
+                {/* BOTÕES AJUSTADOS */}
                 <DialogFooter
-                    className="p-4 border-t flex-col gap-2" // 👈 coluna no mobile
+                    className="p-4 border-t flex-col-reverse sm:flex-row sm:justify-end gap-2"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -95,9 +101,9 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                 >
                     <Button
                         variant="secondary"
-                        onClick={() => onOpenChange(false)}
+                        onClick={handleClose}
                         disabled={saving}
-                        className="h-10 w-full font-semibold"
+                        className="h-10 w-full sm:w-auto font-semibold"
                         style={{
                             backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
@@ -110,7 +116,7 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                     <Button
                         onClick={handleConfirm}
                         disabled={saving || adminSenha.length < 4}
-                        className="gap-2 font-bold h-10 w-full"
+                        className="gap-2 font-bold h-10 w-full sm:w-auto"
                         style={{
                             background: saving || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-primaria) 50%, transparent)' : 'var(--cor-primaria)',
                             color: '#fff',

@@ -209,14 +209,14 @@ export default function LoginPage() {
                 </form>
                 <div className="py-2">
                     <p className="text-sm text-zinc-400 text-center text-justify">
-                        Com o <b className="text-green-500">stockbot</b> tu <b className="text-green-400">gerências</b> e <b className="text-green-400">controlas</b> melhor a sua loja apartir de qualquer lugar do mundo,
+                        Com o <b className="text-green-500">stockbot</b> tu <b className="text-green-400">gerências</b> e <b className="text-green-400">controlas</b> melhor a sua loja apartir de qualquer lugar do mundo.
                         <a
                             href="https://wa.me/244930438947?text=Ola%20quero%20criar%20uma%20loja"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-block"
                         >
-                            <b className="text-red-400">criar uma loja</b>.
+                            <b className="text-red-400">Criar loja</b>.
                         </a>
                     </p>
                 </div>
