@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2, AlertCircle } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react"; // 👈 tirei AlertCircle
 import type { Loja } from "../AdminClient";
 
 interface Props {
@@ -15,10 +15,10 @@ interface Props {
     setAdminSenha: (v: string) => void;
     onDelete: () => void;
     deleting: boolean;
-    error?: string | null;
+    // error?: string | null; 👈 REMOVIDO
 }
 
-export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenha, onDelete, deleting, error }: Props) {
+export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenha, onDelete, deleting }: Props) { // 👈 tirei error
 
     useEffect(() => {
         if (!open) setAdminSenha("");
@@ -35,7 +35,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
     }
 
     const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
-    const errorStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-erro)' }
+    // const errorStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-erro)' } 👈 REMOVIDO
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
@@ -75,27 +75,28 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
-                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`,
+                                border: `1.5px solid var(--cor-primaria)`, // 👈 borda sempre primary
                                 borderRadius: 'var(--radius-sm)',
-                            ...(error? errorStyle : focusStyle)
+                               ...focusStyle
                             }}
                             placeholder="******"
                             disabled={deleting}
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleDelete()}
                         />
-                        {error && (
+                        {/* BLOCO DE ERRO REMOVIDO 👇 pq agora vem de outro modal */}
+                        {/* {error && (
                             <div className="flex items-center gap-2 text-xs" style={{color: 'var(--cor-erro)'}}>
                                 <AlertCircle size={14} />
                                 {error === 'Failed to fetch'? 'Erro de conexão com o servidor' : error}
                             </div>
-                        )}
+                        )} */}
                     </div>
                 </div>
 
                 {/* BOTÕES AJUSTADOS */}
                 <div
-                    className="p-4 border-t flex flex-col-reverse sm:flex-row sm:justify-end gap-2"
+                    className="p-4 border-t flex-col-reverse sm:flex-row sm:justify-end gap-2"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)',

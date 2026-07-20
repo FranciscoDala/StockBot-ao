@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, ShieldAlert, AlertCircle } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react"; // 👈 tirei AlertCircle
 
 interface Props {
     open: boolean;
@@ -13,10 +13,10 @@ interface Props {
     setAdminSenha: (v: string) => void;
     onConfirm: () => void;
     saving: boolean;
-    error?: string | null;
+    // error?: string | null; 👈 REMOVIDO
 }
 
-export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, onConfirm, saving, error }: Props) {
+export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, onConfirm, saving }: Props) { // 👈 tirei error
 
     useEffect(() => {
         if (!open) setAdminSenha("");
@@ -33,7 +33,7 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
     }
 
     const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
-    const errorStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-erro)' }
+    // const errorStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-erro)' } 👈 REMOVIDO
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
@@ -73,21 +73,22 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
-                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`,
+                                border: `1.5px solid var(--cor-primaria)`, // 👈 borda sempre primary
                                 borderRadius: 'var(--radius-sm)',
-                             ...(error? errorStyle : focusStyle)
+                             ...focusStyle
                             }}
                             placeholder="******"
                             disabled={saving}
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
                         />
-                        {error && (
+                        {/* BLOCO DE ERRO REMOVIDO 👇 pq agora vem de outro modal */}
+                        {/* {error && (
                             <div className="flex items-center gap-2 text-xs" style={{color: 'var(--cor-erro)'}}>
                                 <AlertCircle size={14} />
                                 {error}
                             </div>
-                        )}
+                        )} */}
                     </div>
                 </div>
 
