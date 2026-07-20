@@ -14,13 +14,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ||
 
 // 👈 MENSAGEM PROFISSIONAL NOVA
 const MENSAGEM_LOJA_DESATIVADA = `A tua loja encontra-se temporariamente desativada.
-
 Para reativar o acesso, entra em contacto com a equipa de suporte da StockBot.
-
-Canais de atendimento:
-E-mail: stockbot26@gmail.com
-WhatsApp: +244 930 438 947
-Horário: Segunda a Sábado, 08h às 18h`;
+Horário: Segunda a Sábado, 08h às 16h`;
 
 const ROUTES = {
     ADMIN: "/admin",
