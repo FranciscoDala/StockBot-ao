@@ -66,7 +66,7 @@ export function DadosTab({
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const carregarKPIs = useCallback(async () => {
-        if (!lojaId ||!token ||!API_URL) {
+        if (!lojaId || !token || !API_URL) {
             console.log("Faltando dados:", { lojaId, token, API_URL })
             setLoading(false);
             return;
@@ -79,10 +79,10 @@ export function DadosTab({
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas: " + resVendas.status);
             const data: VendaAPI[] = await resVendas.json();
 
-            const vendas = (Array.isArray(data)? data : [])
-            .filter(v => v.status?.toLowerCase().trim() === "concluida")
-            .map(v => ({
-                ...v,
+            const vendas = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({
+                    ...v,
                     total: Number(v.total) || 0,
                     data_venda: new Date(v.data_venda)
                 }));
@@ -111,7 +111,7 @@ export function DadosTab({
             const vendaDiaria = vendasHoje.reduce((acc, v) => acc + v.total, 0);
             const totalVendasMes = vendasMes.reduce((acc, v) => acc + v.total, 0);
             const qtdVendasHoje = vendasHoje.length;
-            const ticketMedio = qtdVendasHoje > 0? vendaDiaria / qtdVendasHoje : 0;
+            const ticketMedio = qtdVendasHoje > 0 ? vendaDiaria / qtdVendasHoje : 0;
 
             setKpis({
                 vendaDiaria: vendaDiaria,
@@ -129,7 +129,7 @@ export function DadosTab({
     }, [lojaId, token])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token ||!lojaId ||!WS_URL) return;
+        if (!token || !lojaId || !WS_URL) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -171,18 +171,18 @@ export function DadosTab({
     }, [carregarKPIs, conectarWebSocket])
 
     const saldoDia = kpis.vendaDiaria - kpis.saidaDiaria;
-    const ticketMedio = kpis.qtdVendasHoje > 0? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
+    const ticketMedio = kpis.qtdVendasHoje > 0 ? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
 
     return (
         <div className="space-y-6">
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
                         Dados
-                        {wsConectado? <Wifi size={16} style={{color: 'var(--cor-primaria)'}} /> : <WifiOff size={16} className="text-red-500" />}
+                        {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
-                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Visão geral da loja em tempo real</p>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
                 </div>
                 <button
                     onClick={carregarKPIs}
@@ -190,8 +190,8 @@ export function DadosTab({
                     style={{
                         background: 'var(--cor-primaria)',
                         color: '#fff',
-                        padding: cardSize === 'grande'? '12px 20px' : '8px 16px', // <-- USANDO cardSize
-                        borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
+                        padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', // <-- USANDO cardSize
+                        borderRadius: cardStyle === 'arredondado' ? '16px' : '8px' // <-- USANDO cardStyle
                     }}
                 >
                     <Edit size={14} />
@@ -207,12 +207,12 @@ export function DadosTab({
                     icon={<DollarSign size={16} />}
                     descricao="Entradas de hoje"
                     formatCurrency={formatCurrency}
-                    theme={theme} cardStyle={cardStyle} cardSize={cardSize} // <-- PASSAR PRA FRENTE
+                    theme={theme} cardStyle={cardStyle} cardSize={cardSize}
                 />
                 <CardStats
                     titulo="Vendas Hoje"
                     stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
-                    cor="secundaria"
+                    cor="primaria" // 👈 troquei
                     icon={<ShoppingBag size={16} />}
                     descricao="Pedidos concluídos"
                     formatCurrency={(v) => String(v)}
@@ -221,7 +221,7 @@ export function DadosTab({
                 <CardStats
                     titulo="Ticket Médio"
                     stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio: ticketMedio }}
-                    cor="secundaria"
+                    cor="primaria" // 👈 troquei
                     icon={<TrendingUp size={16} />}
                     descricao="Valor por venda"
                     formatCurrency={formatCurrency}
@@ -230,7 +230,7 @@ export function DadosTab({
                 <CardStats
                     titulo="Estoque Zerado"
                     stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }}
-                    cor="alerta"
+                    cor="primaria" // 👈 troquei
                     icon={<Ban size={16} />}
                     descricao="Não consegue vender"
                     formatCurrency={(v) => String(v)}
@@ -239,23 +239,27 @@ export function DadosTab({
             </div>
 
             <div
-                className="p-4 sm:p-6 transition"
+                className="p-4 sm:p-6 transition hover:scale-[1.01]"
                 style={{
-                    background: 'var(--cor-primaria)',
-                    border: '1px solid var(--cor-primaria)',
-                    color: '#fff',
-                    padding: cardSize === 'grande'? '24px' : '16px', // <-- USANDO cardSize
-                    borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
+                    background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', // 👈 glass
+                    backdropFilter: 'blur(16px)',
+                    border: 'none', // 👈 remove borda
+                    color: 'var(--cor-primaria)', // 👈 texto primary
+                    padding: cardSize === 'grande' ? '24px' : '16px',
+                    borderRadius: cardStyle === 'arredondado' ? '16px' : '8px',
+                    boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' // 👈 shadow mais forte
                 }}
             >
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-xs font-medium" style={{opacity: 0.9}}>Resumo do Mês</p>
-                        <p className="text-3xl font-bold mt-1">{loading? "..." : formatCurrency(kpis.totalVendasMes)}</p>
-                        <p className="text-xs mt-1" style={{opacity: 0.8}}>Total vendido nos últimos 30 dias</p>
+                        <p className="text-xs font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Resumo do Mês</p>
+                        <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{loading ? "..." : formatCurrency(kpis.totalVendasMes)}</p>
+                        <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total vendido nos últimos 30 dias</p>
                     </div>
                 </div>
             </div>
+
+
         </div>
     )
 }
@@ -264,12 +268,12 @@ function CardStats({
     titulo,
     stats,
     icon,
-    cor,
+    cor, // vamos ignorar e forçar primary
     descricao,
     formatCurrency,
-    theme, // <-- RECEBER
-    cardStyle, // <-- RECEBER
-    cardSize // <-- RECEBER
+    theme,
+    cardStyle,
+    cardSize
 }: {
     titulo: string,
     stats: Stats,
@@ -277,34 +281,32 @@ function CardStats({
     cor: "primaria" | "secundaria" | "alerta",
     descricao: string,
     formatCurrency: (v: number) => string
-    theme: string; // <-- NOVO
-    cardStyle: string; // <-- NOVO
-    cardSize: string; // <-- NOVO
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
 }) {
-    const cores = {
-        primaria: { bg: 'var(--cor-primaria)', text: '#fff' },
-        secundaria: { bg: 'var(--cor-card)', text: 'var(--cor-texto)' },
-        alerta: { bg: '#ef4444', text: '#fff' }
-    }
-
-    const c = cores[cor]
+    const padding = cardSize === 'grande' ? '20px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
 
     return (
         <div
             className="transition hover:scale-[1.02]"
             style={{
-                backgroundColor: c.bg,
-                color: c.text,
-                padding: cardSize === 'grande'? '20px' : '16px', // <-- USANDO cardSize
-                borderRadius: cardStyle === 'arredondado'? '16px' : '8px' // <-- USANDO cardStyle
+                background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                backdropFilter: 'blur(12px)',
+                color: 'var(--cor-primaria)', // 👈 letras primary
+                padding,
+                borderRadius: radius,
+                border: 'none', // 👈 sem borda
+                boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
             }}
         >
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium truncate" style={{opacity: 0.9}}>{titulo}</p>
-                <div className="opacity-90 shrink-0">{icon}</div>
+                <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
+                <div style={{ color: 'var(--cor-primaria)' }}>{icon}</div>
             </div>
-            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate">{formatCurrency(stats.total)}</p>
-            <p className="text-xs md:text-xs mt-1 truncate" style={{opacity: 0.8}}>{descricao}</p>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(stats.total)}</p>
+            <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
         </div>
     )
 }
