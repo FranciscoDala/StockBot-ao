@@ -123,7 +123,10 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
     const { vendasFiltradas, periodoTexto } = useMemo(() => {
         const hoje = new Date()
+        hoje.setHours(23, 59, 59, 999) // garante que pega o dia todo
+
         let inicio = new Date(hoje)
+        let fim = new Date(hoje)
         let texto = "Últimos 7 dias"
 
         if (activeTab === "7dias") { inicio.setDate(hoje.getDate() - 7); texto = "Últimos 7 dias" }
@@ -134,16 +137,27 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
         if (activeTab === "mes") { inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1); texto = "Este Mês" }
         if (activeTab === "trimestre") { inicio = new Date(hoje.getFullYear(), Math.floor(hoje.getMonth() / 3) * 3, 1); texto = "Este Trimestre" }
         if (activeTab === "ano") { inicio = new Date(hoje.getFullYear(), 0, 1); texto = "Este Ano" }
+
         if (activeTab === "personalizado" && dataInicio && dataFim) {
             inicio = new Date(dataInicio)
-            const fim = new Date(dataFim)
-            const diffDays = Math.ceil((fim.getTime() - inicio.getTime()) / (1000 * 3600 * 24))
+            inicio.setHours(0, 0, 0, 0) // começo do dia
+            fim = new Date(dataFim)
+            fim.setHours(23, 59, 59, 999) // fim do dia
+
+            // se usuario inverteu as datas
+            if (inicio > fim) {
+                const temp = inicio
+                inicio = fim
+                fim = temp
+            }
+
+            const diffDays = Math.ceil((fim.getTime() - inicio.getTime()) / (1000 * 3600 * 24)) + 1
             texto = `${diffDays} dias personalizados`
         }
 
         const filtradas = vendas.filter(v => {
             const dataVenda = new Date(v.data)
-            return dataVenda >= inicio && dataVenda <= hoje
+            return dataVenda >= inicio && dataVenda <= fim // <-- MUDOU AQUI: era <= hoje
         }).sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
 
         return { vendasFiltradas: filtradas, periodoTexto: texto }
@@ -164,18 +178,86 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     const exportarPDF = async () => {
         setLoading('pdf')
         try {
-            const input = reportRef.current
-            if (!input) return
-            const canvas = await html2canvas(input, { scale: 2, backgroundColor: isLight ? '#ffffff' : '#1f2937' })
-            const imgData = canvas.toDataURL('image/png')
             const pdf = new jsPDF('p', 'mm', 'a4')
-            const pdfWidth = pdf.internal.pageSize.getWidth()
-            const imgWidth = pdfWidth - 30
-            const imgHeight = (canvas.height * imgWidth) / canvas.width
-            pdf.setFontSize(16).setTextColor("#6366F1").text(nomeLoja, pdfWidth / 2, 20, { align: "center" })
-            pdf.setFontSize(10).setTextColor(100).text(`Período: ${periodoTexto} | ${dataHoje}`, pdfWidth / 2, 27, { align: "center" })
-            pdf.line(15, 35, pdfWidth - 15, 35)
-            pdf.addImage(imgData, 'PNG', 15, 40, imgWidth, imgHeight)
+            const pageWidth = pdf.internal.pageSize.getWidth()
+            let y = 20
+
+            // CABEÇALHO
+            pdf.setFontSize(18).setTextColor("#6366F1").text(nomeLoja, pageWidth / 2, y, { align: "center" })
+            y += 7
+            pdf.setFontSize(10).setTextColor(100).text(`Período: ${periodoTexto} | Emitido: ${dataHoje}`, pageWidth / 2, y, { align: "center" })
+            y += 10
+            pdf.line(15, y, pageWidth - 15, y)
+            y += 8
+
+            // RESUMO
+            pdf.setFontSize(12).setTextColor(0)
+            pdf.text("Resumo do Período", 15, y)
+            y += 7
+
+            const resumo = [
+                [`Total Vendido:`, formatCurrency(totalVendas)],
+                [`Nº Vendas:`, `${vendasFiltradas.length}`],
+                [`Ticket Médio:`, formatCurrency(ticketMedio)],
+                [`Itens Vendidos:`, `${totalItens}`],
+            ]
+
+            resumo.forEach(([label, valor]) => {
+                pdf.setFontSize(10).setTextColor(80).text(label, 20, y)
+                pdf.setFontSize(11).setTextColor(0).text(valor, pageWidth - 20, y, { align: "right" })
+                y += 6
+            })
+            y += 5
+            pdf.line(15, y, pageWidth - 15, y)
+            y += 8
+
+            // TABELA
+            pdf.setFontSize(12).text("Detalhe das Vendas", 15, y)
+            y += 7
+
+            const headers = ["Data", "Funcionário", "Total KZ", "Pagamento", "Itens"]
+            const colWidths = [25, 60, 30, 35, 15]
+            const startX = 15
+
+            pdf.setFillColor(99, 102, 241)
+            pdf.setTextColor(255)
+            pdf.setFontSize(9)
+            headers.forEach((h, i) => {
+                const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
+                pdf.rect(x, y - 4, colWidths[i], 7, "F")
+                pdf.text(h, x + 2, y)
+            })
+            y += 5
+            pdf.setTextColor(0)
+
+            pdf.setFontSize(9)
+            vendasFiltradas.forEach((v) => {
+                if (y > 270) {
+                    pdf.addPage()
+                    y = 20
+                }
+                const row = [
+                    new Date(v.data).toLocaleDateString('pt-AO'),
+                    v.nome_vendedor,
+                    formatCurrency(v.total),
+                    v.formaPagamento,
+                    String(v.itens)
+                ]
+                row.forEach((cell, i) => {
+                    const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
+                    pdf.text(String(cell), x + 2, y)
+                })
+                y += 6
+            })
+
+            // RODAPÉ CORRIGIDO
+            const totalPages = pdf.internal.getNumberOfPages() // <-- CORRIGIDO
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i)
+                pdf.setFontSize(8).setTextColor(150)
+                pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
+            }
+
             pdf.save(`${nomeArquivo}.pdf`)
         } catch (error) {
             console.error(error);
@@ -189,29 +271,63 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
         setLoading('word')
         try {
             const children: any[] = [
-                new Paragraph({ children: [new TextRun({ text: `${nomeLoja} - ${periodoTexto}`, bold: true, size: 32 })], heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
+                new Paragraph({
+                    children: [new TextRun({ text: nomeLoja, bold: true, size: 36, color: "6366F1" })],
+                    heading: HeadingLevel.HEADING_1,
+                    alignment: AlignmentType.CENTER
+                }),
+                new Paragraph({ text: `Período: ${periodoTexto}`, alignment: AlignmentType.CENTER }),
                 new Paragraph({ text: `Emitido em: ${dataHoje}`, alignment: AlignmentType.CENTER }),
-                new Paragraph({ children: [new TextRun({ text: `Total Vendido: ${formatCurrency(totalVendas)}`, bold: true })] }),
-                new Paragraph({ text: `Nº Vendas: ${vendasFiltradas.length}` }),
-                new Paragraph({ text: `Ticket Médio: ${formatCurrency(ticketMedio)}` }),
-                new Paragraph({ text: "" })
+                new Paragraph({ text: "" }),
+                new Paragraph({ text: "" }),
+
+                new Paragraph({ children: [new TextRun({ text: "Resumo do Período", bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 }),
+                new Paragraph({ children: [new TextRun({ text: "Total Vendido: ", bold: true }), new TextRun({ text: formatCurrency(totalVendas) })] }),
+                new Paragraph({ children: [new TextRun({ text: "Nº Vendas: ", bold: true }), new TextRun({ text: `${vendasFiltradas.length}` })] }),
+                new Paragraph({ children: [new TextRun({ text: "Ticket Médio: ", bold: true }), new TextRun({ text: formatCurrency(ticketMedio) })] }),
+                new Paragraph({ children: [new TextRun({ text: "Itens Vendidos: ", bold: true }), new TextRun({ text: `${totalItens}` })] }),
+                new Paragraph({ text: "" }),
+                new Paragraph({ text: "" }),
+
+                new Paragraph({ children: [new TextRun({ text: "Detalhe das Vendas", bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 }),
             ]
+
             const table = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
-                    new TableRow({ tableHeader: true, children: ['Data', 'Funcionário', 'Total KZ', 'Pagamento', 'Itens'].map(text => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })] })], shading: { fill: "6366F1" } })) }),
+                    new TableRow({
+                        tableHeader: true,
+                        children: ['Data', 'Funcionário', 'Total KZ', 'Pagamento', 'Itens'].map(text =>
+                            new TableCell({
+                                children: [new Paragraph({
+                                    children: [new TextRun({ text, bold: true, color: "FFFFFF" })],
+                                    alignment: AlignmentType.CENTER // <-- CORRIGIDO: vai aqui
+                                })],
+                                shading: { fill: "6366F1" },
+                            })
+                        )
+                    }),
                     ...vendasFiltradas.map((v) => new TableRow({
                         children: [
                             new TableCell({ children: [new Paragraph(new Date(v.data).toLocaleDateString('pt-AO'))] }),
-                            new TableCell({ children: [new Paragraph(v.nome_vendedor)] }), // <-- ADICIONADO
+                            new TableCell({ children: [new Paragraph(v.nome_vendedor)] }),
                             new TableCell({ children: [new Paragraph(formatCurrency(v.total))] }),
                             new TableCell({ children: [new Paragraph(v.formaPagamento)] }),
-                            new TableCell({ children: [new Paragraph(String(v.itens))] }),
+                            new TableCell({
+                                children: [new Paragraph({
+                                    text: String(v.itens),
+                                    alignment: AlignmentType.CENTER // <-- CORRIGIDO: vai aqui
+                                })]
+                            }),
                         ]
                     }))
                 ],
             })
+
             children.push(table)
+            children.push(new Paragraph({ text: "" }))
+            children.push(new Paragraph({ text: `Relatório gerado pelo ${nomeLoja}`, alignment: AlignmentType.CENTER }))
+
             const doc = new Document({ sections: [{ children }] })
             saveAs(await Packer.toBlob(doc), `${nomeArquivo}.docx`)
         } catch (error) {
@@ -223,7 +339,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     }
 
     return (
-        <div className="space-y-4 md:space-y-6 p-2 md:p-0">
+        <div className="space-y-4 md:space-y-6 p-0 md:p-0">
             <style jsx global>{`
                .scrollbar-hide::-webkit-scrollbar { display: none; }
                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
