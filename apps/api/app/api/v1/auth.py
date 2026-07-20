@@ -93,7 +93,6 @@ def build_user_response(user: Usuario, membro: UsuarioLoja | None = None, all_me
         base["loja"] = None
     return base
 
-
 # ROTA: POST /login
 @router.post("/login", response_model=LoginResponse)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
@@ -111,16 +110,27 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
         user_data = build_user_response(user, membro=None)
         return {"access_token": token, "token_type": "bearer", "user": user_data, "need_selection": False, "lojas": []}
 
-    stmt = select(UsuarioLoja).options(selectinload(UsuarioLoja.loja)).where(
+    # BUSCA TODAS AS LOJAS VINCULADAS ATIVAS E INATIVAS
+    stmt_all = select(UsuarioLoja).options(selectinload(UsuarioLoja.loja)).where(
         UsuarioLoja.usuario_id == user.id,
         UsuarioLoja.is_active == True,
-        UsuarioLoja.loja.has(is_active=True),
         UsuarioLoja.loja.has(deleted_at=None)
     )
-    membros = (await db.execute(stmt)).scalars().all()
+    todos_membros = (await db.execute(stmt_all)).scalars().all()
 
-    if not membros:
+    if not todos_membros:
         raise HTTPException(status_code=403, detail="Usuário sem loja vinculada")
+
+    # SEPARA ATIVAS E INATIVAS
+    membros_ativos = [m for m in todos_membros if m.loja.is_active == True]
+    membros_inativos = [m for m in todos_membros if m.loja.is_active == False]
+
+    # SE TEM SÓ LOJA INATIVA = BLOQUEIA
+    if not membros_ativos and membros_inativos:
+        raise HTTPException(status_code=403, detail="Loja desativada")
+
+    # USA SÓ AS ATIVAS PRA LOGAR
+    membros = membros_ativos
 
     if len(membros) == 1:
         m = membros[0]
@@ -151,12 +161,15 @@ async def select_loja(body: SelectLojaIn, db: AsyncSession = Depends(get_db), cu
         UsuarioLoja.usuario_id == current_user.id,
         UsuarioLoja.loja_id == body.loja_id,
         UsuarioLoja.is_active == True,
-        UsuarioLoja.loja.has(is_active=True),
         UsuarioLoja.loja.has(deleted_at=None)
     )
     membro = (await db.execute(stmt)).scalar_one_or_none()
     if not membro:
         raise HTTPException(status_code=403, detail="Acesso negado a esta loja")
+
+    # BLOQUEIA SE A LOJA SELECIONADA ESTIVER INATIVA
+    if not membro.loja.is_active:
+        raise HTTPException(status_code=403, detail="Loja desativada")
 
     token = create_access_token({"sub": str(current_user.id), "loja_id": str(membro.loja_id), "role": membro.role.value})
     user_data = build_user_response(current_user, membro=membro)

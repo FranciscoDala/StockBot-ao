@@ -1,6 +1,6 @@
 "use client";
 
-import { Store, User, Lock, AlertTriangle } from "lucide-react";
+import { Store, User, Lock, AlertTriangle, Mail, Phone } from "lucide-react"; // 👈 add Mail, Phone
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
@@ -8,11 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Toaster, toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ||
-    (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-        ? "http://127.0.0.1:8000/api/v1"
+    (typeof window!== 'undefined' && window.location.hostname === 'localhost'
+       ? "http://127.0.0.1:8000/api/v1"
         : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
 
-const MENSAGEM_LOJA_DESATIVADA = "a sua loja foi desativada, vá até o escritório ou entra em contacto com o admin da stocckbot.\n\ncontacto:\ne-mail: stockbot26@gmail.com\nwhatsapp: +244930438947";
+// 👈 MENSAGEM PROFISSIONAL NOVA
+const MENSAGEM_LOJA_DESATIVADA = `A tua loja encontra-se temporariamente desativada.
+
+Para reativar o acesso, entra em contacto com a equipa de suporte da StockBot.
+
+Canais de atendimento:
+E-mail: stockbot26@gmail.com
+WhatsApp: +244 930 438 947
+Horário: Segunda a Sábado, 08h às 18h`;
 
 const ROUTES = {
     ADMIN: "/admin",
@@ -42,15 +50,15 @@ type LoginResponse = {
 const setCookie = (name: string, value: string, days = 7) => {
     const expires = new Date(Date.now() + days * 864e5).toUTCString();
     const isProd = process.env.NODE_ENV === 'production';
-    const secure = isProd ? '; Secure' : '';
-    const sameSite = isProd ? '; SameSite=None' : '; SameSite=Lax';
+    const secure = isProd? '; Secure' : '';
+    const sameSite = isProd? '; SameSite=None' : '; SameSite=Lax';
     document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/${secure}${sameSite}`;
 };
 
 const getCookie = (name: string): string | undefined => {
     return document.cookie.split('; ').reduce((r, v) => {
         const parts = v.split('=');
-        return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+        return parts[0] === name? decodeURIComponent(parts[1]) : r;
     }, '');
 };
 
@@ -116,7 +124,15 @@ export default function LoginPage() {
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Erro ${res.status}`);
+                const errorMsg = errorData.detail || `Erro ${res.status}`;
+
+                // 👈 NOVA REGRA: LOJA DESATIVADA
+                if (res.status === 403 && String(errorMsg).toLowerCase().includes("loja desativada")) {
+                    setLojaBloqueadaOpen(true);
+                    return; // para aqui e não mostra erro em baixo
+                }
+
+                throw new Error(errorMsg);
             }
 
             const data: LoginResponse = await res.json();
@@ -129,7 +145,7 @@ export default function LoginPage() {
                 setCookie('user_temp', JSON.stringify(data.user), 1 / 24 / 6);
                 redirectedRef.current = true;
                 const isGestor = data.user?.nivel === "DONO" || data.user?.nivel === "GERENTE" || data.user?.is_superuser;
-                return router.replace(isGestor ? ROUTES.SELECT_LOJA_GESTOR : ROUTES.SELECT_LOJA_FUNC);
+                return router.replace(isGestor? ROUTES.SELECT_LOJA_GESTOR : ROUTES.SELECT_LOJA_FUNC);
             }
 
             if (!data.user) throw new Error("Backend não retornou dados do usuário");
@@ -170,9 +186,7 @@ export default function LoginPage() {
 
         } catch (err: any) {
             const msg = String(err.message || err).toLowerCase();
-            if (msg.includes("loja foi desativada")) {
-                setLojaBloqueadaOpen(true);
-            } else if (msg.includes("sem loja vinculada")) {
+            if (msg.includes("sem loja vinculada")) {
                 setError("Usuário sem loja vinculada. Crie uma loja primeiro.");
             } else if (msg.includes("401") || msg.includes("403") || msg.includes("credenciais")) {
                 setError("Email ou senha incorretos");
@@ -204,7 +218,7 @@ export default function LoginPage() {
                     </div>
                     {error && <p className="text-sm text-red-500">{error}</p>}
                     <button type="submit" disabled={loading} className="w-full rounded-md bg-green-600 p-2 font-bold text-white disabled:opacity-50 hover:bg-green-500 transition">
-                        {loading ? "Acessando..." : "Acessar"}
+                        {loading? "Acessando..." : "Acessar"}
                     </button>
                 </form>
                 <div className="py-2">
@@ -222,15 +236,47 @@ export default function LoginPage() {
                 </div>
             </div>
 
+            {/* MODAL LOJA DESATIVADA */}
             <Dialog open={lojaBloqueadaOpen} onOpenChange={(open) => { if (!open) return; }}>
                 <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
-                <DialogContent className="sm:max-w-[425px] bg-zinc-950/85 backdrop-blur-xl border-red-500/50 z-50" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-                    <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-red-500 text-xl"><AlertTriangle className="w-6 h-6" />acesso bloqueado</DialogTitle>
-                        <DialogDescription className="text-zinc-300 pt-2 text-base whitespace-pre-line">{MENSAGEM_LOJA_DESATIVADA}</DialogDescription>
+                <DialogContent
+                    className="sm:max-w-[450px] bg-zinc-950/95 backdrop-blur-xl border-red-500/50 z-50 gap-0 p-0"
+                    onInteractOutside={(e) => e.preventDefault()}
+                    onEscapeKeyDown={(e) => e.preventDefault()}
+                >
+                    <DialogHeader className="p-6 pb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                                <AlertTriangle className="w-5 h-5 text-red-500" />
+                            </div>
+                            <DialogTitle className="text-red-500 text-xl font-bold">Acesso Temporariamente Bloqueado</DialogTitle>
+                        </div>
                     </DialogHeader>
-                    <DialogFooter>
-                        <Button className="w-full bg-red-600 hover:bg-red-700 text-white font-bold" onClick={() => setLojaBloqueadaOpen(false)}>ok, entendi</Button>
+
+                    <div className="px-6 pb-4">
+                        <DialogDescription className="text-zinc-300 text-base whitespace-pre-line leading-relaxed">
+                            {MENSAGEM_LOJA_DESATIVADA}
+                        </DialogDescription>
+
+                        <div className="mt-4 space-y-2 p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                            <div className="flex items-center gap-2 text-sm text-zinc-400">
+                                <Mail size={14} className="text-green-500" />
+                                <span>stockbot26@gmail.com</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-zinc-400">
+                                <Phone size={14} className="text-green-500" />
+                                <span>+244 930 438 947</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="p-4 border-t border-zinc-800">
+                        <Button
+                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold h-11"
+                            onClick={() => setLojaBloqueadaOpen(false)}
+                        >
+                            Entendi
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
