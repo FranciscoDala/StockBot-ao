@@ -6,15 +6,16 @@ import { FileText, FileSpreadsheet, FileDown, Loader2 } from "lucide-react"
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import { saveAs } from "file-saver"
-import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, ImageRun, AlignmentType, BorderStyle, ShadingType, TextRun } from "docx" // <-- Adicionei TextRun
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, ImageRun, AlignmentType, BorderStyle, ShadingType, TextRun } from "docx"
 import ExcelJS from "exceljs"
+import { Buffer } from 'buffer'
 
 interface Venda {
-    id: string
-    data: string
+    id: string | number
+    data_venda?: string
     total: number
-    formaPagamento: string
-    itens: number
+    forma_pagamento?: string
+    total_itens?: number
 }
 
 interface DocumentosTabProps {
@@ -36,18 +37,15 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
 
     const formatarKZ = (valor: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', minimumFractionDigits: 2 }).format(valor)
 
-    const carregarImagem = async (url: string): Promise<string> => {
-        if (!url) return ""
+    const carregarImagem = async (url: string): Promise<Buffer | null> => {
+        if (!url) return null
         try {
             const res = await fetch(url)
             const blob = await res.blob()
-            return new Promise((resolve) => {
-                const reader = new FileReader()
-                reader.onloadend = () => resolve(reader.result as string)
-                reader.readAsDataURL(blob)
-            })
+            const arrayBuffer = await blob.arrayBuffer()
+            return Buffer.from(arrayBuffer)
         } catch {
-            return ""
+            return null
         }
     }
 
@@ -66,8 +64,8 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
             let heightLeft = imgHeight
             let position = 40
             if (loja?.logo) {
-                const logoBase64 = await carregarImagem(loja.logo)
-                if(logoBase64) pdf.addImage(logoBase64, 'PNG', 15, 10, 25, 25)
+                const logoBuffer = await carregarImagem(loja.logo)
+                if(logoBuffer) pdf.addImage(logoBuffer, 'PNG', 15, 10, 25, 25)
             }
             pdf.setFontSize(16)
             pdf.setTextColor(primaryColor)
@@ -88,7 +86,7 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
             for(let i = 1; i <= pageCount; i++) {
                 pdf.setPage(i);
                 pdf.setFontSize(8)
-                pdf.text(`Página ${i} de ${pageCount} | StockBot AO`, pdfWidth / 2, 287, { align: "center" })
+                pdf.text(`Página ${i} de ${pageCount} | ${nomeLoja}`, pdfWidth / 2, 287, { align: "center" })
             }
             pdf.save(`${nomeArquivo}.pdf`)
         } catch (error) {
@@ -103,7 +101,7 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
         setLoading('excel')
         try {
             const workbook = new ExcelJS.Workbook()
-            workbook.creator = 'StockBot AO'
+            workbook.creator = nomeLoja
             const worksheet = workbook.addWorksheet(tipoRelatorio)
             worksheet.mergeCells('A1:D1')
             worksheet.getCell('A1').value = nomeLoja
@@ -118,7 +116,7 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
             headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6366F1' } }
             headerRow.eachCell(cell => { cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} } })
             vendas.forEach((v) => {
-                const row = worksheet.addRow([ new Date(v.data).toLocaleDateString('pt-AO'), v.total, v.formaPagamento, v.itens ])
+                const row = worksheet.addRow([ new Date(v.data_venda || Date.now()).toLocaleDateString('pt-AO'), v.total, v.forma_pagamento || 'N/A', v.total_itens || 0 ])
                 row.getCell(2).numFmt = '"KZ" #,##0.00'
                 row.eachCell(cell => { cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} } })
             })
@@ -142,8 +140,11 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
         try {
             const children: any[] = []
             if (loja?.logo) {
-                const logoBase64 = await carregarImagem(loja.logo)
-                if(logoBase64) children.push(new Paragraph({ children: [new ImageRun({ data: logoBase64, transformation: { width: 90, height: 90 } })], alignment: AlignmentType.CENTER }))
+                const logoBuffer = await carregarImagem(loja.logo)
+                if(logoBuffer) children.push(new Paragraph({
+                    children: [new ImageRun({ data: logoBuffer, transformation: { width: 90, height: 90 } })],
+                    alignment: AlignmentType.CENTER
+                }))
             }
             children.push(
                 new Paragraph({ children: [new TextRun({ text: nomeLoja, bold: true, size: 32 })], heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
@@ -161,17 +162,17 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
                         tableHeader: true,
                         children: ['Data', 'Total KZ', 'Forma Pagamento', 'Qtd Itens'].map(text =>
                             new TableCell({
-                                children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })] })], // <-- CORRIGIDO AQUI
+                                children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })] })],
                                 shading: { type: ShadingType.CLEAR, fill: "6366F1" }
                             })
                         ),
                     }),
-                    ...vendas.map((v) => new TableRow({
+                ...vendas.map((v) => new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph(new Date(v.data).toLocaleDateString('pt-AO'))] }),
+                            new TableCell({ children: [new Paragraph(new Date(v.data_venda || Date.now()).toLocaleDateString('pt-AO'))] }),
                             new TableCell({ children: [new Paragraph(formatarKZ(v.total))] }),
-                            new TableCell({ children: [new Paragraph(v.formaPagamento)] }),
-                            new TableCell({ children: [new Paragraph(String(v.itens))] }),
+                            new TableCell({ children: [new Paragraph(v.forma_pagamento || 'N/A')] }),
+                            new TableCell({ children: [new Paragraph(String(v.total_itens || 0))] }),
                         ]
                     }))
                 ],
@@ -190,9 +191,9 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
     return (
         <div className="space-y-4">
             <div className="flex gap-3 mb-4 flex-wrap">
-                <Button onClick={exportarPDF} variant="outline" disabled={!!loading}>{loading === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
-                <Button onClick={exportarExcel} variant="outline" disabled={!!loading}>{loading === 'excel' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />} Excel</Button>
-                <Button onClick={exportarWord} variant="outline" disabled={!!loading}>{loading === 'word' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Word</Button>
+                <Button onClick={exportarPDF} variant="outline" disabled={!!loading}>{loading === 'pdf'? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
+                <Button onClick={exportarExcel} variant="outline" disabled={!!loading}>{loading === 'excel'? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />} Excel</Button>
+                <Button onClick={exportarWord} variant="outline" disabled={!!loading}>{loading === 'word'? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Word</Button>
             </div>
             <div ref={reportRef} className="p-6 bg-white rounded-lg border">
                 <div className="flex items-center justify-between mb-4">
@@ -202,14 +203,21 @@ export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: Documento
                         <p className="text-sm text-gray-500">Emitido em: {dataHoje}</p>
                     </div>
                 </div>
-                <div className="bg-[#6366F1]/10 p-4 rounded-lg mb-4 grid grid-cols-2 gap-4">
+                <div className="bg-[#6366F1]/10 p-4 rounded-lg mb-4 grid-cols-2 gap-4">
                     <div><p className="text-sm text-gray-600">Total de Vendas</p><p className="text-2xl font-bold">{formatarKZ(totalGeral)}</p></div>
                     <div><p className="text-sm text-gray-600">Qtd. Transações</p><p className="text-2xl font-bold">{vendas.length}</p></div>
                 </div>
                 <table className="w-full text-sm border-collapse">
                     <thead><tr className="bg-[#6366F1] text-white"><th className="p-2 text-left border">Data</th><th className="p-2 text-right border">Total</th><th className="p-2 text-left border">Pagamento</th><th className="p-2 text-center border">Itens</th></tr></thead>
                     <tbody>
-                        {vendas.length > 0 ? vendas.map((v) => (<tr key={v.id} className="border-b hover:bg-gray-50"><td className="p-2 border">{new Date(v.data).toLocaleDateString('pt-AO')}</td><td className="p-2 text-right border font-medium">{formatarKZ(v.total)}</td><td className="p-2 border">{v.formaPagamento}</td><td className="p-2 text-center border">{v.itens}</td></tr>)) : (<tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhuma venda encontrada</td></tr>)}
+                        {vendas.length > 0? vendas.map((v) => (
+                            <tr key={v.id} className="border-b hover:bg-gray-50">
+                                <td className="p-2 border">{new Date(v.data_venda || Date.now()).toLocaleDateString('pt-AO')}</td>
+                                <td className="p-2 text-right border font-medium">{formatarKZ(v.total)}</td>
+                                <td className="p-2 border">{v.forma_pagamento || 'N/A'}</td>
+                                <td className="p-2 text-center border">{v.total_itens || 0}</td>
+                            </tr>
+                        )) : (<tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhuma venda encontrada</td></tr>)}
                     </tbody>
                 </table>
             </div>

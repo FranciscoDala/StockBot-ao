@@ -543,7 +543,19 @@ export default function LojaPage() {
                         {activeTab === "estatisticas" && <EstatisticasTab lojaId={lojaId} token={token} nomeLoja={loja?.nome || "MINHA LOJA"} nifLoja={`NIF: ${loja?.nif || ""}`} enderecoLoja={loja?.endereco || ""} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "risco" && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "fornecedores" && <FornecedoresTab theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
-                        {activeTab === "documentos" && <DocumentosTab loja={loja} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
+
+
+                        {activeTab === "documentos" && (
+                            <DocumentosTab
+                                loja={loja}
+                                dadosFiltrados={{ vendasF: vendas }}
+                                tipoRelatorio="Vendas"
+                            />
+                        )}
+
+
+
+
                         {activeTab === "definicoes" && <DefinicoesTab onSaveTheme={handleSaveTheme} theme={theme} cardStyle={cardStyle} cardSize={cardSize} fontSize={fontSize} corPrimaria={corPrimaria} corFundo={corFundo} />}
                     </div>
 
