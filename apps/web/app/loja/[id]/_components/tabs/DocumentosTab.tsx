@@ -177,7 +177,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     const nomeArquivo = `Relatorio-${periodoTexto.replace(/\s/g, '-')}-${dataHoje.replace(/\//g, '-')}`
 
 
-   
+
     const exportarPDFModelo = async () => {
         setLoading('pdf')
         try {
@@ -185,41 +185,42 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const pageWidth = pdf.internal.pageSize.getWidth()
 
             // 1. REGISTRAR FONTE ZALANDO LIGHT
-            pdf.addFileToVFS('ZalandoSansExpanded-Light.ttf', zalandoBase64) // 1. nome do arquivo
-            pdf.addFont('ZalandoSansExpanded-Light.ttf', 'ZalandoLight', 'light') // 2. nome da fonte + peso
-            pdf.setFont('ZalandoLight', 'light') // 3. aplica
+            pdf.addFileToVFS('ZalandoSansExpanded-Light.ttf', zalandoBase64)
+            pdf.addFont('ZalandoSansExpanded-Light.ttf', 'ZalandoLight', 'light')
+            pdf.setFont('ZalandoLight', 'light')
 
             const corTextoCinza = [120, 120, 120]
 
-            // 2. CABEÇALHO - SEM TEXTO LOGO, SÓ ESPAÇO
+            // 2. CABEÇALHO
             pdf.setDrawColor(220)
             pdf.setLineWidth(0.3)
-            pdf.rect(15, 15, 80, 25, "S")
+            pdf.rect(15, 15, 80, 25, "S") // Espaço logo
 
             let yDireita = 18
             pdf.setFontSize(10)
             pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Empresa", 110, yDireita, { align: "right" })
-            pdf.setTextColor(0).text(nomeLoja, 115, yDireita)
+            pdf.setFont('ZalandoLight', 'bold').setTextColor(0).text(nomeLoja, 115, yDireita) // NEGRITO
 
             yDireita += 6
-            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("NIF", 110, yDireita, { align: "right" })
-            pdf.setTextColor(0).text(loja?.nif || "XXXXX", 115, yDireita)
+            pdf.setFont('ZalandoLight', 'light').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("NIF", 110, yDireita, { align: "right" })
+            pdf.setFont('ZalandoLight', 'bold').setTextColor(0).text(loja?.nif || "XXXXX", 115, yDireita) // NEGRITO
 
             yDireita += 6
-            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Endereço", 110, yDireita, { align: "right" })
-            pdf.setTextColor(0).text(loja?.endereco || "Luanda, Angola", 115, yDireita)
+            pdf.setFont('ZalandoLight', 'light').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Endereço", 110, yDireita, { align: "right" })
+            pdf.setFont('ZalandoLight', 'bold').setTextColor(0).text(loja?.endereco || "Luanda, Angola", 115, yDireita) // NEGRITO
 
             let y = 55
 
-            // 3. TABELA PRINCIPAL - SEM BORDAS
-            const headers = ["Data", "Venda", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
-            const colWidths = [20, 30, 20, 20, 25, 25, 30]
+            // 3. TABELA PRINCIPAL - SEM COLUNA VENDA
+            const headers = ["Data", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
+            const colWidths = [25, 30, 25, 25, 25, 40] // redistribuido
             const startX = 15
             const rowHeight = 8
 
-            // HEADER COM FUNDO
-            pdf.setFillColor(220, 228, 235)
-            pdf.setTextColor(0)
+            // HEADER PRETO IGUAL MODELO
+            pdf.setFillColor(0, 0, 0) // fundo preto
+            pdf.setTextColor(255, 255, 255) // letra branca
+            pdf.setFont('ZalandoLight', 'bold') // NEGRITO
             pdf.setFontSize(9)
 
             headers.forEach((h, i) => {
@@ -230,6 +231,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             y += rowHeight
 
             // LINHAS COM DADOS
+            pdf.setFont('ZalandoLight', 'light') // volta pra light
             pdf.setFontSize(8)
 
             if (vendasFiltradas.length === 0) {
@@ -244,6 +246,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                     const data = new Date(v.data).toLocaleDateString('pt-AO')
                     const total = v.total
 
+                    // Efeito zebra
                     if (index % 2 === 0) {
                         pdf.setFillColor(248, 249, 250)
                         pdf.rect(startX, y - 4, colWidths.reduce((a, b) => a + b), rowHeight, "F")
@@ -251,24 +254,28 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
                     pdf.setTextColor(0)
                     let currentX = x + 2
+
+                    pdf.setFont('ZalandoLight', 'bold') // DATA EM NEGRITO
                     pdf.text(data, currentX, y)
 
                     currentX = x + colWidths[0] + 2
-                    pdf.text(v.nome_vendedor.substring(0, 15), currentX, y)
-
-                    currentX = x + colWidths[0] + colWidths[1] + 2
+                    pdf.setFont('ZalandoLight', 'bold') // ENTRADA EM NEGRITO
                     pdf.text(formatCurrency(total), currentX, y)
 
-                    currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + 2
+                    currentX = x + colWidths[0] + colWidths[1] + 2
+                    pdf.setFont('ZalandoLight', 'light') // SAIDA NORMAL
                     pdf.text(formatCurrency(0), currentX, y)
 
+                    currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + 2
+                    pdf.setFont('ZalandoLight', 'bold') // SUBTOTAL EM NEGRITO
+                    pdf.text(formatCurrency(total), currentX, y)
+
                     currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2
+                    pdf.setFont('ZalandoLight', 'bold') // LUCRO EM NEGRITO
                     pdf.text(formatCurrency(total), currentX, y)
 
                     currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2
-                    pdf.text(formatCurrency(total), currentX, y)
-
-                    currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5] + 2
+                    pdf.setFont('ZalandoLight', 'bold') // TOTAL GERAL EM NEGRITO
                     pdf.text(formatCurrency(total), currentX, y)
 
                     y += rowHeight
@@ -276,7 +283,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             }
             y += 10
 
-            // 4. TABELA "ESTE MÊS" - SEM BORDA
+            // 4. TABELA "ESTE MÊS"
             const totalEntrada = totalVendas
             const totalSaida = 0
             const lucro = totalEntrada - totalSaida
@@ -289,19 +296,21 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
             const resumoWidth = 90
 
-            pdf.setFillColor(220, 228, 235)
+            pdf.setFillColor(0, 0, 0) // preto igual header
+            pdf.setTextColor(255, 255, 255)
+            pdf.setFont('ZalandoLight', 'bold')
             pdf.rect(15, y - 4, resumoWidth, rowHeight, "F")
-            pdf.setTextColor(0).setFontSize(9)
             pdf.text(`Período: ${periodoTexto}`, 17, y)
             y += rowHeight
 
+            pdf.setTextColor(0)
             resumoMes.forEach(([label, valor], index) => {
                 if (index % 2 === 0) {
                     pdf.setFillColor(248, 249, 250)
                     pdf.rect(15, y - 4, resumoWidth, rowHeight, "F")
                 }
-                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text(label, 17, y)
-                pdf.setTextColor(0).text(valor, 15 + resumoWidth - 3, y, { align: "right" })
+                pdf.setFont('ZalandoLight', 'light').setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text(label, 17, y)
+                pdf.setFont('ZalandoLight', 'bold').setTextColor(0).text(valor, 15 + resumoWidth - 3, y, { align: "right" }) // VALOR NEGRITO
                 y += rowHeight
             })
 
@@ -309,14 +318,14 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const totalPages = pdf.internal.getNumberOfPages()
             for (let i = 1; i <= totalPages; i++) {
                 pdf.setPage(i)
-                pdf.setFontSize(8).setTextColor(150)
+                pdf.setFont('ZalandoLight', 'light').setFontSize(8).setTextColor(150)
                 pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
             }
 
             pdf.save(`Relatorio-Modelo-${nomeArquivo}.pdf`)
         } catch (error) {
             console.error(error);
-            alert("Erro ao gerar PDF. Verifique se o base64 é do ZalandoSansExpanded-Light.ttf")
+            alert("Erro ao gerar PDF.")
         } finally {
             setLoading(null)
         }
