@@ -10,6 +10,7 @@ import html2canvas from "html2canvas"
 import { saveAs } from "file-saver"
 import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, AlignmentType, TextRun } from "docx"
 
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
 type ItemVenda = {
@@ -175,90 +176,115 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     const dataHoje = new Date().toLocaleDateString('pt-AO')
     const nomeArquivo = `Relatorio-${periodoTexto.replace(/\s/g, '-')}-${dataHoje.replace(/\//g, '-')}`
 
-    const exportarPDF = async () => {
+ 
+
+    const exportarPDFModelo = async () => {
         setLoading('pdf')
         try {
             const pdf = new jsPDF('p', 'mm', 'a4')
             const pageWidth = pdf.internal.pageSize.getWidth()
-            let y = 20
 
-            // CABEÇALHO
-            pdf.setFontSize(18).setTextColor("#6366F1").text(nomeLoja, pageWidth / 2, y, { align: "center" })
-            y += 7
-            pdf.setFontSize(10).setTextColor(100).text(`Período: ${periodoTexto} | Emitido: ${dataHoje}`, pageWidth / 2, y, { align: "center" })
-            y += 10
-            pdf.line(15, y, pageWidth - 15, y)
-            y += 8
-
-            // RESUMO
+            // 1. CABEÇALHO: LOGO + DADOS EMPRESA
+            pdf.setDrawColor(0)
+            pdf.setLineWidth(0.5)
+            pdf.rect(15, 15, 80, 25)
             pdf.setFontSize(12).setTextColor(0)
-            pdf.text("Resumo do Período", 15, y)
-            y += 7
+            pdf.text("Logo", pageWidth / 4, 29, { align: "center" })
 
-            const resumo = [
-                [`Total Vendido:`, formatCurrency(totalVendas)],
-                [`Nº Vendas:`, `${vendasFiltradas.length}`],
-                [`Ticket Médio:`, formatCurrency(ticketMedio)],
-                [`Itens Vendidos:`, `${totalItens}`],
-            ]
+            let yDireita = 18
+            pdf.setFontSize(10).setTextColor(120)
+            pdf.text("Empresa", 110, yDireita, { align: "right" })
+            pdf.setTextColor(0).text(nomeLoja, 115, yDireita)
 
-            resumo.forEach(([label, valor]) => {
-                pdf.setFontSize(10).setTextColor(80).text(label, 20, y)
-                pdf.setFontSize(11).setTextColor(0).text(valor, pageWidth - 20, y, { align: "right" })
-                y += 6
-            })
-            y += 5
-            pdf.line(15, y, pageWidth - 15, y)
-            y += 8
+            yDireita += 6
+            pdf.setTextColor(120).text("NIF", 110, yDireita, { align: "right" })
+            pdf.setTextColor(0).text(loja?.nif || "XXXXX", 115, yDireita) // <-- agora pega do teu objeto loja
 
-            // TABELA
-            pdf.setFontSize(12).text("Detalhe das Vendas", 15, y)
-            y += 7
+            yDireita += 6
+            pdf.setTextColor(120).text("Endereço", 110, yDireita, { align: "right" })
+            pdf.setTextColor(0).text(loja?.endereco || "Luanda, Angola", 115, yDireita) // <-- agora pega do teu objeto loja
 
-            const headers = ["Data", "Funcionário", "Total KZ", "Pagamento", "Itens"]
-            const colWidths = [25, 60, 30, 35, 15]
+            let y = 55
+
+            // 2. TABELA PRINCIPAL
+            const headers = ["Data", "Venda", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
+            const colWidths = [20, 25, 25, 25, 25, 25, 30]
             const startX = 15
 
-            pdf.setFillColor(99, 102, 241)
-            pdf.setTextColor(255)
+            pdf.setFillColor(220, 228, 235)
+            pdf.setTextColor(0)
             pdf.setFontSize(9)
             headers.forEach((h, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
                 pdf.rect(x, y - 4, colWidths[i], 7, "F")
                 pdf.text(h, x + 2, y)
             })
+            y += 7
+
+            // LINHAS COM TUAS VENDAS REAIS
+            pdf.setFontSize(8)
+            if (vendasFiltradas.length === 0) {
+                pdf.text("Nenhuma venda no período", startX + 2, y)
+                y += 7
+            } else {
+                vendasFiltradas.forEach((v) => {
+                    if (y > 270) { pdf.addPage(); y = 20 }
+
+                    const x = startX
+                    pdf.text(new Date(v.data).toLocaleDateString('pt-AO'), x + 2, y) // Data
+                    pdf.text(v.nome_vendedor.substring(0, 12), x + 22, y) // Venda
+                    pdf.text(formatCurrency(v.total), x + 47, y) // Entrada = v.total
+                    pdf.text(formatCurrency(0), x + 72, y) // Saida = 0 pq não tens
+                    pdf.text(formatCurrency(v.total), x + 97, y) // Subtotal
+                    pdf.text(formatCurrency(v.total), x + 122, y) // Lucro
+                    pdf.text(formatCurrency(v.total), x + 147, y) // Total Geral
+                    y += 6
+                })
+            }
             y += 5
-            pdf.setTextColor(0)
+
+            // 3. TEXTO REMINDER E TERMS
+            pdf.setFontSize(9).setTextColor(120)
+            pdf.text("Reminder: Please include the statement number on your check.", 15, y)
+            y += 5
+            pdf.text("Terms: Balance due in 30 days.", 15, y)
+            y += 10
+
+            // 4. TABELA "ESTE MÊS" - USANDO totalVendas
+            const totalEntrada = totalVendas // <-- MUDOU AQUI: usa o que tu já calculas
+            const totalSaida = 0 // <-- MUDOU AQUI: não tens despesas ainda
+            const lucro = totalEntrada - totalSaida
+
+            pdf.setFillColor(220, 228, 235)
+            pdf.rect(15, y - 4, 90, 7, "F")
+            pdf.setTextColor(0).setFontSize(9)
+            pdf.text(`Período: ${periodoTexto}`, 17, y) // <-- agora mostra o período
+            y += 7
+
+            const resumoMes = [
+                ["Entrada", formatCurrency(totalEntrada)],
+                ["Saida", formatCurrency(totalSaida)],
+                ["Lucro", formatCurrency(lucro)],
+                ["Diferença", formatCurrency(totalEntrada)],
+            ]
 
             pdf.setFontSize(9)
-            vendasFiltradas.forEach((v) => {
-                if (y > 270) {
-                    pdf.addPage()
-                    y = 20
-                }
-                const row = [
-                    new Date(v.data).toLocaleDateString('pt-AO'),
-                    v.nome_vendedor,
-                    formatCurrency(v.total),
-                    v.formaPagamento,
-                    String(v.itens)
-                ]
-                row.forEach((cell, i) => {
-                    const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
-                    pdf.text(String(cell), x + 2, y)
-                })
+            resumoMes.forEach(([label, valor]) => {
+                pdf.setTextColor(120).text(label, 17, y)
+                pdf.setTextColor(0).setFont("helvetica", "bold").text(valor, 95, y, { align: "right" })
+                pdf.setFont("helvetica", "normal")
                 y += 6
             })
 
-            // RODAPÉ CORRIGIDO
-            const totalPages = pdf.internal.getNumberOfPages() // <-- CORRIGIDO
+            // RODAPÉ
+            const totalPages = pdf.internal.getNumberOfPages()
             for (let i = 1; i <= totalPages; i++) {
                 pdf.setPage(i)
                 pdf.setFontSize(8).setTextColor(150)
                 pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
             }
 
-            pdf.save(`${nomeArquivo}.pdf`)
+            pdf.save(`Relatorio-Modelo-${nomeArquivo}.pdf`)
         } catch (error) {
             console.error(error);
             alert("Erro ao gerar PDF")
@@ -454,14 +480,14 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             <div ref={reportRef} className="p-3 md:p-4 border" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', borderRadius: radius }}>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                     <div>
-                        <h2 className="text-xl font-bold" style={{ color: 'var(--cor-texto)' }}>Relatório: {periodoTexto}</h2>
+                        <h2 className="text-base font-bold" style={{ color: 'var(--cor-texto)' }}>Relatório: {periodoTexto}</h2>
                         <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{vendasFiltradas.length} vendas encontradas</p>
                     </div>
                     <div className="flex gap-2">
                         <Button onClick={buscarVendas} size="sm" variant="outline" disabled={loadingVendas} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>
                             {loadingVendas ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
                         </Button>
-                        <Button onClick={exportarPDF} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
+                        <Button onClick={exportarPDFModelo} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
                         <Button onClick={exportarWord} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'word' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Word</Button>
                     </div>
                 </div>
