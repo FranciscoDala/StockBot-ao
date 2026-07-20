@@ -423,54 +423,52 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 <div className="space-y-4">
 
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                            <CardStats
-                                titulo="Faturamento"
-                                stats={statsPeriodo}
-                                icon={<DollarSign size={16} />}
-                                cor="primaria" // glass + shadow
-                                descricao="Total do período"
-                                tendencia="+8.5% vs mês ant"
-                                formatCurrency={formatCurrency}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                                theme={theme}
-                            />
-                            <CardStats
-                                titulo="Vendas Realizadas"
-                                stats={{ ...statsPeriodo, total: statsPeriodo.qtdVendas }}
-                                icon={<ShoppingBag size={16} />}
-                                cor="primaria" // 👈 troquei de "secundaria"
-                                descricao="Pedidos concluídos"
-                                formatCurrency={(v) => String(v)}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                                theme={theme}
-                            />
-                            <CardStats
-                                titulo="Ticket Médio"
-                                stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
-                                icon={<TrendingUp size={16} />}
-                                cor="primaria" // glass + shadow
-                                descricao="Valor por venda"
-                                tendencia="+2.3% vs mês ant"
-                                formatCurrency={formatCurrency}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                                theme={theme}
-                            />
-                            <CardStats
-                                titulo="Itens Vendidos"
-                                stats={{ ...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
-                                icon={<Package size={16} />}
-                                cor="primaria" // 👈 troquei de "alerta"
-                                descricao="Unidades no período"
-                                formatCurrency={(v) => String(v)}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                                theme={theme}
-                            />
-                        </div>
+                        <CardStats
+                            titulo="Faturamento"
+                            stats={statsPeriodo}
+                            icon={<DollarSign size={16} />}
+                            cor="primaria" // glass + shadow
+                            descricao="Total do período"
+                            tendencia="+8.5% vs mês ant"
+                            formatCurrency={formatCurrency}
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
+                            theme={theme}
+                        />
+                        <CardStats
+                            titulo="Vendas Realizadas"
+                            stats={{ ...statsPeriodo, total: statsPeriodo.qtdVendas }}
+                            icon={<ShoppingBag size={16} />}
+                            cor="primaria" // 👈 troquei de "secundaria"
+                            descricao="Pedidos concluídos"
+                            formatCurrency={(v) => String(v)}
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
+                            theme={theme}
+                        />
+                        <CardStats
+                            titulo="Ticket Médio"
+                            stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
+                            icon={<TrendingUp size={16} />}
+                            cor="primaria" // glass + shadow
+                            descricao="Valor por venda"
+                            tendencia="+2.3% vs mês ant"
+                            formatCurrency={formatCurrency}
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
+                            theme={theme}
+                        />
+                        <CardStats
+                            titulo="Itens Vendidos"
+                            stats={{ ...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
+                            icon={<Package size={16} />}
+                            cor="primaria" // 👈 troquei de "alerta"
+                            descricao="Unidades no período"
+                            formatCurrency={(v) => String(v)}
+                            cardStyle={cardStyle}
+                            cardSize={cardSize}
+                            theme={theme}
+                        />
                     </div>
 
                     {/* GRAFICO */}
