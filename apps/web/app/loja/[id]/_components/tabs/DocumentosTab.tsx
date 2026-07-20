@@ -1,178 +1,296 @@
 "use client"
-import { useMemo, useState } from "react"
-import { FileText, Download, FileSpreadsheet, File, Filter, Calendar, BarChart3 } from "lucide-react"
-import { formatCurrency } from "../utils";
-import * as XLSX from "xlsx"
-import { jsPDF } from "jspdf"
+
+import { useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { FileText, FileSpreadsheet, FileDown, Loader2 } from "lucide-react"
+import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
-import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, TextRun } from "docx"
 import { saveAs } from "file-saver"
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, ImageRun, AlignmentType, BorderStyle } from "docx"
+import ExcelJS from "exceljs"
 
-type Venda = { id: string, data: string, total: number, formaPagamento: string, itens: number, status?: string }
-type Produto = { id: string, nome: string, estoque: number, preco: number, categoria_id?: any }
-
-type Props = {
-    vendas: Venda[];
-    produtos: Produto[];
-    loja: any;
-    theme: string;
-    cardStyle: string;
-    cardSize: string;
+interface Venda {
+    id: string
+    data: string
+    total: number
+    formaPagamento: string
+    itens: number
 }
 
-export function DocumentosTab({ vendas, produtos, loja, theme, cardStyle, cardSize }: Props) {
-    const [periodo, setPeriodo] = useState("30")
-    const [tipoRelatorio, setTipoRelatorio] = useState("vendas")
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '24px' : '16px';
+interface DocumentosTabProps {
+    dadosFiltrados: { vendasF: Venda[] }
+    tipoRelatorio: string
+    loja: { nome?: string; logo?: string }
+}
 
-    const dadosFiltrados = useMemo(() => {
-        const diasAtras = new Date()
-        diasAtras.setDate(diasAtras.getDate() - Number(periodo))
-        const vendasF = vendas.filter(v => new Date(v.data) >= diasAtras && v.status !== 'cancelada')
-        const total = vendasF.reduce((acc, v) => acc + v.total, 0)
-        const qtd = vendasF.length
-        const ticket = qtd > 0 ? total / qtd : 0
-        return { vendasF, total, qtd, ticket }
-    }, [vendas, periodo])
+export function DocumentosTab({ dadosFiltrados, tipoRelatorio, loja }: DocumentosTabProps) {
+    const reportRef = useRef<HTMLDivElement>(null)
+    const [loading, setLoading] = useState<string | null>(null)
 
-    const cardBaseStyle = {
-        background: 'color-mix(in srgb, var(--cor-card) 85%, transparent)',
-        backdropFilter: 'blur(16px)',
-        border: '1px solid color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
-        borderRadius: radius,
-        boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 12%, transparent)',
-        padding
+    const primaryColor = "#6366F1"
+    const dataHoje = new Date().toLocaleDateString('pt-AO')
+    const nomeArquivo = `Relatorio-${tipoRelatorio}-${dataHoje.replace(/\//g, '-')}`
+
+    const formatarKZ = (valor: number) => new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(valor)
+
+    const carregarImagem = async (url: string): Promise<string> => {
+        if (!url) return ""
+        try {
+            const res = await fetch(url)
+            const blob = await res.blob()
+            return new Promise((resolve) => {
+                const reader = new FileReader()
+                reader.onloadend = () => resolve(reader.result as string)
+                reader.readAsDataURL(blob)
+            })
+        } catch {
+            return ""
+        }
     }
 
-    // 1. EXPORT EXCEL
-    const exportarExcel = () => {
-        const ws = XLSX.utils.json_to_sheet(dadosFiltrados.vendasF.map(v => ({
-            Data: new Date(v.data).toLocaleDateString('pt-AO'),
-            Total: v.total,
-            "Forma Pagamento": v.formaPagamento,
-            Itens: v.itens
-        })))
-        const wb = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(wb, ws, "Vendas")
-        XLSX.writeFile(wb, `Relatorio-${tipoRelatorio}-${new Date().toISOString().split('T')[0]}.xlsx`)
-    }
-
-    // 2. EXPORT PDF
+    // 1. EXPORT PDF PROFISSIONAL
     const exportarPDF = async () => {
-        const doc = new jsPDF()
-        doc.setFontSize(18)
-        doc.text(loja?.nome || "Relatorio", 14, 22)
-        doc.setFontSize(11)
-        doc.text(`Periodo: Ultimos ${periodo} dias`, 14, 30)
-        doc.text(`Faturamento: ${formatCurrency(dadosFiltrados.total)}`, 14, 38)
-        doc.text(`Vendas: ${dadosFiltrados.qtd}`, 14, 46)
-        doc.text(`Ticket Medio: ${formatCurrency(dadosFiltrados.ticket)}`, 14, 54)
-        doc.save(`Relatorio-${tipoRelatorio}.pdf`)
+        setLoading('pdf')
+        try {
+            const input = reportRef.current
+            if (!input) return
+
+            const canvas = await html2canvas(input, { scale: 2, backgroundColor: '#ffffff' })
+            const imgData = canvas.toDataURL('image/png')
+
+            const pdf = new jsPDF('p', 'mm', 'a4')
+            const pdfWidth = pdf.internal.pageSize.getWidth()
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+            // Cabeçalho
+            if (loja?.logo) {
+                const logoBase64 = await carregarImagem(loja.logo)
+                if(logoBase64) pdf.addImage(logoBase64, 'PNG', 15, 10, 25, 25)
+            }
+            pdf.setFontSize(16)
+            pdf.setTextColor(primaryColor)
+            pdf.text(loja?.nome || "StockBot AO", pdfWidth / 2, 20, { align: "center" })
+            pdf.setFontSize(10)
+            pdf.setTextColor(100)
+            pdf.text(`Relatório: ${tipoRelatorio} | Emitido em: ${dataHoje}`, pdfWidth / 2, 27, { align: "center" })
+            pdf.line(15, 35, pdfWidth - 15, 35)
+
+            // Corpo
+            pdf.addImage(imgData, 'PNG', 15, 40, pdfWidth - 30, pdfHeight > 250 ? 250 : pdfHeight)
+
+            // Rodapé
+            pdf.setFontSize(8)
+            pdf.text(`Página 1 | StockBot AO - Sistema de Gestão`, pdfWidth / 2, 287, { align: "center" })
+
+            pdf.save(`${nomeArquivo}.pdf`)
+        } catch (error) {
+            console.error(error)
+            alert("Erro ao gerar PDF")
+        } finally {
+            setLoading(null)
+        }
     }
 
-    // 3. EXPORT WORD
+    // 2. EXPORT EXCEL PROFISSIONAL com ExcelJS
+    const exportarExcel = async () => {
+        setLoading('excel')
+        try {
+            const workbook = new ExcelJS.Workbook()
+            workbook.creator = 'StockBot AO'
+            workbook.lastModifiedBy = 'StockBot AO'
+            workbook.created = new Date()
+
+            const worksheet = workbook.addWorksheet(tipoRelatorio)
+
+            // Cabeçalho da Empresa
+            worksheet.mergeCells('A1:D1')
+            worksheet.getCell('A1').value = loja?.nome || "StockBot AO"
+            worksheet.getCell('A1').font = { size: 18, bold: true, color: { argb: 'FF6366F1' } }
+            worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' }
+            worksheet.getRow(1).height = 25
+
+            worksheet.mergeCells('A2:D2')
+            worksheet.getCell('A2').value = `Relatório: ${tipoRelatorio} | Data: ${dataHoje}`
+            worksheet.getCell('A2').font = { size: 11, italic: true }
+            worksheet.getCell('A2').alignment = { horizontal: 'center' }
+
+            // Títulos da Tabela
+            worksheet.addRow([])
+            const headerRow = worksheet.addRow(['Data', 'Total KZ', 'Forma Pagamento', 'Qtd Itens'])
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 }
+            headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6366F1' } }
+            headerRow.alignment = { horizontal: 'center', vertical: 'middle' }
+            headerRow.eachCell(cell => {
+                cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+            })
+
+            // Dados
+            let totalGeral = 0
+            dadosFiltrados.vendasF.forEach((v) => {
+                totalGeral += v.total
+                const row = worksheet.addRow([
+                    new Date(v.data).toLocaleDateString('pt-AO'),
+                    v.total,
+                    v.formaPagamento,
+                    v.itens
+                ])
+                row.getCell(2).numFmt = '"KZ" #,##0.00' // Formato moeda
+                row.eachCell(cell => {
+                    cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} }
+                })
+            })
+
+            // Linha Total
+            const totalRow = worksheet.addRow(['', 'TOTAL GERAL:', totalGeral, ''])
+            totalRow.font = { bold: true, size: 12 }
+            totalRow.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } }
+            totalRow.getCell(3).numFmt = '"KZ" #,##0.00'
+            totalRow.eachCell(cell => {
+                cell.border = { top: {style:'medium'}, left: {style:'thin'}, bottom: {style:'medium'}, right: {style:'thin'} }
+            })
+
+            // Ajustar largura
+            worksheet.columns = [
+                { width: 15 }, { width: 20 }, { width: 20 }, { width: 12 }
+            ]
+
+            const buffer = await workbook.xlsx.writeBuffer()
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+            saveAs(blob, `${nomeArquivo}.xlsx`)
+        } catch (error) {
+            console.error(error)
+            alert("Erro ao gerar Excel")
+        } finally {
+            setLoading(null)
+        }
+    }
+
+    // 3. EXPORT WORD PROFISSIONAL
     const exportarWord = async () => {
-        const doc = new Document({
-            sections: [{
-                children: [
-                    new Paragraph({ children: [new TextRun({ text: loja?.nome || "Relatorio", bold: true, size: 32 })] }),
-                    new Paragraph(`Periodo: Ultimos ${periodo} dias`),
-                    new Paragraph(`Faturamento: ${formatCurrency(dadosFiltrados.total)}`),
-                    new Paragraph(`Vendas: ${dadosFiltrados.qtd}`),
-                    new Paragraph(`Ticket Medio: ${formatCurrency(dadosFiltrados.ticket)}`),
-                ]
-            }]
-        })
-        const blob = await Packer.toBlob(doc)
-        saveAs(blob, `Relatorio-${tipoRelatorio}.docx`)
+        setLoading('word')
+        try {
+            const children: any[] = []
+
+            // Cabeçalho
+            if (loja?.logo) {
+                const logoBase64 = await carregarImagem(loja.logo)
+                if(logoBase64) children.push(new Paragraph({
+                    children: [new ImageRun({ data: logoBase64, transformation: { width: 90, height: 90 } })],
+                    alignment: AlignmentType.CENTER
+                }))
+            }
+
+            children.push(
+                new Paragraph({ text: loja?.nome || "StockBot AO", heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
+                new Paragraph({ text: `Relatório: ${tipoRelatorio}`, heading: HeadingLevel.HEADING_2, alignment: AlignmentType.CENTER }),
+                new Paragraph({ text: `Emitido em: ${dataHoje}`, alignment: AlignmentType.CENTER }),
+                new Paragraph({ text: "" })
+            )
+
+            // Tabela
+            const tableRows = [
+                new TableRow({
+                    tableHeader: true,
+                    children: ['Data', 'Total KZ', 'Forma Pagamento', 'Qtd Itens'].map(text =>
+                        new TableCell({
+                            children: [new Paragraph({ text, style: "strong" })],
+                            shading: { fill: "6366F1" }
+                        })
+                    ),
+                }),
+               ...dadosFiltrados.vendasF.map((v) =>
+                    new TableRow({
+                        children: [
+                            new TableCell({ children: [new Paragraph(new Date(v.data).toLocaleDateString('pt-AO'))] }),
+                            new TableCell({ children: [new Paragraph(formatarKZ(v.total))] }),
+                            new TableCell({ children: [new Paragraph(v.formaPagamento)] }),
+                            new TableCell({ children: [new Paragraph(String(v.itens))] }),
+                        ]
+                    })
+                )
+            ]
+
+            const table = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: {
+                    top: { style: BorderStyle.SINGLE, size: 1 },
+                    bottom: { style: BorderStyle.SINGLE, size: 1 },
+                    left: { style: BorderStyle.SINGLE, size: 1 },
+                    right: { style: BorderStyle.SINGLE, size: 1 },
+                },
+                rows: tableRows,
+            })
+
+            children.push(table)
+
+            const doc = new Document({
+                sections: [{ children }],
+            })
+
+            const blob = await Packer.toBlob(doc)
+            saveAs(blob, `${nomeArquivo}.docx`)
+        } catch (error) {
+            console.error(error)
+            alert("Erro ao gerar Word")
+        } finally {
+            setLoading(null)
+        }
     }
 
     return (
-        <div className="space-y-4 md:space-y-6 p-2 md:p-0" data-theme={theme}>
-            {/* HEADER + ACOES */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{color: 'var(--cor-texto)'}}>
-                        Central de Relatórios
-                        <FileText size={16} style={{color: 'var(--cor-primaria)'}} />
-                    </h2>
-                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Gere e exporte todos os documentos da loja</p>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                    <button onClick={exportarPDF} className="flex items-center gap-2 font-semibold transition hover:scale-[1.03]" style={{background: 'var(--cor-primaria)', color: '#fff', padding: '10px 16px', borderRadius: radius, fontSize: '12px'}}><File size={14} /> PDF</button>
-                    <button onClick={exportarWord} className="flex items-center gap-2 font-semibold transition hover:scale-[1.03]" style={{background: '#2563eb', color: '#fff', padding: '10px 16px', borderRadius: radius, fontSize: '12px'}}><FileText size={14} /> WORD</button>
-                    <button onClick={exportarExcel} className="flex items-center gap-2 font-semibold transition hover:scale-[1.03]" style={{background: '#16a34a', color: '#fff', padding: '10px 16px', borderRadius: radius, fontSize: '12px'}}><FileSpreadsheet size={14} /> EXCEL</button>
-                </div>
+        <div className="space-y-4">
+            <div className="flex gap-3 mb-4 flex-wrap">
+                <Button onClick={exportarPDF} variant="outline" disabled={!!loading}>
+                    {loading === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />}
+                    PDF
+                </Button>
+                <Button onClick={exportarExcel} variant="outline" disabled={!!loading}>
+                    {loading === 'excel' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
+                    Excel
+                </Button>
+                <Button onClick={exportarWord} variant="outline" disabled={!!loading}>
+                    {loading === 'word' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
+                    Word
+                </Button>
             </div>
 
-            {/* FILTROS GLASS */}
-            <div style={cardBaseStyle}>
-                <div className="flex items-center gap-2 mb-3" style={{color: 'var(--cor-primaria)'}}>
-                    <Filter size={16} /> <span className="text-sm font-semibold">Filtros Inteligentes</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Período</label>
-                        <select value={periodo} onChange={e => setPeriodo(e.target.value)} className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}>
-                            <option value="7">Últimos 7 dias</option>
-                            <option value="15">Últimos 15 dias</option>
-                            <option value="30">Últimos 30 dias</option>
-                            <option value="90">Últimos 90 dias</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Tipo de Relatório</label>
-                        <select value={tipoRelatorio} onChange={e => setTipoRelatorio(e.target.value)} className="w-full mt-1 rounded-lg px-3 py-2 text-sm outline-none" style={{backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius}}>
-                            <option value="vendas">Vendas</option>
-                            <option value="estoque">Estoque</option>
-                            <option value="financeiro">Financeiro</option>
-                        </select>
+            {/* Área que vai pro PDF */}
+            <div ref={reportRef} className="p-6 bg-white rounded-lg border">
+                <div className="flex items-center justify-between mb-4">
+                    {loja?.logo && <img src={loja.logo} alt="logo" className="h-12" />}
+                    <div className="text-right">
+                        <h2 className="text-2xl font-bold text-primary">Relatório de {tipoRelatorio}</h2>
+                        <p className="text-sm text-gray-500">Emitido em: {dataHoje}</p>
                     </div>
                 </div>
-            </div>
 
-            {/* CARDS KPI */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-                {[
-                    {titulo: "Faturamento", valor: formatCurrency(dadosFiltrados.total), icon: <BarChart3 size={16}/>},
-                    {titulo: "Vendas", valor: dadosFiltrados.qtd, icon: <FileText size={16}/>},
-                    {titulo: "Ticket Médio", valor: formatCurrency(dadosFiltrados.ticket), icon: <BarChart3 size={16}/>},
-                    {titulo: "Produtos", valor: produtos.length, icon: <FileSpreadsheet size={16}/>}
-                ].map(k => (
-                    <div key={k.titulo} className="transition hover:scale-[1.02]" style={cardBaseStyle}>
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium" style={{color: 'var(--cor-primaria)'}}>{k.titulo}</p>
-                            <div style={{color: 'var(--cor-primaria)'}}>{k.icon}</div>
-                        </div>
-                        <p className="text-2xl md:text-3xl font-bold" style={{color: 'var(--cor-primaria)'}}>{k.valor}</p>
-                    </div>
-                ))}
-            </div>
+                {/* Totalizador */}
+                <div className="bg-primary/10 p-4 rounded-lg mb-4">
+                    <p className="text-sm">Total de Vendas</p>
+                    <p className="text-2xl font-bold">{formatarKZ(dadosFiltrados.vendasF.reduce((acc, v) => acc + v.total, 0))}</p>
+                </div>
 
-            {/* TABELA PREVIEW */}
-            <div style={cardBaseStyle}>
-                <h3 className="font-bold text-base mb-3" style={{color: 'var(--cor-primaria)'}}>Pré-visualização</h3>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
-                        <thead>
-                            <tr style={{borderBottom: '1px solid var(--cor-primaria)30'}}>
-                                <th className="text-left p-2" style={{color: 'var(--cor-primaria)'}}>Data</th>
-                                <th className="text-left p-2" style={{color: 'var(--cor-primaria)'}}>Total</th>
-                                <th className="text-left p-2" style={{color: 'var(--cor-primaria)'}}>Pagamento</th>
+                {/* Tabela */}
+                <table className="w-full text-sm border-collapse">
+                    <thead>
+                        <tr className="bg-primary text-white">
+                            <th className="p-2 text-left border">Data</th>
+                            <th className="p-2 text-right border">Total</th>
+                            <th className="p-2 text-left border">Pagamento</th>
+                            <th className="p-2 text-center border">Itens</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {dadosFiltrados.vendasF.map((v) => (
+                            <tr key={v.id} className="border-b">
+                                <td className="p-2 border">{new Date(v.data).toLocaleDateString('pt-AO')}</td>
+                                <td className="p-2 text-right border">{formatarKZ(v.total)}</td>
+                                <td className="p-2 border">{v.formaPagamento}</td>
+                                <td className="p-2 text-center border">{v.itens}</td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            {dadosFiltrados.vendasF.slice(0, 5).map(v => (
-                                <tr key={v.id} style={{borderBottom: '1px solid var(--cor-primaria)10'}}>
-                                    <td className="p-2" style={{color: 'var(--cor-texto)'}}>{new Date(v.data).toLocaleDateString('pt-AO')}</td>
-                                    <td className="p-2 font-bold" style={{color: 'var(--cor-primaria)'}}>{formatCurrency(v.total)}</td>
-                                    <td className="p-2" style={{color: 'var(--cor-texto-sec)'}}>{v.formaPagamento}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     )
