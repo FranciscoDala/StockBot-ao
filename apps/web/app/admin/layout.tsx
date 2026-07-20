@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Power, Palette, Store, Shield } from "lucide-react";
 import { Zalando_Sans_Expanded } from "next/font/google";
+import { ConfirmarModal } from "@/app/loja/[id]/_components/modals/ConfirmacaoModal"; // 👈 import igual da loja
 
 const zalando = Zalando_Sans_Expanded({
   subsets: ["latin"],
@@ -44,6 +45,7 @@ const applyTheme = (theme: string) => {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [theme, setTheme] = useState("dark");
+  const [showLogoutModal, setShowLogoutModal] = useState(false); // 👈 state da modal
 
   useEffect(() => {
     const savedTheme = getCookie("theme") || "dark";
@@ -58,9 +60,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     applyTheme(newTheme);
   }
 
-  const handleTerminarSessao = () => {
+  const handleSair = () => { // 👈 renomeei pra ficar igual da loja
     clearAllAuth();
     router.replace("/login");
+    setShowLogoutModal(false);
   }
 
   return (
@@ -99,7 +102,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         <Palette size={22} />
                     </button>
                     <button
-                        onClick={handleTerminarSessao}
+                        onClick={() => setShowLogoutModal(true)} // 👈 abre a modal agora
                         className="p-0 bg-red-600 rounded-lg flex items-center justify-center hover:bg-red-700 hover:scale-110 transition-transform"
                         style={{
                                 width: '40px',
@@ -114,6 +117,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
             {children} {/* 👈 AQUI RENDERIZA O page.tsx */}
         </div>
+
+        {/* Modal de confirmação de logout - sem senha */}
+        <ConfirmarModal
+            open={showLogoutModal}
+            onClose={() => setShowLogoutModal(false)}
+            onConfirm={handleSair}
+            titulo="Sair do Admin"
+            descricao="Tem certeza que deseja sair? Você precisará fazer login novamente para acessar."
+            loading={false}
+            textoConfirmar="Sim, Sair"
+            tipo="venda" // 👈 igual ao da loja, não pede senha
+        />
     </div>
   )
 }
