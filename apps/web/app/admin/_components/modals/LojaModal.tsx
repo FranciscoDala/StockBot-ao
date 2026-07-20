@@ -85,8 +85,8 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
                             <>
                                 <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dono da Loja</p></div>
                                 <div className="grid w-full grid-cols-2 gap-2">
-                                    <Button type="button" variant={formData.modoDono === 'existente'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'existente')} className={formData.modoDono === 'existente'? 'bg-[var(--cor-primaria)] hover:bg-[var(--cor-primaria)] text-white' : ''}>Dono Existente</Button>
-                                    <Button type="button" variant={formData.modoDono === 'novo'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'novo')} className={formData.modoDono === 'novo'? 'bg-[var(--cor-primaria)] hover:bg-[var(--cor-primaria)] text-white' : ''}>Criar Novo Dono</Button>
+                                    <Button type="button" variant={formData.modoDono === 'existente'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'existente')} className={formData.modoDono === 'existente'? 'bg-[var(--cor-primaria)] hover:bg-[var(--cor-primaria)] text-white' : ''}>Existente</Button>
+                                    <Button type="button" variant={formData.modoDono === 'novo'? 'default' : 'outline'} onClick={() => handleChange('modoDono', 'novo')} className={formData.modoDono === 'novo'? 'bg-[var(--cor-primaria)] hover:bg-[var(--cor-primaria)] text-white' : ''}>Adicionar Novo</Button>
                                 </div>
                                 {formData.modoDono === 'existente' && (
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">

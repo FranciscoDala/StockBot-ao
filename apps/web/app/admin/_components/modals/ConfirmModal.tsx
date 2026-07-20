@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2, Shield } from "lucide-react";
+import { Loader2, ShieldAlert, AlertCircle } from "lucide-react"; // 👈 add AlertCircle
 
 interface Props {
     open: boolean;
@@ -13,18 +13,14 @@ interface Props {
     setAdminSenha: (v: string) => void;
     onConfirm: () => void;
     saving: boolean;
+    error?: string | null; // 👈 add essa prop
 }
 
-export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, onConfirm, saving }: Props) {
+export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, onConfirm, saving, error }: Props) {
 
     useEffect(() => {
         if (!open) setAdminSenha("");
     }, [open, setAdminSenha]);
-
-    const handleClose = () => {
-        setAdminSenha("");
-        onOpenChange(false);
-    }
 
     const handleConfirm = () => {
         if (adminSenha.length < 4) return;
@@ -32,11 +28,12 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
     }
 
     const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
+    const errorStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-erro)' }
 
     return (
-        <Dialog open={open} onOpenChange={() => {}}> {/* trava: não fecha clicando fora */}
+        <Dialog open={open} onOpenChange={() => {}}>
             <DialogContent
-                className="sm:max-w-[425px] p-0 shadow-2xl border"
+                className="w- max-w-[425px] p-0 shadow-2xl border"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -44,45 +41,53 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                     borderRadius: 'var(--radius)',
                     backdropFilter: 'blur(10px)'
                 }}
-                onInteractOutside={(e) => e.preventDefault()} // trava clique fora
-                onEscapeKeyDown={(e) => e.preventDefault()} // trava tecla ESC
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <DialogHeader className="p-4 pb-2">
-                    <div className="flex items-center gap-3">
-                        <Shield size={20} style={{color: 'var(--cor-primaria)'}} />
-                        <DialogTitle className="text-base font-bold" style={{color: 'var(--cor-texto)'}}>Confirmar Edição</DialogTitle>
+                    <div className="flex items-center gap-3 pr-8">
+                        <ShieldAlert size={20} style={{color: 'var(--cor-primaria)'}} className="shrink-0" />
+                        <DialogTitle className="text-base font-bold" style={{color: 'var(--cor-texto)'}}>
+                            Confirmar Alterações
+                        </DialogTitle>
                     </div>
                     <DialogDescription className="text-sm pt-2 text-left" style={{color: 'var(--cor-texto-sec)'}}>
-                        Para editar esta loja, digite a sua senha de ADMIN.
+                        Para salvar as alterações, digita a tua senha de ADMIN.
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="px-4 pb-2">
                     <div className="grid gap-2">
-                        <Label htmlFor="senha-admin" className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Digite a senha do ADMIN para confirmar</Label>
+                        <Label htmlFor="senha-admin" className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Digite a senha do ADMIN</Label>
                         <Input
                             id="senha-admin"
                             type="password"
                             value={adminSenha}
                             onChange={(e) => setAdminSenha(e.target.value)}
-                            className="h-9"
+                            className="h-10 text-base"
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
-                                border: '1.5px solid var(--cor-primaria)',
+                                border: `1.5px solid ${error? 'var(--cor-erro)' : 'var(--cor-primaria)'}`, // 👈 borda vermelha se erro
                                 borderRadius: 'var(--radius-sm)',
-                              ...focusStyle
+                              ...(error? errorStyle : focusStyle)
                             }}
                             placeholder="******"
                             disabled={saving}
                             autoFocus
                             onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
                         />
+                        {error && ( // 👈 mostra erro
+                            <div className="flex items-center gap-2 text-xs" style={{color: 'var(--cor-erro)'}}>
+                                <AlertCircle size={14} />
+                                {error}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <DialogFooter
-                    className="p-4 border-t flex-row justify-end gap-3"
+                    className="p-4 border-t flex-col gap-2" // 👈 coluna no mobile
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -90,9 +95,9 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                 >
                     <Button
                         variant="secondary"
-                        onClick={handleClose} // só aqui fecha
+                        onClick={() => onOpenChange(false)}
                         disabled={saving}
-                        className="h-9"
+                        className="h-10 w-full font-semibold"
                         style={{
                             backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
@@ -105,15 +110,15 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                     <Button
                         onClick={handleConfirm}
                         disabled={saving || adminSenha.length < 4}
-                        className="gap-2 font-bold h-9"
+                        className="gap-2 font-bold h-10 w-full"
                         style={{
-                            background: 'var(--cor-primaria)',
+                            background: saving || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-primaria) 50%, transparent)' : 'var(--cor-primaria)',
                             color: '#fff',
                             borderRadius: 'var(--radius)'
                         }}
                     >
                         {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Confirmar
+                        Salvar Alterações
                     </Button>
                 </DialogFooter>
             </DialogContent>
