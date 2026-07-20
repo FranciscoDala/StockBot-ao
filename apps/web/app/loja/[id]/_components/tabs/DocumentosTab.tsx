@@ -218,13 +218,24 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
             pdf.setLineWidth(0.2)
 
-            // HEADER - FORÇA TEXTO PRETO AQUI
+            // HEADER - NOVO JEITO: FUNDO E TEXTO SEPARADO
             pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
-            pdf.setTextColor(0) // <-- Força preto
             pdf.setFontSize(9).setFont("helvetica", "bold")
+
             headers.forEach((h, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
-                pdf.rect(x, y - 4, colWidths[i], rowHeight, "FD")
+                pdf.rect(x, y - 4, colWidths[i], rowHeight, "F") // 1. Só pinta o fundo
+            })
+
+            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
+            headers.forEach((h, i) => { // 2. Depois desenha a borda
+                const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
+                pdf.rect(x, y - 4, colWidths[i], rowHeight, "D")
+            })
+
+            pdf.setTextColor(0) // 3. Força texto preto DEPOIS de tudo
+            headers.forEach((h, i) => { // 4. Por ultimo escreve o texto
+                const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
                 pdf.text(h, x + 2, y)
             })
             y += rowHeight
@@ -245,14 +256,12 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                     const data = new Date(v.data).toLocaleDateString('pt-AO')
                     const total = v.total
 
-                    // Desenha borda de cada célula
                     headers.forEach((_, i) => {
                         const cellX = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
                         pdf.rect(cellX, y - 4, colWidths[i], rowHeight, "D")
                     })
 
-                    // FORÇA TEXTO PRETO EM CADA LINHA - ISSO QUE FALTAVA
-                    pdf.setTextColor(0)
+                    pdf.setTextColor(0) // FORÇA PRETO EM CADA LINHA
                     pdf.text(data, x + 2, y)
                     pdf.text(v.nome_vendedor.substring(0, 15), x + colWidths[0] + 2, y)
                     pdf.text(formatCurrency(total), x + colWidths[0] + colWidths[1] + 2, y)
@@ -264,9 +273,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                     y += rowHeight
                 })
             }
-            y += 10 // <-- Aumentei espaço pq tirei os textos
+            y += 10
 
-            // 3. TABELA "ESTE MÊS" - REMOVI O REMINDER E TERMS
+            // 3. TABELA "ESTE MÊS" - MESMA LÓGICA
             const totalEntrada = totalVendas
             const totalSaida = 0
             const lucro = totalEntrada - totalSaida
@@ -278,8 +287,11 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             ]
 
             const resumoWidth = 90
+
+            // Header Este Mes
             pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
-            pdf.rect(15, y - 4, resumoWidth, rowHeight, "FD")
+            pdf.rect(15, y - 4, resumoWidth, rowHeight, "F")
+            pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
             pdf.setTextColor(0).setFont("helvetica", "bold").setFontSize(9)
             pdf.text(`Período: ${periodoTexto}`, 17, y)
             y += rowHeight
@@ -292,14 +304,6 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 pdf.setFont("helvetica", "normal")
                 y += rowHeight
             })
-
-            // RODAPÉ
-            const totalPages = pdf.internal.getNumberOfPages()
-            for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i)
-                pdf.setFontSize(8).setTextColor(150)
-                pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
-            }
 
             pdf.save(`Relatorio-Modelo-${nomeArquivo}.pdf`)
         } catch (error) {
