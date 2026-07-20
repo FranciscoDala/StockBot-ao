@@ -1,6 +1,6 @@
 "use client";
 
-import { Store, User, Lock, AlertTriangle, Mail, Phone } from "lucide-react"; // 👈 add Mail, Phone
+import { Store, User, Lock, AlertTriangle, Mail, Phone, XCircle } from "lucide-react"; // 👈 add XCircle
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogOverlay } from "@/components/ui/dialog";
@@ -9,13 +9,19 @@ import { Toaster, toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ||
     (typeof window!== 'undefined' && window.location.hostname === 'localhost'
-       ? "http://127.0.0.1:8000/api/v1"
+      ? "http://127.0.0.1:8000/api/v1"
         : "https://gentle-playfulness-production-d333.up.railway.app/api/v1");
 
 // 👈 MENSAGEM PROFISSIONAL NOVA
 const MENSAGEM_LOJA_DESATIVADA = `A tua loja encontra-se temporariamente desativada.
 Para reativar o acesso, entra em contacto com a equipa de suporte da StockBot.
 Horário: Segunda a Sábado, 08h às 16h`;
+
+const MENSAGEM_CONTA_INVALIDA = `Não conseguimos encontrar uma conta com este e-mail e palavra-passe.
+Verifica os dados inseridos e tenta novamente.`; // 👈 NOVA
+
+const MENSAGEM_ERRO_REDE = `Não foi possível conectar ao servidor.
+Verifica a tua ligação à internet e tenta novamente.`; // 👈 NOVA
 
 const ROUTES = {
     ADMIN: "/admin",
@@ -75,8 +81,10 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [checking, setChecking] = useState(true);
-    const [error, setError] = useState("");
+    const [error, setError] = useState(""); // 👈 mantido pra "sem loja vinculada"
     const [lojaBloqueadaOpen, setLojaBloqueadaOpen] = useState(false);
+    const [contaInvalidaOpen, setContaInvalidaOpen] = useState(false); // 👈 NOVO
+    const [erroRedeOpen, setErroRedeOpen] = useState(false); // 👈 NOVO
     const router = useRouter();
     const redirectedRef = useRef(false);
 
@@ -119,15 +127,23 @@ export default function LoginPage() {
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                const errorMsg = errorData.detail || `Erro ${res.status}`;
+                const errorMsg = String(errorData.detail || `Erro ${res.status}`).toLowerCase();
 
                 // 👈 NOVA REGRA: LOJA DESATIVADA
-                if (res.status === 403 && String(errorMsg).toLowerCase().includes("loja desativada")) {
+                if (res.status === 403 && errorMsg.includes("loja desativada")) {
                     setLojaBloqueadaOpen(true);
                     return; // para aqui e não mostra erro em baixo
                 }
 
-                throw new Error(errorMsg);
+                // 👈 NOVA REGRA: CONTA NÃO EXISTE / SENHA ERRADA
+                if (res.status === 400 && (errorMsg.includes("email") || errorMsg.includes("senha") || errorMsg.includes("incorretos"))) {
+                    setContaInvalidaOpen(true);
+                    return;
+                }
+
+                // Outros erros 400/403 também vão pra modal de conta
+                setContaInvalidaOpen(true);
+                return;
             }
 
             const data: LoginResponse = await res.json();
@@ -182,11 +198,9 @@ export default function LoginPage() {
         } catch (err: any) {
             const msg = String(err.message || err).toLowerCase();
             if (msg.includes("sem loja vinculada")) {
-                setError("Usuário sem loja vinculada. Crie uma loja primeiro.");
-            } else if (msg.includes("401") || msg.includes("403") || msg.includes("credenciais")) {
-                setError("Email ou senha incorretos");
+                setError("Usuário sem loja vinculada. Crie uma loja primeiro."); // 👈 esse ainda fica em texto
             } else {
-                setError(err.message || "Erro ao fazer login");
+                setErroRedeOpen(true); // 👈 ERRO DE REDE AGORA VAI PRA MODAL
             }
         } finally {
             setLoading(false);
@@ -211,7 +225,7 @@ export default function LoginPage() {
                         <label className="flex items-center gap-2 text-sm text-zinc-300"><Lock size={16} /> Palavra-passe</label>
                         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full rounded-md border-zinc-700 bg-zinc-900 p-2 text-white focus:border-green-500 outline-none" required />
                     </div>
-                    {error && <p className="text-sm text-red-500">{error}</p>}
+                    {error && <p className="text-sm text-red-500">{error}</p>} {/* 👈 só aparece pra "sem loja vinculada" */}
                     <button type="submit" disabled={loading} className="w-full rounded-md bg-green-600 p-2 font-bold text-white disabled:opacity-50 hover:bg-green-500 transition">
                         {loading? "Acessando..." : "Acessar"}
                     </button>
@@ -225,7 +239,7 @@ export default function LoginPage() {
                             rel="noopener noreferrer"
                             className="inline-block"
                         >
-                            <b className="text-red-400">Criar minha loja</b>.
+                            <b className="text-red-400"> Criar minha loja</b>
                         </a>
                     </p>
                 </div>
@@ -253,7 +267,7 @@ export default function LoginPage() {
                             {MENSAGEM_LOJA_DESATIVADA}
                         </DialogDescription>
 
-                        <div className="mt-4 space-y-2 p-4 rounded-lg bg-zinc-900/50 border border-zinc-800">
+                        <div className="mt-4 space-y-2 p-4 rounded-lg bg-zinc-900/50 border-zinc-800">
                             <div className="flex items-center gap-2 text-sm text-zinc-400">
                                 <Mail size={14} className="text-green-500" />
                                 <span>stockbot26@gmail.com</span>
@@ -275,6 +289,53 @@ export default function LoginPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* MODAL CONTA INVALIDA - NOVO */}
+            <Dialog open={contaInvalidaOpen} onOpenChange={(open) => { if (!open) return; }}>
+                <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
+                <DialogContent className="sm:max-w-[425px] bg-zinc-950/95 backdrop-blur-xl border-amber-500/50 z-50 gap-0 p-0" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+                    <DialogHeader className="p-6 pb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <XCircle className="w-5 h-5 text-amber-500" />
+                            </div>
+                            <DialogTitle className="text-amber-500 text-xl font-bold">Dados Incorretos</DialogTitle>
+                        </div>
+                    </DialogHeader>
+                    <div className="px-6 pb-4">
+                        <DialogDescription className="text-zinc-300 text-base whitespace-pre-line leading-relaxed">
+                            {MENSAGEM_CONTA_INVALIDA}
+                        </DialogDescription>
+                    </div>
+                    <DialogFooter className="p-4 border-t border-zinc-800">
+                        <Button className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold h-11" onClick={() => setContaInvalidaOpen(false)}>Tentar Novamente</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* MODAL ERRO REDE - NOVO */}
+            <Dialog open={erroRedeOpen} onOpenChange={(open) => { if (!open) return; }}>
+                <DialogOverlay className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md" />
+                <DialogContent className="sm:max-w-[425px] bg-zinc-950/95 backdrop-blur-xl border-zinc-700 z-50 gap-0 p-0" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+                    <DialogHeader className="p-6 pb-2">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-zinc-700/50 flex items-center justify-center">
+                                <AlertTriangle className="w-5 h-5 text-zinc-400" />
+                            </div>
+                            <DialogTitle className="text-zinc-300 text-xl font-bold">Erro de Conexão</DialogTitle>
+                        </div>
+                    </DialogHeader>
+                    <div className="px-6 pb-4">
+                        <DialogDescription className="text-zinc-300 text-base whitespace-pre-line leading-relaxed">
+                            {MENSAGEM_ERRO_REDE}
+                        </DialogDescription>
+                    </div>
+                    <DialogFooter className="p-4 border-t border-zinc-800">
+                        <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-11" onClick={() => setErroRedeOpen(false)}>Fechar</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Toaster richColors position="top-right" />
         </main>
     );
