@@ -1,7 +1,11 @@
 "use client";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
+
 import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Settings, Palette, Sun, Moon } from "lucide-react";
+
+
+
 import { toast, Toaster } from "sonner";
 import { z } from "zod";
 import { formatCurrency } from "./_components/utils";
@@ -547,9 +551,12 @@ export default function LojaPage() {
 
                         {activeTab === "documentos" && (
                             <DocumentosTab
+                                lojaId={lojaId}
+                                token={token}
                                 loja={loja}
-                                dadosFiltrados={{ vendasF: vendas }}
-                                tipoRelatorio="Vendas"
+                                formatCurrency={formatCurrency}
+                                theme={theme}
+                                cardStyle={cardStyle}
                             />
                         )}
 
