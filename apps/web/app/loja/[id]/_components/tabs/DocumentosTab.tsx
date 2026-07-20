@@ -176,7 +176,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     const dataHoje = new Date().toLocaleDateString('pt-AO')
     const nomeArquivo = `Relatorio-${periodoTexto.replace(/\s/g, '-')}-${dataHoje.replace(/\//g, '-')}`
 
- 
+
 
     const exportarPDFModelo = async () => {
         setLoading('pdf')
@@ -184,83 +184,79 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const pdf = new jsPDF('p', 'mm', 'a4')
             const pageWidth = pdf.internal.pageSize.getWidth()
 
-            // 1. CABEÇALHO: LOGO + DADOS EMPRESA
+            // CORES DO MODELO
+            const corHeader = [220, 228, 235]
+            const corBorda = [180, 180, 180]
+            const corTextoCinza = [120, 120, 120]
+
+            // 1. CABEÇALHO
             pdf.setDrawColor(0)
-            pdf.setLineWidth(0.5)
+            pdf.setLineWidth(0.8)
             pdf.rect(15, 15, 80, 25)
             pdf.setFontSize(12).setTextColor(0)
-            pdf.text("Logo", pageWidth / 4, 29, { align: "center" })
+            pdf.text("Logo", pageWidth / 4, 28, { align: "center" })
 
             let yDireita = 18
-            pdf.setFontSize(10).setTextColor(120)
-            pdf.text("Empresa", 110, yDireita, { align: "right" })
+            pdf.setFontSize(10)
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Empresa", 110, yDireita, { align: "right" })
             pdf.setTextColor(0).text(nomeLoja, 115, yDireita)
 
             yDireita += 6
-            pdf.setTextColor(120).text("NIF", 110, yDireita, { align: "right" })
-            pdf.setTextColor(0).text(loja?.nif || "XXXXX", 115, yDireita) // <-- agora pega do teu objeto loja
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("NIF", 110, yDireita, { align: "right" })
+            pdf.setTextColor(0).text(loja?.nif || "XXXXX", 115, yDireita)
 
             yDireita += 6
-            pdf.setTextColor(120).text("Endereço", 110, yDireita, { align: "right" })
-            pdf.setTextColor(0).text(loja?.endereco || "Luanda, Angola", 115, yDireita) // <-- agora pega do teu objeto loja
+            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text("Endereço", 110, yDireita, { align: "right" })
+            pdf.setTextColor(0).text(loja?.endereco || "Luanda, Angola", 115, yDireita)
 
             let y = 55
 
-            // 2. TABELA PRINCIPAL
+            // 2. TABELA PRINCIPAL COM BORDAS
             const headers = ["Data", "Venda", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
-            const colWidths = [20, 25, 25, 25, 25, 25, 30]
+            const colWidths = [20, 30, 20, 20, 25, 25, 30]
             const startX = 15
+            const rowHeight = 7
 
-            pdf.setFillColor(220, 228, 235)
+            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2]) // <-- CORRIGIDO
+            pdf.setLineWidth(0.2)
+
+            // HEADER
+            pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2]) // <-- CORRIGIDO
             pdf.setTextColor(0)
-            pdf.setFontSize(9)
+            pdf.setFontSize(9).setFont("helvetica", "bold")
             headers.forEach((h, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
-                pdf.rect(x, y - 4, colWidths[i], 7, "F")
+                pdf.rect(x, y - 4, colWidths[i], rowHeight, "FD")
                 pdf.text(h, x + 2, y)
             })
-            y += 7
+            y += rowHeight
 
-            // LINHAS COM TUAS VENDAS REAIS
-            pdf.setFontSize(8)
-            if (vendasFiltradas.length === 0) {
-                pdf.text("Nenhuma venda no período", startX + 2, y)
-                y += 7
-            } else {
-                vendasFiltradas.forEach((v) => {
-                    if (y > 270) { pdf.addPage(); y = 20 }
-
-                    const x = startX
-                    pdf.text(new Date(v.data).toLocaleDateString('pt-AO'), x + 2, y) // Data
-                    pdf.text(v.nome_vendedor.substring(0, 12), x + 22, y) // Venda
-                    pdf.text(formatCurrency(v.total), x + 47, y) // Entrada = v.total
-                    pdf.text(formatCurrency(0), x + 72, y) // Saida = 0 pq não tens
-                    pdf.text(formatCurrency(v.total), x + 97, y) // Subtotal
-                    pdf.text(formatCurrency(v.total), x + 122, y) // Lucro
-                    pdf.text(formatCurrency(v.total), x + 147, y) // Total Geral
-                    y += 6
+            // 2 LINHAS VAZIAS
+            for (let r = 0; r < 2; r++) {
+                pdf.setFillColor(245, 247, 250)
+                headers.forEach((_, i) => {
+                    const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
+                    pdf.rect(x, y - 4, colWidths[i], rowHeight, "FD")
                 })
+                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]) // <-- CORRIGIDO
+                pdf.text("$", startX + colWidths.slice(0, 6).reduce((a, b) => a + b, 0) + 2, y)
+                pdf.text("-", pageWidth - 18, y, { align: "right" })
+                y += rowHeight
             }
             y += 5
 
-            // 3. TEXTO REMINDER E TERMS
-            pdf.setFontSize(9).setTextColor(120)
+            // 3. TEXTO
+            pdf.setFont("helvetica", "normal")
+            pdf.setFontSize(9).setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]) // <-- CORRIGIDO
             pdf.text("Reminder: Please include the statement number on your check.", 15, y)
             y += 5
             pdf.text("Terms: Balance due in 30 days.", 15, y)
             y += 10
 
-            // 4. TABELA "ESTE MÊS" - USANDO totalVendas
-            const totalEntrada = totalVendas // <-- MUDOU AQUI: usa o que tu já calculas
-            const totalSaida = 0 // <-- MUDOU AQUI: não tens despesas ainda
+            // 4. TABELA "ESTE MÊS"
+            const totalEntrada = totalVendas
+            const totalSaida = 0
             const lucro = totalEntrada - totalSaida
-
-            pdf.setFillColor(220, 228, 235)
-            pdf.rect(15, y - 4, 90, 7, "F")
-            pdf.setTextColor(0).setFontSize(9)
-            pdf.text(`Período: ${periodoTexto}`, 17, y) // <-- agora mostra o período
-            y += 7
-
             const resumoMes = [
                 ["Entrada", formatCurrency(totalEntrada)],
                 ["Saida", formatCurrency(totalSaida)],
@@ -268,21 +264,21 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 ["Diferença", formatCurrency(totalEntrada)],
             ]
 
-            pdf.setFontSize(9)
-            resumoMes.forEach(([label, valor]) => {
-                pdf.setTextColor(120).text(label, 17, y)
-                pdf.setTextColor(0).setFont("helvetica", "bold").text(valor, 95, y, { align: "right" })
-                pdf.setFont("helvetica", "normal")
-                y += 6
-            })
+            const resumoWidth = 90
+            pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2]) // <-- CORRIGIDO
+            pdf.rect(15, y - 4, resumoWidth, rowHeight, "FD")
+            pdf.setTextColor(0).setFont("helvetica", "bold").setFontSize(9)
+            pdf.text("Este mês", 17, y)
+            y += rowHeight
 
-            // RODAPÉ
-            const totalPages = pdf.internal.getNumberOfPages()
-            for (let i = 1; i <= totalPages; i++) {
-                pdf.setPage(i)
-                pdf.setFontSize(8).setTextColor(150)
-                pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
-            }
+            pdf.setFont("helvetica", "normal")
+            resumoMes.forEach(([label, valor]) => {
+                pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
+                pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2]).text(label, 17, y) // <-- CORRIGIDO
+                pdf.setTextColor(0).setFont("helvetica", "bold").text(valor, 15 + resumoWidth - 3, y, { align: "right" })
+                pdf.setFont("helvetica", "normal")
+                y += rowHeight
+            })
 
             pdf.save(`Relatorio-Modelo-${nomeArquivo}.pdf`)
         } catch (error) {
@@ -292,6 +288,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             setLoading(null)
         }
     }
+
+
+    
 
     const exportarWord = async () => {
         setLoading('word')
