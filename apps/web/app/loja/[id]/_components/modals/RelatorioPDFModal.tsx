@@ -312,26 +312,12 @@ export function RelatorioPDFModal({
                 className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
-                {/* HEADER FIXO */}
-
-                {/* PDF PREVIEW - AGORA OCUPA 100% DA LARGURA */}
-                <div className="flex-1 w-full overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom))]">
-                    {pdfUrl ? (
-                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
-                    ) : (
-                        <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando pré-visualização...
-                        </div>
-                    )}
-                </div>
-
-                {/* FOOTER FIXO EMBAIXO ACIMA DA BARRA */}
+                {/* HEADER COM BOTOES LADO A LADO */}
                 <div
-                    className="fixed left-0 right-0 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex-row gap-2 z-50"
+                    className="fixed top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex-row gap-2 z-50"
                     style={{
                         backgroundColor: 'var(--cor-card)',
-                        borderColor: 'var(--cor-borda)',
-                        bottom: 'env(safe-area-inset-bottom, 0px)'
+                        borderColor: 'var(--cor-borda)'
                     }}
                 >
                     <Button
@@ -351,6 +337,17 @@ export function RelatorioPDFModal({
                         {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
                         Baixar PDF
                     </Button>
+                </div>
+
+                {/* PDF PREVIEW - AGORA COM PADDING TOP */}
+                <div className="flex-1 w-full overflow-hidden pt-[calc(3.5rem+env(safe-area-inset-top))]">
+                    {pdfUrl ? (
+                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
+                    ) : (
+                        <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando pré-visualização...
+                        </div>
+                    )}
                 </div>
 
             </DialogContent>
