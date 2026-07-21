@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useMemo, useRef, useCallback } from "react"
-import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer, Filter, Download, BarChart3, PieChart, Users } from "lucide-react"
+import { CalendarDays, TrendingUp, ShoppingBag, DollarSign, RefreshCw, X, Package, Wifi, WifiOff, Printer, Filter, Download, BarChart3, PieChart, Users, Loader2 } from "lucide-react"
 import { BarChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
@@ -56,7 +56,7 @@ type Props = {
 
 export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MINHA LOJA", nifLoja = "NIF: 000", enderecoLoja = "Endereço: Luanda", theme, cardStyle, cardSize }: Props) {
     const [vendas, setVendas] = useState<Venda[]>([])
-    const [loading, setLoading] = useState(true)
+    const [loadingVendas, setLoadingVendas] = useState(true) // 1. Renomeado pra ser específico
     const [vendaSelecionada, setVendaSelecionada] = useState<Venda | null>(null)
     const [wsConectado, setWsConectado] = useState(false)
     const [abaAtiva, setAbaAtiva] = useState<"resumo" | "produtos" | "pagamentos">("resumo")
@@ -66,12 +66,12 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const ws = useRef<WebSocket | null>(null)
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const isLight = theme === 'light';
 
     const buscarVendas = useCallback(async () => {
-        if (!token || !lojaId) return;
-        setLoading(true)
+        if (!token ||!lojaId) return;
+        setLoadingVendas(true) // 2. Usa o loading específico
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
@@ -79,16 +79,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
-                .filter(v => v.status?.toLowerCase().trim() === "concluida")
-                .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
+               .filter(v => v.status?.toLowerCase().trim() === "concluida")
+               .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                        ...item,
+                       ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -98,12 +98,12 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             console.error("Erro buscar vendas:", e)
             setVendas([])
         } finally {
-            setLoading(false)
+            setLoadingVendas(false) // 2. Usa o loading específico
         }
     }, [token, lojaId])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token || !lojaId) return;
+        if (!token ||!lojaId) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -163,15 +163,15 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-     .header { text-align: center; margin-bottom: 5px; }
-     .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-     .header p { margin: 1px 0; font-size: 10px; }
-     .info p { margin: 1px 0; }
+    .header { text-align: center; margin-bottom: 5px; }
+    .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+    .header p { margin: 1px 0; font-size: 10px; }
+    .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-     .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-     .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+    .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+    .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -228,7 +228,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const calcularStats = (lista: Venda[]): Stats => {
         const total = lista.reduce((acc, v) => acc + v.total, 0)
         const qtdVendas = lista.length
-        const ticketMedio = qtdVendas > 0 ? total / qtdVendas : 0
+        const ticketMedio = qtdVendas > 0? total / qtdVendas : 0
         return { total, qtdVendas, ticketMedio }
     }
 
@@ -296,14 +296,14 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             "Categoria A": vals.cat1,
             "Categoria B": vals.cat2,
             "Categoria C": vals.cat3,
-            "Ticket Médio": vals.qtd > 0 ? vals.total / vals.qtd : 0
+            "Ticket Médio": vals.qtd > 0? vals.total / vals.qtd : 0
         }));
     }, [vendasFiltradas, filtroGrafico]);
 
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-            ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+           ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -314,24 +314,20 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
         a.click()
     }
 
-    if (loading) return (
-        <div className="flex items-center justify-center py-10 md:py-20">
-            <RefreshCw className="animate-spin" size={28} style={{ color: 'var(--cor-primaria)' }} />
-        </div>
-    )
+    // 3. REMOVIDO: return de loading tela cheia
 
     return (
         <div className="space-y-4 md:space-y-6 p-2 md:p-0">
             <style jsx global>{`
-   .scrollbar-hide::-webkit-scrollbar { display: none; }
-   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
             {/* HEADER */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="">
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Estatísticas
-                        {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
+                        {wsConectado? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Acompanha o crescimento da sua loja</p>
                 </div>
@@ -339,8 +335,8 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     <button onClick={exportarCSV} className="btn-primary">
                         <Download size={14} /> Exportar
                     </button>
-                    <button onClick={buscarVendas} className="btn-secondary">
-                        <RefreshCw size={14} /> Atualizar
+                    <button onClick={buscarVendas} disabled={loadingVendas} className="btn-secondary"> // 4. Desabilita no loading
+                        {loadingVendas? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Atualizar
                     </button>
                 </div>
             </div>
@@ -408,7 +404,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition`}
                             style={abaAtiva === tab.id
-                                ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
+                               ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
                                 : { color: 'var(--cor-texto-sec)', borderRadius: radius }
                             }
                         >
@@ -427,7 +423,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             titulo="Faturamento"
                             stats={statsPeriodo}
                             icon={<DollarSign size={16} />}
-                            cor="primaria" // glass + shadow
+                            cor="primaria"
                             descricao="Total do período"
                             tendencia="+8.5% vs mês ant"
                             formatCurrency={formatCurrency}
@@ -437,9 +433,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Vendas Realizadas"
-                            stats={{ ...statsPeriodo, total: statsPeriodo.qtdVendas }}
+                            stats={{...statsPeriodo, total: statsPeriodo.qtdVendas }}
                             icon={<ShoppingBag size={16} />}
-                            cor="primaria" // 👈 troquei de "secundaria"
+                            cor="primaria"
                             descricao="Pedidos concluídos"
                             formatCurrency={(v) => String(v)}
                             cardStyle={cardStyle}
@@ -448,9 +444,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Ticket Médio"
-                            stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
+                            stats={{...statsPeriodo, total: statsPeriodo.ticketMedio }}
                             icon={<TrendingUp size={16} />}
-                            cor="primaria" // glass + shadow
+                            cor="primaria"
                             descricao="Valor por venda"
                             tendencia="+2.3% vs mês ant"
                             formatCurrency={formatCurrency}
@@ -460,9 +456,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Itens Vendidos"
-                            stats={{ ...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
+                            stats={{...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
                             icon={<Package size={16} />}
-                            cor="primaria" // 👈 troquei de "alerta"
+                            cor="primaria"
                             descricao="Unidades no período"
                             formatCurrency={(v) => String(v)}
                             cardStyle={cardStyle}
@@ -487,35 +483,39 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
                                         className="px-3 py-1.5 rounded-lg text-xs font-medium transition"
                                         style={filtroGrafico === tipo
-                                            ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
+                                           ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
                                             : { backgroundColor: 'var(--cor-card-hover)', color: 'var(--cor-texto)', borderRadius: radius }
                                         }
                                     >
-                                        {tipo === "diario" ? "Diário" : tipo === "semanal" ? "Semanal" : "Mensal"}
+                                        {tipo === "diario"? "Diário" : tipo === "semanal"? "Semanal" : "Mensal"}
                                     </button>
                                 ))}
                             </div>
                         </div>
                         <div className="h-80 w-full">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={dadosGrafico}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--cor-borda)" />
-                                    <XAxis dataKey="nome" stroke="var(--cor-texto-sec)" fontSize={12} />
-                                    <YAxis yAxisId="left" stroke="var(--cor-texto-sec)" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                                    <YAxis yAxisId="right" orientation="right" stroke="var(--cor-texto-sec)" fontSize={12} />
+                            {loadingVendas? ( // 5. Spinner só no gráfico
+                                <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={dadosGrafico}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="var(--cor-borda)" />
+                                        <XAxis dataKey="nome" stroke="var(--cor-texto-sec)" fontSize={12} />
+                                        <YAxis yAxisId="left" stroke="var(--cor-texto-sec)" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                                        <YAxis yAxisId="right" orientation="right" stroke="var(--cor-texto-sec)" fontSize={12} />
 
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-borda)', borderRadius: radius, color: 'var(--cor-texto)' }}
-                                        formatter={(value: any) => typeof value === 'number' ? formatCurrency(value) : ""}
-                                    />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-borda)', borderRadius: radius, color: 'var(--cor-texto)' }}
+                                            formatter={(value: any) => typeof value === 'number'? formatCurrency(value) : ""}
+                                        />
 
-                                    <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--cor-texto-sec)' }} />
-                                    <Bar yAxisId="left" dataKey="Categoria A" stackId="a" fill="var(--cor-primaria)" name="Categoria A" />
-                                    <Bar yAxisId="left" dataKey="Categoria B" stackId="a" fill="#818cf8" name="Categoria B" />
-                                    <Bar yAxisId="left" dataKey="Categoria C" stackId="a" fill="#4ade80" name="Categoria C" />
-                                    <Line yAxisId="right" type="monotone" dataKey="Ticket Médio" stroke="#ef4444" strokeWidth={3} name="Ticket Médio" dot={{ r: 4 }} />
-                                </BarChart>
-                            </ResponsiveContainer>
+                                        <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--cor-texto-sec)' }} />
+                                        <Bar yAxisId="left" dataKey="Categoria A" stackId="a" fill="var(--cor-primaria)" name="Categoria A" />
+                                        <Bar yAxisId="left" dataKey="Categoria B" stackId="a" fill="#818cf8" name="Categoria B" />
+                                        <Bar yAxisId="left" dataKey="Categoria C" stackId="a" fill="#4ade80" name="Categoria C" />
+                                        <Line yAxisId="right" type="monotone" dataKey="Ticket Médio" stroke="#ef4444" strokeWidth={3} name="Ticket Médio" dot={{ r: 4 }} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
                         </div>
                     </div>
 
@@ -530,7 +530,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     >
                         <h3 className="font-bold mb-3" style={{ color: 'var(--cor-texto)' }}>Últimas Vendas - {vendasFiltradas.length}</h3>
                         <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-hide">
-                            {vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
+                            {loadingVendas? ( // 6. Spinner só na tabela
+                                <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
+                            ) : vendasFiltradas.length > 0? vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
                                 <div key={v.id} className="flex justify-between items-center border-b pb-2 pt-2 px-2 text-xs transition" style={{ borderColor: 'var(--cor-borda)' }}>
                                     <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
                                         <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
@@ -543,7 +545,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                         </button>
                                     </div>
                                 </div>
-                            ))}
+                            )) : <p className="text-center py-8" style={{ color: 'var(--cor-texto-sec)' }}>Nenhuma venda no período</p>}
                         </div>
                     </div>
                 </div>
@@ -561,7 +563,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 >
                     <h3 className="font-bold mb-4" style={{ color: 'var(--cor-texto)' }}>Top 10 Produtos Mais Vendidos</h3>
                     <div className="space-y-2">
-                        {topProdutos.map((p, i) => (
+                        {loadingVendas? ( // 7. Spinner só nos produtos
+                            <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
+                        ) : topProdutos.length > 0? topProdutos.map((p, i) => (
                             <div key={i} className="flex justify-between items-center p-3" style={{ backgroundColor: 'var(--cor-card-hover)', borderRadius: radius }}>
                                 <div>
                                     <p className="font-medium text-sm" style={{ color: 'var(--cor-texto)' }}>#{i + 1} {p.nome}</p>
@@ -569,8 +573,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                 </div>
                                 <p className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(p.total)}</p>
                             </div>
-                        ))}
-                        {topProdutos.length === 0 && <p className="text-center py-8" style={{ color: 'var(--cor-texto-sec)' }}>Sem vendas no período</p>}
+                        )) : <p className="text-center py-8" style={{ color: 'var(--cor-texto-sec)' }}>Sem vendas no período</p>}
                     </div>
                 </div>
             )}
@@ -587,17 +590,19 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 >
                     <h3 className="font-bold mb-4" style={{ color: 'var(--cor-texto)' }}>Faturamento por Forma de Pagamento</h3>
                     <div className="space-y-3">
-                        {vendasPorPagamento.map((p, i) => (
+                        {loadingVendas? ( // 8. Spinner só nos pagamentos
+                            <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
+                        ) : vendasPorPagamento.length > 0? vendasPorPagamento.map((p, i) => (
                             <div key={i}>
                                 <div className="flex justify-between mb-1">
                                     <p className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>{p.forma}</p>
                                     <p className="text-sm font-bold" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(p.total)}</p>
                                 </div>
                                 <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--cor-card-hover)' }}>
-                                    <div className="h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0 ? (p.total / statsPeriodo.total) * 100 : 0}%`, backgroundColor: 'var(--cor-primaria)', borderRadius: radius }}></div>
+                                    <div className="h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0? (p.total / statsPeriodo.total) * 100 : 0}%`, backgroundColor: 'var(--cor-primaria)', borderRadius: radius }}></div>
                                 </div>
                             </div>
-                        ))}
+                        )) : <p className="text-center py-8" style={{ color: 'var(--cor-texto-sec)' }}>Sem dados no período</p>}
                     </div>
                 </div>
             )}
@@ -670,15 +675,15 @@ function CardStats({
     cardSize: string,
     theme: string
 }) {
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const isLight = theme === 'light';
 
     const cores = {
         primaria: {
-            border: 'var(--cor-primaria)40', // 👈 aumentei opacidade
-            bg: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', // 👈 glass
+            border: 'var(--cor-primaria)40',
+            bg: 'color-mix(in srgb, var(--cor-card) 80%, transparent)',
             text: 'var(--cor-primaria)',
-            shadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' // 👈 shadow
+            shadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)'
         },
         secundaria: {
             border: 'var(--cor-borda)',
@@ -701,11 +706,11 @@ function CardStats({
             className="p-3 md:p-4 transition hover:scale-[1.02]"
             style={{
                 border: `1px solid ${c.border}`,
-                background: c.bg, // 👈 troquei backgroundColor por background
-                backdropFilter: cor === 'primaria' ? 'blur(12px)' : 'none', // 👈 glass só na primaria
+                background: c.bg,
+                backdropFilter: cor === 'primaria'? 'blur(12px)' : 'none',
                 color: c.text,
                 borderRadius: radius,
-                boxShadow: c.shadow // 👈 shadow primary
+                boxShadow: c.shadow
             }}
         >
             <div className="flex items-center justify-between mb-2">
