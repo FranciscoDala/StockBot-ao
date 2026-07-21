@@ -541,17 +541,8 @@ export default function LojaPage() {
                     </div>
                     <div className="pb-8">
 
-                        {activeTab === "dados" &&
-                            <DadosTab
-                                loja={loja}
-                                user={user}
-                                lojaId={lojaId} // <-- ADICIONA ESSA
-                                token={token} // <-- E ESSA
-                                theme={theme}
-                                cardStyle={cardStyle}
-                                cardSize={cardSize}
-                            />
-                        }
+                        {activeTab === "dados" && <DadosTab loja={loja} user={user} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
+                        
 
 
                         {activeTab === "produtos" && <ProdutosTab produtos={produtos} isAdmin={podeEditarApagar} isDono={["DONO"].includes(user?.nivel!)} lojaId={lojaId} onAdd={podeEditarApagar ? handleAddProdutoClick : () => toast.error("Apenas Dono/Gerente")} onEdit={podeEditarApagar ? handleEditProdutoClick : () => toast.error("Apenas Dono/Gerente")} onDelete={podeEditarApagar ? handleDeleteProdutoClick : () => toast.error("Apenas Dono/Gerente")} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
