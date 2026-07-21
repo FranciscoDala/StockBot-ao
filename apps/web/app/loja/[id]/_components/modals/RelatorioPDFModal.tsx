@@ -309,7 +309,7 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col relative"
+                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
                 {/* HEADER FIXO */}
