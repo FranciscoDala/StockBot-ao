@@ -309,7 +309,7 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
+                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col relative"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
                 {/* HEADER FIXO */}
@@ -326,7 +326,44 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-                
+                {/* FOOTER COM BOTOES LADO A LADO */}
+
+
+
+                {/* PDF PREVIEW - AGORA PRECISA DE PADDING BOTTOM */}
+                <div className="flex-1 w-full overflow-hidden pb-12">
+                    {pdfUrl ? (
+                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
+                    ) : (
+                        <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando pré-visualização...
+                        </div>
+                    )}
+                </div>
+
+                {/* FOOTER ABSOLUTE EMBAIXO */}
+                <div
+                    className="absolute bottom-0 left-0 right-0 px-3 py-1.5 border-t flex flex-row gap-2"
+                    style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}
+                >
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        className="flex-1 h-8 text-sm"
+                        style={{ borderRadius: '6px' }}
+                    >
+                        <X className="mr-1.5 h-3.5 w-3.5" /> Fechar
+                    </Button>
+                    <Button
+                        onClick={exportarPDFModelo}
+                        disabled={loading}
+                        className="flex-1 h-8 text-sm"
+                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '6px' }}
+                    >
+                        {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
+                        Baixar PDF
+                    </Button>
+                </div>
 
             </DialogContent>
         </Dialog>
