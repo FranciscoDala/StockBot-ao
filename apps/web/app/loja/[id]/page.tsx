@@ -82,7 +82,7 @@ export default function LojaPage() {
         { id: "produtos", label: "Produtos", icon: Package, show: podeVerVendas || podeVerEstoque },
         { id: "equipa", label: "Equipa", icon: Users, show: true },
         { id: "fornecedores", label: "Fornecedores", icon: Truck, show: podeVerTudo },
-        { id: "documentos", label: "Documentos", icon: FileText, show: podeVerTudo },
+        { id: "documentos", label: "Relatórios", icon: FileText, show: podeVerTudo },
         { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: true },
         { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo },
         { id: "definicoes", label: "Definições", icon: Settings, show: podeVerTudo },

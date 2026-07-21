@@ -69,6 +69,7 @@ export function EquipaTab({
 
     return (
         <div className="space-y-6">
+
             {/* HEADER PADRONIZADO */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
@@ -81,15 +82,10 @@ export function EquipaTab({
                 {isAdmin && (
                     <button
                         onClick={onAdd}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
-                        style={{
-                            background: 'var(--cor-primaria)',
-                            color: '#fff',
-                            padding: cardSize === 'grande' ? '12px 20px' : '8px 16px',
-                            borderRadius: radius
-                        }}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" // padronizado
+                        style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
                     >
-                        <Plus size={14} /> Adicionar Membro
+                        <Plus size={16} /> Adicionar Membro
                     </button>
                 )}
             </div>

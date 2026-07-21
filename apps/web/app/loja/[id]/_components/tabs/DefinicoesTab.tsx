@@ -128,6 +128,7 @@ export function DefinicoesTab({
 
     return (
         <div className="space-y-6">
+
             {/* HEADER PADRONIZADO */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
@@ -137,13 +138,21 @@ export function DefinicoesTab({
                     </h2>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Personalize a aparência da sua loja</p>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex gap-2 w-full sm:w-auto"> {/* w-full no mobile */}
 
-                    <button onClick={handleRestaurar} className="flex items-center justify-center gap-2 font-medium transition hover:opacity-90 text-xs" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
-                        <RefreshCw size={14} /> Restaurar
+                    <button
+                        onClick={handleRestaurar}
+                        className="flex-1 h-10 px-4 flex items-center justify-center gap-2 font-medium transition hover:opacity-90 text-sm" // flex-1 h-10
+                        style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderRadius: radius }}
+                    >
+                        <RefreshCw size={16} /> Restaurar
                     </button>
-                    <button onClick={handleSalvar} className="flex items-center justify-center gap-2 font-bold transition hover:opacity-90 text-xs" style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
-                        <Save size={14} /> Salvar
+                    <button
+                        onClick={handleSalvar}
+                        className="flex-1 h-10 px-4 flex items-center justify-center gap-2 font-bold transition hover:opacity-90 text-sm" // flex-1 h-10
+                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }}
+                    >
+                        <Save size={16} /> Salvar
                     </button>
 
                 </div>

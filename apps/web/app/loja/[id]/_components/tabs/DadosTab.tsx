@@ -186,15 +186,14 @@ export function DadosTab({
                 </div>
                 <button
                     onClick={carregarKPIs}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl font-semibold transition hover:brightness-110 text-sm h-10 px-4"
                     style={{
                         background: 'var(--cor-primaria)',
                         color: '#fff',
-                        padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', // <-- USANDO cardSize
-                        borderRadius: cardStyle === 'arredondado' ? '16px' : '8px' // <-- USANDO cardStyle
+                        borderRadius: cardStyle === 'arredondado' ? '16px' : '8px'
                     }}
                 >
-                    <Edit size={14} />
+                    <Edit size={16} />
                     Atualizar
                 </button>
             </div>

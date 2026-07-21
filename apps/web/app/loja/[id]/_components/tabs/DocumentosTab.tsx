@@ -180,6 +180,18 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
               .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
 
+            {/* HEADER */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="">
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
+                        Relatórios
+                        <FileText size={16} style={{ color: 'var(--cor-primaria)' }} />
+                    </h2>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Relatórios e balanço geral das vendas</p>
+                </div>
+            </div>
+
+
             {/* FILTROS COM SELECT */}
             <div
                 className="border p-3 md:p-4"

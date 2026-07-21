@@ -204,10 +204,10 @@ export function RiscoTab({
                 </div>
                 <button
                     onClick={exportarCSV}
-                    className="flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
-                    style={{ background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}
+                    className="w-full md:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" // 1. w-full md:w-auto  2. h-10 px-4  3. text-sm
+                    style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
                 >
-                    <Download size={14} /> Exportar CSV
+                    <Download size={16} /> Exportar CSV
                 </button>
             </div>
 
@@ -412,8 +412,8 @@ export function RiscoTab({
             )}
 
             <style jsx global>{`
-       .scrollbar-hide::-webkit-scrollbar { display: none; }
-       .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                .scrollbar-hide::-webkit-scrollbar { display: none; }
+                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
             `}</style>
         </div>
     )
