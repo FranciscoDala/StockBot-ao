@@ -255,7 +255,7 @@ export function VendaTab({
                 </Button>
 
                 <h2 className="font-bold text-base truncate max-w-[200px]">{nomeLoja}</h2>
-                <div className="text-base hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Sair</div>
+                <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Sair</div>
             </div>
             <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1">
                 <div className="lg:col-span-2 p-3">
@@ -306,15 +306,15 @@ export function VendaTab({
                                         {p.imagem_url ? (
                                             <img src={p.imagem_url.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-base" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
+                                            <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
                                         )}
                                         {p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>)}
                                         {p.estoque > 0 && (<Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>{p.estoque}</Badge>)}
                                     </div>
                                     <div className="p-2">
-                                        <h4 className="font-semibold text-base truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
+                                        <h4 className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
                                         <div className="flex justify-between items-center mt-1">
-                                            <span className="font-bold text-base" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
+                                            <span className="font-bold text-xs" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
                                         </div>
                                     </div>
                                 </button>
@@ -330,7 +330,7 @@ export function VendaTab({
                             {carrinho.length === 0 && (
                                 <div className="flex flex-col items-center justify-center h-24" style={{ color: 'var(--cor-texto-sec)' }}>
                                     <ShoppingCart size={24} />
-                                    <p className="mt-1 text-base">Adiciona produtos na lista para fazer venda</p>
+                                    <p className="mt-1 text-xs">Adiciona produtos na lista para fazer venda</p>
                                 </div>
                             )}
                             {carrinho.map(item => {
@@ -342,12 +342,12 @@ export function VendaTab({
                                         className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
                                         style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}
                                     >
-                                        <span className="text-base font-bold w-8 text-center">{item.quantidade}</span>
+                                        <span className="text-xs font-bold w-8 text-center">{item.quantidade}</span>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-base font-semibold truncate" style={{ color: 'var(--cor-texto)' }}>{item.nome}</p>
-                                            <p className="text-base font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</p>
+                                            <p className="text-xs font-semibold truncate" style={{ color: 'var(--cor-texto)' }}>{item.nome}</p>
+                                            <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</p>
                                         </div>
-                                        <p className="text-base font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco * item.quantidade)}</p>
+                                        <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco * item.quantidade)}</p>
                                     </div>
                                 )
                             })}
@@ -390,7 +390,7 @@ export function VendaTab({
                             />
                         )}
                         {formaPagamento === "Dinheiro" && troco > 0 && (
-                            <div className="flex justify-between text-base font-semibold" style={{ color: '#fbbf24' }}>
+                            <div className="flex justify-between text-xs font-semibold" style={{ color: '#fbbf24' }}>
                                 <span>Troco</span>
                                 <span>{formatCurrency(troco)}</span>
                             </div>
@@ -399,7 +399,7 @@ export function VendaTab({
 
 
                         <div className="flex justify-between items-center">
-                            <span className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Total</span>
+                            <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total</span>
                             <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(subtotal)}</span>
                         </div>
 
@@ -440,7 +440,7 @@ export function VendaTab({
                         {carrinho.length === 0 && (
                             <div className="flex flex-col items-center justify-center h-full" style={{ color: 'var(--cor-texto-sec)' }}>
                                 <ShoppingCart size={32} />
-                                <p className="mt-2 text-base">Vazio</p>
+                                <p className="mt-2 text-xs">Vazio</p>
                             </div>
                         )}
                         {carrinho.map(item => {
@@ -454,8 +454,8 @@ export function VendaTab({
                                 >
                                     <div className="flex justify-between items-start gap-2">
                                         <div className="min-w-0">
-                                            <p className="font-semibold text-base truncate" style={{ color: 'var(--cor-texto)' }}>{item.nome}</p>
-                                            <p className="text-base font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)} x {item.quantidade}</p>
+                                            <p className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{item.nome}</p>
+                                            <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)} x {item.quantidade}</p>
                                         </div>
                                         <span className="text-sm font-bold">{item.quantidade}</span>
                                     </div>
@@ -468,7 +468,7 @@ export function VendaTab({
                     </div>
 
                     <div className="border-t p-3 space-y-2 mt-auto" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
-                        <div className="flex justify-between text-base"><span style={{ color: 'var(--cor-texto-sec)' }}>Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span></div>
+                        <div className="flex justify-between text-xs"><span style={{ color: 'var(--cor-texto-sec)' }}>Subtotal</span><span className="font-semibold">{formatCurrency(subtotal)}</span></div>
                         <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(subtotal)}</span></div>
 
                         <Select value={formaPagamento} onValueChange={setFormaPagamento}>
@@ -503,7 +503,7 @@ export function VendaTab({
                             />
                         )}
                         {formaPagamento === "Dinheiro" && troco > 0 && (
-                            <div className="flex justify-between text-base font-semibold" style={{ color: '#fbbf24' }}>
+                            <div className="flex justify-between text-xs font-semibold" style={{ color: '#fbbf24' }}>
                                 <span>Troco</span>
                                 <span>{formatCurrency(troco)}</span>
                             </div>

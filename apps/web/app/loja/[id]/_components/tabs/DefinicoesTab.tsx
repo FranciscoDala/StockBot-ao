@@ -135,14 +135,14 @@ export function DefinicoesTab({
                         Definições
                         <Settings size={16} style={{ color: 'var(--cor-primaria)' }} />
                     </h2>
-                    <p className="text-base sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Personalize a aparência da sua loja</p>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Personalize a aparência da sua loja</p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
 
-                    <button onClick={handleRestaurar} className="flex items-center justify-center gap-2 font-medium transition hover:opacity-90 text-base" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
+                    <button onClick={handleRestaurar} className="flex items-center justify-center gap-2 font-medium transition hover:opacity-90 text-xs" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
                         <RefreshCw size={14} /> Restaurar
                     </button>
-                    <button onClick={handleSalvar} className="flex items-center justify-center gap-2 font-bold transition hover:opacity-90 text-base" style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
+                    <button onClick={handleSalvar} className="flex items-center justify-center gap-2 font-bold transition hover:opacity-90 text-xs" style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}>
                         <Save size={14} /> Salvar
                     </button>
 
@@ -293,7 +293,7 @@ export function DefinicoesTab({
                                         <span style={{ color: 'var(--cor-primaria)' }}>{c.icon}</span>
                                         <p className="font-bold" style={{ color: 'var(--cor-texto)' }}>{c.nome}</p>
                                     </div>
-                                    <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>{c.desc}</p>
+                                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{c.desc}</p>
                                 </button>
                             ))}
                         </div>

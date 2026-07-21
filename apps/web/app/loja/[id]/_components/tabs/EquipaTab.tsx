@@ -76,12 +76,12 @@ export function EquipaTab({
                         Equipa
                         <Users size={16} style={{ color: 'var(--cor-primaria)' }} />
                     </h2>
-                    <p className="text-base sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Gerencie os membros da loja</p>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Gerencie os membros da loja</p>
                 </div>
                 {isAdmin && (
                     <button
                         onClick={onAdd}
-                        className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-base"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',
@@ -106,7 +106,7 @@ export function EquipaTab({
                     }}
                 >
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-base" style={{ opacity: 0.9 }}>Total Membros</p>
+                        <p className="text-xs" style={{ opacity: 0.9 }}>Total Membros</p>
                         <Users size={16} />
                     </div>
                     <p className="text-lg sm:text-xl font-bold">{equipa.length}</p>
@@ -125,7 +125,7 @@ export function EquipaTab({
                     }}
                 >
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Ativos</p>
+                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Ativos</p>
                         <UserCheck size={16} style={{ color: 'var(--cor-primaria)' }} />
                     </div>
                     <p className="text-lg sm:text-xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{totalAtivos}</p>
@@ -144,7 +144,7 @@ export function EquipaTab({
                     }}
                 >
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Inativos</p>
+                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Inativos</p>
                         <UserX size={16} style={{ color: '#ef4444' }} />
                     </div>
                     <p className="text-lg sm:text-xl font-bold" style={{ color: '#ef4444' }}>{totalInativos}</p>
@@ -163,7 +163,7 @@ export function EquipaTab({
                     }}
                 >
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Gerentes/Dono</p>
+                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Gerentes/Dono</p>
                         <Shield size={16} style={{ color: 'var(--cor-primaria)' }} />
                     </div>
                     <p className="text-lg sm:text-xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{totalGerentes}</p>
@@ -207,7 +207,7 @@ export function EquipaTab({
                             <p className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
                                 {filtro === 'ativos' ? "Nenhum membro ativo" : filtro === 'inativos' ? "Nenhum membro inativo" : "Nenhum membro cadastrado"}
                             </p>
-                            <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>
+                            <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
                                 {filtro === 'ativos' && isAdmin ? 'Clique em "Adicionar Membro" para começar' : ''}
                             </p>
                         </div>
@@ -228,7 +228,7 @@ export function EquipaTab({
                                 <div className="flex items-center gap-2 mb-1">
                                     <p className="font-medium text-sm sm:text-base truncate" style={{ color: 'var(--cor-texto)' }}>{u.nome}</p>
                                     <span
-                                        className="text-base px-2 py-0.5 font-medium"
+                                        className="text-xs px-2 py-0.5 font-medium"
                                         style={{
                                             backgroundColor: u.is_active ? 'var(--cor-primaria)' : '#52525b',
                                             color: '#fff',
@@ -238,9 +238,9 @@ export function EquipaTab({
                                         {u.is_active ? "Ativo" : "Inativo"}
                                     </span>
                                 </div>
-                                <p className="text-base truncate" style={{ color: 'var(--cor-texto-sec)' }}>{u.email}</p>
+                                <p className="text-xs truncate" style={{ color: 'var(--cor-texto-sec)' }}>{u.email}</p>
                                 <span
-                                    className="text-base px-2 py-0.5 mt-1 inline-block"
+                                    className="text-xs px-2 py-0.5 mt-1 inline-block"
                                     style={{ backgroundColor: 'var(--cor-primaria)20', color: 'var(--cor-primaria)', borderRadius: radius }}
                                 >
                                     {u.role}

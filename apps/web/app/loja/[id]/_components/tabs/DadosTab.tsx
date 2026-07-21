@@ -182,11 +182,11 @@ export function DadosTab({
                         Dados
                         {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
-                    <p className="text-base sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
                 </div>
                 <button
                     onClick={carregarKPIs}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-base"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl font-semibold transition hover:brightness-110 text-xs"
                     style={{
                         background: 'var(--cor-primaria)',
                         color: '#fff',
@@ -252,9 +252,9 @@ export function DadosTab({
             >
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-base font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Resumo do Mês</p>
+                        <p className="text-xs font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Resumo do Mês</p>
                         <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{loading ? "..." : formatCurrency(kpis.totalVendasMes)}</p>
-                        <p className="text-base mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total vendido nos últimos 30 dias</p>
+                        <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total vendido nos últimos 30 dias</p>
                     </div>
                 </div>
             </div>
@@ -302,11 +302,11 @@ function CardStats({
             }}
         >
             <div className="flex items-center justify-between mb-2">
-                <p className="text-base md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
+                <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
                 <div style={{ color: 'var(--cor-primaria)' }}>{icon}</div>
             </div>
             <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(stats.total)}</p>
-            <p className="text-base md:text-base mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
+            <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
         </div>
     )
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Download, X } from "lucide-react"
 import { useState, useEffect } from "react"
 import jsPDF from "jspdf"
-import { saveAs } from "file-saver" // pode deixar, não atrapalha
+import { saveAs } from "file-saver"
 import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from '../tabs/font/fonts'
 
 type Props = {
@@ -32,7 +32,6 @@ export function RelatorioPDFModal({
     const [loading, setLoading] = useState(false)
     const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
-    // SUA FUNCAO INTEIRA CONTINUA AQUI IGUAL
     const gerarPDF = (): jsPDF => {
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pageWidth = pdf.internal.pageSize.getWidth()
@@ -272,20 +271,18 @@ export function RelatorioPDFModal({
         return pdf
     }
 
-    // MUDANCA 1: useEffect com blob e revoke
+    // FIX 1: blob + revoke pra não travar e não vazar memória
     useEffect(() => {
-        let url: string | null = null
+        let objectUrl: string | null = null
         if (open) {
             const pdf = gerarPDF()
-            const blob = pdf.output('blob') // era 'bloburl'
-            url = URL.createObjectURL(blob)
-            setPdfUrl(url)
-        } else {
-            if(pdfUrl) URL.revokeObjectURL(pdfUrl)
-            setPdfUrl(null)
+            const blob = pdf.output('blob') // ERA 'bloburl'
+            objectUrl = URL.createObjectURL(blob)
+            setPdfUrl(objectUrl)
         }
-        return () => { // cleanup
-            if(url) URL.revokeObjectURL(url)
+        return () => {
+            if (objectUrl) URL.revokeObjectURL(objectUrl) // LIMPA
+            setPdfUrl(null)
         }
     }, [open, vendasFiltradas, periodoTexto])
 
@@ -305,12 +302,11 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="w-full h-[100dvh] max-w-none rounded-none p-0 m-0 gap-0 flex flex-col relative" // MUDANCA 2: tirei! e troquei h-screen por h-[100dvh]
+                className="w-full h-[100dvh] max-w-none rounded-none p-0 m-0 gap-0 flex flex-col relative" // FIX 2: tirei! e troquei h-screen por h-[100dvh]
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
-                {/* MUDANCA 3: adicionei 'flex' aqui */}
                 <div
-                    className="absolute top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex flex-row gap-2 z-50"
+                    className="absolute top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex flex-row gap-2 z-50" // FIX 3: adicionei FLEX
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
