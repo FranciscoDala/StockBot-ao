@@ -312,9 +312,9 @@ export function RelatorioPDFModal({
                 className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
-                {/* HEADER COM BOTOES LADO A LADO */}
+                {/* HEADER FIXO EM CIMA */}
                 <div
-                    className="fixed top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex-row gap-2 z-50"
+                    className="fixed top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex flex-row gap-2 z-50"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -339,7 +339,7 @@ export function RelatorioPDFModal({
                     </Button>
                 </div>
 
-                {/* PDF PREVIEW - AGORA COM PADDING TOP */}
+                {/* PDF PREVIEW */}
                 <div className="flex-1 w-full overflow-hidden pt-[calc(3.5rem+env(safe-area-inset-top))]">
                     {pdfUrl ? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
