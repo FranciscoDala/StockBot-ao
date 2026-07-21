@@ -328,24 +328,24 @@ export function RelatorioPDFModal({
 
                 {/* FOOTER COM BOTOES LADO A LADO */}
                 <DialogFooter
-                    className="px-4 py-2 border-t flex-row gap-2"
+                    className="px-3 py-1.5 border-t flex-row gap-2 shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="flex-1 h-9"
-                        style={{ borderRadius: '8px' }}
+                        className="flex-1 h-8 text-sm"
+                        style={{ borderRadius: '6px' }}
                     >
-                        <X className="mr-2 h-4 w-4" /> Fechar
+                        <X className="mr-1.5 h-3.5 w-3.5" /> Fechar
                     </Button>
                     <Button
                         onClick={exportarPDFModelo}
                         disabled={loading}
-                        className="flex-1 h-9"
-                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}
+                        className="flex-1 h-8 text-sm"
+                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '6px' }}
                     >
-                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                        {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
                         Baixar PDF
                     </Button>
                 </DialogFooter>
