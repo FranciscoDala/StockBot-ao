@@ -189,10 +189,8 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             // 1. REGISTRAR FONTE - 3 PESOS
             pdf.addFileToVFS('ZalandoLight.ttf', zalandoLightBase64)
             pdf.addFont('ZalandoLight.ttf', 'Zalando', 'normal')
-
             pdf.addFileToVFS('ZalandoBold.ttf', zalandoBoldBase64)
             pdf.addFont('ZalandoBold.ttf', 'Zalando', 'bold')
-
             pdf.addFileToVFS('ZalandoItalic.ttf', zalandoItalicBase64)
             pdf.addFont('ZalandoItalic.ttf', 'Zalando', 'italic')
 
@@ -206,12 +204,12 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const corTextoCinza = [100, 100, 100]
 
             // 2. CABEÇALHO - logo menor e borda igual da tabela
-            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2]) // borda igual
+            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
             pdf.setLineWidth(0.3)
-            pdf.rect(15, 15, 50, 20, "D") // reduzido de 80x25 pra 50x20
+            pdf.rect(15, 15, 50, 20, "D")
             setZalando('normal')
             pdf.setFontSize(9)
-            pdf.text("Logo", 40, 26, { align: "center" }) // centralizado no novo tamanho
+            pdf.text("Logo", 40, 26, { align: "center" })
 
             let yDireita = 18
             setZalando('normal')
@@ -236,12 +234,12 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.text("Endereço", 110, yDireita, { align: "right" })
             setZalando('bold')
             pdf.setTextColor(0)
-            pdf.text(loja?.endereco || "XXXXX", 115, yDireita)
+            pdf.text(loja?.endereco || "------------------------", 115, yDireita)
 
             yDireita += 6
             setZalando('normal')
             pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
-            pdf.text("Phone", 110, yDireita, { align: "right" })
+            pdf.text("Telefone", 110, yDireita, { align: "right" })
             setZalando('bold')
             pdf.setTextColor(0)
             pdf.text("(xxx) xxx-xxxx", 115, yDireita)
@@ -249,7 +247,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             yDireita += 6
             setZalando('normal')
             pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
-            pdf.text("Email", 110, yDireita, { align: "right" })
+            pdf.text("E-mail", 110, yDireita, { align: "right" })
             setZalando('bold')
             pdf.setTextColor(0)
             pdf.text("email@empresa.com", 115, yDireita)
@@ -268,13 +266,47 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 new Date(b[0].split('/').reverse().join('-')).getTime() - new Date(a[0].split('/').reverse().join('-')).getTime()
             )
 
-            // 4. TABELA - REMOVI "Venda" e ajustei widths pra 100% = 180mm
-            const headers = ["Data", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
-            const colWidths = [25, 25, 25, 30, 30, 45] // soma 180
-            const startX = 15
-            const rowHeight = 8
-            const totalTableWidth = colWidths.reduce((a, b) => a + b) // 180
+            // FUNCAO PRA FORMATAR SO NUMERO
+            const formatNumber = (value: number) => {
+                return new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+            };
 
+            // 4. TABELA - 5 COLUNAS AGORA E LARGURA DINAMICA
+            const headers = ["Data", "Entrada", "Saida", "Lucro", "Total"]
+
+            const startX = 15
+            const pageUsableWidth = pageWidth - 30 // 180mm
+            const rowHeight = 8
+            const padding = 2
+
+            // Calcula largura de cada coluna baseado no maior texto
+            const calcularLargura = (texto: string, bold = false) => {
+                setZalando(bold ? 'bold' : 'normal')
+                pdf.setFontSize(8.5)
+                return pdf.getTextWidth(texto) + padding * 2
+            }
+
+            // Largura inicial pelos headers
+            let colWidths = headers.map(h => calcularLargura(h, true))
+
+            // Ajusta com os dados
+            dadosAgrupados.forEach(([data, info]) => {
+                const totalStr = formatNumber(info.total)
+                const zeroStr = formatNumber(0)
+                colWidths[0] = Math.max(colWidths[0], calcularLargura(data, true))
+                colWidths[1] = Math.max(colWidths[1], calcularLargura(totalStr))
+                colWidths[2] = Math.max(colWidths[2], calcularLargura(zeroStr))
+                colWidths[3] = Math.max(colWidths[3], calcularLargura(totalStr))
+                colWidths[4] = Math.max(colWidths[4], calcularLargura(totalStr))
+            })
+
+            // Ajusta pra preencher 100% proporcionalmente
+            const somaAtual = colWidths.reduce((a, b) => a + b, 0)
+            const fator = pageUsableWidth / somaAtual
+            colWidths = colWidths.map(w => w * fator)
+            const totalTableWidth = colWidths.reduce((a, b) => a + b, 0)
+
+            // HEADER
             pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
             pdf.rect(startX, y - 4, totalTableWidth, rowHeight, "F")
@@ -285,26 +317,28 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             headers.forEach((h, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
                 pdf.rect(x, y - 4, colWidths[i], rowHeight, "D")
-                pdf.text(h, x + 2, y)
+                pdf.text(h, x + padding, y)
             })
             y += rowHeight
 
+            // LINHA DE SIMBOLO AOA
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
-            pdf.rect(startX, y - 4, totalTableWidth - colWidths[5], rowHeight, "D")
-            pdf.rect(startX + totalTableWidth - colWidths[5], y - 4, colWidths[5], rowHeight, "D")
+            pdf.rect(startX, y - 4, totalTableWidth - colWidths[4], rowHeight, "D")
+            pdf.rect(startX + totalTableWidth - colWidths[4], y - 4, colWidths[4], rowHeight, "D")
             setZalando('normal')
             pdf.setFontSize(8)
-            pdf.text("$", startX + totalTableWidth - colWidths[5] + 2, y)
-            pdf.text("-", startX + totalTableWidth - 5, y)
+            pdf.text("AOA", startX + padding, y)
+            pdf.text("-", startX + totalTableWidth - padding - 1, y, { align: "right" })
             y += rowHeight
 
+            // DADOS
             setZalando('normal')
             pdf.setFontSize(8.5)
             dadosAgrupados.forEach(([data, info], index) => {
                 if (y > 270) {
                     pdf.addPage()
                     y = 20
-                    setZalando() // reforça fonte na nova pagina
+                    setZalando()
                 }
 
                 const x = startX
@@ -320,29 +354,22 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                     pdf.rect(cellX, y - 4, colWidths[i], rowHeight, "D")
                 })
 
-                let currentX = x + 2
+                let currentX = x
                 setZalando('bold')
-                pdf.text(data, currentX, y)
+                pdf.text(data, currentX + padding, y)
 
-                currentX = x + colWidths[0] + 2
-                setZalando('bold')
-                pdf.text(formatCurrency(total), currentX, y)
-
-                currentX = x + colWidths[0] + colWidths[1] + 2
+                currentX += colWidths[0]
                 setZalando('normal')
-                pdf.text(formatCurrency(0), currentX, y)
+                pdf.text(formatNumber(total), currentX + colWidths[1] - padding, y, { align: "right" })
 
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + 2
-                setZalando('bold')
-                pdf.text(formatCurrency(total), currentX, y)
+                currentX += colWidths[1]
+                pdf.text(formatNumber(0), currentX + colWidths[2] - padding, y, { align: "right" })
 
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2
-                setZalando('bold')
-                pdf.text(formatCurrency(total), currentX, y)
+                currentX += colWidths[2]
+                pdf.text(formatNumber(total), currentX + colWidths[3] - padding, y, { align: "right" })
 
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2
-                setZalando('bold')
-                pdf.text(formatCurrency(total), currentX, y)
+                currentX += colWidths[3]
+                pdf.text(formatNumber(total), currentX + colWidths[4] - padding, y, { align: "right" })
 
                 y += rowHeight
             })
@@ -352,9 +379,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             setZalando('normal')
             pdf.setFontSize(8)
             pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
-            pdf.text("Reminder: Please include the statement number on your check.", 15, y)
+            pdf.text("...", 15, y)
             y += 5
-            pdf.text("Terms: Balance due in 30 days.", 15, y)
+            pdf.text("ATT: Balanco total das vendas.", 15, y)
             y += 10
 
             // 6. TABELA "ESTE MÊS"
@@ -368,19 +395,19 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.setTextColor(0)
             pdf.setFontSize(9)
             pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
-            pdf.text("Este mês", 17, y)
+            pdf.text("Total Geral", 17, y)
             y += rowHeight
 
             const resumoMes = [
-                ["Entrada", formatCurrency(totalGeral)],
-                ["Saida", formatCurrency(0)],
-                ["Lucro", formatCurrency(totalGeral)],
-                ["Diferença", formatCurrency(totalGeral)],
+                ["Entrada", formatNumber(totalGeral)],
+                ["Saida", formatNumber(0)],
+                ["Lucro", formatNumber(totalGeral)],
+                ["Diferenca", formatNumber(totalGeral)],
             ]
 
             resumoMes.forEach(([label, valor]) => {
                 pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
-                setZalando('italic')
+                setZalando('normal')
                 pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
                 pdf.text(label, 17, y)
                 setZalando('bold')
@@ -396,7 +423,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 setZalando('normal')
                 pdf.setFontSize(8)
                 pdf.setTextColor(150)
-                pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
+                pdf.text(`Pagina ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
             }
 
             pdf.save(`Relatorio-Modelo-${nomeArquivo}.pdf`)
