@@ -61,7 +61,7 @@ export function DadosTab({ loja, user, lojaId, token, theme, cardStyle, cardSize
                     estoqueZerado = resEstoqueJson.estoque_zerado || 0;
                     totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
                 }
-            } catch {}
+            } catch { }
 
             setKpis({
                 vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
@@ -78,12 +78,36 @@ export function DadosTab({ loja, user, lojaId, token, theme, cardStyle, cardSize
     const conectarWebSocket = useCallback(() => {
         if (!token || !lojaId || !WS_URL) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
+
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
-        ws.current.onopen = () => { setWsConectado(true); if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current) }
-        ws.current.onmessage = (event) => { try { const data = JSON.parse(event.data); if (data.tipo === 'stats.updated') { carregarKPIs() } } catch (e) { console.error("Erro ao ler WS", e) } }
-        ws.current.onclose = () => { setWsConectado(false); reconnectTimeout.current = setTimeout(conectarWebSocket, 3000) }
-        ws.current.onerror = () => { ws.current?.close() }
-    }, [token, lojaId, carregarKPIs])
+
+        ws.current.onopen = () => {
+            setWsConectado(true);
+            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
+        };
+
+        ws.current.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.tipo === 'stats.updated') {
+                    carregarKPIs();
+                }
+            } catch (e) {
+                console.error("Erro ao ler WS", e);
+            }
+        };
+
+        ws.current.onclose = () => {
+            setWsConectado(false);
+            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000);
+        };
+
+        ws.current.onerror = () => {
+            ws.current?.close();
+        };
+
+    }, [token, lojaId, carregarKPIs]); // <-- aqui estavam faltando as deps e o ;
+
 
     useEffect(() => { carregarKPIs(); conectarWebSocket(); return () => { if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current); ws.current?.close() } }, [carregarKPIs, conectarWebSocket])
 
@@ -106,9 +130,9 @@ export function DadosTab({ loja, user, lojaId, token, theme, cardStyle, cardSize
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Entradas de hoje" formatCurrency={formatCurrency} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v) => String(v)} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
+                <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(v)} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
                 <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={formatCurrency} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Estoque Zerado" stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }} icon={<Ban size={16} />} descricao="Não consegue vender" formatCurrency={(v) => String(v)} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
+                <CardStats titulo="Estoque Zerado" stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }} icon={<Ban size={16} />} descricao="Não consegue vender" formatCurrency={(v: number) => String(v)} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
             </div>
 
             <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', backdropFilter: 'blur(16px)', border: 'none', color: 'var(--cor-primaria)', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' }}>
