@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Loader2, Download, X } from "lucide-react"
-import { useState, useEffect } from "react" // 1. adiciona useEffect
+import { useState, useEffect } from "react"
 import jsPDF from "jspdf"
 import { saveAs } from "file-saver"
 import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from '../tabs/font/fonts'
@@ -30,14 +30,12 @@ export function RelatorioPDFModal({
     nomeArquivo
 }: Props) {
     const [loading, setLoading] = useState(false)
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null) // 2. state pra url do preview
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null)
 
-    // 3. FUNCAO QUE GERA O PDF E RETORNA O jsPDF. NAO MEXI EM NADA
     const gerarPDF = (): jsPDF => {
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pageWidth = pdf.internal.pageSize.getWidth()
 
-        // 1. REGISTRAR FONTE - 3 PESOS
         pdf.addFileToVFS('ZalandoLight.ttf', zalandoLightBase64)
         pdf.addFont('ZalandoLight.ttf', 'Zalando', 'normal')
         pdf.addFileToVFS('ZalandoBold.ttf', zalandoBoldBase64)
@@ -54,7 +52,6 @@ export function RelatorioPDFModal({
         const corBorda = [200, 210, 220]
         const corTextoCinza = [100, 100, 100]
 
-        // 2. CABEÇALHO
         pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
         pdf.setLineWidth(0.3)
         pdf.rect(15, 15, 50, 20, "D")
@@ -105,7 +102,6 @@ export function RelatorioPDFModal({
 
         let y = 55
 
-        // 3. AGRUPAR VENDAS POR DIA - DATA FORMATO 20/Julho/2026
         const mesesMap: Record<number, string> = {
             0: 'Janeiro', 1: 'Fevereiro', 2: 'Março', 3: 'Abril', 4: 'Maio', 5: 'Junho',
             6: 'Julho', 7: 'Agosto', 8: 'Setembro', 9: 'Outubro', 10: 'Novembro', 11: 'Dezembro'
@@ -131,7 +127,6 @@ export function RelatorioPDFModal({
             return new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
         };
 
-        // 4. TABELA - 5 COLUNAS E LARGURA DINAMICA COM GARANTIA PRA DATA
         const headers = ["Data", "Entrada", "Saida", "Lucro", "Total"]
         const startX = 15
         const pageUsableWidth = pageWidth - 30
@@ -167,7 +162,6 @@ export function RelatorioPDFModal({
         colWidths = colWidths.map(w => w * fator)
         const totalTableWidth = colWidths.reduce((a, b) => a + b, 0)
 
-        // HEADER
         pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
         pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
         pdf.rect(startX, y - 4, totalTableWidth, rowHeight, "F")
@@ -183,7 +177,6 @@ export function RelatorioPDFModal({
         })
         y += rowHeight
 
-        // LINHA DE SIMBOLO AOA
         pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
         pdf.rect(startX, y - 4, totalTableWidth - colWidths[4], rowHeight, "D")
         pdf.rect(startX + totalTableWidth - colWidths[4], y - 4, colWidths[4], rowHeight, "D")
@@ -194,7 +187,6 @@ export function RelatorioPDFModal({
         pdf.text("-", startX + totalTableWidth - padding - 1, textYHeader, { align: "right" })
         y += rowHeight
 
-        // DADOS
         pdf.setFontSize(8.5)
         dadosAgrupados.forEach(([data, info], index) => {
             if (y > 270) {
@@ -236,7 +228,6 @@ export function RelatorioPDFModal({
         })
         y += 8
 
-        // 6. TABELA "BALANÇO GERAL"
         const totalGeral = dadosAgrupados.reduce((sum, [, info]) => sum + info.total, 0)
         const resumoWidth = 90
 
@@ -268,7 +259,6 @@ export function RelatorioPDFModal({
             y += rowHeight
         })
 
-        // RODAPÉ
         const totalPages = pdf.internal.getNumberOfPages()
         for (let i = 1; i <= totalPages; i++) {
             pdf.setPage(i)
@@ -278,10 +268,9 @@ export function RelatorioPDFModal({
             pdf.text(`Pagina ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
         }
 
-        return pdf // 4. RETORNA O PDF
+        return pdf
     }
 
-    // GERA O PREVIEW QUANDO A MODAL ABRE
     useEffect(() => {
         let url: string | null = null;
 
@@ -290,14 +279,12 @@ export function RelatorioPDFModal({
             url = pdf.output('bloburl')
             setPdfUrl(url)
         }
-        // cleanup: libera a memoria quando fechar
         return () => {
             if (url) URL.revokeObjectURL(url)
             setPdfUrl(null)
         }
     }, [open, vendasFiltradas, periodoTexto])
 
-    // 6. BAIXAR USA A MESMA FUNCAO
     const exportarPDFModelo = async () => {
         setLoading(true)
         try {
@@ -314,10 +301,10 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!max-w-none!w-screen!h-screen!rounded-none!p-0!m-0 gap-0 flex-col"
+                className="!max-w-none!w-screen!h-screen!p-0!m-0!rounded-none flex-col gap-0"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
-                {/* HEADER FIXO - DIMINUI O HEIGHT */}
+                {/* HEADER FIXO - MAIS FINO */}
                 <DialogHeader
                     className="px-4 py-2 border-b flex-row justify-between items-center shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
@@ -335,7 +322,7 @@ export function RelatorioPDFModal({
                     </Button>
                 </DialogHeader>
 
-                {/* PDF PREVIEW - 100% WIDTH E HEIGHT */}
+                {/* PDF PREVIEW - AGORA ESTENDE 100% */}
                 <div className="flex-1 w-full h-full overflow-hidden">
                     {pdfUrl? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
@@ -346,7 +333,7 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-                {/* FOOTER COM BOTOES LADO A LADO - DIMINUI O HEIGHT */}
+                {/* FOOTER MAIS FINO E BOTOES LADO A LADO */}
                 <DialogFooter
                     className="px-4 py-2 border-t flex-row gap-2 shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
