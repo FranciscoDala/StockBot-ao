@@ -314,17 +314,17 @@ export function RelatorioPDFModal({
             >
                 {/* HEADER FIXO */}
                 <DialogHeader
-                    className="p-3 md:p-4 border-b flex-row justify-between items-center shrink-0"
+                    className="px-4 py-2 border-b flex-row justify-between items-center shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
-                    <DialogTitle className="text-base md:text-lg" style={{ color: 'var(--cor-texto)' }}>
+                    <DialogTitle className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
                         Pré-visualização: {periodoTexto}
                     </DialogTitle>
                     <Button
                         variant="ghost"
                         size="icon"
                         onClick={onClose}
-                        className="h-8 w-8"
+                        className="h-7 w-7"
                     >
                         <X className="h-4 w-4" />
                     </Button>
@@ -343,13 +343,13 @@ export function RelatorioPDFModal({
 
                 {/* FOOTER COM BOTOES LADO A LADO */}
                 <DialogFooter
-                    className="p-3 md:p-4 border-t flex-row gap-2 shrink-0"
+                    className="px-4 py-2 border-t flex-row gap-2 shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="flex-1"
+                        className="flex-1 h-9"
                         style={{ borderRadius: '8px' }}
                     >
                         <X className="mr-2 h-4 w-4" /> Fechar
@@ -357,7 +357,7 @@ export function RelatorioPDFModal({
                     <Button
                         onClick={exportarPDFModelo}
                         disabled={loading}
-                        className="flex-1"
+                        className="flex-1 h-9"
                         style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}
                     >
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
