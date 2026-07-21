@@ -327,8 +327,8 @@ export function RelatorioPDFModal({
                 </div>
 
                 {/* FOOTER COM BOTOES LADO A LADO */}
-                <DialogFooter
-                    className="px-3 py-1.5 border-t flex-row gap-2 shrink-0"
+                <div
+                    className=""
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
@@ -348,7 +348,7 @@ export function RelatorioPDFModal({
                         {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
                         Baixar PDF
                     </Button>
-                </DialogFooter>
+                </div>
 
             </DialogContent>
         </Dialog>
