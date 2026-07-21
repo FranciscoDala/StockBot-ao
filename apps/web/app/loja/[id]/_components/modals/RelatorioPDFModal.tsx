@@ -309,14 +309,13 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
+                className="!max-w-none !w-screen !h-dvh !rounded-none !p-0 !m-0 gap-0 flex-col relative"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
                 {/* HEADER FIXO */}
 
-
                 {/* PDF PREVIEW - AGORA OCUPA 100% DA LARGURA */}
-                <div className="flex-1 w-full overflow-hidden">
+                <div className="flex-1 w-full overflow-hidden pb-[calc(3rem+env(safe-area-inset-bottom))]">
                     {pdfUrl ? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
                     ) : (
@@ -326,13 +325,10 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-                {/* FOOTER COM BOTOES LADO A LADO */}
-
-
 
                 {/* FOOTER ABSOLUTE EMBAIXO */}
                 <div
-                    className="absolute bottom-0 left-0 right-0 px-3 py-1.5 border-t flex flex-row gap-2"
+                    className="absolute bottom-0 left-0 right-0 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex-row gap-2"
                     style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
@@ -357,4 +353,5 @@ export function RelatorioPDFModal({
             </DialogContent>
         </Dialog>
     )
+
 }
