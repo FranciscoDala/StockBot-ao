@@ -313,7 +313,7 @@ export function RelatorioPDFModal({
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
                 {/* HEADER FIXO */}
-                
+
 
                 {/* PDF PREVIEW - AGORA OCUPA 100% DA LARGURA */}
                 <div className="flex-1 w-full overflow-hidden">
@@ -328,7 +328,7 @@ export function RelatorioPDFModal({
 
                 {/* FOOTER COM BOTOES LADO A LADO */}
                 <DialogFooter
-                    className="px-4 py-2 border-t flex-row gap-2 shrink-0"
+                    className="px-4 py-2 border-t flex-row gap-2"
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
@@ -349,6 +349,7 @@ export function RelatorioPDFModal({
                         Baixar PDF
                     </Button>
                 </DialogFooter>
+
             </DialogContent>
         </Dialog>
     )
