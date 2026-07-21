@@ -330,17 +330,6 @@ export function RelatorioPDFModal({
 
 
 
-                {/* PDF PREVIEW - AGORA PRECISA DE PADDING BOTTOM */}
-                <div className="flex-1 w-full overflow-hidden pb-12">
-                    {pdfUrl ? (
-                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
-                    ) : (
-                        <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando pré-visualização...
-                        </div>
-                    )}
-                </div>
-
                 {/* FOOTER ABSOLUTE EMBAIXO */}
                 <div
                     className="absolute bottom-0 left-0 right-0 px-3 py-1.5 border-t flex flex-row gap-2"
