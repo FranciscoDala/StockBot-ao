@@ -309,12 +309,12 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
+                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex flex-col relative"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
-                {/* HEADER FIXO EM CIMA */}
+                {/* HEADER ABSOLUTE - FICA PRESO NO TOPO */}
                 <div
-                    className="fixed top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex flex-row gap-2 z-50"
+                    className="absolute top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex-row gap-2 z-50"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -339,8 +339,8 @@ export function RelatorioPDFModal({
                     </Button>
                 </div>
 
-                {/* PDF PREVIEW */}
-                <div className="flex-1 w-full overflow-hidden pt-[calc(3.5rem+env(safe-area-inset-top))]">
+                {/* PDF PREVIEW - COM PADDING TOP PRA NÃO FICAR ATRÁS */}
+                <div className="flex-1 w-full overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top))]">
                     {pdfUrl ? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
                     ) : (
