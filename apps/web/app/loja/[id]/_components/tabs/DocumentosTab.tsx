@@ -5,10 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { FileText, FileDown, Loader2, Calendar, TrendingUp, Wallet, ChevronLeft, ChevronRight, RefreshCw, Package, User } from "lucide-react"
+
+
+
 import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
+import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, AlignmentType, TextRun, BorderStyle, VerticalAlign } from "docx"
 import { saveAs } from "file-saver"
-import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, AlignmentType, TextRun } from "docx"
+
+
+
 
 import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from './font/fonts'
 
@@ -439,60 +445,173 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     }
 
 
-
-
-
     const exportarWord = async () => {
         setLoading('word')
         try {
+            const mesesMap: Record<number, string> = {
+                0: 'Janeiro', 1: 'Fevereiro', 2: 'Março', 3: 'Abril', 4: 'Maio', 5: 'Junho',
+                6: 'Julho', 7: 'Agosto', 8: 'Setembro', 9: 'Outubro', 10: 'Novembro', 11: 'Dezembro'
+            }
+
+            // AGRUPAR VENDAS POR DIA IGUAL AO PDF
+            const vendasPorDia = vendasFiltradas.reduce((acc, venda) => {
+                const dataObj = new Date(venda.data)
+                const dia = String(dataObj.getDate()).padStart(2, '0')
+                const mes = mesesMap[dataObj.getMonth()]
+                const ano = dataObj.getFullYear()
+                const data = `${dia}/${mes}/${ano}`
+                if (!acc[data]) acc[data] = { total: 0, timestamp: dataObj.getTime() }
+                acc[data].total += venda.total
+                return acc
+            }, {} as Record<string, { total: number, timestamp: number }>)
+
+            const dadosAgrupados = Object.entries(vendasPorDia).sort((a, b) => b[1].timestamp - a[1].timestamp)
+
+            const formatNumber = (value: number) => {
+                return new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+            };
+
+            const totalGeral = dadosAgrupados.reduce((sum, [, info]) => sum + info.total, 0)
+
             const children: any[] = [
-                new Paragraph({
-                    children: [new TextRun({ text: nomeLoja, bold: true, size: 36, color: "6366F1" })],
-                    heading: HeadingLevel.HEADING_1,
-                    alignment: AlignmentType.CENTER
+                // CABEÇALHO IGUAL AO PDF - USANDO TABELA PRA FAZER A BORDA
+                new Table({
+                    width: { size: 20, type: WidthType.PERCENTAGE },
+                    rows: [
+                        new TableRow({
+                            children: [
+                                new TableCell({
+                                    borders: {
+                                        top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                        bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                        left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                        right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    },
+                                    children: [new Paragraph({ children: [new TextRun({ text: "Logo", size: 20 })], alignment: AlignmentType.CENTER })]
+                                })
+                            ]
+                        })
+                    ]
                 }),
-                new Paragraph({ text: `Período: ${periodoTexto}`, alignment: AlignmentType.CENTER }),
-                new Paragraph({ text: `Emitido em: ${dataHoje}`, alignment: AlignmentType.CENTER }),
                 new Paragraph({ text: "" }),
-                new Paragraph({ text: "" }),
-
-                new Paragraph({ children: [new TextRun({ text: "Resumo do Período", bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 }),
-                new Paragraph({ children: [new TextRun({ text: "Total Vendido: ", bold: true }), new TextRun({ text: formatCurrency(totalVendas) })] }),
-                new Paragraph({ children: [new TextRun({ text: "Nº Vendas: ", bold: true }), new TextRun({ text: `${vendasFiltradas.length}` })] }),
-                new Paragraph({ children: [new TextRun({ text: "Ticket Médio: ", bold: true }), new TextRun({ text: formatCurrency(ticketMedio) })] }),
-                new Paragraph({ children: [new TextRun({ text: "Itens Vendidos: ", bold: true }), new TextRun({ text: `${totalItens}` })] }),
-                new Paragraph({ text: "" }),
+                new Paragraph({ children: [new TextRun({ text: "Empresa ", color: "646464", size: 22 }), new TextRun({ text: nomeLoja, bold: true, size: 22 })] }),
+                new Paragraph({ children: [new TextRun({ text: "NIF ", color: "646464", size: 22 }), new TextRun({ text: loja?.nif || "XXXXX", bold: true, size: 22 })] }),
+                new Paragraph({ children: [new TextRun({ text: "Endereço ", color: "646464", size: 22 }), new TextRun({ text: loja?.endereco || "------------------------", bold: true, size: 22 })] }),
+                new Paragraph({ children: [new TextRun({ text: "Telefone ", color: "646464", size: 22 }), new TextRun({ text: "(+244) xxx-xxx-xxx", bold: true, size: 22 })] }),
+                new Paragraph({ children: [new TextRun({ text: "E-mail ", color: "646464", size: 22 }), new TextRun({ text: "email@empresa.com", bold: true, size: 22 })] }),
                 new Paragraph({ text: "" }),
 
-                new Paragraph({ children: [new TextRun({ text: "Detalhe das Vendas", bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 }),
+                // TABELA PRINCIPAL
+                new Paragraph({ children: [new TextRun({ text: "Detalhe por Dia", bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 }),
             ]
 
+            // TABELA COM LARGURAS DINAMICAS
             const table = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
                 rows: [
+                    // HEADER
                     new TableRow({
                         tableHeader: true,
-                        children: ['Data', 'Funcionário', 'Total KZ', 'Pagamento', 'Itens'].map(text =>
+                        children: ["Data", "Entrada", "Saida", "Lucro", "Total"].map(text =>
                             new TableCell({
+                                width: { size: 20, type: WidthType.PERCENTAGE },
+                                shading: { fill: "DCE4EB" },
+                                verticalAlign: VerticalAlign.CENTER,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
                                 children: [new Paragraph({
-                                    children: [new TextRun({ text, bold: true, color: "FFFFFF" })],
-                                    alignment: AlignmentType.CENTER // <-- CORRIGIDO: vai aqui
+                                    children: [new TextRun({ text, bold: true, size: 22 })],
                                 })],
-                                shading: { fill: "6366F1" },
                             })
                         )
                     }),
-                    ...vendasFiltradas.map((v) => new TableRow({
+                    // LINHA AOA
+                    new TableRow({
                         children: [
-                            new TableCell({ children: [new Paragraph(new Date(v.data).toLocaleDateString('pt-AO'))] }),
-                            new TableCell({ children: [new Paragraph(v.nome_vendedor)] }),
-                            new TableCell({ children: [new Paragraph(formatCurrency(v.total))] }),
-                            new TableCell({ children: [new Paragraph(v.formaPagamento)] }),
                             new TableCell({
-                                children: [new Paragraph({
-                                    text: String(v.itens),
-                                    alignment: AlignmentType.CENTER // <-- CORRIGIDO: vai aqui
-                                })]
+                                columnSpan: 4,
+                                verticalAlign: VerticalAlign.CENTER,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: "AOA", size: 20 })] })]
+                            }),
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: "-", size: 20 })], alignment: AlignmentType.RIGHT })]
+                            }),
+                        ]
+                    }),
+                    // DADOS
+                    ...dadosAgrupados.map(([data, info], index) => new TableRow({
+                        children: [
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                shading: index % 2 === 0 ? { fill: "F8FAFC" } : undefined,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: data, bold: true, size: 22 })] })]
+                            }),
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                shading: index % 2 === 0 ? { fill: "F8FAFC" } : undefined,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: formatNumber(info.total), bold: true, size: 22 })], alignment: AlignmentType.RIGHT })]
+                            }),
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                shading: index % 2 === 0 ? { fill: "F8FAFC" } : undefined,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: formatNumber(0), bold: true, size: 22 })], alignment: AlignmentType.RIGHT })]
+                            }),
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                shading: index % 2 === 0 ? { fill: "F8FAFC" } : undefined,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: formatNumber(info.total), bold: true, size: 22 })], alignment: AlignmentType.RIGHT })]
+                            }),
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                shading: index % 2 === 0 ? { fill: "F8FAFC" } : undefined,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: formatNumber(info.total), bold: true, size: 22 })], alignment: AlignmentType.RIGHT })]
                             }),
                         ]
                     }))
@@ -501,9 +620,72 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
             children.push(table)
             children.push(new Paragraph({ text: "" }))
-            children.push(new Paragraph({ text: `Relatório gerado pelo ${nomeLoja}`, alignment: AlignmentType.CENTER }))
+            children.push(new Paragraph({ children: [new TextRun({ text: "Estatisticas: Confere os valores de entrada, saida, lucro e total.", color: "646464", size: 18 })] }))
+            children.push(new Paragraph({ children: [new TextRun({ text: "ATT: Balanco total das vendas.", color: "646464", size: 18 })] }))
+            children.push(new Paragraph({ text: "" }))
 
-            const doc = new Document({ sections: [{ children }] })
+            // TABELA BALANÇO GERAL
+            children.push(new Paragraph({ children: [new TextRun({ text: "Balanço Geral", bold: true, size: 28 })], heading: HeadingLevel.HEADING_2 }))
+
+            const tabelaResumo = new Table({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                rows: [
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                columnSpan: 2,
+                                shading: { fill: "DCE4EB" },
+                                verticalAlign: VerticalAlign.CENTER,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: "Balanço Geral", bold: true, size: 22 })] })]
+                            }),
+                        ]
+                    }),
+                    ...[
+                        ["Entrada", formatNumber(totalGeral)],
+                        ["Saida", formatNumber(0)],
+                        ["Lucro", formatNumber(totalGeral)],
+                        ["Diferenca", formatNumber(totalGeral)],
+                    ].map(([label, valor]) => new TableRow({
+                        children: [
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: label, italics: true, color: "646464", size: 22 })] })]
+                            }),
+                            new TableCell({
+                                verticalAlign: VerticalAlign.CENTER,
+                                borders: {
+                                    top: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    bottom: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    left: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                    right: { style: BorderStyle.SINGLE, size: 6, color: "C8D2DC" },
+                                },
+                                children: [new Paragraph({ children: [new TextRun({ text: valor, bold: true, size: 22 })], alignment: AlignmentType.RIGHT })]
+                            }),
+                        ]
+                    }))
+                ]
+            })
+
+            children.push(tabelaResumo)
+            children.push(new Paragraph({ text: "" }))
+            children.push(new Paragraph({ children: [new TextRun({ text: `Relatório gerado pelo ${nomeLoja}`, size: 18 })], alignment: AlignmentType.CENTER }))
+
+            const doc = new Document({
+                sections: [{ children }]
+            })
+
             saveAs(await Packer.toBlob(doc), `${nomeArquivo}.docx`)
         } catch (error) {
             console.error(error);
