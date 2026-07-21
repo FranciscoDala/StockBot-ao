@@ -297,7 +297,7 @@ export function RelatorioPDFModal({
         }
     }, [open, vendasFiltradas, periodoTexto])
 
-    
+
     // 6. BAIXAR USA A MESMA FUNCAO
     const exportarPDFModelo = async () => {
         setLoading(true)
@@ -314,12 +314,30 @@ export function RelatorioPDFModal({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-[100vw] w-[100vw] h-[100vh] flex flex-col p-0 rounded-none" style={{ backgroundColor: 'var(--cor-card)' }}> {/* 7. TELA TODA */}
-                <DialogHeader className="p-4 border-b flex-row justify-between items-center" style={{ borderColor: 'var(--cor-borda)' }}>
-                    <DialogTitle style={{ color: 'var(--cor-texto)' }}>Pré-visualização: {periodoTexto}</DialogTitle>
+            <DialogContent
+                className="max-w-[100vw] w-[100vw] h-[100vh] flex flex-col p-0 rounded-none gap-0"
+                style={{ backgroundColor: 'var(--cor-card)' }}
+            >
+                {/* HEADER FIXO */}
+                <DialogHeader
+                    className="p-3 md:p-4 border-b flex-row justify-between items-center shrink-0"
+                    style={{ borderColor: 'var(--cor-borda)' }}
+                >
+                    <DialogTitle className="text-base md:text-lg" style={{ color: 'var(--cor-texto)' }}>
+                        Pré-visualização: {periodoTexto}
+                    </DialogTitle>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        className="h-8 w-8"
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
                 </DialogHeader>
 
-                <div className="flex-1"> {/* 8. AQUI MOSTRA O PDF */}
+                {/* PDF PREVIEW */}
+                <div className="flex-1 overflow-hidden">
                     {pdfUrl ? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none' }} />
                     ) : (
@@ -329,11 +347,25 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-                <DialogFooter className="p-4 border-t gap-2" style={{ borderColor: 'var(--cor-borda)' }}>
-                    <Button variant="outline" onClick={onClose} style={{ borderRadius: '8px' }}>
+                {/* FOOTER COM BOTOES LADO A LADO NO MOBILE */}
+                <DialogFooter
+                    className="p-3 md:p-4 border-t flex-row gap-2 shrink-0"
+                    style={{ borderColor: 'var(--cor-borda)' }}
+                >
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        className="flex-1"
+                        style={{ borderRadius: '8px' }}
+                    >
                         <X className="mr-2 h-4 w-4" /> Fechar
                     </Button>
-                    <Button onClick={exportarPDFModelo} disabled={loading} style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}>
+                    <Button
+                        onClick={exportarPDFModelo}
+                        disabled={loading}
+                        className="flex-1"
+                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}
+                    >
                         {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                         Baixar PDF
                     </Button>

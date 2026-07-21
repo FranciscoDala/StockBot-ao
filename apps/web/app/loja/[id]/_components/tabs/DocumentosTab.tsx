@@ -297,7 +297,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                             {loadingVendas? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
                         </Button>
                         <Button onClick={() => setIsModalOpen(true)} size="sm" variant="outline" style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}> {/* 4. BOTAO ABRE A MODAL */}
-                            <FileText className="mr-2 h-4 w-4" /> Visualizar Relátorio
+                            <FileText className="mr-2 h-4 w-4" /> Ver Relátorio
                         </Button>
                     </div>
                 </div>
