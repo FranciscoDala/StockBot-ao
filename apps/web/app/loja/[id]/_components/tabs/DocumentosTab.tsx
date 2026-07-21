@@ -226,7 +226,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.text("NIF", 110, yDireita, { align: "right" })
             setZalando('bold')
             pdf.setTextColor(0)
-            pdf.text(loja?.nif || "XXXXX", 115, yDireita)
+            pdf.text(loja?.nif || "***************", 115, yDireita)
 
             yDireita += 6
             setZalando('normal')
@@ -234,7 +234,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.text("Endereço", 110, yDireita, { align: "right" })
             setZalando('bold')
             pdf.setTextColor(0)
-            pdf.text(loja?.endereco || "------------------------", 115, yDireita)
+            pdf.text(loja?.endereco || "***************", 115, yDireita)
 
             yDireita += 6
             setZalando('normal')
@@ -265,7 +265,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 const dia = String(dataObj.getDate()).padStart(2, '0')
                 const mes = mesesMap[dataObj.getMonth()]
                 const ano = dataObj.getFullYear()
-                const data = `${dia}/${mes}/${ano}` // 20/Julho/2026
+                const data = `${dia}/${mes}/${ano}`
                 if (!acc[data]) acc[data] = { total: 0, timestamp: dataObj.getTime() }
                 acc[data].total += venda.total
                 return acc
@@ -278,13 +278,13 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 return new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
             };
 
-            // 4. TABELA - 5 COLUNAS E LARGURA DINAMICA
+            // 4. TABELA - 5 COLUNAS E LARGURA DINAMICA COM GARANTIA PRA DATA
             const headers = ["Data", "Entrada", "Saida", "Lucro", "Total"]
 
             const startX = 15
             const pageUsableWidth = pageWidth - 30
             const rowHeight = 8
-            const padding = 2
+            const padding = 3
 
             const calcularLargura = (texto: string, bold = false) => {
                 setZalando(bold ? 'bold' : 'normal')
@@ -292,17 +292,27 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 return pdf.getTextWidth(texto) + padding * 2
             }
 
-            let colWidths = headers.map(h => calcularLargura(h, true))
+            // 1. GARANTE LARGURA MINIMA DA DATA COM "Setembro" que é o maior
+            setZalando('bold')
+            pdf.setFontSize(8.5)
+            const maiorDataExemplo = `30/${mesesMap[8]}/2026` // 30/Setembro/2026
+            let dataMinWidth = pdf.getTextWidth(maiorDataExemplo) + padding * 4
 
-            dadosAgrupados.forEach(([, info]) => {
+            let colWidths = headers.map(h => calcularLargura(h, true))
+            colWidths[0] = Math.max(colWidths[0], dataMinWidth) // força data
+
+            // 2. Ajusta com os dados reais
+            dadosAgrupados.forEach(([data, info]) => {
                 const totalStr = formatNumber(info.total)
                 const zeroStr = formatNumber(0)
+                colWidths[0] = Math.max(colWidths[0], calcularLargura(data, true))
                 colWidths[1] = Math.max(colWidths[1], calcularLargura(totalStr, true))
                 colWidths[2] = Math.max(colWidths[2], calcularLargura(zeroStr, true))
                 colWidths[3] = Math.max(colWidths[3], calcularLargura(totalStr, true))
                 colWidths[4] = Math.max(colWidths[4], calcularLargura(totalStr, true))
             })
 
+            // 3. Ajusta pra preencher 100%
             const somaAtual = colWidths.reduce((a, b) => a + b, 0)
             const fator = pageUsableWidth / somaAtual
             colWidths = colWidths.map(w => w * fator)
@@ -319,7 +329,8 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             headers.forEach((h, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
                 pdf.rect(x, y - 4, colWidths[i], rowHeight, "D")
-                pdf.text(h, x + padding, y - 2)
+                const textY = y - 4 + rowHeight / 2 + 1 // CENTRALIZA VERTICAL
+                pdf.text(h, x + padding, textY)
             })
             y += rowHeight
 
@@ -329,8 +340,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.rect(startX + totalTableWidth - colWidths[4], y - 4, colWidths[4], rowHeight, "D")
             setZalando('normal')
             pdf.setFontSize(8)
-            pdf.text("AOA", startX + padding, y - 2)
-            pdf.text("-", startX + totalTableWidth - padding - 1, y - 2, { align: "right" })
+            const textYHeader = y - 4 + rowHeight / 2 + 1
+            pdf.text("AOA", startX + padding, textYHeader)
+            pdf.text("-", startX + totalTableWidth - padding - 1, textYHeader, { align: "right" })
             y += rowHeight
 
             // DADOS - TUDO EM NEGRITO E CENTRALIZADO VERTICAL
@@ -343,7 +355,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
                 const x = startX
                 const total = info.total
-                const textY = y - 2
+                const textY = y - 4 + rowHeight / 2 + 1 // FORMULA PRA CENTRALIZAR
 
                 if (index % 2 === 0) {
                     pdf.setFillColor(248, 250, 252)
@@ -386,7 +398,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.setTextColor(0)
             pdf.setFontSize(9)
             pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
-            pdf.text("Balanço Geral", 17, y - 2)
+            pdf.text("Balanço Geral", 17, y - 4 + rowHeight / 2 + 1)
             y += rowHeight
 
             const resumoMes = [
@@ -400,10 +412,10 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
                 setZalando('normal')
                 pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
-                pdf.text(label, 17, y - 2)
+                pdf.text(label, 17, y - 4 + rowHeight / 2 + 1)
                 setZalando('bold')
                 pdf.setTextColor(0)
-                pdf.text(valor, 15 + resumoWidth - 3, y - 2, { align: "right" })
+                pdf.text(valor, 15 + resumoWidth - 3, y - 4 + rowHeight / 2 + 1, { align: "right" })
                 y += rowHeight
             })
 
