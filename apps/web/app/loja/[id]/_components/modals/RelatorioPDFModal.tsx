@@ -333,18 +333,18 @@ export function RelatorioPDFModal({
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="flex-1 h-9 text-sm" // aumentei pra h-9 ficar melhor no mobile
-                        style={{ borderRadius: '8px' }}
+                        className="flex-1 h-10 px-4" // troquei h-9 text-sm por h-10 px-4
+                        style={{ borderRadius: '8px', borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)' }} // adicionei as cores pra bater com os outros
                     >
-                        <X className="mr-1.5 h-3.5 w-3.5" /> Fechar
+                        <X className="mr-2 h-4 w-4" /> Fechar {/* aumentei o icone tbm pra ficar proporcional */}
                     </Button>
                     <Button
                         onClick={exportarPDFModelo}
                         disabled={loading}
-                        className="flex-1 h-9 text-sm"
+                        className="flex-1 h-10 px-4" // troquei h-9 text-sm por h-10 px-4
                         style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}
                     >
-                        {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                         Baixar PDF
                     </Button>
                 </div>
