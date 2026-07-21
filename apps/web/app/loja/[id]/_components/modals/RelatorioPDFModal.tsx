@@ -3,7 +3,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Loader2, Download, X } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect } from "react" // 1. adiciona useEffect
 import jsPDF from "jspdf"
 import { saveAs } from "file-saver"
 import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from '../tabs/font/fonts'
@@ -30,12 +30,14 @@ export function RelatorioPDFModal({
     nomeArquivo
 }: Props) {
     const [loading, setLoading] = useState(false)
-    const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+    const [pdfUrl, setPdfUrl] = useState<string | null>(null) // 2. state pra url do preview
 
+    // 3. FUNCAO QUE GERA O PDF E RETORNA O jsPDF. NAO MEXI EM NADA
     const gerarPDF = (): jsPDF => {
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pageWidth = pdf.internal.pageSize.getWidth()
 
+        // 1. REGISTRAR FONTE - 3 PESOS
         pdf.addFileToVFS('ZalandoLight.ttf', zalandoLightBase64)
         pdf.addFont('ZalandoLight.ttf', 'Zalando', 'normal')
         pdf.addFileToVFS('ZalandoBold.ttf', zalandoBoldBase64)
@@ -52,6 +54,7 @@ export function RelatorioPDFModal({
         const corBorda = [200, 210, 220]
         const corTextoCinza = [100, 100, 100]
 
+        // 2. CABEÇALHO
         pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
         pdf.setLineWidth(0.3)
         pdf.rect(15, 15, 50, 20, "D")
@@ -102,6 +105,7 @@ export function RelatorioPDFModal({
 
         let y = 55
 
+        // 3. AGRUPAR VENDAS POR DIA - DATA FORMATO 20/Julho/2026
         const mesesMap: Record<number, string> = {
             0: 'Janeiro', 1: 'Fevereiro', 2: 'Março', 3: 'Abril', 4: 'Maio', 5: 'Junho',
             6: 'Julho', 7: 'Agosto', 8: 'Setembro', 9: 'Outubro', 10: 'Novembro', 11: 'Dezembro'
@@ -121,12 +125,13 @@ export function RelatorioPDFModal({
         }, {})
 
         const dadosAgrupados = Object.entries(vendasPorDia)
-           .sort((a, b) => b[1].timestamp - a[1].timestamp) as [string, VendaPorDia][]
+            .sort((a, b) => b[1].timestamp - a[1].timestamp) as [string, VendaPorDia][]
 
         const formatNumber = (value: number) => {
             return new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
         };
 
+        // 4. TABELA - 5 COLUNAS E LARGURA DINAMICA COM GARANTIA PRA DATA
         const headers = ["Data", "Entrada", "Saida", "Lucro", "Total"]
         const startX = 15
         const pageUsableWidth = pageWidth - 30
@@ -134,7 +139,7 @@ export function RelatorioPDFModal({
         const padding = 3
 
         const calcularLargura = (texto: string, bold = false) => {
-            setZalando(bold? 'bold' : 'normal')
+            setZalando(bold ? 'bold' : 'normal')
             pdf.setFontSize(8.5)
             return pdf.getTextWidth(texto) + padding * 2
         }
@@ -162,6 +167,7 @@ export function RelatorioPDFModal({
         colWidths = colWidths.map(w => w * fator)
         const totalTableWidth = colWidths.reduce((a, b) => a + b, 0)
 
+        // HEADER
         pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
         pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
         pdf.rect(startX, y - 4, totalTableWidth, rowHeight, "F")
@@ -177,6 +183,7 @@ export function RelatorioPDFModal({
         })
         y += rowHeight
 
+        // LINHA DE SIMBOLO AOA
         pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
         pdf.rect(startX, y - 4, totalTableWidth - colWidths[4], rowHeight, "D")
         pdf.rect(startX + totalTableWidth - colWidths[4], y - 4, colWidths[4], rowHeight, "D")
@@ -187,6 +194,7 @@ export function RelatorioPDFModal({
         pdf.text("-", startX + totalTableWidth - padding - 1, textYHeader, { align: "right" })
         y += rowHeight
 
+        // DADOS
         pdf.setFontSize(8.5)
         dadosAgrupados.forEach(([data, info], index) => {
             if (y > 270) {
@@ -228,6 +236,7 @@ export function RelatorioPDFModal({
         })
         y += 8
 
+        // 6. TABELA "BALANÇO GERAL"
         const totalGeral = dadosAgrupados.reduce((sum, [, info]) => sum + info.total, 0)
         const resumoWidth = 90
 
@@ -259,6 +268,7 @@ export function RelatorioPDFModal({
             y += rowHeight
         })
 
+        // RODAPÉ
         const totalPages = pdf.internal.getNumberOfPages()
         for (let i = 1; i <= totalPages; i++) {
             pdf.setPage(i)
@@ -268,23 +278,21 @@ export function RelatorioPDFModal({
             pdf.text(`Pagina ${i} de ${totalPages}`, pageWidth / 2, 287, { align: "center" })
         }
 
-        return pdf
+        return pdf // 4. RETORNA O PDF
     }
 
+    // 5. GERA O PREVIEW QUANDO A MODAL ABRE
     useEffect(() => {
-        let url: string | null = null;
-
         if (open) {
             const pdf = gerarPDF()
-            url = pdf.output('bloburl')
+            const url = pdf.output('bloburl')
             setPdfUrl(url)
-        }
-        return () => {
-            if (url) URL.revokeObjectURL(url)
-            setPdfUrl(null)
+        } else {
+            setPdfUrl(null) // limpa quando fecha
         }
     }, [open, vendasFiltradas, periodoTexto])
 
+    // 6. BAIXAR USA A MESMA FUNCAO
     const exportarPDFModelo = async () => {
         setLoading(true)
         try {
@@ -301,25 +309,30 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!max-w-none!w-screen!h-screen!p-0!m-0!rounded-none flex-col gap-0"
+                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
-                {/* HEADER FINO */}
+                {/* HEADER FIXO */}
                 <DialogHeader
-                    className="px-4 py-2 border-b flex-row justify-between items-center shrink-0"
+                    className="p-3 md:p-4 border-b flex-row justify-between items-center shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
-                    <DialogTitle className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
+                    <DialogTitle className="text-base md:text-lg" style={{ color: 'var(--cor-texto)' }}>
                         Pré-visualização: {periodoTexto}
                     </DialogTitle>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        className="h-8 w-8"
+                    >
                         <X className="h-4 w-4" />
                     </Button>
                 </DialogHeader>
 
-                {/* PDF OCUPA TUDO */}
-                <div className="flex-1 w-full h-full overflow-hidden">
-                    {pdfUrl? (
+                {/* PDF PREVIEW - AGORA OCUPA 100% DA LARGURA */}
+                <div className="flex-1 w-full overflow-hidden">
+                    {pdfUrl ? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
                     ) : (
                         <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
@@ -328,16 +341,26 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-                {/* FOOTER FINO */}
+                {/* FOOTER COM BOTOES LADO A LADO */}
                 <DialogFooter
-                    className="px-4 py-2 border-t flex-row gap-2 shrink-0"
+                    className="p-3 md:p-4 border-t flex-row gap-2 shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
-                    <Button variant="outline" onClick={onClose} className="flex-1 h-9" style={{ borderRadius: '8px' }}>
+                    <Button
+                        variant="outline"
+                        onClick={onClose}
+                        className="flex-1"
+                        style={{ borderRadius: '8px' }}
+                    >
                         <X className="mr-2 h-4 w-4" /> Fechar
                     </Button>
-                    <Button onClick={exportarPDFModelo} disabled={loading} className="flex-1 h-9" style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}>
-                        {loading? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    <Button
+                        onClick={exportarPDFModelo}
+                        disabled={loading}
+                        className="flex-1"
+                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}
+                    >
+                        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                         Baixar PDF
                     </Button>
                 </DialogFooter>
