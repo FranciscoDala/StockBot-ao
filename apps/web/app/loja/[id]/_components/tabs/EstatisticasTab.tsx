@@ -66,11 +66,11 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const ws = useRef<WebSocket | null>(null)
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null)
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const isLight = theme === 'light';
 
     const buscarVendas = useCallback(async () => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         setLoadingVendas(true) // 2. Usa o loading específico
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
@@ -79,16 +79,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().trim() === "concluida")
-               .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
                     formaPagamento: v.forma_pagamento,
                     itens: Number(v.total_itens),
                     detalhes: (v.itens || []).map(item => ({
-                       ...item,
+                        ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -103,7 +103,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     }, [token, lojaId])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -228,7 +228,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
     const calcularStats = (lista: Venda[]): Stats => {
         const total = lista.reduce((acc, v) => acc + v.total, 0)
         const qtdVendas = lista.length
-        const ticketMedio = qtdVendas > 0? total / qtdVendas : 0
+        const ticketMedio = qtdVendas > 0 ? total / qtdVendas : 0
         return { total, qtdVendas, ticketMedio }
     }
 
@@ -296,14 +296,14 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             "Categoria A": vals.cat1,
             "Categoria B": vals.cat2,
             "Categoria C": vals.cat3,
-            "Ticket Médio": vals.qtd > 0? vals.total / vals.qtd : 0
+            "Ticket Médio": vals.qtd > 0 ? vals.total / vals.qtd : 0
         }));
     }, [vendasFiltradas, filtroGrafico]);
 
     const exportarCSV = () => {
         const linhas = [
             ["Data", "ID", "Total", "Itens", "Forma Pagamento"],
-           ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
+            ...vendasFiltradas.map(v => [new Date(v.data).toLocaleDateString('pt-AO'), v.id, v.total, v.itens, v.formaPagamento])
         ]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv" })
@@ -327,19 +327,28 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                 <div className="">
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Estatísticas
-                        {wsConectado? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
+                        {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Acompanha o crescimento da sua loja</p>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={exportarCSV} className="btn-primary">
-                        <Download size={14} /> Exportar
+                <div className="flex gap-2 w-full md:w-auto"> {/* 1. w-full no mobile */}
+                    <button
+                        onClick={exportarCSV}
+                        className="btn-primary flex-1 h-10 px-4" // 2. flex-1 h-10 px-4
+                    >
+                        <Download size={16} /> Exportar
                     </button>
-                    <button onClick={buscarVendas} disabled={loadingVendas} className="btn-secondary"> // 4. Desabilita no loading
-                        {loadingVendas? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Atualizar
+                    <button
+                        onClick={buscarVendas}
+                        disabled={loadingVendas}
+                        className="btn-secondary flex-1 h-10 px-4" // 2. flex-1 h-10 px-4
+                    >
+                        {loadingVendas ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />} Atualizar
                     </button>
                 </div>
             </div>
+
+
 
             {/* FILTROS */}
             <div
@@ -404,7 +413,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             onClick={() => setAbaAtiva(tab.id as any)}
                             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition`}
                             style={abaAtiva === tab.id
-                               ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
+                                ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
                                 : { color: 'var(--cor-texto-sec)', borderRadius: radius }
                             }
                         >
@@ -433,7 +442,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Vendas Realizadas"
-                            stats={{...statsPeriodo, total: statsPeriodo.qtdVendas }}
+                            stats={{ ...statsPeriodo, total: statsPeriodo.qtdVendas }}
                             icon={<ShoppingBag size={16} />}
                             cor="primaria"
                             descricao="Pedidos concluídos"
@@ -444,7 +453,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Ticket Médio"
-                            stats={{...statsPeriodo, total: statsPeriodo.ticketMedio }}
+                            stats={{ ...statsPeriodo, total: statsPeriodo.ticketMedio }}
                             icon={<TrendingUp size={16} />}
                             cor="primaria"
                             descricao="Valor por venda"
@@ -456,7 +465,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         />
                         <CardStats
                             titulo="Itens Vendidos"
-                            stats={{...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
+                            stats={{ ...statsPeriodo, total: vendasFiltradas.reduce((acc, v) => acc + v.itens, 0) }}
                             icon={<Package size={16} />}
                             cor="primaria"
                             descricao="Unidades no período"
@@ -483,17 +492,17 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                     <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
                                         className="px-3 py-1.5 rounded-lg text-xs font-medium transition"
                                         style={filtroGrafico === tipo
-                                           ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
+                                            ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
                                             : { backgroundColor: 'var(--cor-card-hover)', color: 'var(--cor-texto)', borderRadius: radius }
                                         }
                                     >
-                                        {tipo === "diario"? "Diário" : tipo === "semanal"? "Semanal" : "Mensal"}
+                                        {tipo === "diario" ? "Diário" : tipo === "semanal" ? "Semanal" : "Mensal"}
                                     </button>
                                 ))}
                             </div>
                         </div>
                         <div className="h-80 w-full">
-                            {loadingVendas? ( // 5. Spinner só no gráfico
+                            {loadingVendas ? ( // 5. Spinner só no gráfico
                                 <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
                             ) : (
                                 <ResponsiveContainer width="100%" height="100%">
@@ -505,7 +514,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
 
                                         <Tooltip
                                             contentStyle={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-borda)', borderRadius: radius, color: 'var(--cor-texto)' }}
-                                            formatter={(value: any) => typeof value === 'number'? formatCurrency(value) : ""}
+                                            formatter={(value: any) => typeof value === 'number' ? formatCurrency(value) : ""}
                                         />
 
                                         <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--cor-texto-sec)' }} />
@@ -530,9 +539,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     >
                         <h3 className="font-bold mb-3" style={{ color: 'var(--cor-texto)' }}>Últimas Vendas - {vendasFiltradas.length}</h3>
                         <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-hide">
-                            {loadingVendas? ( // 6. Spinner só na tabela
+                            {loadingVendas ? ( // 6. Spinner só na tabela
                                 <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
-                            ) : vendasFiltradas.length > 0? vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
+                            ) : vendasFiltradas.length > 0 ? vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
                                 <div key={v.id} className="flex justify-between items-center border-b pb-2 pt-2 px-2 text-xs transition" style={{ borderColor: 'var(--cor-borda)' }}>
                                     <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
                                         <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
@@ -563,9 +572,9 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 >
                     <h3 className="font-bold mb-4" style={{ color: 'var(--cor-texto)' }}>Top 10 Produtos Mais Vendidos</h3>
                     <div className="space-y-2">
-                        {loadingVendas? ( // 7. Spinner só nos produtos
+                        {loadingVendas ? ( // 7. Spinner só nos produtos
                             <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
-                        ) : topProdutos.length > 0? topProdutos.map((p, i) => (
+                        ) : topProdutos.length > 0 ? topProdutos.map((p, i) => (
                             <div key={i} className="flex justify-between items-center p-3" style={{ backgroundColor: 'var(--cor-card-hover)', borderRadius: radius }}>
                                 <div>
                                     <p className="font-medium text-sm" style={{ color: 'var(--cor-texto)' }}>#{i + 1} {p.nome}</p>
@@ -590,16 +599,16 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 >
                     <h3 className="font-bold mb-4" style={{ color: 'var(--cor-texto)' }}>Faturamento por Forma de Pagamento</h3>
                     <div className="space-y-3">
-                        {loadingVendas? ( // 8. Spinner só nos pagamentos
+                        {loadingVendas ? ( // 8. Spinner só nos pagamentos
                             <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin" size={24} style={{ color: 'var(--cor-primaria)' }} /></div>
-                        ) : vendasPorPagamento.length > 0? vendasPorPagamento.map((p, i) => (
+                        ) : vendasPorPagamento.length > 0 ? vendasPorPagamento.map((p, i) => (
                             <div key={i}>
                                 <div className="flex justify-between mb-1">
                                     <p className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>{p.forma}</p>
                                     <p className="text-sm font-bold" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(p.total)}</p>
                                 </div>
                                 <div className="w-full rounded-full h-2" style={{ backgroundColor: 'var(--cor-card-hover)' }}>
-                                    <div className="h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0? (p.total / statsPeriodo.total) * 100 : 0}%`, backgroundColor: 'var(--cor-primaria)', borderRadius: radius }}></div>
+                                    <div className="h-2 rounded-full" style={{ width: `${statsPeriodo.total > 0 ? (p.total / statsPeriodo.total) * 100 : 0}%`, backgroundColor: 'var(--cor-primaria)', borderRadius: radius }}></div>
                                 </div>
                             </div>
                         )) : <p className="text-center py-8" style={{ color: 'var(--cor-texto-sec)' }}>Sem dados no período</p>}
@@ -675,7 +684,7 @@ function CardStats({
     cardSize: string,
     theme: string
 }) {
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const isLight = theme === 'light';
 
     const cores = {
@@ -707,7 +716,7 @@ function CardStats({
             style={{
                 border: `1px solid ${c.border}`,
                 background: c.bg,
-                backdropFilter: cor === 'primaria'? 'blur(12px)' : 'none',
+                backdropFilter: cor === 'primaria' ? 'blur(12px)' : 'none',
                 color: c.text,
                 borderRadius: radius,
                 boxShadow: c.shadow
