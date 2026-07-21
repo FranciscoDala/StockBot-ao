@@ -334,7 +334,7 @@ export function RelatorioPDFModal({
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="flex-1 h-8 text-sm"
+                        className="flex-1 text-sm"
                         style={{ borderRadius: '6px' }}
                     >
                         <X className="mr-1.5 h-3.5 w-3.5" /> Fechar
@@ -342,7 +342,7 @@ export function RelatorioPDFModal({
                     <Button
                         onClick={exportarPDFModelo}
                         disabled={loading}
-                        className="flex-1 h-8 text-sm"
+                        className="flex-1 text-sm"
                         style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '6px' }}
                     >
                         {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
