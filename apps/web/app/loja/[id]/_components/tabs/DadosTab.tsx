@@ -80,6 +80,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         finally { setLoading(false); }
     }, [lojaId, token])
 
+    
     const conectarWebSocket = useCallback(() => {
         if (!token || !lojaId || !WS_URL) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;

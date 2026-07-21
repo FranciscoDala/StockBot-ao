@@ -545,8 +545,8 @@ export default function LojaPage() {
                             <DadosTab
                                 loja={loja}
                                 user={user}
-                                lojaId={lojaId}
-                                token={token}
+                                lojaId={lojaId} // <-- ADICIONA ESSA
+                                token={token} // <-- E ESSA
                                 theme={theme}
                                 cardStyle={cardStyle}
                                 cardSize={cardSize}
