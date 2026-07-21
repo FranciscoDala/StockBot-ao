@@ -9,7 +9,8 @@ import jsPDF from "jspdf"
 import html2canvas from "html2canvas"
 import { saveAs } from "file-saver"
 import { Document, Packer, Paragraph, Table, TableCell, TableRow, WidthType, HeadingLevel, AlignmentType, TextRun } from "docx"
-import { zalandoBase64 } from './font/fonts'
+
+import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from './font/fonts'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -178,7 +179,6 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
 
 
-    import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from './font/fonts'
 
     const exportarPDFModelo = async () => {
         setLoading('pdf')
