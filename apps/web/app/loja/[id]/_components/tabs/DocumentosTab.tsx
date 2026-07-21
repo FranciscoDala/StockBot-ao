@@ -75,13 +75,13 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
     const [page, setPage] = useState(1)
     const itemsPerPage = 10
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const isLight = theme === 'light';
 
     const nomeLoja = loja?.nome || "StockBot AO"
 
     const buscarVendas = async () => {
-        if (!token ||!lojaId) return;
+        if (!token || !lojaId) return;
         setLoadingVendas(true)
         try {
             const res = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
@@ -90,9 +90,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             if (!res.ok) throw new Error("Erro ao buscar vendas")
             const data: VendaAPI[] = await res.json()
 
-            const vendasFormatadas: Venda[] = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().trim() === "concluida")
-               .map(v => ({
+            const vendasFormatadas: Venda[] = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({
                     id: String(v.id),
                     data: v.data_venda,
                     total: Number(v.total),
@@ -100,7 +100,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                     itens: Number(v.total_itens),
                     nome_vendedor: v.nome_vendedor || "Sem vendedor",
                     detalhes: (v.itens || []).map(item => ({
-                       ...item,
+                        ...item,
                         preco_unitario: Number(item.preco_unitario),
                         subtotal: Number(item.subtotal)
                     }))
@@ -163,7 +163,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
     const totalVendas = vendasFiltradas.reduce((acc, v) => acc + v.total, 0)
     const totalItens = vendasFiltradas.reduce((acc, v) => acc + v.itens, 0)
-    const ticketMedio = vendasFiltradas.length > 0? totalVendas / vendasFiltradas.length : 0
+    const ticketMedio = vendasFiltradas.length > 0 ? totalVendas / vendasFiltradas.length : 0
 
     const totalPages = Math.ceil(vendasFiltradas.length / itemsPerPage)
     const vendasPaginadas = vendasFiltradas.slice((page - 1) * itemsPerPage, page * itemsPerPage)
@@ -237,8 +237,8 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                                 }}
                                 className="px-3 py-1.5 text-base md:text-sm font-medium whitespace-nowrap transition-all"
                                 style={{
-                                    backgroundColor: activeTab === p.value? 'var(--cor-primaria)' : 'var(--cor-card-hover)',
-                                    color: activeTab === p.value? 'white' : 'var(--cor-texto-sec)',
+                                    backgroundColor: activeTab === p.value ? 'var(--cor-primaria)' : 'var(--cor-card-hover)',
+                                    color: activeTab === p.value ? 'white' : 'var(--cor-texto-sec)',
                                     borderRadius: radius,
                                     border: '1px solid var(--cor-borda)'
                                 }}
@@ -287,29 +287,42 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
             {/* TABELA */}
             <div ref={reportRef} className="p-3 md:p-4 border" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)', borderRadius: radius }}>
+
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                     <div>
                         <h2 className="text-base font-bold" style={{ color: 'var(--cor-texto)' }}>Relatório: {periodoTexto}</h2>
                         <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{vendasFiltradas.length} vendas encontradas</p>
                     </div>
-                    <div className="flex gap-2">
-                        <Button onClick={buscarVendas} size="sm" variant="outline" disabled={loadingVendas} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>
-                            {loadingVendas? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
+
+                    <div className="flex flex-row gap-2 w-full sm:w-auto">
+                        <Button
+                            onClick={buscarVendas}
+                            variant="outline"
+                            disabled={loadingVendas}
+                            className="flex-1 w-1/2 h-10 px-4" // 1. Tirei size="sm" 2. Adicionei h-10 px-4
+                            style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: '8px' }} // 3. borderRadius 8px
+                        >
+                            {loadingVendas ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
                         </Button>
-                        <Button onClick={() => setIsModalOpen(true)} size="sm" variant="outline" style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}> {/* 4. BOTAO ABRE A MODAL */}
-                            <FileText className="mr-2 h-4 w-4" /> Ver Relátorio
+                        <Button
+                            onClick={() => setIsModalOpen(true)}
+                            variant="outline"
+                            className="flex-1 w-1/2 h-10 px-4" // 1. Tirei size="sm" 2. Adicionei h-10 px-4
+                            style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: '8px' }} // 3. borderRadius 8px
+                        >
+                            <FileText className="mr-2 h-4 w-4" /> Ver Relatório
                         </Button>
                     </div>
                 </div>
 
                 <div className="overflow-x-auto scrollbar-hide">
-                    {loadingVendas? (
+                    {loadingVendas ? (
                         <div className="flex justify-center py-10"><Loader2 className="animate-spin" style={{ color: 'var(--cor-primaria)' }} /></div>
                     ) : (
                         <table className="w-full text-sm">
                             <thead><tr style={{ backgroundColor: 'var(--cor-primaria)', color: 'white' }}><th className="p-3 text-left">Data</th><th className="p-3 text-left">Funcionário</th><th className="p-3 text-right">Total</th><th className="p-3 text-left">Pagamento</th><th className="p-3 text-center">Itens</th></tr></thead>
                             <tbody>
-                                {vendasPaginadas.length > 0? vendasPaginadas.map((v) => (
+                                {vendasPaginadas.length > 0 ? vendasPaginadas.map((v) => (
                                     <tr key={v.id} className="border-b hover:bg-opacity-50" style={{ borderColor: 'var(--cor-borda)' }}>
                                         <td className="p-3" style={{ color: 'var(--cor-texto)' }}>{new Date(v.data).toLocaleDateString('pt-AO')}</td>
                                         <td className="p-3" style={{ color: 'var(--cor-texto)' }}><div className="flex items-center gap-2"><User size={14} />{v.nome_vendedor}</div></td>

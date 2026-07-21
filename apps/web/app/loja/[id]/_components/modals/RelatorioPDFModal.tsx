@@ -327,7 +327,7 @@ export function RelatorioPDFModal({
 
                 {/* FOOTER FIXO EMBAIXO */}
                 <div
-                    className="fixed bottom-7 left-0 right-0 px-3 pt-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t flex flex-row gap-2 z-[60]" // 1. adicionei FLEX 2. bottom-0 3. z-[60]
+                    className="fixed bottom-8 left-0 right-0 px-3 pt-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t flex flex-row gap-2 z-[60]" // 1. adicionei FLEX 2. bottom-0 3. z-[60]
                     style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
