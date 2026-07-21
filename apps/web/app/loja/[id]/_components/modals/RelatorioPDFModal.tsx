@@ -313,22 +313,7 @@ export function RelatorioPDFModal({
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
                 {/* HEADER FIXO */}
-                <DialogHeader
-                    className="px-4 py-2 border-b flex-row justify-between items-center shrink-0"
-                    style={{ borderColor: 'var(--cor-borda)' }}
-                >
-                    <DialogTitle className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
-                        Pré-visualização: {periodoTexto}
-                    </DialogTitle>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        className="h-7 w-7"
-                    >
-                        <X className="h-4 w-4" />
-                    </Button>
-                </DialogHeader>
+                
 
                 {/* PDF PREVIEW - AGORA OCUPA 100% DA LARGURA */}
                 <div className="flex-1 w-full overflow-hidden">
