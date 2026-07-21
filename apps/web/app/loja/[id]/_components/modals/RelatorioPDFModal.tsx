@@ -304,7 +304,7 @@ export function RelatorioPDFModal({
                 className="!max-w-none!w-screen!h-screen!p-0!m-0!rounded-none flex-col gap-0"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
-                {/* HEADER FIXO - MAIS FINO */}
+                {/* HEADER FINO */}
                 <DialogHeader
                     className="px-4 py-2 border-b flex-row justify-between items-center shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
@@ -312,17 +312,12 @@ export function RelatorioPDFModal({
                     <DialogTitle className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
                         Pré-visualização: {periodoTexto}
                     </DialogTitle>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onClose}
-                        className="h-7 w-7"
-                    >
+                    <Button variant="ghost" size="icon" onClick={onClose} className="h-7 w-7">
                         <X className="h-4 w-4" />
                     </Button>
                 </DialogHeader>
 
-                {/* PDF PREVIEW - AGORA ESTENDE 100% */}
+                {/* PDF OCUPA TUDO */}
                 <div className="flex-1 w-full h-full overflow-hidden">
                     {pdfUrl? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
@@ -333,25 +328,15 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-                {/* FOOTER MAIS FINO E BOTOES LADO A LADO */}
+                {/* FOOTER FINO */}
                 <DialogFooter
                     className="px-4 py-2 border-t flex-row gap-2 shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
                 >
-                    <Button
-                        variant="outline"
-                        onClick={onClose}
-                        className="flex-1 h-9"
-                        style={{ borderRadius: '8px' }}
-                    >
+                    <Button variant="outline" onClick={onClose} className="flex-1 h-9" style={{ borderRadius: '8px' }}>
                         <X className="mr-2 h-4 w-4" /> Fechar
                     </Button>
-                    <Button
-                        onClick={exportarPDFModelo}
-                        disabled={loading}
-                        className="flex-1 h-9"
-                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}
-                    >
+                    <Button onClick={exportarPDFModelo} disabled={loading} className="flex-1 h-9" style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}>
                         {loading? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                         Baixar PDF
                     </Button>
