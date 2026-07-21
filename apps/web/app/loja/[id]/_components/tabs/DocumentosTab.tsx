@@ -180,6 +180,214 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
 
 
+    const exportarPDFModelo = async () => {
+        setLoading('pdf')
+        try {
+            const pdf = new jsPDF('p', 'mm', 'a4')
+            const pageWidth = pdf.internal.pageSize.getWidth()
+            const pageHeight = pdf.internal.pageSize.getHeight()
+            const margin = 15
+            const pageUsableWidth = pageWidth - margin * 2
+
+            type Cor = [number, number, number]
+            const cores = {
+                header: [220, 228, 235] as Cor,
+                borda: [200, 210, 220] as Cor,
+                textoCinza: [100, 100, 100] as Cor,
+                verde: [0, 128, 0] as Cor, // Entrada
+                vermelho: [220, 38, 38] as Cor, // Saida
+                azul: [37, 99, 235] as Cor, // Diferença
+                zebra: [248, 250, 252] as Cor,
+            }
+
+            // 2. REGISTRAR FONTE
+            pdf.addFileToVFS('ZalandoLight.ttf', zalandoLightBase64)
+            pdf.addFont('ZalandoLight.ttf', 'Zalando', 'normal')
+            pdf.addFileToVFS('ZalandoBold.ttf', zalandoBoldBase64)
+            pdf.addFont('ZalandoBold.ttf', 'Zalando', 'bold')
+            pdf.addFileToVFS('ZalandoItalic.ttf', zalandoItalicBase64)
+            pdf.addFont('ZalandoItalic.ttf', 'Zalando', 'italic')
+
+            const setFont = (style: 'normal' | 'bold' | 'italic' = 'normal', size: number = 10) => {
+                pdf.setFont('Zalando', style)
+                pdf.setFontSize(size)
+            }
+            setFont()
+
+            // 3. FUNÇÕES AUXILIARES
+            const formatAOA = (valor: number): string => `${formatCurrency(valor)} AOA`
+
+            const checkPageBreak = (y: number, neededHeight = 10): number => {
+                if (y + neededHeight > pageHeight - 15) {
+                    pdf.addPage()
+                    return 20
+                }
+                return y
+            }
+
+            const drawTableCell = (
+                x: number, y: number, w: number, h: number,
+                text: string, align: 'left' | 'right' = 'left',
+                color: Cor = [0, 0, 0]
+            ) => {
+                pdf.rect(x, y, w, h, "D")
+                pdf.setTextColor(color[0], color[1], color[2])
+                const textX = align === 'right' ? x + w - 2 : x + 2
+                pdf.text(text, textX, y + 5.5, { align })
+            }
+
+            // 4. AGRUPAR VENDAS - AQUI TAVA O ERRO
+            type VendaAgrupada = { total: number }
+            const vendasPorDia = vendasFiltradas.reduce<Record<string, VendaAgrupada>>((acc, venda) => {
+                const data = new Date(venda.data).toLocaleDateString('pt-AO')
+                if (!acc[data]) acc[data] = { total: 0 }
+                acc[data].total += venda.total
+                return acc
+            }, {})
+
+            const dadosAgrupados = Object.entries(vendasPorDia).sort(([dataA], [dataB]) =>
+                new Date(dataB.split('/').reverse().join('-')).getTime() - new Date(dataA.split('/').reverse().join('-')).getTime()
+            )
+
+            const totalGeral = dadosAgrupados.reduce((sum, [, info]) => sum + info.total, 0)
+            let y = 55
+
+            // 5. TABELA PRINCIPAL
+            const headers = ["Data", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
+            const rowHeight = 8
+            const padding = 2
+
+            setFont('bold', 9)
+            const headerWidths = headers.map(h => pdf.getTextWidth(h) + padding * 2)
+
+            setFont('normal', 8.5)
+            const dataWidths = [0, 0, 0, 0, 0, 0]
+            dadosAgrupados.forEach(([data, info]) => {
+                const totalStr = formatAOA(info.total)
+                dataWidths[0] = Math.max(dataWidths[0], pdf.getTextWidth(data))
+                dataWidths[1] = Math.max(dataWidths[1], pdf.getTextWidth(totalStr))
+                dataWidths[2] = Math.max(dataWidths[2], pdf.getTextWidth('0,00 AOA'))
+                dataWidths[3] = Math.max(dataWidths[3], pdf.getTextWidth(totalStr))
+                dataWidths[4] = Math.max(dataWidths[4], pdf.getTextWidth(totalStr))
+                dataWidths[5] = Math.max(dataWidths[5], pdf.getTextWidth(totalStr))
+            })
+
+            let colWidths = headerWidths.map((w, i) => Math.max(w, dataWidths[i] + padding * 2))
+            const somaAtual = colWidths.reduce((a, b) => a + b, 0)
+            const fator = pageUsableWidth / somaAtual
+            colWidths = colWidths.map(w => w * fator)
+            const totalTableWidth = colWidths.reduce((a, b) => a + b)
+
+            // HEADER
+            pdf.setFillColor(cores.header[0], cores.header[1], cores.header[2])
+            pdf.setDrawColor(cores.borda[0], cores.borda[1], cores.borda[2])
+            pdf.rect(margin, y - 4, totalTableWidth, rowHeight, "F")
+            setFont('bold', 9)
+            pdf.setTextColor(0)
+
+            let x = margin
+            headers.forEach((h, i) => {
+                drawTableCell(x, y - 4, colWidths[i], rowHeight, h, 'left')
+                x += colWidths[i]
+            })
+            y += rowHeight
+
+            // LINHA AOA
+            x = margin
+            pdf.rect(x, y - 4, totalTableWidth - colWidths[5], rowHeight, "D")
+            pdf.rect(x + totalTableWidth - colWidths[5], y - 4, colWidths[5], rowHeight, "D")
+            setFont('normal', 8)
+            pdf.text("AOA", x + padding, y)
+            pdf.text("-", x + totalTableWidth - 2, y, { align: "right" })
+            y += rowHeight
+
+            // DADOS
+            setFont('normal', 8.5)
+            dadosAgrupados.forEach(([data, info], index) => {
+                y = checkPageBreak(y, rowHeight)
+
+                if (index % 2 === 0) {
+                    pdf.setFillColor(cores.zebra[0], cores.zebra[1], cores.zebra[2])
+                    pdf.rect(margin, y - 4, totalTableWidth, rowHeight, "F")
+                }
+
+                x = margin
+                const totalStr = formatAOA(info.total)
+
+                drawTableCell(x, y - 4, colWidths[0], rowHeight, data, 'left')
+                x += colWidths[0]
+                drawTableCell(x, y - 4, colWidths[1], rowHeight, totalStr, 'right', cores.verde)
+                x += colWidths[1]
+                drawTableCell(x, y - 4, colWidths[2], rowHeight, '0,00 AOA', 'right', cores.vermelho)
+                x += colWidths[2]
+                drawTableCell(x, y - 4, colWidths[3], rowHeight, totalStr, 'right', cores.verde)
+                x += colWidths[3]
+                drawTableCell(x, y - 4, colWidths[4], rowHeight, totalStr, 'right', cores.verde)
+                x += colWidths[4]
+                drawTableCell(x, y - 4, colWidths[5], rowHeight, totalStr, 'right', cores.verde)
+
+                pdf.setTextColor(0)
+                y += rowHeight
+            })
+            y += 10
+
+            // 6. TABELA RESUMO
+            y = checkPageBreak(y, rowHeight * 5)
+            const resumoWidth = 90
+
+            pdf.setFillColor(cores.header[0], cores.header[1], cores.header[2])
+            pdf.rect(margin, y - 4, resumoWidth, rowHeight, "F")
+            setFont('bold', 9)
+            pdf.setTextColor(0)
+            pdf.rect(margin, y - 4, resumoWidth, rowHeight, "D")
+            pdf.text("Total Geral", margin + 2, y)
+            y += rowHeight
+
+            type ResumoItem = [string, string, Cor]
+            const resumoMes: ResumoItem[] = [
+                ["Entrada", formatAOA(totalGeral), cores.verde],
+                ["Saida", formatAOA(0), cores.vermelho],
+                ["Lucro", formatAOA(totalGeral), cores.verde],
+                ["Diferença", formatAOA(totalGeral), cores.azul],
+            ]
+
+            setFont('normal', 8.5)
+            resumoMes.forEach(([label, valor, cor]) => {
+                pdf.rect(margin, y - 4, resumoWidth, rowHeight, "D")
+                pdf.setTextColor(cores.textoCinza[0], cores.textoCinza[1], cores.textoCinza[2])
+                pdf.text(label, margin + 2, y)
+                setFont('bold', 8.5)
+                pdf.setTextColor(cor[0], cor[1], cor[2])
+                pdf.text(valor, margin + resumoWidth - 2, y, { align: "right" })
+                setFont('normal', 8.5)
+                y += rowHeight
+            })
+
+            y += 8
+            setFont('normal', 8)
+            pdf.setTextColor(cores.textoCinza[0], cores.textoCinza[1], cores.textoCinza[2])
+            pdf.text("Estatisticas: Confere os valores de entrada, saída, lucro e a diferença.", margin, y)
+            y += 5
+            pdf.text("Termos: Balanço total das vendas", margin, y)
+
+            // 7. RODAPÉ
+            const totalPages = pdf.internal.getNumberOfPages()
+            for (let i = 1; i <= totalPages; i++) {
+                pdf.setPage(i)
+                setFont('normal', 8)
+                pdf.setTextColor(150)
+                pdf.text(`Página ${i} de ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: "center" })
+            }
+
+            pdf.save(`Relatorio-Modelo-${nomeArquivo}.pdf`)
+        } catch (error) {
+            console.error(error)
+            alert("Erro ao gerar PDF.")
+        } finally {
+            setLoading(null)
+        }
+    }
+
 
 
 
@@ -377,6 +585,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                         <Button onClick={buscarVendas} size="sm" variant="outline" disabled={loadingVendas} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>
                             {loadingVendas ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Atualizar
                         </Button>
+                        <Button onClick={exportarPDFModelo} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'pdf' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileText className="mr-2 h-4 w-4" />} PDF</Button>
                         <Button onClick={exportarWord} size="sm" variant="outline" disabled={!!loading} style={{ borderColor: 'var(--cor-borda)', color: 'var(--cor-texto)', borderRadius: radius }}>{loading === 'word' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />} Word</Button>
                     </div>
                 </div>
