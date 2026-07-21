@@ -28,6 +28,7 @@ export function DadosTab({ loja, user, lojaId, token, theme, cardStyle, cardSize
     const ws = useRef<WebSocket | null>(null);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
+
     const carregarKPIs = useCallback(async () => {
         if (!lojaId || !token || !API_URL) { setLoading(false); return; }
         setLoading(true);
@@ -38,16 +39,24 @@ export function DadosTab({ loja, user, lojaId, token, theme, cardStyle, cardSize
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
             const data: VendaAPI[] = await resVendas.json();
 
+            console.log("API_URL:", API_URL)
+            console.log("VENDAS BRUTAS:", data)
+            console.log("LOJA ID:", lojaId)
+
             const vendas = (Array.isArray(data) ? data : [])
                 .filter(v => v.status?.toLowerCase().trim() === "concluida")
                 .map(v => ({ ...v, total: Number(v.total) || 0, data_venda: new Date(v.data_venda) }));
 
-            const hoje = new Date();
-            const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-            const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje);
+            // CORREÇÃO AQUI: Usar fuso de Luanda GMT+1
+            const agora = new Date();
+            const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0);
+            const fimHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59);
 
-            const inicioMes = new Date();
-            inicioMes.setDate(hoje.getDate() - 30);
+            const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje && v.data_venda <= fimHoje);
+
+            const inicioMes = new Date(agora);
+            inicioMes.setDate(agora.getDate() - 30);
+
             const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
 
             let estoqueZerado = 0;
@@ -62,6 +71,9 @@ export function DadosTab({ loja, user, lojaId, token, theme, cardStyle, cardSize
                     totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
                 }
             } catch { }
+
+            console.log("VENDAS HOJE:", vendasHoje.length, vendasHoje)
+            console.log("TOTAL HOJE:", vendasHoje.reduce((acc, v) => acc + v.total, 0))
 
             setKpis({
                 vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
