@@ -1,11 +1,10 @@
 "use client"
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Loader2, Download, X } from "lucide-react"
 import { useState, useEffect } from "react"
 import jsPDF from "jspdf"
-import { saveAs } from "file-saver"
 import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from '../tabs/font/fonts'
 
 type Props = {
@@ -271,17 +270,17 @@ export function RelatorioPDFModal({
         return pdf
     }
 
-    // FIX 1: blob + revoke pra não travar e não vazar memória
+    // FIX: blob + revoke
     useEffect(() => {
         let objectUrl: string | null = null
         if (open) {
             const pdf = gerarPDF()
-            const blob = pdf.output('blob') // ERA 'bloburl'
+            const blob = pdf.output('blob')
             objectUrl = URL.createObjectURL(blob)
             setPdfUrl(objectUrl)
         }
         return () => {
-            if (objectUrl) URL.revokeObjectURL(objectUrl) // LIMPA
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
             setPdfUrl(null)
         }
     }, [open, vendasFiltradas, periodoTexto])
@@ -302,14 +301,27 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="w-full h-[100dvh] max-w-none rounded-none p-0 m-0 gap-0 flex flex-col relative" // FIX 2: tirei! e troquei h-screen por h-[100dvh]
+                className="w-full h-[100dvh] max-w-none rounded-none p-0 m-0 gap-0 flex flex-col relative" // relative pra o fixed funcionar dentro
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
+
+                {/* PDF PREVIEW */}
+                <div className="flex-1 w-full overflow-auto pb-[calc(3.5rem+env(safe-area-inset-bottom))]">
+                    {pdfUrl? (
+                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
+                    ) : (
+                        <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando pré-visualização...
+                        </div>
+                    )}
+                </div>
+
+                {/* FOOTER FIXO EMBAIXO - AGORA COM FLEX */}
                 <div
-                    className="absolute top-0 left-0 right-0 px-3 pt-[calc(0.375rem+env(safe-area-inset-top))] pb-1.5 border-b flex flex-row gap-2 z-50" // FIX 3: adicionei FLEX
+                    className="absolute bottom-0 left-0 right-0 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex flex-row gap-2 z-50" // TROQUEI fixed por absolute e adicionei FLEX
                     style={{
                         backgroundColor: 'var(--cor-card)',
-                        borderColor: 'var(--cor-borda)'
+                        borderColor: 'var(--cor-borda)',
                     }}
                 >
                     <Button
@@ -329,16 +341,6 @@ export function RelatorioPDFModal({
                         {loading? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
                         Baixar PDF
                     </Button>
-                </div>
-
-                <div className="flex-1 w-full overflow-auto pt-[calc(3.5rem+env(safe-area-inset-top))]">
-                    {pdfUrl? (
-                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
-                    ) : (
-                        <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando pré-visualização...
-                        </div>
-                    )}
                 </div>
 
             </DialogContent>
