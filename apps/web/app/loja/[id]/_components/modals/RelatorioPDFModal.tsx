@@ -309,7 +309,7 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!max-w-none !w-screen !h-dvh !rounded-none !p-0 !m-0 gap-0 flex-col relative"
+                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
                 {/* HEADER FIXO */}
@@ -325,10 +325,9 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-
-                {/* FOOTER ABSOLUTE EMBAIXO */}
+                {/* FOOTER FIXO EMBAIXO */}
                 <div
-                    className="absolute bottom-0 left-0 right-0 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex-row gap-2"
+                    className="fixed bottom-0 left-0 right-0 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex-row gap-2 z-50"
                     style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
@@ -353,5 +352,4 @@ export function RelatorioPDFModal({
             </DialogContent>
         </Dialog>
     )
-
 }
