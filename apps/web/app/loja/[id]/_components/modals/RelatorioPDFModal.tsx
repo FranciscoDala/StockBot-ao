@@ -327,22 +327,22 @@ export function RelatorioPDFModal({
 
                 {/* FOOTER FIXO EMBAIXO */}
                 <div
-                    className="fixed bottom-20 left-0 right-0 py-3 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex-row gap-2 z-50"
+                    className="fixed bottom-10 left-0 right-0 px-3 pt-1.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))] border-t flex flex-row gap-2 z-[60]" // 1. adicionei FLEX 2. bottom-0 3. z-[60]
                     style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}
                 >
                     <Button
                         variant="outline"
                         onClick={onClose}
-                        className="flex-1 h-8 text-sm"
-                        style={{ borderRadius: '6px' }}
+                        className="flex-1 h-9 text-sm" // aumentei pra h-9 ficar melhor no mobile
+                        style={{ borderRadius: '8px' }}
                     >
                         <X className="mr-1.5 h-3.5 w-3.5" /> Fechar
                     </Button>
                     <Button
                         onClick={exportarPDFModelo}
                         disabled={loading}
-                        className="flex-1 h-8 text-sm"
-                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '6px' }}
+                        className="flex-1 h-9 text-sm"
+                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: '8px' }}
                     >
                         {loading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
                         Baixar PDF
