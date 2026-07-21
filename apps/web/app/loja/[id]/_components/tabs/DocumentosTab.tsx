@@ -203,7 +203,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const corBorda = [200, 210, 220]
             const corTextoCinza = [100, 100, 100]
 
-            // 2. CABEÇALHO - logo menor e borda igual da tabela
+            // 2. CABEÇALHO
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
             pdf.setLineWidth(0.3)
             pdf.rect(15, 15, 50, 20, "D")
@@ -242,7 +242,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.text("Telefone", 110, yDireita, { align: "right" })
             setZalando('bold')
             pdf.setTextColor(0)
-            pdf.text("(xxx) xxx-xxxx", 115, yDireita)
+            pdf.text("(+244) xxx-xxx-xxx", 115, yDireita)
 
             yDireita += 6
             setZalando('normal')
@@ -254,53 +254,55 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
             let y = 55
 
-            // 3. AGRUPAR VENDAS POR DIA
+            // 3. AGRUPAR VENDAS POR DIA - DATA FORMATO 20/Julho/2026
+            const mesesMap: Record<number, string> = {
+                0: 'Janeiro', 1: 'Fevereiro', 2: 'Março', 3: 'Abril', 4: 'Maio', 5: 'Junho',
+                6: 'Julho', 7: 'Agosto', 8: 'Setembro', 9: 'Outubro', 10: 'Novembro', 11: 'Dezembro'
+            }
+
             const vendasPorDia = vendasFiltradas.reduce((acc, venda) => {
-                const data = new Date(venda.data).toLocaleDateString('pt-AO')
-                if (!acc[data]) acc[data] = { total: 0 }
+                const dataObj = new Date(venda.data)
+                const dia = String(dataObj.getDate()).padStart(2, '0')
+                const mes = mesesMap[dataObj.getMonth()]
+                const ano = dataObj.getFullYear()
+                const data = `${dia}/${mes}/${ano}` // 20/Julho/2026
+                if (!acc[data]) acc[data] = { total: 0, timestamp: dataObj.getTime() }
                 acc[data].total += venda.total
                 return acc
-            }, {} as Record<string, { total: number }>)
+            }, {} as Record<string, { total: number, timestamp: number }>)
 
-            const dadosAgrupados = Object.entries(vendasPorDia).sort((a, b) =>
-                new Date(b[0].split('/').reverse().join('-')).getTime() - new Date(a[0].split('/').reverse().join('-')).getTime()
-            )
+            const dadosAgrupados = Object.entries(vendasPorDia).sort((a, b) => b[1].timestamp - a[1].timestamp)
 
             // FUNCAO PRA FORMATAR SO NUMERO
             const formatNumber = (value: number) => {
                 return new Intl.NumberFormat('pt-AO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
             };
 
-            // 4. TABELA - 5 COLUNAS AGORA E LARGURA DINAMICA
+            // 4. TABELA - 5 COLUNAS E LARGURA DINAMICA
             const headers = ["Data", "Entrada", "Saida", "Lucro", "Total"]
 
             const startX = 15
-            const pageUsableWidth = pageWidth - 30 // 180mm
+            const pageUsableWidth = pageWidth - 30
             const rowHeight = 8
             const padding = 2
 
-            // Calcula largura de cada coluna baseado no maior texto
             const calcularLargura = (texto: string, bold = false) => {
                 setZalando(bold ? 'bold' : 'normal')
                 pdf.setFontSize(8.5)
                 return pdf.getTextWidth(texto) + padding * 2
             }
 
-            // Largura inicial pelos headers
             let colWidths = headers.map(h => calcularLargura(h, true))
 
-            // Ajusta com os dados
-            dadosAgrupados.forEach(([data, info]) => {
+            dadosAgrupados.forEach(([, info]) => {
                 const totalStr = formatNumber(info.total)
                 const zeroStr = formatNumber(0)
-                colWidths[0] = Math.max(colWidths[0], calcularLargura(data, true))
-                colWidths[1] = Math.max(colWidths[1], calcularLargura(totalStr))
-                colWidths[2] = Math.max(colWidths[2], calcularLargura(zeroStr))
-                colWidths[3] = Math.max(colWidths[3], calcularLargura(totalStr))
-                colWidths[4] = Math.max(colWidths[4], calcularLargura(totalStr))
+                colWidths[1] = Math.max(colWidths[1], calcularLargura(totalStr, true))
+                colWidths[2] = Math.max(colWidths[2], calcularLargura(zeroStr, true))
+                colWidths[3] = Math.max(colWidths[3], calcularLargura(totalStr, true))
+                colWidths[4] = Math.max(colWidths[4], calcularLargura(totalStr, true))
             })
 
-            // Ajusta pra preencher 100% proporcionalmente
             const somaAtual = colWidths.reduce((a, b) => a + b, 0)
             const fator = pageUsableWidth / somaAtual
             colWidths = colWidths.map(w => w * fator)
@@ -317,7 +319,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             headers.forEach((h, i) => {
                 const x = startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0)
                 pdf.rect(x, y - 4, colWidths[i], rowHeight, "D")
-                pdf.text(h, x + padding, y)
+                pdf.text(h, x + padding, y - 2)
             })
             y += rowHeight
 
@@ -327,22 +329,21 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.rect(startX + totalTableWidth - colWidths[4], y - 4, colWidths[4], rowHeight, "D")
             setZalando('normal')
             pdf.setFontSize(8)
-            pdf.text("AOA", startX + padding, y)
-            pdf.text("-", startX + totalTableWidth - padding - 1, y, { align: "right" })
+            pdf.text("AOA", startX + padding, y - 2)
+            pdf.text("-", startX + totalTableWidth - padding - 1, y - 2, { align: "right" })
             y += rowHeight
 
-            // DADOS
-            setZalando('normal')
+            // DADOS - TUDO EM NEGRITO E CENTRALIZADO VERTICAL
             pdf.setFontSize(8.5)
             dadosAgrupados.forEach(([data, info], index) => {
                 if (y > 270) {
                     pdf.addPage()
                     y = 20
-                    setZalando()
                 }
 
                 const x = startX
                 const total = info.total
+                const textY = y - 2
 
                 if (index % 2 === 0) {
                     pdf.setFillColor(248, 250, 252)
@@ -356,35 +357,25 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
                 let currentX = x
                 setZalando('bold')
-                pdf.text(data, currentX + padding, y)
+                pdf.text(data, currentX + padding, textY)
 
                 currentX += colWidths[0]
-                setZalando('normal')
-                pdf.text(formatNumber(total), currentX + colWidths[1] - padding, y, { align: "right" })
+                pdf.text(formatNumber(total), currentX + colWidths[1] - padding, textY, { align: "right" })
 
                 currentX += colWidths[1]
-                pdf.text(formatNumber(0), currentX + colWidths[2] - padding, y, { align: "right" })
+                pdf.text(formatNumber(0), currentX + colWidths[2] - padding, textY, { align: "right" })
 
                 currentX += colWidths[2]
-                pdf.text(formatNumber(total), currentX + colWidths[3] - padding, y, { align: "right" })
+                pdf.text(formatNumber(total), currentX + colWidths[3] - padding, textY, { align: "right" })
 
                 currentX += colWidths[3]
-                pdf.text(formatNumber(total), currentX + colWidths[4] - padding, y, { align: "right" })
+                pdf.text(formatNumber(total), currentX + colWidths[4] - padding, textY, { align: "right" })
 
                 y += rowHeight
             })
             y += 8
 
-            // 5. REMINDER
-            setZalando('normal')
-            pdf.setFontSize(8)
-            pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
-            pdf.text("...", 15, y)
-            y += 5
-            pdf.text("ATT: Balanco total das vendas.", 15, y)
-            y += 10
-
-            // 6. TABELA "ESTE MÊS"
+            // 6. TABELA "BALANÇO GERAL"
             const totalGeral = dadosAgrupados.reduce((sum, [, info]) => sum + info.total, 0)
             const resumoWidth = 90
 
@@ -395,7 +386,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             pdf.setTextColor(0)
             pdf.setFontSize(9)
             pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
-            pdf.text("Total Geral", 17, y)
+            pdf.text("Balanço Geral", 17, y - 2)
             y += rowHeight
 
             const resumoMes = [
@@ -409,10 +400,10 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 pdf.rect(15, y - 4, resumoWidth, rowHeight, "D")
                 setZalando('normal')
                 pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
-                pdf.text(label, 17, y)
+                pdf.text(label, 17, y - 2)
                 setZalando('bold')
                 pdf.setTextColor(0)
-                pdf.text(valor, 15 + resumoWidth - 3, y, { align: "right" })
+                pdf.text(valor, 15 + resumoWidth - 3, y - 2, { align: "right" })
                 y += rowHeight
             })
 
@@ -434,7 +425,6 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             setLoading(null)
         }
     }
-
 
 
 
