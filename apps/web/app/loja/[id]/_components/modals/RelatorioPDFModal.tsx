@@ -315,7 +315,7 @@ export function RelatorioPDFModal({
                 {/* HEADER FIXO */}
 
                 {/* PDF PREVIEW - AGORA OCUPA 100% DA LARGURA */}
-                <div className="flex-1 w-full overflow-hidden pb-[calc(3rem+env(safe-area-inset-bottom))]">
+                <div className="flex-1 w-full overflow-hidden pb-[calc(3.5rem+env(safe-area-inset-bottom))]">
                     {pdfUrl ? (
                         <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
                     ) : (
@@ -325,10 +325,14 @@ export function RelatorioPDFModal({
                     )}
                 </div>
 
-                {/* FOOTER FIXO EMBAIXO */}
+                {/* FOOTER FIXO EMBAIXO ACIMA DA BARRA */}
                 <div
-                    className="fixed bottom-0 left-0 right-0 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex-row gap-2 z-50"
-                    style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}
+                    className="fixed left-0 right-0 px-3 pt-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] border-t flex-row gap-2 z-50"
+                    style={{
+                        backgroundColor: 'var(--cor-card)',
+                        borderColor: 'var(--cor-borda)',
+                        bottom: 'env(safe-area-inset-bottom, 0px)'
+                    }}
                 >
                     <Button
                         variant="outline"
