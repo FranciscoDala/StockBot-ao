@@ -1,5 +1,5 @@
 "use client";
-import { User, MapPin, Edit, TrendingUp, TrendingDown, DollarSign, Ban, Wifi, WifiOff, ShoppingBag, Package } from "lucide-react";
+import { DollarSign, Ban, Wifi, WifiOff, ShoppingBag, TrendingUp, Edit } from "lucide-react";
 import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -9,58 +9,42 @@ const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
 
 type ItemVenda = { id: string; produto_id: string; nome_produto: string; quantidade: number; preco_unitario: number; subtotal: number }
 type VendaAPI = { id: string | number; total: number; total_itens: number; forma_pagamento: string; data_venda: string; status: string; itens: ItemVenda[] }
-type Stats = { total: number; qtdVendas: number; ticketMedio: number }
 
 type Props = {
     loja: Loja | null | undefined;
     user: userread | null;
     lojaId?: string;
-    token?: string | null; // agora é opcional
+    token?: string | null;
     theme: string;
     cardStyle: string;
     cardSize: string;
 }
 
-export function DadosTab({ loja, user, lojaId, token: tokenProp, theme, cardStyle, cardSize }: Props) {
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
+
+export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, theme, cardStyle, cardSize }: Props) {
     const [kpis, setKpis] = useState({ vendaDiaria: 0, saidaDiaria: 0, totalVendasMes: 0, totalProdutos: 0, estoqueZerado: 0, qtdVendasHoje: 0 });
     const [loading, setLoading] = useState(true);
     const [wsConectado, setWsConectado] = useState(false);
-    const [token, setToken] = useState<string | null>(tokenProp || null); // PEGA DO PROP OU LOCALSTORAGE
     const ws = useRef<WebSocket | null>(null);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    // NOVO: Pega token do localStorage se não veio por prop
-    useEffect(() => {
-        if (!tokenProp) {
-            const tokenSalvo = localStorage.getItem('token');
-            setToken(tokenSalvo);
-            console.log("TOKEN DO LOCALSTORAGE:", tokenSalvo)
-        } else {
-            setToken(tokenProp)
-        }
-    }, [tokenProp])
+    const lojaId = lojaIdProp || getCookie('lojaId')
+    const token = tokenProp || getCookie('token')
 
     const carregarKPIs = useCallback(async () => {
-        if (!lojaId ||!token ||!API_URL) {
-            console.log("Faltando dados:", { lojaId, token:!!token, API_URL })
-            setLoading(false);
-            return;
-        }
+        if (!lojaId || !token || !API_URL) { setLoading(false); return; }
         setLoading(true);
         try {
             const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
-            console.log("STATUS VENDAS:", resVendas.status)
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas: " + resVendas.status);
             const data: VendaAPI[] = await resVendas.json();
 
-            console.log("VENDAS BRUTAS:", data)
-            console.log("LOJA ID:", lojaId)
-
-            const vendas = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().trim() === "concluida")
-               .map(v => ({...v, total: Number(v.total) || 0, data_venda: new Date(v.data_venda) }));
+            const vendas = (Array.isArray(data) ? data : [])
+                .filter(v => v.status?.toLowerCase().trim() === "concluida")
+                .map(v => ({ ...v, total: Number(v.total) || 0, data_venda: new Date(v.data_venda) }));
 
             const agora = new Date();
             const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0);
@@ -84,9 +68,6 @@ export function DadosTab({ loja, user, lojaId, token: tokenProp, theme, cardStyl
                 }
             } catch { }
 
-            console.log("VENDAS HOJE:", vendasHoje.length)
-            console.log("TOTAL HOJE:", vendasHoje.reduce((acc, v) => acc + v.total, 0))
-
             setKpis({
                 vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
                 saidaDiaria: 0,
@@ -100,7 +81,7 @@ export function DadosTab({ loja, user, lojaId, token: tokenProp, theme, cardStyl
     }, [lojaId, token])
 
     const conectarWebSocket = useCallback(() => {
-        if (!token ||!lojaId ||!WS_URL) return;
+        if (!token || !lojaId || !WS_URL) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
 
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
@@ -132,46 +113,38 @@ export function DadosTab({ loja, user, lojaId, token: tokenProp, theme, cardStyl
 
     }, [token, lojaId, carregarKPIs]);
 
-    useEffect(() => {
-        if(token) { // só carrega se tiver token
-            carregarKPIs();
-            conectarWebSocket();
-        }
-        return () => {
-            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-            ws.current?.close()
-        }
-    }, [carregarKPIs, conectarWebSocket, token])
 
-    const ticketMedio = kpis.qtdVendasHoje > 0? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    useEffect(() => { if (token && lojaId) { carregarKPIs(); conectarWebSocket(); } return () => { if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current); ws.current?.close() } }, [carregarKPIs, conectarWebSocket, token, lojaId])
+
+    const ticketMedio = kpis.qtdVendasHoje > 0 ? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
 
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
-                        Dados {wsConectado? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
+                        Dados {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
                 </div>
                 <button onClick={carregarKPIs} disabled={loading} className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
-                    <Edit size={16} /> {loading? "Atualizando..." : "Atualizar"}
+                    <Edit size={16} /> {loading ? "Atualizando..." : "Atualizar"}
                 </button>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Entradas de hoje" formatCurrency={formatCurrency} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(v)} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={formatCurrency} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Estoque Zerado" stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }} icon={<Ban size={16} />} descricao="Não consegue vender" formatCurrency={(v: number) => String(v)} theme={theme} cardStyle={cardStyle} cardSize={cardSize} />
+                <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Entradas de hoje" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
+                <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(v)} cardStyle={cardStyle} cardSize={cardSize} />
+                <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
+                <CardStats titulo="Estoque Zerado" stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }} icon={<Ban size={16} />} descricao="Não consegue vender" formatCurrency={(v: number) => String(v)} cardStyle={cardStyle} cardSize={cardSize} />
             </div>
 
-            <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', backdropFilter: 'blur(16px)', border: 'none', color: 'var(--cor-primaria)', padding: cardSize === 'grande'? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' }}>
+            <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', backdropFilter: 'blur(16px)', border: 'none', color: 'var(--cor-primaria)', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' }}>
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-xs font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Resumo do Mês</p>
-                        <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{loading? "..." : formatCurrency(kpis.totalVendasMes)}</p>
+                        <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{loading ? "..." : formatCurrency(kpis.totalVendasMes)}</p>
                         <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total vendido nos últimos 30 dias</p>
                     </div>
                 </div>
@@ -180,9 +153,9 @@ export function DadosTab({ loja, user, lojaId, token: tokenProp, theme, cardStyl
     )
 }
 
-function CardStats({ titulo, stats, icon, descricao, formatCurrency, theme, cardStyle, cardSize }: any) {
-    const padding = cardSize === 'grande'? '20px' : '16px';
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+function CardStats({ titulo, stats, icon, descricao, formatCurrency, cardStyle, cardSize }: any) {
+    const padding = cardSize === 'grande' ? '20px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     return (
         <div className="transition hover:scale-[1.02]" style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', color: 'var(--cor-primaria)', padding, borderRadius: radius, border: 'none', boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' }}>
             <div className="flex items-center justify-between mb-2">
