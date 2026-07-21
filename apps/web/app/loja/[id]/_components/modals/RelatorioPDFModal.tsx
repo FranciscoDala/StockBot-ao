@@ -315,7 +315,7 @@ export function RelatorioPDFModal({
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="max-w-[100vw] w-[100vw] h-[100vh] flex flex-col p-0 rounded-none gap-0"
+                className="!max-w-none !w-screen !h-screen !rounded-none !p-0 !m-0 gap-0 flex-col"
                 style={{ backgroundColor: 'var(--cor-card)' }}
             >
                 {/* HEADER FIXO */}
@@ -336,18 +336,18 @@ export function RelatorioPDFModal({
                     </Button>
                 </DialogHeader>
 
-                {/* PDF PREVIEW */}
-                <div className="flex-1 overflow-hidden">
+                {/* PDF PREVIEW - AGORA OCUPA 100% DA LARGURA */}
+                <div className="flex-1 w-full overflow-hidden">
                     {pdfUrl ? (
-                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none' }} />
+                        <iframe src={pdfUrl} width="100%" height="100%" style={{ border: 'none', display: 'block' }} />
                     ) : (
-                        <div className="flex items-center justify-center h-full" style={{ color: 'var(--cor-texto-sec)' }}>
+                        <div className="flex items-center justify-center h-full w-full" style={{ color: 'var(--cor-texto-sec)' }}>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Gerando pré-visualização...
                         </div>
                     )}
                 </div>
 
-                {/* FOOTER COM BOTOES LADO A LADO NO MOBILE */}
+                {/* FOOTER COM BOTOES LADO A LADO */}
                 <DialogFooter
                     className="p-3 md:p-4 border-t flex-row gap-2 shrink-0"
                     style={{ borderColor: 'var(--cor-borda)' }}
