@@ -235,7 +235,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                                         setDataFim(hojeStr)
                                     }
                                 }}
-                                className="px-3 py-1.5 text-xs md:text-sm font-medium whitespace-nowrap transition-all"
+                                className="px-3 py-1.5 text-base md:text-sm font-medium whitespace-nowrap transition-all"
                                 style={{
                                     backgroundColor: activeTab === p.value? 'var(--cor-primaria)' : 'var(--cor-card-hover)',
                                     color: activeTab === p.value? 'white' : 'var(--cor-texto-sec)',
@@ -254,7 +254,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                 <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
                     <div className="flex items-center justify-between mb-2 gap-2">
-                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Total Vendido</p>
+                        <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Total Vendido</p>
                         <TrendingUp size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
                     </div>
                     <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(totalVendas)}</p>
@@ -262,7 +262,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
                 <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
                     <div className="flex items-center justify-between mb-2 gap-2">
-                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Nº Transações</p>
+                        <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Nº Transações</p>
                         <Wallet size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
                     </div>
                     <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{vendasFiltradas.length}</p>
@@ -270,7 +270,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
                 <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
                     <div className="flex items-center justify-between mb-2 gap-2">
-                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Ticket Médio</p>
+                        <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Ticket Médio</p>
                         <TrendingUp size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
                     </div>
                     <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(ticketMedio)}</p>
@@ -278,7 +278,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
                 <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
                     <div className="flex items-center justify-between mb-2 gap-2">
-                        <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Itens Vendidos</p>
+                        <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Itens Vendidos</p>
                         <Package size={16} style={{ color: 'var(--cor-primaria)', flexShrink: 0 }} />
                     </div>
                     <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold break-words" style={{ color: 'var(--cor-texto)' }}>{totalItens}</p>

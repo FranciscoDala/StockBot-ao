@@ -21,10 +21,10 @@ export function FornecedoresTab({ theme, cardStyle, cardSize }: Props) { // <-- 
                         Fornecedores
                         <Truck size={16} style={{color: 'var(--cor-primaria)'}} />
                     </h2>
-                    <p className="text-xs sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Gerencie os fornecedores da loja</p>
+                    <p className="text-base sm:text-sm" style={{color: 'var(--cor-texto-sec)'}}>Gerencie os fornecedores da loja</p>
                 </div>
                 <button
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-base"
                     style={{
                         background: 'var(--cor-primaria)',
                         color: '#fff',
@@ -57,7 +57,7 @@ export function FornecedoresTab({ theme, cardStyle, cardSize }: Props) { // <-- 
                     >
                         <Truck size={32} className="mx-auto mb-3" style={{opacity: 0.7}} />
                         <p className="text-sm font-medium">Nenhum fornecedor cadastrado ainda</p>
-                        <p className="text-xs" style={{opacity: 0.8}}>Clique em "Adicionar Fornecedor" para começar</p>
+                        <p className="text-base" style={{opacity: 0.8}}>Clique em "Adicionar Fornecedor" para começar</p>
                     </div>
                 ) : (
                     <div>Lista aqui</div>

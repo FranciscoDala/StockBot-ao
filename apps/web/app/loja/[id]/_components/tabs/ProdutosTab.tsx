@@ -94,12 +94,12 @@ export function ProdutosTab({
                             Produtos
                             <Package size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </h2>
-                        <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{kpis.totalProdutos} produtos cadastrados</p>
+                        <p className="text-base sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{kpis.totalProdutos} produtos cadastrados</p>
                     </div>
                     {isAdmin && (
                         <button
                             onClick={onAdd}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-base"
                             style={{ background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}
                         >
                             <Plus size={14} /> Adicionar Produto
@@ -122,13 +122,13 @@ export function ProdutosTab({
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Valor em Estoque</p>
+                            <p className="text-base md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Valor em Estoque</p>
                             <DollarSign size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
                         <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-primaria)' }} title={formatCurrency(kpis.valorTotalEstoque)}>
                             {formatCurrency(kpis.valorTotalEstoque)}
                         </p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total do estoque atual</p>
+                        <p className="text-base md:text-base mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total do estoque atual</p>
                     </div>
 
                     <div
@@ -144,11 +144,11 @@ export function ProdutosTab({
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Em Estoque</p>
+                            <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Em Estoque</p>
                             <TrendingUp size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
                         <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.totalEmEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos com estoque ok</p>
+                        <p className="text-base md:text-base mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos com estoque ok</p>
                     </div>
 
                     <div
@@ -164,11 +164,11 @@ export function ProdutosTab({
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Estoque Baixo</p>
+                            <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Estoque Baixo</p>
                             <AlertTriangle size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
                         <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.estoqueBaixo}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Abaixo do mínimo</p>
+                        <p className="text-base md:text-base mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Abaixo do mínimo</p>
                     </div>
 
                     <div
@@ -184,11 +184,11 @@ export function ProdutosTab({
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Sem Estoque</p>
+                            <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Sem Estoque</p>
                             <TrendingDown size={16} style={{ color: 'var(--cor-primaria)' }} />
                         </div>
                         <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.semEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos zerados</p>
+                        <p className="text-base md:text-base mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos zerados</p>
                     </div>
                 </div>
 
@@ -242,19 +242,19 @@ export function ProdutosTab({
                                                         <button onClick={() => setQrProduto(p)} className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all" style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius }}>
                                                             <QrCode size={18} className="text-white" />
                                                         </button>
-                                                        {!p.is_active && (<Badge className="text-xs h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444', borderRadius: radius }}>Inativo</Badge>)}
+                                                        {!p.is_active && (<Badge className="text-base h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444', borderRadius: radius }}>Inativo</Badge>)}
                                                     </div>
                                                 </div>
 
                                                 {/* CONTEUDO */}
                                                 <div className="p-4 flex-col flex-1">
                                                     <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
-                                                    <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
+                                                    <div className="flex items-center gap-1.5 text-base mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
                                                     <div className="space-y-2.5 text-sm flex-1 mb-3">
-                                                        <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                        <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
+                                                        <div className="flex justify-between items-center"><span className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
+                                                        <div className="flex justify-between items-center"><span className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
                                                     </div>
-                                                    <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
+                                                    <div className="mb-4 px-3 py-1.5 text-base font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
                                                     {isAdmin && (
                                                         <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                             <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>
@@ -299,19 +299,19 @@ export function ProdutosTab({
                                                     <button onClick={() => setQrProduto(p)} className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all" style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius }}>
                                                         <QrCode size={18} className="text-white" />
                                                     </button>
-                                                    {!p.is_active && (<Badge className="text-xs h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444', borderRadius: radius }}>Inativo</Badge>)}
+                                                    {!p.is_active && (<Badge className="text-base h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444', borderRadius: radius }}>Inativo</Badge>)}
                                                 </div>
                                             </div>
 
                                             {/* CONTEUDO */}
                                             <div className="p-4 flex-col flex-1">
                                                 <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
-                                                <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
+                                                <div className="flex items-center gap-1.5 text-base mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
                                                 <div className="space-y-2.5 text-sm flex-1 mb-3">
-                                                    <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                    <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
+                                                    <div className="flex justify-between items-center"><span className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
+                                                    <div className="flex justify-between items-center"><span className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
                                                 </div>
-                                                <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
+                                                <div className="mb-4 px-3 py-1.5 text-base font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
                                                 {isAdmin && (
                                                     <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                         <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>

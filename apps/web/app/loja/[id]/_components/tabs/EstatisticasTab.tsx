@@ -333,7 +333,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Estatísticas
                         {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
                     </h2>
-                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Acompanha o crescimento da sua loja</p>
+                    <p className="text-base sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Acompanha o crescimento da sua loja</p>
                 </div>
                 <div className="flex gap-2">
                     <button onClick={exportarCSV} className="btn-primary">
@@ -359,7 +359,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Período</label>
+                        <label className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Período</label>
                         <select
                             value={filtroPeriodo}
                             onChange={(e) => setFiltroPeriodo(e.target.value)}
@@ -373,7 +373,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Forma de Pagamento</label>
+                        <label className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Forma de Pagamento</label>
                         <select
                             value={filtroForma}
                             onChange={(e) => setFiltroForma(e.target.value)}
@@ -485,7 +485,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             <div className="flex gap-2">
                                 {["diario", "semanal", "mensal"].map(tipo => (
                                     <button key={tipo} onClick={() => setFiltroGrafico(tipo as any)}
-                                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition"
+                                        className="px-3 py-1.5 rounded-lg text-base font-medium transition"
                                         style={filtroGrafico === tipo
                                             ? { backgroundColor: 'var(--cor-primaria)', color: 'white', borderRadius: radius }
                                             : { backgroundColor: 'var(--cor-card-hover)', color: 'var(--cor-texto)', borderRadius: radius }
@@ -531,10 +531,10 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                         <h3 className="font-bold mb-3" style={{ color: 'var(--cor-texto)' }}>Últimas Vendas - {vendasFiltradas.length}</h3>
                         <div className="space-y-1 max-h-[400px] overflow-y-auto scrollbar-hide">
                             {vendasFiltradas.sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()).slice(0, 20).map(v => (
-                                <div key={v.id} className="flex justify-between items-center border-b pb-2 pt-2 px-2 text-xs transition" style={{ borderColor: 'var(--cor-borda)' }}>
+                                <div key={v.id} className="flex justify-between items-center border-b pb-2 pt-2 px-2 text-base transition" style={{ borderColor: 'var(--cor-borda)' }}>
                                     <div onClick={() => setVendaSelecionada(v)} className="cursor-pointer flex-1 min-w-0">
                                         <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>#{v.id.slice(0, 8)} - {new Date(v.data).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })}</p>
-                                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{v.itens} itens • {v.formaPagamento}</p>
+                                        <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>{v.itens} itens • {v.formaPagamento}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
                                         <p className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(v.total)}</p>
@@ -565,7 +565,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                             <div key={i} className="flex justify-between items-center p-3" style={{ backgroundColor: 'var(--cor-card-hover)', borderRadius: radius }}>
                                 <div>
                                     <p className="font-medium text-sm" style={{ color: 'var(--cor-texto)' }}>#{i + 1} {p.nome}</p>
-                                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{p.qtd} unidades vendidas</p>
+                                    <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>{p.qtd} unidades vendidas</p>
                                 </div>
                                 <p className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(p.total)}</p>
                             </div>
@@ -632,7 +632,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
                                         <div key={item.id} className="flex justify-between items-center text-sm p-3" style={{ backgroundColor: 'var(--cor-card-hover)', borderRadius: radius }}>
                                             <div className="flex-1">
                                                 <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>{item.nome_produto}</p>
-                                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
+                                                <p className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>{item.quantidade}x {formatCurrency(item.preco_unitario)}</p>
                                             </div>
                                             <p className="font-semibold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(item.subtotal)}</p>
                                         </div>
@@ -709,12 +709,12 @@ function CardStats({
             }}
         >
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>{titulo}</p>
+                <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>{titulo}</p>
                 <div className="opacity-80 shrink-0">{icon}</div>
             </div>
             <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(stats.total)}</p>
-            <p className="text-xs md:text-xs mt-1 opacity-80 truncate" style={{ color: 'var(--cor-texto-sec)' }}>{descricao}</p>
-            {tendencia && <p className="text-xs md:text-xs mt-1 opacity-60 truncate" style={{ color: 'var(--cor-texto-sec)' }}>{tendencia}</p>}
+            <p className="text-base md:text-base mt-1 opacity-80 truncate" style={{ color: 'var(--cor-texto-sec)' }}>{descricao}</p>
+            {tendencia && <p className="text-base md:text-base mt-1 opacity-60 truncate" style={{ color: 'var(--cor-texto-sec)' }}>{tendencia}</p>}
         </div>
     )
 }

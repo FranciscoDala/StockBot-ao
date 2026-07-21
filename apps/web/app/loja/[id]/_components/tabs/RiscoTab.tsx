@@ -85,12 +85,12 @@ function CardRisco({
             }}
         >
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
+                <p className="text-base md:text-sm font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
                 <div style={{ color: 'var(--cor-primaria)' }}>{icon}</div>
             </div>
             <p className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{qtd}</p>
-            <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
-            {tendencia && <p className="text-xs mt-1" style={{ opacity: 0.7, color: 'var(--cor-primaria)' }}>{tendencia}</p>}
+            <p className="text-base mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
+            {tendencia && <p className="text-base mt-1" style={{ opacity: 0.7, color: 'var(--cor-primaria)' }}>{tendencia}</p>}
         </div>
     )
 }
@@ -200,11 +200,11 @@ export function RiscoTab({
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Painel de Riscos
                         {totalRiscos === 0 ? <CheckCircle2 size={16} style={{ color: 'var(--cor-primaria)' }} /> : <AlertTriangle size={16} className="text-red-500" />}
                     </h2>
-                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Observe e controle os riscos diários</p>
+                    <p className="text-base sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Observe e controle os riscos diários</p>
                 </div>
                 <button
                     onClick={exportarCSV}
-                    className="flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-xs"
+                    className="flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-base"
                     style={{ background: 'var(--cor-primaria)', color: '#fff', padding: cardSize === 'grande' ? '12px 20px' : '8px 16px', borderRadius: radius }}
                 >
                     <Download size={14} /> Exportar CSV
@@ -226,7 +226,7 @@ export function RiscoTab({
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Período de Análise</label>
+                        <label className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Período de Análise</label>
                         <select
                             value={filtroPeriodo}
                             onChange={(e) => setFiltroPeriodo(e.target.value)}
@@ -240,7 +240,7 @@ export function RiscoTab({
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Categoria</label>
+                        <label className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Categoria</label>
                         <select
                             value={filtroCategoria}
                             onChange={(e) => setFiltroCategoria(e.target.value)}
@@ -252,7 +252,7 @@ export function RiscoTab({
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Buscar Produto</label>
+                        <label className="text-base" style={{ color: 'var(--cor-texto-sec)' }}>Buscar Produto</label>
                         <div className="relative mt-1">
                             <Search size={14} className="absolute left-3 top-2.5" style={{ color: 'var(--cor-texto-sec)' }} />
                             <input
@@ -324,10 +324,10 @@ export function RiscoTab({
                                     <div key={p.id} className="p-3" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
                                         <div className="flex justify-between items-center mb-2">
                                             <p className="font-medium text-sm truncate max-w-[200px]" style={{ color: 'var(--cor-texto)' }}>{p.nome}</p>
-                                            <span className="font-bold text-xs" style={{ color: p.estoque <= 0 ? '#ef4444' : '#f97316' }}>Est: {p.estoque}</span>
+                                            <span className="font-bold text-base" style={{ color: p.estoque <= 0 ? '#ef4444' : '#f97316' }}>Est: {p.estoque}</span>
                                         </div>
                                         <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0 ? "#ef4444" : "#f97316"} cardStyle={cardStyle} />
-                                        <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>Mínimo: {p.estoque_minimo}</p>
+                                        <p className="text-base mt-1" style={{ color: 'var(--cor-texto-sec)' }}>Mínimo: {p.estoque_minimo}</p>
                                     </div>
                                 ))}
                                 {produtosZerados.length === 0 && produtosRuptura.length === 0 && <p className="text-center py-8 text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Estoque saudável ✅</p>}
@@ -347,7 +347,7 @@ export function RiscoTab({
                                 <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}><Flame size={16} style={{ color: '#f97316' }} /> Próximos do Vencimento</h3>
                                 <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto scrollbar-hide">
                                     {produtosValidade.map(p => (
-                                        <div key={p.id} className="p-3 text-xs" style={{ backgroundColor: '#f9731614', border: '1px solid #f9731630', borderRadius: radius }}>
+                                        <div key={p.id} className="p-3 text-base" style={{ backgroundColor: '#f9731614', border: '1px solid #f9731630', borderRadius: radius }}>
                                             <p className="font-medium truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</p>
                                             <p style={{ color: 'var(--cor-texto-sec)' }}>Vence: {new Date(p.data_validade!).toLocaleDateString('pt-AO')}</p>
                                             <p className="font-bold mt-1" style={{ color: 'var(--cor-texto)' }}>Est: {p.estoque} un</p>
@@ -381,7 +381,7 @@ export function RiscoTab({
                         <h3 className="font-bold text-base mb-3" style={{ color: 'var(--cor-texto)' }}>Últimas Vendas Canceladas</h3>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto scrollbar-hide">
                             {vendasCanceladas.slice(0, 10).map(v => (
-                                <div key={v.id} className="flex justify-between items-center p-3 text-xs" style={{ backgroundColor: '#ef444414', border: '1px solid #ef444430', borderRadius: radius }}>
+                                <div key={v.id} className="flex justify-between items-center p-3 text-base" style={{ backgroundColor: '#ef444414', border: '1px solid #ef444430', borderRadius: radius }}>
                                     <div>
                                         <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>#{v.id.slice(0, 8)}</p>
                                         <p style={{ color: 'var(--cor-texto-sec)' }}>{new Date(v.data).toLocaleDateString('pt-AO')}</p>
