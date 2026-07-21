@@ -341,9 +341,9 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             setZalando('normal')
             pdf.setFontSize(8)
             pdf.setTextColor(corTextoCinza[0], corTextoCinza[1], corTextoCinza[2])
-            pdf.text("Reminder: Please include the statement number on your check.", 15, y)
+            pdf.text("Estatisticas: Confere os valores de entrada, saída, lucro e a diferença.", 15, y)
             y += 5
-            pdf.text("Terms: Balance due in 30 days.", 15, y)
+            pdf.text("Termos: Balanço total das vendas", 15, y)
             y += 10
 
             // 6. TABELA "ESTE MÊS" - COM CORES
