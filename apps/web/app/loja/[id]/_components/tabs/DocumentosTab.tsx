@@ -178,15 +178,23 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
 
 
 
+    import { zalandoLightBase64, zalandoBoldBase64, zalandoItalicBase64 } from './font/fonts'
+
     const exportarPDFModelo = async () => {
         setLoading('pdf')
         try {
             const pdf = new jsPDF('p', 'mm', 'a4')
             const pageWidth = pdf.internal.pageSize.getWidth()
 
-            // 1. REGISTRAR FONTE
-            pdf.addFileToVFS('ZalandoSansExpanded-Light.ttf', zalandoBase64)
-            pdf.addFont('ZalandoSansExpanded-Light.ttf', 'Zalando', 'normal')
+            // 1. REGISTRAR FONTE - 3 PESOS
+            pdf.addFileToVFS('ZalandoLight.ttf', zalandoLightBase64)
+            pdf.addFont('ZalandoLight.ttf', 'Zalando', 'normal')
+
+            pdf.addFileToVFS('ZalandoBold.ttf', zalandoBoldBase64)
+            pdf.addFont('ZalandoBold.ttf', 'Zalando', 'bold')
+
+            pdf.addFileToVFS('ZalandoItalic.ttf', zalandoItalicBase64)
+            pdf.addFont('ZalandoItalic.ttf', 'Zalando', 'italic')
 
             const setZalando = (style: 'normal' | 'bold' | 'italic' = 'normal') => {
                 pdf.setFont('Zalando', style)
@@ -197,13 +205,13 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             const corBorda = [200, 210, 220]
             const corTextoCinza = [100, 100, 100]
 
-            // 2. CABEÇALHO
-            pdf.setDrawColor(0)
-            pdf.setLineWidth(0.5)
-            pdf.rect(15, 15, 80, 25, "D")
+            // 2. CABEÇALHO - logo menor e borda igual da tabela
+            pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2]) // borda igual
+            pdf.setLineWidth(0.3)
+            pdf.rect(15, 15, 50, 20, "D") // reduzido de 80x25 pra 50x20
             setZalando('normal')
-            pdf.setFontSize(10)
-            pdf.text("Logo", 55, 28, { align: "center" })
+            pdf.setFontSize(9)
+            pdf.text("Logo", 40, 26, { align: "center" }) // centralizado no novo tamanho
 
             let yDireita = 18
             setZalando('normal')
@@ -260,12 +268,12 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 new Date(b[0].split('/').reverse().join('-')).getTime() - new Date(a[0].split('/').reverse().join('-')).getTime()
             )
 
-            // 4. TABELA
-            const headers = ["Data", "Venda", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
-            const colWidths = [20, 30, 20, 20, 25, 25, 30]
+            // 4. TABELA - REMOVI "Venda" e ajustei widths pra 100% = 180mm
+            const headers = ["Data", "Entrada", "Saida", "Subtotal", "Lucro", "Total Geral"]
+            const colWidths = [25, 25, 25, 30, 30, 45] // soma 180
             const startX = 15
             const rowHeight = 8
-            const totalTableWidth = colWidths.reduce((a, b) => a + b)
+            const totalTableWidth = colWidths.reduce((a, b) => a + b) // 180
 
             pdf.setFillColor(corHeader[0], corHeader[1], corHeader[2])
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
@@ -282,11 +290,11 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             y += rowHeight
 
             pdf.setDrawColor(corBorda[0], corBorda[1], corBorda[2])
-            pdf.rect(startX, y - 4, totalTableWidth - colWidths[6], rowHeight, "D")
-            pdf.rect(startX + totalTableWidth - colWidths[6], y - 4, colWidths[6], rowHeight, "D")
+            pdf.rect(startX, y - 4, totalTableWidth - colWidths[5], rowHeight, "D")
+            pdf.rect(startX + totalTableWidth - colWidths[5], y - 4, colWidths[5], rowHeight, "D")
             setZalando('normal')
             pdf.setFontSize(8)
-            pdf.text("$", startX + totalTableWidth - colWidths[6] + 2, y)
+            pdf.text("$", startX + totalTableWidth - colWidths[5] + 2, y)
             pdf.text("-", startX + totalTableWidth - 5, y)
             y += rowHeight
 
@@ -317,26 +325,22 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
                 pdf.text(data, currentX, y)
 
                 currentX = x + colWidths[0] + 2
-                setZalando('normal')
-                pdf.text("-", currentX, y)
-
-                currentX = x + colWidths[0] + colWidths[1] + 2
                 setZalando('bold')
                 pdf.text(formatCurrency(total), currentX, y)
 
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + 2
+                currentX = x + colWidths[0] + colWidths[1] + 2
                 setZalando('normal')
                 pdf.text(formatCurrency(0), currentX, y)
+
+                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + 2
+                setZalando('bold')
+                pdf.text(formatCurrency(total), currentX, y)
 
                 currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + 2
                 setZalando('bold')
                 pdf.text(formatCurrency(total), currentX, y)
 
                 currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + 2
-                setZalando('bold')
-                pdf.text(formatCurrency(total), currentX, y)
-
-                currentX = x + colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] + colWidths[4] + colWidths[5] + 2
                 setZalando('bold')
                 pdf.text(formatCurrency(total), currentX, y)
 
@@ -403,6 +407,11 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             setLoading(null)
         }
     }
+
+
+
+
+
 
     const exportarWord = async () => {
         setLoading('word')
