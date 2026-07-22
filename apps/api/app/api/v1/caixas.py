@@ -7,13 +7,13 @@ from decimal import Decimal
 from datetime import datetime, date
 
 from app.db.session import get_db
-from app.models.caixas import Caixa
-from app.models.movimentos_caixas import MovimentacaoCaixa # <- ADICIONADO
+from app.models.caixa import Caixa
+from app.models.movimentacao_caixa import MovimentacaoCaixa # <- ADICIONADO
 from app.models.loja import Loja
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
-from app.schemas.caixas import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut
+from app.schemas.caixa import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut
 from app.core.deps import get_current_user, verificar_acesso_loja
 from app.core.security import verify_password
 

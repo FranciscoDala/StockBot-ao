@@ -5,8 +5,8 @@ from typing import List
 from uuid import UUID
 
 from app.db.session import get_db
-from app.models.movimentos_caixas import MovimentacaoCaixa
-from app.models.caixas import Caixa
+from app.models.movimentacao_caixa import MovimentacaoCaixa
+from app.models.caixa import Caixa
 from app.models.usuario import Usuario
 from app.schemas.movimentos_caixas import MovimentacaoCaixaOut
 from app.core.deps import get_current_user, verificar_acesso_loja

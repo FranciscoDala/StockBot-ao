@@ -43,8 +43,8 @@ def import_all_models():
     from app.models.categoria import Categoria
     from app.models.fornecedor import Fornecedor
     from app.models.saidas import Saida
-    from app.models.caixas import Caixa # <- NOVO
-    from app.models.movimentos_caixas import MovimentacaoCaixa # <- NOVO
+    from app.models.caixa import Caixa # <- NOVO
+    from app.models.movimentacao_caixa import MovimentacaoCaixa # <- NOVO
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
