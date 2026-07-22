@@ -9,8 +9,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
 
 type ItemVenda = { id: string; produto_id: string; nome_produto: string; quantidade: number; preco_unitario: number; subtotal: number }
-type VendaAPI = { id: string | number; total: number; total_itens: number; forma_pagamento: string; data_venda: string; status: string; itens: ItemVenda[] }
-type SaidaAPI = { id: string; valor: number; descricao: string; data_saida: string; loja_id: string }
+type VendaAPI = { id: string | number; total: number; total_itens: number; forma_pagamento: string; created_at: string; status: string; itens: ItemVenda[] } // <- CORRIGIDO
+type SaidaAPI = { id: string; valor: number; descricao: string; created_at: string; loja_id: string } // <- CORRIGIDO
 
 type Props = {
     loja: Loja | null | undefined;
@@ -30,7 +30,6 @@ const getCookie = (name: string): string | undefined => {
     }, '');
 };
 
-// Helper seguro pra não quebrar com null/undefined
 const safeFormat = (v: number | null | undefined) => formatCurrency(Number(v) || 0);
 
 export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, theme, cardStyle, cardSize }: Props) {
@@ -38,7 +37,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         vendaDiaria: 0,
         saidaDiaria: 0,
         totalVendasMes: 0,
-        totalSaidasMes: 0, // <- NOVO
+        totalSaidasMes: 0,
         estoqueZerado: 0,
         qtdVendasHoje: 0
     });
@@ -73,28 +72,27 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             const inicioMes = new Date(agora);
             inicioMes.setDate(agora.getDate() - 30);
 
-            // LOGICA IGUAL A QUE FUNCIONAVA - sem converter data antes
             let saidasHoje = 0;
             let saidasMes = 0;
             if (Array.isArray(dataSaidas)) {
                 saidasHoje = dataSaidas
-                 .filter(s => {
-                    const d = new Date(s.data_saida);
+                .filter(s => {
+                    const d = new Date(s.created_at); // <- CORRIGIDO
                     return d >= inicioHoje && d <= fimHoje;
                   })
-                 .reduce((acc, s) => acc + Number(s.valor || 0), 0);
+                .reduce((acc, s) => acc + Number(s.valor || 0), 0);
 
                 saidasMes = dataSaidas
-                 .filter(s => {
-                    const d = new Date(s.data_saida);
+                .filter(s => {
+                    const d = new Date(s.created_at); // <- CORRIGIDO
                     return d >= inicioMes;
                   })
-                 .reduce((acc, s) => acc + Number(s.valor || 0), 0);
+                .reduce((acc, s) => acc + Number(s.valor || 0), 0);
             }
 
             const vendas = (Array.isArray(dataVendas)? dataVendas : [])
-            .filter(v => v.status?.toLowerCase().includes("concluid"))
-            .map(v => ({...v, total: Number(v.total) || 0, data_venda: new Date(v.data_venda) }));
+           .filter(v => v.status?.toLowerCase() === "concluida") // <- CORRIGIDO pra batER EXATO
+           .map(v => ({...v, total: Number(v.total) || 0, data_venda: new Date(v.created_at) })); // <- CORRIGIDO
 
             const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje && v.data_venda <= fimHoje);
             const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
@@ -103,7 +101,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
                 saidaDiaria: saidasHoje,
                 totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
-                totalSaidasMes: saidasMes, // <- NOVO
+                totalSaidasMes: saidasMes,
                 estoqueZerado: 0,
                 qtdVendasHoje: vendasHoje.length
             })
