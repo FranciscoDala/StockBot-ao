@@ -30,7 +30,6 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
 
     const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
 
-    // Limpa o form quando abre
     useEffect(() => {
         if (open) {
             setFormData({ valor: "", descricao: "" });
@@ -54,13 +53,18 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
         setSaving(true);
         try {
             const payload = {
-                loja_id: lojaId,
+                loja_id: lojaId, // <- BATE COM O SCHEMA DO BACKEND
                 valor: Number(formData.valor),
                 descricao: formData.descricao || "Saída manual"
             }
-            const res = await fetch(`${API_URL}/saidas/`, {
+
+            // CORRIGIDO: SEM BARRA NO FINAL PRA NÃO DAR 307
+            const res = await fetch(`${API_URL}/saidas`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
 
@@ -70,11 +74,12 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
             }
 
             toast.success("Saída registrada!");
-            onSave(); // avisa o pai pra recarregar
+            onSave(); // recarrega os KPIs
             onOpenChange(false);
         } catch (err: any) {
-            setErrorMsg(err.message || "Erro ao salvar");
-            toast.error(err.message || "Erro ao salvar");
+            console.error("Erro Saida:", err)
+            setErrorMsg(err.message || "Erro de conexão. Tente novamente.");
+            toast.error(err.message || "Erro de conexão");
         } finally {
             setSaving(false);
         }
@@ -121,7 +126,7 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                   ...focusStyle
+                                  ...focusStyle
                                 }}
                                 placeholder="0.00"
                                 required
@@ -139,7 +144,7 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                   ...focusStyle
+                                  ...focusStyle
                                 }}
                                 placeholder="Ex: Retirada do dono, Pagamento fornecedor..."
                             />
@@ -166,7 +171,7 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
                             disabled={saving}
                             className="gap-2 text-xs flex-1 sm:flex-initial font-bold"
                             style={{
-                                background: '#ef4444', // vermelho pra saída
+                                background: '#ef4444',
                                 color: '#fff',
                                 borderRadius: 'var(--radius)'
                             }}
