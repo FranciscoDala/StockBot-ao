@@ -108,9 +108,10 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         finally { setLoading(false); }
     }, [lojaId, token])
 
+    // ALTERAÇÃO 1: Não precisa mais recarregar aqui. O WS já faz
     const handleSaidaCriada = () => {
         setShowSaidaModal(false);
-        carregarKPIs();
+        // carregarKPIs(); <- REMOVIDO. WS vai atualizar
     }
 
     const conectarWebSocket = useCallback(() => {
@@ -121,7 +122,11 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         ws.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.tipo === 'stats.updated') carregarKPIs();
+                // ALTERAÇÃO 2: Escuta qualquer stats.updated
+                if (data.tipo === 'stats.updated') {
+                    console.log("WS: Atualizando KPIs", data)
+                    carregarKPIs();
+                }
             } catch (e) { console.error("Erro ao ler WS", e); }
         };
         ws.current.onclose = () => { setWsConectado(false); reconnectTimeout.current = setTimeout(conectarWebSocket, 3000); };
@@ -152,7 +157,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
                         <button
                             onClick={() => setShowSaidaModal(true)}
-                            className="flex-1 h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm" // flex-1 h-10
+                            className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm whitespace-nowrap"
                             style={{ background: '#ef4444', color: '#fff', borderRadius: radius }}
                         >
                             <PlusCircle size={16} /> Fazer Saída
@@ -161,7 +166,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                         <button
                             onClick={carregarKPIs}
                             disabled={loading}
-                            className="flex-1 h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm" // flex-1 h-10
+                            className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm whitespace-nowrap"
                             style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
                         >
                             <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> {loading ? "Atualizando..." : "Atualizar"}

@@ -10,6 +10,7 @@ from app.db.session import get_db # <- IGUAL AO LOJA.PY
 from app.models.saidas import Saida
 from app.models.usuario import Usuario
 from app.core.deps import get_current_user, verificar_acesso_loja
+from app.websocket.manager import manager # <- ADICIONADO
 
 router = APIRouter(prefix="/saidas", tags=["Saidas"])
 
@@ -48,6 +49,17 @@ async def criar_saida(
     db.add(nova_saida)
     await db.commit()
     await db.refresh(nova_saida)
+
+    # ATUALIZA ESTATISTICAS EM TEMPO REAL - NOVO
+    await manager.broadcast_to_loja(
+        str(body.loja_id),
+        {
+            "tipo": "stats.updated",
+            "valor_saida": float(nova_saida.valor), # negativo pra lucro
+            "acao": "add_saida"
+        }
+    )
+
     return nova_saida
 
 @router.get("", response_model=list[SaidaOut])
