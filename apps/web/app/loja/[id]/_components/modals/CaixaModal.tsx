@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, Unlock, Loader2, Inbox, Minus } from "lucide-react";
-import { formatCurrency } from "../utils";
+import { formatCurrency, formatDateTime } from "../utils"; // <- adicionei formatDateTime
 import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
 
@@ -24,9 +24,18 @@ type CaixaResumo = {
     status: 'aberto' | 'fechado'
 }
 
+type Movimentacao = {
+    id: string;
+    tipo: 'entrada' | 'saida' | 'sangria' | 'abertura';
+    valor: number;
+    descricao: string;
+    created_at: string;
+}
+
 export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
-    const [abaAtiva, setAbaAtiva] = useState<'resumo' | 'movimentacoes' | 'fechamento'>('resumo');
+    const [abaAtiva, setAbaAtiva] = useState<'resumo' | 'movimentacoes'>('resumo');
     const [resumo, setResumo] = useState<CaixaResumo | null>(null);
+    const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
     const [loading, setLoading] = useState(false);
 
     const [showSangriaModal, setShowSangriaModal] = useState(false);
@@ -35,17 +44,18 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
     useEffect(() => {
         if (open && lojaId && token && !showSangriaModal && !showAberturaModal) {
             carregarResumoCaixa();
+            if(abaAtiva === 'movimentacoes') carregarMovimentacoes();
         }
         if (open) document.body.style.overflow = 'hidden';
         else document.body.style.overflow = 'unset';
         return () => { document.body.style.overflow = 'unset'; }
-    }, [open, lojaId, token, showSangriaModal, showAberturaModal]);
+    }, [open, lojaId, token, showSangriaModal, showAberturaModal, abaAtiva]);
 
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/caixa/resumo?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
+            const res = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
             setResumo(data);
@@ -53,10 +63,26 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         finally { setLoading(false); }
     }
 
+    const carregarMovimentacoes = async () => {
+        if (!API_URL || !lojaId || !token || !resumo) return;
+        // Precisamos do ID do caixa. Vamos buscar ele no resumo primeiro
+        try {
+            const resResumo = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
+            const dataResumo = await resResumo.json();
+            if(!dataResumo.id) { setMovimentacoes([]); return; }
+
+            const res = await fetch(`${API_URL}/movimentos-caixas/${dataResumo.id}`, { headers: { "Authorization": `Bearer ${token}` } });
+            if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
+            const data = await res.json();
+            setMovimentacoes(data);
+        } catch (error) { console.error(error); setMovimentacoes([]); }
+    }
+
     const handleAcaoConcluida = () => {
         setShowSangriaModal(false);
         setShowAberturaModal(false);
         carregarResumoCaixa();
+        carregarMovimentacoes();
     }
 
     const isCaixaAberto = resumo?.status === 'aberto';
@@ -65,7 +91,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         <>
             <Dialog open={open} onOpenChange={(v) => { if(!showSangriaModal && !showAberturaModal) onOpenChange(v) }}>
                 <DialogContent
-                    className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden" // <- ESCONDE O X PADRAO
+                    className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
                     onInteractOutside={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
                     onEscapeKeyDown={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
@@ -81,7 +107,6 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                             </DialogDescription>
                         </div>
 
-                        {/* BOTAO FECHAR VERMELHO */}
                         <button
                             onClick={() => onOpenChange(false)}
                             className="h-10 w-10 sm:h-11 sm:w-11 flex items-center justify-center rounded-lg transition hover:opacity-90 shrink-0"
@@ -99,7 +124,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                     </div>
 
                     {/* CONTEUDO SCROLL */}
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
+                    <div className="flex-1 overflow-y-auto px-4 sm:p-6 min-h-0">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-full gap-2">
                                 <Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} />
@@ -107,7 +132,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                         ) : (
                             <>
                                 {abaAtiva === 'resumo' && <AbaResumo resumo={resumo} isCaixaAberto={isCaixaAberto} onAbrir={() => setShowAberturaModal(true)} onSangria={() => setShowSangriaModal(true)} />}
-                                {abaAtiva === 'movimentacoes' && <AbaMovimentacoes />}
+                                {abaAtiva === 'movimentacoes' && <AbaMovimentacoes movimentacoes={movimentacoes} />}
                             </>
                         )}
                     </div>
@@ -145,7 +170,6 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
 
     return (
         <div className="space-y-4">
-            {/* BOTOES: MOBILE 100% | DESKTOP DIREITA AUTO */}
             <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
                 <Button
                     onClick={onAbrir}
@@ -164,7 +188,6 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
                 </Button>
             </div>
 
-            {/* CARDS: MOBILE 1 COL | DESKTOP 4 COL */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                 <CardPadrao titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} corVar="var(--cor-info)" icon={<Wallet size={16}/>} descricao="Valor inicial do caixa" />
                 <CardPadrao titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} corVar="var(--cor-sucesso)" icon={<ArrowUpRight size={16}/>} descricao="Total de vendas em dinheiro" />
@@ -178,11 +201,37 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
     )
 }
 
-function AbaMovimentacoes() {
+function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) {
+    if(movimentacoes.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-96 gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
+                <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
+                <h3 className="font-semibold">Nenhuma movimentação hoje</h3>
+            </div>
+        )
+    }
+
+    const getIcon = (tipo: string) => {
+        if(tipo === 'entrada' || tipo === 'abertura') return <ArrowUpRight size={16} className="text-[var(--cor-sucesso)]" />;
+        return <ArrowDownRight size={16} className="text-[var(--cor-erro)]" />;
+    }
+
     return (
-        <div className="flex flex-col items-center justify-center h-96 gap-2 rounded-xl border border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
-            <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
-            <h3 className="font-semibold">Nenhuma movimentação hoje</h3>
+        <div className="space-y-2">
+            {movimentacoes.map(mov => (
+                <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
+                    <div className="flex items-center gap-3">
+                        {getIcon(mov.tipo)}
+                        <div>
+                            <p className="font-semibold text-sm">{mov.descricao}</p>
+                            <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
+                        </div>
+                    </div>
+                    <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura' ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                        {mov.tipo === 'entrada' || mov.tipo === 'abertura' ? '+' : '-'} {formatCurrency(mov.valor)}
+                    </p>
+                </div>
+            ))}
         </div>
     )
 }

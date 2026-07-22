@@ -1,128 +1,198 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from decimal import Decimal
+from sqlalchemy import select, and_
+from sqlalchemy.exc import IntegrityError
 from uuid import UUID
-from datetime import date
+from decimal import Decimal
+from datetime import datetime, date
 
 from app.db.session import get_db
-from app.models.caixa import Caixa, StatusCaixa # <- IMPORT DO MODEL
-from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao # <- IMPORT DO MODEL
+from app.models.caixas import Caixa
+from app.models.movimentos_caixas import MovimentacaoCaixa # <- ADICIONADO
+from app.models.loja import Loja
 from app.models.usuario import Usuario
-from app.core.deps import get_current_user, require_role, get_current_loja_id
-from app.schemas.caixa import ( # <- IMPORT DOS SCHEMAS
-    CaixaOut,
-    AbrirCaixaIn,
-    SangriaCaixaIn,
-    FecharCaixaIn,
-    MovimentacaoCaixaOut
-)
-from app.schemas.usuario import Role
-from app.websocket.manager import manager
+from app.models.usuario_loja import UsuarioLoja
+from app.models.role import UserRole
+from app.schemas.caixas import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut
+from app.core.deps import get_current_user, verificar_acesso_loja
+from app.core.security import verify_password
 
-router = APIRouter(prefix="/caixas", tags=["Caixa"])
+router = APIRouter()
 
-async def get_caixa_aberto(db: AsyncSession, loja_id: UUID):
+async def get_caixa_aberto(db: AsyncSession, loja_id: UUID) -> Caixa | None:
     hoje = date.today()
     stmt = select(Caixa).where(
-        Caixa.loja_id == loja_id,
-        Caixa.status == StatusCaixa.ABERTO,
-        func.date(Caixa.data) == hoje
+        and_(Caixa.loja_id == loja_id, Caixa.data_caixa == hoje, Caixa.status == 'aberto')
     )
-    result = await db.execute(stmt)
-    return result.scalar_one_or_none()
+    return (await db.execute(stmt)).scalar_one_or_none()
 
-@router.post("/abrir", response_model=CaixaOut)
-async def abrir_caixa(
-    body: AbrirCaixaIn,
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(require_role(Role.DONO, Role.GERENTE))
+async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> Usuario | None:
+    stmt = (select(Usuario).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
+          .where(UsuarioLoja.loja_id == loja_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True))
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
+    if not senha: raise HTTPException(status_code=403, detail="Senha do dono não informada")
+    dono = await get_dono_loja(db, loja_id)
+    if not dono: raise HTTPException(status_code=404, detail="Dono da loja não encontrado")
+    if not verify_password(senha, dono.senha_hash): raise HTTPException(status_code=403, detail="Senha do DONO incorreta")
+
+# NOVO: HELPER PARA LANÇAR MOVIMENTO
+async def registrar_movimento_caixa(
+    db: AsyncSession,
+    loja_id: UUID,
+    tipo: str, # 'entrada' | 'saida' | 'sangria' | 'abertura'
+    valor: Decimal,
+    descricao: str,
+    usuario_id: UUID,
+    referencia_id: UUID | None = None,
+    referencia_tipo: str | None = None
 ):
-    if await get_caixa_aberto(db, body.loja_id):
-        raise HTTPException(400, "Já existe um caixa aberto para hoje")
-
-    caixa = Caixa(
-        loja_id=body.loja_id,
-        saldo_abertura=body.saldo_abertura,
-        observacao=body.observacao,
-        usuario_abertura_id=current_user.id
-    )
-    db.add(caixa)
-    await db.commit()
-    await db.refresh(caixa)
-
-    await manager.broadcast_to_loja(str(body.loja_id), {"tipo": "caixa.updated"})
-    return caixa
-
-@router.post("/sangria", response_model=MovimentacaoCaixaOut)
-async def fazer_sangria(
-    body: SangriaCaixaIn,
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(require_role(Role.DONO, Role.GERENTE))
-):
-    caixa = await get_caixa_aberto(db, body.loja_id)
+    caixa = await get_caixa_aberto(db, loja_id)
     if not caixa:
-        raise HTTPException(400, "Nenhum caixa aberto")
+        raise HTTPException(status_code=400, detail="Não é possível registrar: caixa fechado")
 
     mov = MovimentacaoCaixa(
-        caixa_id=caixa.id,
-        loja_id=body.loja_id,
-        usuario_id=current_user.id,
-        tipo=TipoMovimentacao.SANGRIA,
-        valor=body.valor,
-        descricao=body.descricao
+        caixa_id=caixa.id, loja_id=loja_id, tipo=tipo,
+        valor=valor, descricao=descricao, referencia_id=referencia_id,
+        referencia_tipo=referencia_tipo, usuario_id=usuario_id, created_at=datetime.utcnow()
     )
     db.add(mov)
-    await db.commit()
-    await db.refresh(mov)
 
-    await manager.broadcast_to_loja(str(body.loja_id), {"tipo": "caixa.updated"})
-    return mov
+    if tipo == 'entrada' or tipo == 'abertura':
+        caixa.total_entradas += valor
+    elif tipo == 'saida' or tipo == 'sangria':
+        caixa.total_saidas += valor
+    caixa.saldo_esperado = caixa.saldo_abertura + caixa.total_entradas - caixa.total_saidas
 
-@router.post("/fechar", response_model=CaixaOut)
-async def fechar_caixa(
-    body: FecharCaixaIn,
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(require_role(Role.DONO, Role.GERENTE))
-):
-    caixa = await get_caixa_aberto(db, body.loja_id)
-    if not caixa:
-        raise HTTPException(400, "Nenhum caixa aberto")
-
-    # Calcula saldo final
-    stmt = select(
-        func.sum(MovimentacaoCaixa.valor).filter(MovimentacaoCaixa.tipo.in_([TipoMovimentacao.VENDA_DINHEIRO, TipoMovimentacao.ENTRADA])),
-        func.sum(MovimentacaoCaixa.valor).filter(MovimentacaoCaixa.tipo.in_([TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]))
-    ).where(MovimentacaoCaixa.caixa_id == caixa.id)
-    result = await db.execute(stmt)
-    entradas, saidas = result.one()
-    entradas = entradas or 0
-    saidas = saidas or 0
-
-    saldo_fechamento = caixa.saldo_abertura + entradas - saidas
-    diferenca = body.saldo_contado - saldo_fechamento
-
-    caixa.status = StatusCaixa.FECHADO
-    caixa.saldo_fechamento = saldo_fechamento
-    caixa.saldo_contado = body.saldo_contado
-    caixa.diferenca = diferenca
-    caixa.observacao = body.observacao
-    caixa.usuario_fechamento_id = current_user.id
-    caixa.fechado_em = func.now()
-
-    await db.commit()
-    await db.refresh(caixa)
-
-    await manager.broadcast_to_loja(str(body.loja_id), {"tipo": "caixa.updated"})
+    db.add(caixa)
     return caixa
 
-@router.get("/atual", response_model=CaixaOut)
-async def get_caixa_atual(
+@router.get("/resumo", response_model=CaixaResumoOut)
+async def get_resumo_caixa(
     loja_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    await verificar_acesso_loja(loja_id, db, current_user)
     caixa = await get_caixa_aberto(db, loja_id)
+
     if not caixa:
-        raise HTTPException(404, "Nenhum caixa aberto")
-    return caixa
+        return CaixaResumoOut(
+            id=None, saldo_abertura=Decimal(0), entradas_hoje=Decimal(0), saidas_hoje=Decimal(0),
+            saldo_atual=Decimal(0), status='fechado'
+        )
+
+    return CaixaResumoOut(
+        id=caixa.id,
+        saldo_abertura=caixa.saldo_abertura,
+        entradas_hoje=caixa.total_entradas,
+        saidas_hoje=caixa.total_saidas,
+        saldo_atual=caixa.saldo_esperado,
+        status=caixa.status
+    )
+
+@router.post("/abrir", status_code=status.HTTP_201_CREATED)
+async def abrir_caixa(
+    body: CaixaAbrirIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    await verificar_acesso_loja(body.loja_id, db, current_user)
+
+    if await get_caixa_aberto(db, body.loja_id):
+        raise HTTPException(status_code=400, detail="Já existe um caixa aberto para hoje")
+
+    loja = await db.get(Loja, body.loja_id)
+    if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+
+    try:
+        novo_caixa = Caixa(
+            loja_id=body.loja_id,
+            data_caixa=date.today(),
+            data_abertura=datetime.utcnow(),
+            usuario_abertura_id=current_user.id,
+            saldo_abertura=body.saldo_abertura,
+            saldo_esperado=body.saldo_abertura,
+            status='aberto',
+            observacao=body.observacao
+        )
+        db.add(novo_caixa)
+        await db.flush()
+
+        # Lança movimento de abertura
+        await registrar_movimento_caixa(
+            db=db, loja_id=body.loja_id, tipo='abertura', valor=body.saldo_abertura,
+            descricao=f"Abertura de caixa: {body.saldo_abertura}", usuario_id=current_user.id
+        )
+
+        await db.commit()
+        await db.refresh(novo_caixa)
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail="Já existe caixa para esta data")
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao abrir caixa: {e}")
+
+    return {"message": "Caixa aberto com sucesso", "id": novo_caixa.id}
+
+@router.post("/fechar/{caixa_id}")
+async def fechar_caixa(
+    caixa_id: UUID,
+    body: CaixaFecharIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    caixa = await db.get(Caixa, caixa_id)
+    if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
+    await verificar_acesso_loja(caixa.loja_id, db, current_user)
+    if caixa.status == 'fechado': raise HTTPException(status_code=400, detail="Caixa já está fechado")
+
+    await verify_dono_password(db, caixa.loja_id, body.senha_dono)
+
+    try:
+        caixa.status = 'fechado'
+        caixa.data_fechamento = datetime.utcnow()
+        caixa.usuario_fechamento_id = current_user.id
+        caixa.saldo_contado = body.saldo_contado
+        caixa.diferenca = body.saldo_contado - caixa.saldo_esperado # <- CALCULA DIFERENÇA
+        caixa.observacao = body.observacao
+
+        await registrar_movimento_caixa(
+            db=db, loja_id=caixa.loja_id, tipo='saida', valor=caixa.saldo_esperado,
+            descricao="Fechamento de caixa", usuario_id=current_user.id
+        )
+
+        await db.commit()
+        await db.refresh(caixa)
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao fechar caixa: {e}")
+
+    return {"message": "Caixa fechado com sucesso", "diferenca": float(caixa.diferenca or 0)}
+
+@router.post("/sangria")
+async def fazer_sangria(
+    body: SangriaIn,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    await verificar_acesso_loja(body.loja_id, db, current_user)
+    caixa = await get_caixa_aberto(db, body.loja_id)
+    if not caixa: raise HTTPException(status_code=400, detail="Não existe caixa aberto para hoje")
+
+    if caixa.saldo_esperado < body.valor:
+        raise HTTPException(status_code=400, detail="Saldo insuficiente para sangria")
+
+    try:
+        await registrar_movimento_caixa(
+            db=db, loja_id=body.loja_id, tipo='sangria', valor=body.valor,
+            descricao=body.descricao, usuario_id=current_user.id
+        )
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
+
+    return {"message": "Sangria registrada com sucesso"}

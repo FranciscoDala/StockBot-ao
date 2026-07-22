@@ -42,7 +42,9 @@ def import_all_models():
     from app.models.role import UserRole
     from app.models.categoria import Categoria
     from app.models.fornecedor import Fornecedor
-    from app.models.saidas import Saida # <- ADICIONEI O MODEL SAIDA
+    from app.models.saidas import Saida
+    from app.models.caixas import Caixa # <- NOVO
+    from app.models.movimentos_caixas import MovimentacaoCaixa # <- NOVO
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
@@ -196,7 +198,9 @@ from app.api.v1 import venda as venda_router
 from app.api.v1 import webhook as webhook_router
 from app.api.v1 import documentos as documentos_router
 from app.api.v1 import websocket as websocket_router
-from app.api.v1 import saidas as saidas_router # <- IMPORTEI O ROUTER
+from app.api.v1 import saidas as saidas_router
+from app.api.v1 import caixas as caixas_router # <- NOVO
+from app.api.v1 import movimentos_caixas as movimentos_caixas_router # <- NOVO
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="")
@@ -208,6 +212,8 @@ api_v1_router.include_router(venda_router.router, prefix="/vendas", tags=["venda
 api_v1_router.include_router(webhook_router.router, prefix="/webhook", tags=["whatsapp"])
 api_v1_router.include_router(documentos_router.router, prefix="/kyc", tags=["kyc"])
 api_v1_router.include_router(websocket_router.router)
-api_v1_router.include_router(saidas_router.router) # <- REGISTREI O ROUTER
+api_v1_router.include_router(saidas_router.router)
+api_v1_router.include_router(caixas_router.router, prefix="/caixas", tags=["caixas"]) # <- NOVO
+api_v1_router.include_router(movimentos_caixas_router.router, prefix="/movimentos-caixas", tags=["movimentos-caixas"]) # <- NOVO
 
 app.include_router(api_v1_router)

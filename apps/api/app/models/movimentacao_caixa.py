@@ -1,31 +1,23 @@
-from sqlalchemy import Column, String, DateTime, Enum, ForeignKey, Numeric, Text
+from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Text, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-import enum
 from app.db.base import Base
-
-class TipoMovimentacao(str, enum.Enum):
-    VENDA_DINHEIRO = "venda_dinheiro"
-    SAIDA = "saida"
-    SANGRIA = "sangria"
-    ENTRADA = "entrada" # colocar dinheiro no caixa
+import uuid
 
 class MovimentacaoCaixa(Base):
-    __tablename__ = "movimentacoes_caixa"
+    __tablename__ = "movimentacao_caixa"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
-    caixa_id = Column(UUID(as_uuid=True), ForeignKey("caixas.id"), nullable=False)
-    loja_id = Column(UUID(as_uuid=True), ForeignKey("lojas.id"), nullable=False)
-    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    caixa_id = Column(UUID(as_uuid=True), ForeignKey("caixa.id", ondelete="CASCADE"), nullable=False)
+    loja_id = Column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False)
 
-    tipo = Column(Enum(TipoMovimentacao), nullable=False)
-    valor = Column(Numeric(10, 2), nullable=False) # sempre positivo
-    descricao = Column(Text)
+    tipo = Column(String(20), nullable=False) # entrada, saida, sangria, abertura
+    valor = Column(Numeric(14, 2), nullable=False)
+    descricao = Column(Text, nullable=False)
+    referencia_id = Column(UUID(as_uuid=True), nullable=True)
+    referencia_tipo = Column(String(50), nullable=True)
+    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False)
 
-    venda_id = Column(UUID(as_uuid=True), ForeignKey("vendas.id"), nullable=True)
-    saida_id = Column(UUID(as_uuid=True), ForeignKey("saidas.id"), nullable=True)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    caixa = relationship("Caixa", back_populates="movimentacoes")
+    __table_args__ = (
+        CheckConstraint("tipo IN ('entrada', 'saida', 'sangria', 'abertura')", name='ck_mov_tipo'),
+    )

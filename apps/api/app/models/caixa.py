@@ -1,32 +1,30 @@
-from sqlalchemy import Column, String, DateTime, Enum, ForeignKey, Numeric, Boolean
+from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Date, Text, CheckConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
-import enum
 from app.db.base import Base
-
-class StatusCaixa(str, enum.Enum):
-    ABERTO = "aberto"
-    FECHADO = "fechado"
+import uuid
+from datetime import date
 
 class Caixa(Base):
-    __tablename__ = "caixas"
+    __tablename__ = "caixa"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid())
-    loja_id = Column(UUID(as_uuid=True), ForeignKey("lojas.id"), nullable=False)
-    data = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    status = Column(Enum(StatusCaixa), default=StatusCaixa.ABERTO, nullable=False)
-
-    saldo_abertura = Column(Numeric(10, 2), default=0)
-    saldo_fechamento = Column(Numeric(10, 2), default=0)
-    saldo_contado = Column(Numeric(10, 2), default=0) # o que foi contado na hora do fechamento
-    diferenca = Column(Numeric(10, 2), default=0) # saldo_contado - saldo_fechamento
-
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    loja_id = Column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False)
+    data_caixa = Column(Date, nullable=False, default=date.today)
+    data_abertura = Column(TIMESTAMP(timezone=True), nullable=False)
+    data_fechamento = Column(TIMESTAMP(timezone=True), nullable=True)
     usuario_abertura_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
     usuario_fechamento_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
-    observacao = Column(String)
 
-    fechado_em = Column(DateTime(timezone=True))
+    saldo_abertura = Column(Numeric(14, 2), default=0.00, nullable=False)
+    total_entradas = Column(Numeric(14, 2), default=0.00, nullable=False)
+    total_saidas = Column(Numeric(14, 2), default=0.00, nullable=False)
+    saldo_esperado = Column(Numeric(14, 2), default=0.00, nullable=False)
+    saldo_contado = Column(Numeric(14, 2), nullable=True)
+    diferenca = Column(Numeric(14, 2), nullable=True)
 
-    loja = relationship("Loja")
-    movimentacoes = relationship("MovimentacaoCaixa", back_populates="caixa", cascade="all, delete-orphan")
+    status = Column(String(20), default='aberto', nullable=False)
+    observacao = Column(Text)
+
+    __table_args__ = (
+        CheckConstraint("status IN ('aberto', 'fechado')", name='ck_caixa_status'),
+    )

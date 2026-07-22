@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
-from fastapi.responses import HTMLResponse # <- ADICIONADO
+from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload, selectinload # <- ADICIONADO selectinload
-from sqlalchemy import select, func # <- ADICIONADO func
+from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import select, func
 from datetime import date
 from typing import List
 from uuid import UUID
@@ -14,14 +14,16 @@ from app.models.usuario import Usuario
 from app.models.venda import Venda
 from app.models.itens_venda import ItemVenda
 from app.models.produto import Produto
-from app.models.loja import Loja # <- ADICIONADO
-from app.models.caixa import Caixa, StatusCaixa # <- NOVO
-from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao # <- NOVO
+from app.models.loja import Loja
+# REMOVIDO: from app.models.caixa import Caixa, StatusCaixa
+# REMOVIDO: from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao
 from app.db.session import get_db
 from app.schemas.venda import VendaCreate, VendaRead
 from app.services.venda import criar_venda, estornar_venda_service
 from app.services.whatsapp import enviar_msg_venda
 from app.websocket.manager import manager
+# NOVO: Import do helper
+from app.api.v1.caixas import registrar_movimento_caixa
 
 router = APIRouter()
 
@@ -52,7 +54,7 @@ async def criar_venda_endpoint(
                 {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
             )
 
-        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL - NOVO
+        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
         await manager.broadcast_to_loja(
             str(loja_id),
             {
@@ -63,34 +65,32 @@ async def criar_venda_endpoint(
             }
         )
 
-        # 3. LANÇA NO CAIXA SE FOR DINHEIRO - NOVO
+        # 3. LANÇA NO CAIXA SE FOR DINHEIRO - AJUSTADO
         if venda.forma_pagamento and venda.forma_pagamento.lower() == 'dinheiro':
-            hoje = date.today()
-            caixa_stmt = select(Caixa).where(
-                Caixa.loja_id == loja_id,
-                Caixa.status == StatusCaixa.ABERTO,
-                func.date(Caixa.data) == hoje
-            )
-            caixa_res = await db.execute(caixa_stmt)
-            caixa = caixa_res.scalar_one_or_none()
-
-            if caixa:
-                mov = MovimentacaoCaixa(
-                    caixa_id=caixa.id,
+            try:
+                await registrar_movimento_caixa(
+                    db=db,
                     loja_id=loja_id,
-                    usuario_id=current_user.id,
-                    tipo=TipoMovimentacao.VENDA_DINHEIRO,
+                    tipo='entrada',
                     valor=venda.total,
                     descricao=f"Venda #{str(venda.id)[:8]}",
-                    venda_id=venda.id
+                    usuario_id=current_user.id,
+                    referencia_id=venda.id,
+                    referencia_tipo='venda'
                 )
-                db.add(mov)
-                await db.commit()
+                await db.commit() # commit do movimento
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
+            except HTTPException as e:
+                await db.rollback()
+                # Se caixa fechado, só loga. Não impede a venda
+                print(f"AVISO CAIXA: {e.detail}")
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
     return venda
+
+
+
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def get_vendas(
