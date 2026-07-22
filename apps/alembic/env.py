@@ -13,17 +13,18 @@ from api.app.db.base import Base
 from api.app.core.config import settings
 
 # 3. IMPORTA TODOS OS MODELS AQUI PRA REGISTRAR NO METADATA
-# A ordem não importa, só precisa importar
-import api.app.models.usuario        # noqa
-import api.app.models.loja           # noqa
-import api.app.models.usuario_loja   # noqa
-import api.app.models.categoria      # ADICIONADO
-import api.app.models.fornecedor     # ADICIONADO
-import api.app.models.produto        # noqa
-import api.app.models.venda          # noqa
-import api.app.models.itens_venda    # noqa
-import api.app.models.documento      # noqa
-import api.app.models.saidas          # <- ADICIONA ESSA LINHA AQUI
+import api.app.models.usuario
+import api.app.models.loja
+import api.app.models.usuario_loja
+import api.app.models.categoria
+import api.app.models.fornecedor
+import api.app.models.produto
+import api.app.models.venda
+import api.app.models.itens_venda
+import api.app.models.documento
+import api.app.models.saidas
+import api.app.models.caixa           # <- ADICIONA
+import api.app.models.movimentacao_caixa  # <- ADICIONA
 
 # this is the Alembic Config object
 config = context.config
