@@ -1,14 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from sqlalchemy.exc import IntegrityError
 from uuid import UUID
 from decimal import Decimal
 from datetime import datetime, date
 
 from app.db.session import get_db
-from app.models.caixa import Caixa
-from app.models.movimentacao_caixa import MovimentacaoCaixa # <- ADICIONADO
+from app.models.caixa import Caixa, StatusCaixa # <- IMPORTA O ENUM
+from app.models.movimentacao_caixa import MovimentacaoCaixa
 from app.models.loja import Loja
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
@@ -22,7 +22,11 @@ router = APIRouter()
 async def get_caixa_aberto(db: AsyncSession, loja_id: UUID) -> Caixa | None:
     hoje = date.today()
     stmt = select(Caixa).where(
-        and_(Caixa.loja_id == loja_id, Caixa.data_caixa == hoje, Caixa.status == 'aberto')
+        and_(
+            Caixa.loja_id == loja_id,
+            func.date(Caixa.data_caixa) == hoje,
+            Caixa.status == StatusCaixa.ABERTO # <- USA O ENUM
+        )
     )
     return (await db.execute(stmt)).scalar_one_or_none()
 
@@ -37,11 +41,10 @@ async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
     if not dono: raise HTTPException(status_code=404, detail="Dono da loja não encontrado")
     if not verify_password(senha, dono.senha_hash): raise HTTPException(status_code=403, detail="Senha do DONO incorreta")
 
-# NOVO: HELPER PARA LANÇAR MOVIMENTO
 async def registrar_movimento_caixa(
     db: AsyncSession,
     loja_id: UUID,
-    tipo: str, # 'entrada' | 'saida' | 'sangria' | 'abertura'
+    tipo: str,
     valor: Decimal,
     descricao: str,
     usuario_id: UUID,
@@ -59,9 +62,9 @@ async def registrar_movimento_caixa(
     )
     db.add(mov)
 
-    if tipo == 'entrada' or tipo == 'abertura':
+    if tipo in ['entrada', 'abertura']:
         caixa.total_entradas += valor
-    elif tipo == 'saida' or tipo == 'sangria':
+    elif tipo in ['saida', 'sangria', 'estorno']:
         caixa.total_saidas += valor
     caixa.saldo_esperado = caixa.saldo_abertura + caixa.total_entradas - caixa.total_saidas
 
@@ -89,7 +92,7 @@ async def get_resumo_caixa(
         entradas_hoje=caixa.total_entradas,
         saidas_hoje=caixa.total_saidas,
         saldo_atual=caixa.saldo_esperado,
-        status=caixa.status
+        status=caixa.status.value # <- .value pra retornar string pro frontend
     )
 
 @router.post("/abrir", status_code=status.HTTP_201_CREATED)
@@ -114,13 +117,12 @@ async def abrir_caixa(
             usuario_abertura_id=current_user.id,
             saldo_abertura=body.saldo_abertura,
             saldo_esperado=body.saldo_abertura,
-            status='aberto',
+            status=StatusCaixa.ABERTO, # <- USA O ENUM
             observacao=body.observacao
         )
         db.add(novo_caixa)
         await db.flush()
 
-        # Lança movimento de abertura
         await registrar_movimento_caixa(
             db=db, loja_id=body.loja_id, tipo='abertura', valor=body.saldo_abertura,
             descricao=f"Abertura de caixa: {body.saldo_abertura}", usuario_id=current_user.id
@@ -147,16 +149,16 @@ async def fechar_caixa(
     caixa = await db.get(Caixa, caixa_id)
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
     await verificar_acesso_loja(caixa.loja_id, db, current_user)
-    if caixa.status == 'fechado': raise HTTPException(status_code=400, detail="Caixa já está fechado")
+    if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado") # <- ENUM
 
     await verify_dono_password(db, caixa.loja_id, body.senha_dono)
 
     try:
-        caixa.status = 'fechado'
+        caixa.status = StatusCaixa.FECHADO # <- ENUM
         caixa.data_fechamento = datetime.utcnow()
         caixa.usuario_fechamento_id = current_user.id
         caixa.saldo_contado = body.saldo_contado
-        caixa.diferenca = body.saldo_contado - caixa.saldo_esperado # <- CALCULA DIFERENÇA
+        caixa.diferenca = body.saldo_contado - caixa.saldo_esperado
         caixa.observacao = body.observacao
 
         await registrar_movimento_caixa(

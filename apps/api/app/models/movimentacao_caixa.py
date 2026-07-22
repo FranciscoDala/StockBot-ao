@@ -6,10 +6,12 @@ from datetime import datetime
 import enum
 
 class TipoMovimentacao(str, enum.Enum):
+    ABERTURA = 'abertura' # <- ADICIONA
     ENTRADA = 'entrada'
     SAIDA = 'saida'
     SANGRIA = 'sangria'
     SUPRIMENTO = 'suprimento'
+    ESTORNO = 'estorno' # <- ADICIONA
 
 class MovimentacaoCaixa(Base):
     __tablename__ = "movimentacoes_caixa"
@@ -23,4 +25,6 @@ class MovimentacaoCaixa(Base):
     tipo = Column(Enum(TipoMovimentacao), nullable=False)
     valor = Column(Numeric(14, 2), nullable=False)
     descricao = Column(Text)
+    referencia_id = Column(UUID(as_uuid=True), nullable=True) # <- ADICIONA
+    referencia_tipo = Column(String(50), nullable=True) # <- ADICIONA
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)

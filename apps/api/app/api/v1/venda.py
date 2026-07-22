@@ -71,13 +71,14 @@ async def criar_venda_endpoint(
                 await registrar_movimento_caixa(
                     db=db,
                     loja_id=loja_id,
-                    tipo='entrada',
+                    tipo='estorno',
                     valor=venda.total,
                     descricao=f"Venda #{str(venda.id)[:8]}",
                     usuario_id=current_user.id,
                     referencia_id=venda.id,
                     referencia_tipo='venda'
                 )
+
                 await db.commit() # commit do movimento
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             except HTTPException as e:
