@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, Integer, DateTime
 from datetime import datetime
-from ..db.base import BaseModel
+from..db.base import BaseModel
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.usuario_loja import UsuarioLoja
     from app.models.categoria import Categoria
     from app.models.fornecedor import Fornecedor
+    from app.models.saidas import Saida # <- LINHA 1: ADICIONA ISSO
 
 class Loja(BaseModel):
     """
@@ -46,6 +47,7 @@ class Loja(BaseModel):
     membros: Mapped[List["UsuarioLoja"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin")
     produtos: Mapped[List["Produto"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin")
     vendas: Mapped[List["Venda"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin")
+    saidas: Mapped[List["Saida"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin") # <- LINHA 2: ADICIONA ISSO
     documentos: Mapped[List["DocumentoKYC"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin")
     categorias: Mapped[List["Categoria"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin")
     fornecedores: Mapped[List["Fornecedor"]] = relationship(back_populates="loja", cascade="all, delete-orphan", lazy="selectin")
