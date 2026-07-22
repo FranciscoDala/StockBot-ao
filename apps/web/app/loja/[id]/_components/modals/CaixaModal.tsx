@@ -50,9 +50,8 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                 {/* HEADER */}
                 <div className="flex items-center justify-between p-4 sm:p-6 border-b" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)' }}>
                     <div className="flex items-center gap-3">
-                        <Wallet size={24} style={{ color: 'var(--cor-primaria)' }} />
                         <div>
-                            <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--cor-texto)' }}>Gestão de Caixa</h2>
+                            <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--cor-texto)' }}>Gestão de Caixa <Wallet size={16} style={{ color: 'var(--cor-primaria)' }} /></h2>
                             <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Controle do dinheiro físico da loja</p>
                         </div>
                     </div>
@@ -66,21 +65,26 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                     className="flex gap-2 p-4 sm:p-6 border-b overflow-x-auto whitespace-nowrap scrollbar-none"
                     style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)' }}
                 >
-                    <TabButton label="Resumo" icon={<Wallet size={16}/>} active={abaAtiva === 'resumo'} onClick={() => setAbaAtiva('resumo')} />
-                    <TabButton label="Movimentações" icon={<FileText size={16}/>} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
-                    <TabButton label="Fechamento" icon={<CheckCircle size={16}/>} active={abaAtiva === 'fechamento'} onClick={() => setAbaAtiva('fechamento')} />
+                    <TabButton label="Resumo" icon={<Wallet size={16} />} active={abaAtiva === 'resumo'} onClick={() => setAbaAtiva('resumo')} />
+                    <TabButton label="Movimentações" icon={<FileText size={16} />} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
+                    <TabButton label="Fechamento" icon={<CheckCircle size={16} />} active={abaAtiva === 'fechamento'} onClick={() => setAbaAtiva('fechamento')} />
                 </div>
 
                 {/* CONTEUDO */}
+
+
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                     {abaAtiva === 'resumo' && <AbaResumo />}
                     {abaAtiva === 'movimentacoes' && <AbaMovimentacoes />}
                     {abaAtiva === 'fechamento' && <AbaFechamento />}
                 </div>
 
+
+
+
                 {/* RODAPÉ NOVO - BOTÃO FECHAR */}
                 <div
-                    className="p-4 sm:p-6 border-t flex justify-end"
+                    className="py-2 px-4  sm:p-6 border-t flex justify-end"
                     style={{
                         borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)',
                         background: 'color-mix(in srgb, var(--cor-card) 90%, transparent)'
@@ -122,9 +126,9 @@ function TabButton({ label, icon, active, onClick }: any) {
             onClick={onClick}
             className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition flex-shrink-0"
             style={{
-                background: active? 'var(--cor-primaria)' : 'transparent',
-                color: active? '#fff' : 'var(--cor-texto-sec)',
-                border: `1px solid ${active? 'var(--cor-primaria)' : 'color-mix(in srgb, var(--cor-borda) 40%, transparent)'}`
+                background: active ? 'var(--cor-primaria)' : 'transparent',
+                color: active ? '#fff' : 'var(--cor-texto-sec)',
+                border: `1px solid ${active ? 'var(--cor-primaria)' : 'color-mix(in srgb, var(--cor-borda) 40%, transparent)'}`
             }}
         >
             {icon} {label}
@@ -138,8 +142,8 @@ function AbaResumo() {
         <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <CardValor titulo="Saldo Abertura" valor={5000} cor="#3b82f6" />
-                <CardValor titulo="Entradas Hoje" valor={13000} cor="#22c55e" icon={<ArrowUpRight size={16}/>} />
-                <CardValor titulo="Saídas/Sangrias" valor={7000} cor="#ef4444" icon={<ArrowDownRight size={16}/>} />
+                <CardValor titulo="Entradas Hoje" valor={13000} cor="#22c55e" icon={<ArrowUpRight size={16} />} />
+                <CardValor titulo="Saídas/Sangrias" valor={7000} cor="#ef4444" icon={<ArrowDownRight size={16} />} />
             </div>
 
             <div className="p-6 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--cor-primaria) 40%, transparent)' }}>
@@ -148,9 +152,9 @@ function AbaResumo() {
             </div>
 
             <div className="flex gap-3 pt-4">
-                <button className="flex-1 h-12 bg-green-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90"><Plus size={18}/> Abrir Caixa</button>
-                <button className="flex-1 h-12 bg-red-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90"><Minus size={18}/> Fazer Sangria</button>
-                <button className="flex-1 h-12 bg-gray-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90"><CheckCircle size={18}/> Fechar Caixa</button>
+                <button className="flex-1 h-12 bg-green-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90"><Plus size={18} /> Abrir Caixa</button>
+                <button className="flex-1 h-12 bg-red-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90"><Minus size={18} /> Fazer Sangria</button>
+                <button className="flex-1 h-12 bg-gray-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 hover:opacity-90"><CheckCircle size={18} /> Fechar Caixa</button>
             </div>
         </div>
     )
