@@ -1,19 +1,16 @@
-from sqlalchemy import Column, String, Float, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
-from  ..db.base import Base
-import uuid
+from __future__ import annotations
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Numeric, DateTime, ForeignKey
+from datetime import datetime
+from decimal import Decimal
+from uuid import UUID # <- FALTAVA ESSE
+from..db.base import BaseModel
+from typing import Optional
 
-class Saida(Base):
+class Saida(BaseModel):
     __tablename__ = "saidas"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    loja_id = Column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False, index=True)
-
-    valor = Column(Float, nullable=False)
-    descricao = Column(String(255), nullable=False, default="Saída manual")
-
-    data_saida = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
-    criado_por = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True) # quem registrou
-    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+    loja_id: Mapped[UUID] = mapped_column(ForeignKey("lojas.id"), nullable=False, index=True)
+    valor: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    descricao: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    data_saida: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)

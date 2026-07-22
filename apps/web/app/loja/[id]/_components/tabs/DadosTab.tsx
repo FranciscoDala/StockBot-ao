@@ -73,9 +73,24 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             const inicioMes = new Date(agora);
             inicioMes.setDate(agora.getDate() - 30);
 
-            const saidas = (Array.isArray(dataSaidas)? dataSaidas : []).map(s => ({...s, valor: Number(s.valor || 0), data_saida: new Date(s.data_saida) }));
-            const saidasHoje = saidas.filter(s => s.data_saida >= inicioHoje && s.data_saida <= fimHoje).reduce((acc, s) => acc + s.valor, 0);
-            const saidasMes = saidas.filter(s => s.data_saida >= inicioMes).reduce((acc, s) => acc + s.valor, 0);
+            // LOGICA IGUAL A QUE FUNCIONAVA - sem converter data antes
+            let saidasHoje = 0;
+            let saidasMes = 0;
+            if (Array.isArray(dataSaidas)) {
+                saidasHoje = dataSaidas
+                 .filter(s => {
+                    const d = new Date(s.data_saida);
+                    return d >= inicioHoje && d <= fimHoje;
+                  })
+                 .reduce((acc, s) => acc + Number(s.valor || 0), 0);
+
+                saidasMes = dataSaidas
+                 .filter(s => {
+                    const d = new Date(s.data_saida);
+                    return d >= inicioMes;
+                  })
+                 .reduce((acc, s) => acc + Number(s.valor || 0), 0);
+            }
 
             const vendas = (Array.isArray(dataVendas)? dataVendas : [])
             .filter(v => v.status?.toLowerCase().includes("concluid"))
@@ -178,7 +193,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
             <SaidaModal
                 open={showSaidaModal}
-                onOpenChange={setShowSaidaModal} // <- PADRÃO NOVO
+                onOpenChange={setShowSaidaModal}
                 onSave={handleSaidaCriada}
                 token={token}
                 lojaId={lojaId}
