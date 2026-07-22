@@ -1,5 +1,5 @@
 "use client";
-import { DollarSign, AlertTriangle, Wifi, WifiOff, ShoppingBag, TrendingUp, Edit, PlusCircle, ArrowDownCircle } from "lucide-react";
+import { DollarSign, AlertTriangle, Wifi, WifiOff, ShoppingBag, TrendingUp, Edit, PlusCircle, ArrowDownCircle, Info, RefreshCw } from "lucide-react";
 import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -139,6 +139,8 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
     return (
         <>
             <div className="space-y-6">
+
+                {/* HEADER PADRONIZADO */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
@@ -146,13 +148,25 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                         </h2>
                         <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <button onClick={() => setShowSaidaModal(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" style={{ background: '#ef4444', color: '#fff', borderRadius: radius }}>
+                    <div className="flex gap-2 w-full sm:w-auto"> {/* w-full no mobile igual Definições */}
+
+                        <button
+                            onClick={() => setShowSaidaModal(true)}
+                            className="flex-1 h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm" // flex-1 h-10
+                            style={{ background: '#ef4444', color: '#fff', borderRadius: radius }}
+                        >
                             <PlusCircle size={16} /> Fazer Saída
                         </button>
-                        <button onClick={carregarKPIs} disabled={loading} className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
-                            <Edit size={16} /> {loading ? "Atualizando..." : "Atualizar"}
+
+                        <button
+                            onClick={carregarKPIs}
+                            disabled={loading}
+                            className="flex-1 h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm" // flex-1 h-10
+                            style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
+                        >
+                            <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> {loading ? "Atualizando..." : "Atualizar"}
                         </button>
+
                     </div>
                 </div>
 
@@ -164,12 +178,25 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-                    <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', backdropFilter: 'blur(16px)', border: 'none', color: 'var(--cor-primaria)', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' }}>
+                    <div
+                        className="p-4 sm:p-6 transition hover:scale-[1.01]"
+                        style={{
+                            background: 'color-mix(in srgb, #3b82f6 15%, transparent)', // <- AZUL INFO
+                            backdropFilter: 'blur(16px)',
+                            border: '1px solid color-mix(in srgb, #3b82f6 40%, transparent)', // <- BORDA AZUL
+                            color: '#3b82f6', // <- TEXTO AZUL
+                            padding: cardSize === 'grande' ? '24px' : '16px',
+                            borderRadius: radius,
+                            boxShadow: '0 0 30px color-mix(in srgb, #3b82f6 20%, transparent)' // <- GLOW AZUL
+                        }}
+                    >
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Resumo do Mês - Entradas</p>
-                                <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
-                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total vendido nos últimos 30 dias</p>
+                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: '#3b82f6' }}>
+                                    <Info size={14} /> Resumo do Mês - Entradas
+                                </p>
+                                <p className="text-3xl font-bold mt-1" style={{ color: '#3b82f6' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
+                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#3b82f6' }}>Total vendido nos últimos 30 dias</p>
                             </div>
                         </div>
                     </div>
