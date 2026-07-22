@@ -15,17 +15,24 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
     const [caixa, setCaixa] = useState<any>(null);
     const [loading, setLoading] = useState(false);
 
-    // Fecha com ESC
+    // Fecha com ESC e trava scroll do fundo
     useEffect(() => {
+        if (open) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
         const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onOpenChange(false) };
         window.addEventListener('keydown', handleEsc);
-        return () => window.removeEventListener('keydown', handleEsc);
-    }, [onOpenChange]);
+        return () => {
+            window.removeEventListener('keydown', handleEsc);
+            document.body.style.overflow = 'unset';
+        }
+    }, [open, onOpenChange]);
 
     if (!open) return null;
 
     const radius = '16px';
-    const bgCard = 'color-mix(in srgb, var(--cor-card) 85%, transparent)';
 
     return (
         <div
@@ -33,7 +40,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
             onClick={() => onOpenChange(false)}
         >
             <div
-                className="w-full h-full sm:w-[95%] sm:h-[95%] sm:rounded-2xl flex-col"
+                className="w-full h-full flex flex-col" // <- flex-col para o rodapé ficar em baixo
                 style={{
                     background: 'var(--cor-fundo)',
                     boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.5)'
@@ -54,8 +61,11 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                     </button>
                 </div>
 
-                {/* TABS */}
-                <div className="flex gap-2 p-4 sm:p-6 border-b" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)' }}>
+                {/* TABS COM SCROLL-X INVISIVEL */}
+                <div
+                    className="flex gap-2 p-4 sm:p-6 border-b overflow-x-auto whitespace-nowrap scrollbar-none"
+                    style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)' }}
+                >
                     <TabButton label="Resumo" icon={<Wallet size={16}/>} active={abaAtiva === 'resumo'} onClick={() => setAbaAtiva('resumo')} />
                     <TabButton label="Movimentações" icon={<FileText size={16}/>} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
                     <TabButton label="Fechamento" icon={<CheckCircle size={16}/>} active={abaAtiva === 'fechamento'} onClick={() => setAbaAtiva('fechamento')} />
@@ -67,7 +77,41 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                     {abaAtiva === 'movimentacoes' && <AbaMovimentacoes />}
                     {abaAtiva === 'fechamento' && <AbaFechamento />}
                 </div>
+
+                {/* RODAPÉ NOVO - BOTÃO FECHAR */}
+                <div
+                    className="p-4 sm:p-6 border-t flex justify-end"
+                    style={{
+                        borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)',
+                        background: 'color-mix(in srgb, var(--cor-card) 90%, transparent)'
+                    }}
+                >
+                    <button
+                        onClick={() => onOpenChange(false)}
+                        className="h-11 px-6 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm w-full sm:w-auto"
+                        style={{
+                            background: 'transparent',
+                            color: 'var(--cor-texto)',
+                            borderRadius: radius,
+                            border: '1px solid color-mix(in srgb, var(--cor-borda) 50%, transparent)'
+                        }}
+                    >
+                        <X size={18} /> Fechar
+                    </button>
+                </div>
+
             </div>
+
+            {/* CSS para esconder scrollbar */}
+            <style jsx>{`
+                .scrollbar-none::-webkit-scrollbar {
+                    display: none;
+                }
+                .scrollbar-none {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     )
 }
@@ -76,7 +120,7 @@ function TabButton({ label, icon, active, onClick }: any) {
     return (
         <button
             onClick={onClick}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition flex-shrink-0"
             style={{
                 background: active? 'var(--cor-primaria)' : 'transparent',
                 color: active? '#fff' : 'var(--cor-texto-sec)',
@@ -100,7 +144,7 @@ function AbaResumo() {
 
             <div className="p-6 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--cor-primaria) 40%, transparent)' }}>
                 <p className="text-sm opacity-80">Saldo Atual em Caixa</p>
-                <p className="text-5xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(11000)}</p>
+                <p className="text-2xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(11000)}</p>
             </div>
 
             <div className="flex gap-3 pt-4">
@@ -116,7 +160,6 @@ function AbaMovimentacoes() {
     return (
         <div className="p-4 rounded-xl" style={{ background: 'color-mix(in srgb, var(--cor-card) 85%, transparent)' }}>
             <h3 className="font-bold mb-3">Histórico de Hoje</h3>
-            {/* Aqui vai a tabela de movimentacoes */}
             <p className="text-sm opacity-70">Venda Dinheiro #A1B2C3 + 10.000 KZ</p>
             <p className="text-sm opacity-70">Saída Manual - 2.000 KZ</p>
         </div>
@@ -128,7 +171,6 @@ function AbaFechamento() {
         <div className="p-4 rounded-xl" style={{ background: 'color-mix(in srgb, var(--cor-card) 85%, transparent)' }}>
             <h3 className="font-bold mb-3">Fechar Caixa do Dia</h3>
             <p className="text-sm opacity-70">Saldo esperado: {formatCurrency(11000)}</p>
-            {/* Aqui vai o input de Saldo Contado + Divergência */}
         </div>
     )
 }

@@ -4,7 +4,7 @@ import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { SaidaModal } from "../modals/SaidaModal";
-import { CaixaModal } from "../modals/CaixaModal"; // <- NOVO
+import { CaixaModal } from "../modals/CaixaModal"; // 1. IMPORT
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
@@ -45,7 +45,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
     const [loading, setLoading] = useState(true);
     const [wsConectado, setWsConectado] = useState(false);
     const [showSaidaModal, setShowSaidaModal] = useState(false);
-    const [showCaixaModal, setShowCaixaModal] = useState(false); // <- NOVO
+    const [showCaixaModal, setShowCaixaModal] = useState(false); // 2. STATE
     const ws = useRef<WebSocket | null>(null);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -120,7 +120,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         ws.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.tipo === 'stats.updated' || data.tipo === 'caixa.updated') { // <- ADICIONADO caixa.updated
+                if (data.tipo === 'stats.updated') {
                     console.log("WS: Atualizando KPIs", data)
                     carregarKPIs();
                 }
@@ -172,9 +172,16 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div onClick={() => setShowCaixaModal(true)} className="cursor-pointer"> {/* <- CLICAVEL */}
-                        <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Clique para abrir o caixa" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
-                    </div>
+                    <CardStats
+                        titulo="Faturamento Hoje"
+                        stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }}
+                        icon={<DollarSign size={16} />}
+                        descricao="Clique para abrir o caixa" // <- mudei descrição
+                        formatCurrency={safeFormat}
+                        cardStyle={cardStyle}
+                        cardSize={cardSize}
+                        onClick={() => setShowCaixaModal(true)} // 3. ONCLICK AQUI
+                    />
                     <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(Number(v) || 0)} cardStyle={cardStyle} cardSize={cardSize} />
                     <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
                     <CardAlertaDanger titulo="Saída do Dia" valor={kpis.saidaDiaria} descricao="Total de saídas/retiradas de hoje" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
@@ -225,7 +232,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 lojaNome={loja?.nome}
             />
 
-            <CaixaModal // <- NOVO
+            <CaixaModal // 4. MODAL AQUI
                 open={showCaixaModal}
                 onOpenChange={setShowCaixaModal}
                 lojaId={lojaId || ''}
@@ -235,11 +242,16 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
     )
 }
 
-function CardStats({ titulo, stats, icon, descricao, formatCurrency, cardStyle, cardSize }: any) {
+// ATUALIZADO: CardStats agora aceita onClick
+function CardStats({ titulo, stats, icon, descricao, formatCurrency, cardStyle, cardSize, onClick }: any) {
     const padding = cardSize === 'grande'? '20px' : '16px';
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     return (
-        <div className="transition hover:scale-[1.02] w-full" style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', color: 'var(--cor-primaria)', padding, borderRadius: radius, border: 'none', boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' }}>
+        <div
+            onClick={onClick} // <- NOVO
+            className="transition hover:scale-[1.02] w-full cursor-pointer" // <- NOVO cursor-pointer
+            style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', color: 'var(--cor-primaria)', padding, borderRadius: radius, border: 'none', boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' }}
+        >
             <div className="flex items-center justify-between mb-2">
                 <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
                 <div style={{ color: 'var(--cor-primaria)' }}>{icon}</div>
