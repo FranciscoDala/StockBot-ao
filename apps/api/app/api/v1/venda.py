@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPExce
 from fastapi.responses import HTMLResponse # <- ADICIONADO
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload # <- ADICIONADO selectinload
-from sqlalchemy import select
+from sqlalchemy import select, func # <- ADICIONADO func
 from datetime import date
 from typing import List
 from uuid import UUID
@@ -15,6 +15,8 @@ from app.models.venda import Venda
 from app.models.itens_venda import ItemVenda
 from app.models.produto import Produto
 from app.models.loja import Loja # <- ADICIONADO
+from app.models.caixa import Caixa, StatusCaixa # <- NOVO
+from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao # <- NOVO
 from app.db.session import get_db
 from app.schemas.venda import VendaCreate, VendaRead
 from app.services.venda import criar_venda, estornar_venda_service
@@ -60,6 +62,31 @@ async def criar_venda_endpoint(
                 "acao": "add"
             }
         )
+
+        # 3. LANÇA NO CAIXA SE FOR DINHEIRO - NOVO
+        if venda.forma_pagamento and venda.forma_pagamento.lower() == 'dinheiro':
+            hoje = date.today()
+            caixa_stmt = select(Caixa).where(
+                Caixa.loja_id == loja_id,
+                Caixa.status == StatusCaixa.ABERTO,
+                func.date(Caixa.data) == hoje
+            )
+            caixa_res = await db.execute(caixa_stmt)
+            caixa = caixa_res.scalar_one_or_none()
+
+            if caixa:
+                mov = MovimentacaoCaixa(
+                    caixa_id=caixa.id,
+                    loja_id=loja_id,
+                    usuario_id=current_user.id,
+                    tipo=TipoMovimentacao.VENDA_DINHEIRO,
+                    valor=venda.total,
+                    descricao=f"Venda #{str(venda.id)[:8]}",
+                    venda_id=venda.id
+                )
+                db.add(mov)
+                await db.commit()
+                await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
@@ -134,7 +161,6 @@ async def get_vendas(
 
     return vendas_response
 
-
 @router.get("/{venda_id}/imprimir", response_class=HTMLResponse) # <- TIREI O DEPENDS
 async def imprimir_venda(
     venda_id: UUID,
@@ -175,13 +201,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-           .header {{ text-align: center; margin-bottom: 15px; }}
-           .header h1 {{ margin: 0; font-size: 18px; }}
-           .info p {{ margin: 2px 0; }}
+          .header {{ text-align: center; margin-bottom: 15px; }}
+          .header h1 {{ margin: 0; font-size: 18px; }}
+          .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-           .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-           .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+          .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+          .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
@@ -214,7 +240,6 @@ async def imprimir_venda(
     </html>
     """
     return HTMLResponse(content=html_content)
-
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
