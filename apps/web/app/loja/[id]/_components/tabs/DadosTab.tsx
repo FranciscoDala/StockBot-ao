@@ -1,9 +1,9 @@
 "use client";
-import { DollarSign, AlertTriangle, Wifi, WifiOff, ShoppingBag, TrendingUp, Edit, PlusCircle } from "lucide-react";
+import { DollarSign, AlertTriangle, Wifi, WifiOff, ShoppingBag, TrendingUp, Edit, PlusCircle, ArrowDownCircle } from "lucide-react";
 import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { SaidaModal } from "../modals/SaidaModal"; // <- modal separada
+import { SaidaModal } from "../modals/SaidaModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
@@ -30,17 +30,21 @@ const getCookie = (name: string): string | undefined => {
     }, '');
 };
 
+// Helper seguro pra não quebrar com null/undefined
+const safeFormat = (v: number | null | undefined) => formatCurrency(Number(v) || 0);
+
 export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, theme, cardStyle, cardSize }: Props) {
     const [kpis, setKpis] = useState({
         vendaDiaria: 0,
-        saidaDiaria: 0, // <- AGORA USAMOS
+        saidaDiaria: 0,
         totalVendasMes: 0,
+        totalSaidasMes: 0, // <- NOVO
         estoqueZerado: 0,
         qtdVendasHoje: 0
     });
     const [loading, setLoading] = useState(true);
     const [wsConectado, setWsConectado] = useState(false);
-    const [showSaidaModal, setShowSaidaModal] = useState(false); // <- controle da modal
+    const [showSaidaModal, setShowSaidaModal] = useState(false);
     const ws = useRef<WebSocket | null>(null);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -56,40 +60,35 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         try {
             const [resVendas, resSaidas] = await Promise.all([
                 fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`${API_URL}/saidas/?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } }) // <- BUSCA SAIDAS
+                fetch(`${API_URL}/saidas/?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
 
             if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
             const dataVendas: VendaAPI[] = await resVendas.json();
-
-            let saidasHoje = 0;
-            if (resSaidas.ok) {
-                const dataSaidas: SaidaAPI[] = await resSaidas.json();
-                const agora = new Date();
-                const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0);
-                const fimHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59);
-                saidasHoje = (Array.isArray(dataSaidas)? dataSaidas : [])
-                   .filter(s => new Date(s.data_saida) >= inicioHoje && new Date(s.data_saida) <= fimHoje)
-                   .reduce((acc, s) => acc + Number(s.valor), 0);
-            }
-
-            const vendas = (Array.isArray(dataVendas)? dataVendas : [])
-              .filter(v => v.status?.toLowerCase().includes("concluid"))
-              .map(v => ({...v, total: Number(v.total) || 0, data_venda: new Date(v.data_venda) }));
+            const dataSaidas: SaidaAPI[] = resSaidas.ok? await resSaidas.json() : [];
 
             const agora = new Date();
             const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0);
             const fimHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59);
-            const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje && v.data_venda <= fimHoje);
-
             const inicioMes = new Date(agora);
             inicioMes.setDate(agora.getDate() - 30);
+
+            const saidas = (Array.isArray(dataSaidas)? dataSaidas : []).map(s => ({...s, valor: Number(s.valor || 0), data_saida: new Date(s.data_saida) }));
+            const saidasHoje = saidas.filter(s => s.data_saida >= inicioHoje && s.data_saida <= fimHoje).reduce((acc, s) => acc + s.valor, 0);
+            const saidasMes = saidas.filter(s => s.data_saida >= inicioMes).reduce((acc, s) => acc + s.valor, 0);
+
+            const vendas = (Array.isArray(dataVendas)? dataVendas : [])
+            .filter(v => v.status?.toLowerCase().includes("concluid"))
+            .map(v => ({...v, total: Number(v.total) || 0, data_venda: new Date(v.data_venda) }));
+
+            const vendasHoje = vendas.filter(v => v.data_venda >= inicioHoje && v.data_venda <= fimHoje);
             const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
 
             setKpis({
                 vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
-                saidaDiaria: saidasHoje, // <- AQUI
+                saidaDiaria: saidasHoje,
                 totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
+                totalSaidasMes: saidasMes, // <- NOVO
                 estoqueZerado: 0,
                 qtdVendasHoje: vendasHoje.length
             })
@@ -97,7 +96,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         finally { setLoading(false); }
     }, [lojaId, token])
 
-    const handleSaidaCriada = () => { // <- callback pra atualizar depois de salvar
+    const handleSaidaCriada = () => {
         setShowSaidaModal(false);
         carregarKPIs();
     }
@@ -145,22 +144,33 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                     </div>
                 </div>
 
-                {/* GRID RESPONSIVO: 1 coluna no mobile, 3 no desktop */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-                    <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Entradas de hoje" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
-                    <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(v)} cardStyle={cardStyle} cardSize={cardSize} />
-                    <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
+                {/* GRID 4 CARDS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Entradas de hoje" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
+                    <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(Number(v) || 0)} cardStyle={cardStyle} cardSize={cardSize} />
+                    <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
+                    <CardAlertaDanger titulo="Saída do Dia" valor={kpis.saidaDiaria} descricao="Total de saídas/retiradas de hoje" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
                 </div>
 
-                {/* CARD ALERTA DANGER - SAIDA DO DIA */}
-                <CardAlertaDanger titulo="Saída do Dia" valor={kpis.saidaDiaria} descricao="Total de saídas/retiradas de hoje" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
+                {/* GRID 2 CARDS RESUMO MES */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', backdropFilter: 'blur(16px)', border: 'none', color: 'var(--cor-primaria)', padding: cardSize === 'grande'? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' }}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Resumo do Mês - Entradas</p>
+                                <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{loading? "..." : safeFormat(kpis.totalVendasMes)}</p>
+                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total vendido nos últimos 30 dias</p>
+                            </div>
+                        </div>
+                    </div>
 
-                <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', backdropFilter: 'blur(16px)', border: 'none', color: 'var(--cor-primaria)', padding: cardSize === 'grande'? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' }}>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-xs font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Resumo do Mês</p>
-                            <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{loading? "..." : formatCurrency(kpis.totalVendasMes)}</p>
-                            <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total vendido nos últimos 30 dias</p>
+                    <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, #ef4444 15%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, #ef4444 40%, transparent)', color: '#ef4444', padding: cardSize === 'grande'? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, #ef4444 20%, transparent)' }}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: '#ef4444' }}><ArrowDownCircle size={14} /> Resumo do Mês - Saídas</p>
+                                <p className="text-3xl font-bold mt-1" style={{ color: '#ef4444' }}>{loading? "..." : safeFormat(kpis.totalSaidasMes)}</p>
+                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#ef4444' }}>Total de saídas nos últimos 30 dias</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -168,10 +178,11 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
             <SaidaModal
                 open={showSaidaModal}
-                onClose={() => setShowSaidaModal(false)}
+                onOpenChange={setShowSaidaModal} // <- PADRÃO NOVO
                 onSave={handleSaidaCriada}
                 token={token}
                 lojaId={lojaId}
+                lojaNome={loja?.nome}
             />
         </>
     )
