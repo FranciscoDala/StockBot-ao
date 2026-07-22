@@ -8,12 +8,12 @@ from datetime import datetime, date
 
 from app.db.session import get_db
 from app.models.caixa import Caixa, StatusCaixa # <- IMPORTA O ENUM
-from app.models.movimentacao_caixa import MovimentacaoCaixa
+from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao # <- IMPORTA O ENUM TAMBEM
 from app.models.loja import Loja
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
-from app.schemas.caixa import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut
+from app.schemas.caixa import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut, MovimentacaoOut # <- ADICIONA MovimentacaoOut
 from app.core.deps import get_current_user, verificar_acesso_loja
 from app.core.security import verify_password
 
@@ -25,14 +25,14 @@ async def get_caixa_aberto(db: AsyncSession, loja_id: UUID) -> Caixa | None:
         and_(
             Caixa.loja_id == loja_id,
             func.date(Caixa.data_caixa) == hoje,
-            Caixa.status == StatusCaixa.ABERTO # <- USA O ENUM
+            Caixa.status == StatusCaixa.ABERTO # <- CORRETO: USAR ENUM
         )
     )
     return (await db.execute(stmt)).scalar_one_or_none()
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> Usuario | None:
     stmt = (select(Usuario).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-          .where(UsuarioLoja.loja_id == loja_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True))
+         .where(UsuarioLoja.loja_id == loja_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True))
     return (await db.execute(stmt)).scalar_one_or_none()
 
 async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
@@ -44,7 +44,7 @@ async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
 async def registrar_movimento_caixa(
     db: AsyncSession,
     loja_id: UUID,
-    tipo: str,
+    tipo: TipoMovimentacao, # <- MUDOU PRA ENUM
     valor: Decimal,
     descricao: str,
     usuario_id: UUID,
@@ -56,15 +56,15 @@ async def registrar_movimento_caixa(
         raise HTTPException(status_code=400, detail="Não é possível registrar: caixa fechado")
 
     mov = MovimentacaoCaixa(
-        caixa_id=caixa.id, loja_id=loja_id, tipo=tipo,
+        caixa_id=caixa.id, loja_id=loja_id, tipo=tipo, # <- USA ENUM
         valor=valor, descricao=descricao, referencia_id=referencia_id,
         referencia_tipo=referencia_tipo, usuario_id=usuario_id, created_at=datetime.utcnow()
     )
     db.add(mov)
 
-    if tipo in ['entrada', 'abertura']:
+    if tipo in [TipoMovimentacao.ENTRADA, TipoMovimentacao.ABERTURA]:
         caixa.total_entradas += valor
-    elif tipo in ['saida', 'sangria', 'estorno']:
+    elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA, TipoMovimentacao.ESTORNO]:
         caixa.total_saidas += valor
     caixa.saldo_esperado = caixa.saldo_abertura + caixa.total_entradas - caixa.total_saidas
 
@@ -83,7 +83,7 @@ async def get_resumo_caixa(
     if not caixa:
         return CaixaResumoOut(
             id=None, saldo_abertura=Decimal(0), entradas_hoje=Decimal(0), saidas_hoje=Decimal(0),
-            saldo_atual=Decimal(0), status='fechado'
+            saldo_atual=Decimal(0), status=StatusCaixa.FECHADO # <- USA ENUM
         )
 
     return CaixaResumoOut(
@@ -92,8 +92,25 @@ async def get_resumo_caixa(
         entradas_hoje=caixa.total_entradas,
         saidas_hoje=caixa.total_saidas,
         saldo_atual=caixa.saldo_esperado,
-        status=caixa.status.value # <- .value pra retornar string pro frontend
+        status=caixa.status # <- FASTAPI CONVERTE SOZINHO PRA STRING
     )
+
+# NOVA ROTA QUE FALTAVA
+@router.get("/{caixa_id}/movimentacoes", response_model=list[MovimentacaoOut])
+async def get_movimentacoes_caixa(
+    caixa_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    caixa = await db.get(Caixa, caixa_id)
+    if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
+    await verificar_acesso_loja(caixa.loja_id, db, current_user)
+
+    stmt = select(MovimentacaoCaixa).where(MovimentacaoCaixa.caixa_id == caixa_id).order_by(MovimentacaoCaixa.created_at.desc())
+    result = await db.execute(stmt)
+    movimentacoes = result.scalars().all()
+
+    return movimentacoes
 
 @router.post("/abrir", status_code=status.HTTP_201_CREATED)
 async def abrir_caixa(
@@ -124,7 +141,7 @@ async def abrir_caixa(
         await db.flush()
 
         await registrar_movimento_caixa(
-            db=db, loja_id=body.loja_id, tipo='abertura', valor=body.saldo_abertura,
+            db=db, loja_id=body.loja_id, tipo=TipoMovimentacao.ABERTURA, valor=body.saldo_abertura, # <- USA ENUM
             descricao=f"Abertura de caixa: {body.saldo_abertura}", usuario_id=current_user.id
         )
 
@@ -149,12 +166,12 @@ async def fechar_caixa(
     caixa = await db.get(Caixa, caixa_id)
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
     await verificar_acesso_loja(caixa.loja_id, db, current_user)
-    if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado") # <- ENUM
+    if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado")
 
     await verify_dono_password(db, caixa.loja_id, body.senha_dono)
 
     try:
-        caixa.status = StatusCaixa.FECHADO # <- ENUM
+        caixa.status = StatusCaixa.FECHADO
         caixa.data_fechamento = datetime.utcnow()
         caixa.usuario_fechamento_id = current_user.id
         caixa.saldo_contado = body.saldo_contado
@@ -162,7 +179,7 @@ async def fechar_caixa(
         caixa.observacao = body.observacao
 
         await registrar_movimento_caixa(
-            db=db, loja_id=caixa.loja_id, tipo='saida', valor=caixa.saldo_esperado,
+            db=db, loja_id=caixa.loja_id, tipo=TipoMovimentacao.SAIDA, valor=caixa.saldo_esperado, # <- USA ENUM
             descricao="Fechamento de caixa", usuario_id=current_user.id
         )
 
@@ -189,7 +206,7 @@ async def fazer_sangria(
 
     try:
         await registrar_movimento_caixa(
-            db=db, loja_id=body.loja_id, tipo='sangria', valor=body.valor,
+            db=db, loja_id=body.loja_id, tipo=TipoMovimentacao.SANGRIA, valor=body.valor, # <- USA ENUM
             descricao=body.descricao, usuario_id=current_user.id
         )
         await db.commit()

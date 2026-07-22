@@ -17,6 +17,7 @@ type Props = {
 }
 
 type CaixaResumo = {
+    id: string; // <- ADICIONA
     saldo_abertura: number;
     entradas_hoje: number;
     saidas_hoje: number;
@@ -44,12 +45,13 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
     useEffect(() => {
         if (open && lojaId && token && !showSangriaModal && !showAberturaModal) {
             carregarResumoCaixa();
-            if(abaAtiva === 'movimentacoes') carregarMovimentacoes();
+            if (abaAtiva === 'movimentacoes') carregarMovimentacoes();
         }
         if (open) document.body.style.overflow = 'hidden';
         else document.body.style.overflow = 'unset';
         return () => { document.body.style.overflow = 'unset'; }
     }, [open, lojaId, token, showSangriaModal, showAberturaModal, abaAtiva]);
+
 
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
@@ -59,24 +61,27 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
             setResumo(data);
-        } catch (error) { console.error(error); }
+        } catch (error) {
+            console.error(error);
+            setResumo(null); // <- limpa se der 404
+        }
         finally { setLoading(false); }
     }
 
     const carregarMovimentacoes = async () => {
-        if (!API_URL || !lojaId || !token || !resumo) return;
-        // Precisamos do ID do caixa. Vamos buscar ele no resumo primeiro
-        try {
-            const resResumo = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
-            const dataResumo = await resResumo.json();
-            if(!dataResumo.id) { setMovimentacoes([]); return; }
+        if (!API_URL || !lojaId || !token || !resumo?.id) return; // <- usa resumo.id direto
 
-            const res = await fetch(`${API_URL}/movimentos-caixas/${dataResumo.id}`, { headers: { "Authorization": `Bearer ${token}` } });
+        try {
+            const res = await fetch(`${API_URL}/caixas/${resumo.id}/movimentacoes`, { // <- ROTA MELHOR
+                headers: { "Authorization": `Bearer ${token}` }
+            });
             if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
             const data = await res.json();
             setMovimentacoes(data);
         } catch (error) { console.error(error); setMovimentacoes([]); }
     }
+
+
 
     const handleAcaoConcluida = () => {
         setShowSangriaModal(false);
@@ -89,12 +94,12 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
 
     return (
         <>
-            <Dialog open={open} onOpenChange={(v) => { if(!showSangriaModal && !showAberturaModal) onOpenChange(v) }}>
+            <Dialog open={open} onOpenChange={(v) => { if (!showSangriaModal && !showAberturaModal) onOpenChange(v) }}>
                 <DialogContent
                     className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
-                    onInteractOutside={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
-                    onEscapeKeyDown={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
+                    onInteractOutside={(e) => { if (showSangriaModal || showAberturaModal) e.preventDefault() }}
+                    onEscapeKeyDown={(e) => { if (showSangriaModal || showAberturaModal) e.preventDefault() }}
                 >
                     {/* HEADER FIXO */}
                     <DialogHeader className="p-4 sm:p-6 border-b shrink-0 flex-row items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
@@ -148,7 +153,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
 function TabButton({ label, icon, active, onClick }: any) {
     return (
         <button onClick={onClick} className="relative flex items-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition"
-        style={{ color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)' }}>
+            style={{ color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)' }}>
             {icon} {label}
             {active && <div className="absolute -bottom-px left-0 right-0 h-0.5" style={{ background: 'var(--cor-primaria)' }} />}
         </button>
@@ -157,7 +162,7 @@ function TabButton({ label, icon, active, onClick }: any) {
 
 // ABAS
 function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
-    const CardPadrao = ({titulo, valor, corVar, icon, descricao}: any) => (
+    const CardPadrao = ({ titulo, valor, corVar, icon, descricao }: any) => (
         <div className="w-full" style={{ background: 'var(--cor-card)', padding: '16px', borderRadius: 'var(--radius)', border: `1px solid color-mix(in srgb, ${corVar} 30%, transparent)` }}>
             <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>{titulo}</p>
@@ -189,9 +194,9 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <CardPadrao titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} corVar="var(--cor-info)" icon={<Wallet size={16}/>} descricao="Valor inicial do caixa" />
-                <CardPadrao titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} corVar="var(--cor-sucesso)" icon={<ArrowUpRight size={16}/>} descricao="Total de vendas em dinheiro" />
-                <CardPadrao titulo="Saídas/Sangrias" valor={resumo?.saidas_hoje || 0} corVar="var(--cor-erro)" icon={<ArrowDownRight size={16}/>} descricao="Retiradas do dia" />
+                <CardPadrao titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} corVar="var(--cor-info)" icon={<Wallet size={16} />} descricao="Valor inicial do caixa" />
+                <CardPadrao titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} corVar="var(--cor-sucesso)" icon={<ArrowUpRight size={16} />} descricao="Total de vendas em dinheiro" />
+                <CardPadrao titulo="Saídas/Sangrias" valor={resumo?.saidas_hoje || 0} corVar="var(--cor-erro)" icon={<ArrowDownRight size={16} />} descricao="Retiradas do dia" />
                 <div className="p-5 rounded-xl flex flex-col justify-center" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cor-primaria) 30%, transparent)' }}>
                     <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual</p>
                     <p className="text-2xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
@@ -202,7 +207,7 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
 }
 
 function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) {
-    if(movimentacoes.length === 0) {
+    if (movimentacoes.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-96 gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                 <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
@@ -212,7 +217,7 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
     }
 
     const getIcon = (tipo: string) => {
-        if(tipo === 'entrada' || tipo === 'abertura') return <ArrowUpRight size={16} className="text-[var(--cor-sucesso)]" />;
+        if (tipo === 'entrada' || tipo === 'abertura') return <ArrowUpRight size={16} className="text-[var(--cor-sucesso)]" />;
         return <ArrowDownRight size={16} className="text-[var(--cor-erro)]" />;
     }
 

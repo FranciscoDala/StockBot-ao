@@ -1,32 +1,33 @@
-from pydantic import BaseModel, Field
+from enum import Enum
+from pydantic import BaseModel
 from decimal import Decimal
-from datetime import datetime, date
-from typing import Optional
-import uuid
+from uuid import UUID
+from datetime import datetime
 
-class AcaoSensivelAuth(BaseModel):
-    senha_dono: str = Field(..., min_length=1)
+class StatusCaixa(str, Enum):
+    ABERTO = "aberto"
+    FECHADO = "fechado"
 
-# REQUESTS
-class CaixaAbrirIn(BaseModel):
-    loja_id: uuid.UUID
-    saldo_abertura: Decimal = Field(default=0.00, ge=0)
-    observacao: Optional[str] = None
+class TipoMovimentacao(str, Enum):
+    ABERTURA = "abertura"
+    ENTRADA = "entrada"
+    SAIDA = "saida"
+    SANGRIA = "sangria"
+    ESTORNO = "estorno"
+    SUPRIMENTO = "suprimento"
 
-class CaixaFecharIn(AcaoSensivelAuth):
-    saldo_contado: Decimal = Field(ge=0)
-    observacao: Optional[str] = None
-
-class SangriaIn(BaseModel):
-    loja_id: uuid.UUID
-    valor: Decimal = Field(gt=0)
-    descricao: str = Field(min_length=3, max_length=255)
-
-# RESPONSES - Bate com o frontend CaixaResumo
 class CaixaResumoOut(BaseModel):
-    id: Optional[uuid.UUID] = None
+    id: UUID | None
     saldo_abertura: Decimal
     entradas_hoje: Decimal
     saidas_hoje: Decimal
     saldo_atual: Decimal
-    status: str
+    status: StatusCaixa
+
+class MovimentacaoOut(BaseModel):
+    id: UUID
+    tipo: TipoMovimentacao
+    valor: Decimal
+    descricao: str
+    created_at: datetime
+    class Config: from_attributes = True
