@@ -4,7 +4,7 @@ import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { SaidaModal } from "../modals/SaidaModal";
-import { CaixaModal } from "../modals/CaixaModal"; // 1. IMPORT
+import { CaixaModal } from "../modals/CaixaModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
@@ -45,16 +45,16 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
     const [loading, setLoading] = useState(true);
     const [wsConectado, setWsConectado] = useState(false);
     const [showSaidaModal, setShowSaidaModal] = useState(false);
-    const [showCaixaModal, setShowCaixaModal] = useState(false); // 2. STATE
+    const [showCaixaModal, setShowCaixaModal] = useState(false);
     const ws = useRef<WebSocket | null>(null);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-    const lojaId = lojaIdProp || user?.loja_id
-    const token = tokenProp || getCookie('token')
+    const lojaId = lojaIdProp || user?.loja_id || '' // <- GARANTE QUE NUNCA É UNDEFINED
+    const token = tokenProp || getCookie('token') || '' // <- GARANTE QUE NUNCA É UNDEFINED
 
     const carregarKPIs = useCallback(async () => {
         if (!lojaId || !token || !API_URL) {
-            console.log("FALTANDO:", { lojaId, token: !!token, API_URL })
+            console.log("FALTANDO DADOS PARA KPI:", { lojaId, token: !!token, API_URL })
             setLoading(false);
             return;
         }
@@ -89,20 +89,13 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                     .reduce((acc, s) => acc + Number(s.valor || 0), 0);
             }
 
-            // CORREÇÃO 1: Aceita varios status e ignora acento
-            const statusValidos = ["concluida", "concluído", "paga", "finalizada"];
+            const statusValidos = ["concluida", "concluido", "paga", "finalizada"]; // <- tirei acento
             const vendas = (Array.isArray(dataVendas) ? dataVendas : [])
                 .filter(v => statusValidos.includes(v.status?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
                 .map(v => ({ ...v, total: Number(v.total) || 0 }));
 
-            // CORREÇÃO 2: Protege contra data_venda null
             const vendasHoje = vendas.filter(v => v.data_venda && v.data_venda.startsWith(hojeStr));
             const vendasMes = vendas.filter(v => v.data_venda && v.data_venda.split('T')[0] >= inicioMesStr);
-
-            console.log("KPIs Calculados:", { // <- DEIXA ESSE LOG PRA DEBUG
-                vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
-                qtdVendasHoje: vendasHoje.length
-            })
 
             setKpis({
                 vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
@@ -120,6 +113,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
     const handleSaidaCriada = () => {
         setShowSaidaModal(false);
+        carregarKPIs(); // <- ATUALIZA OS KPIS AO CRIAR SAIDA
     }
 
     const conectarWebSocket = useCallback(() => {
@@ -131,7 +125,6 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             try {
                 const data = JSON.parse(event.data);
                 if (data.tipo === 'stats.updated') {
-                    console.log("WS: Atualizando KPIs", data)
                     carregarKPIs();
                 }
             } catch (e) { console.error("Erro ao ler WS", e); }
@@ -155,7 +148,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div>
                         <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
-                            Dados {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
+                            Dados {wsConectado ? <Wifi size={16} style={{ color: 'var(--cor-sucesso)' }} /> : <WifiOff size={16} style={{ color: 'var(--cor-erro)' }} />}
                         </h2>
                         <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
                     </div>
@@ -163,8 +156,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
                         <button
                             onClick={() => setShowSaidaModal(true)}
-                            className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm whitespace-nowrap"
-                            style={{ background: '#ef4444', color: '#fff', borderRadius: radius }}
+                            disabled={!token || !lojaId} // <- TRAVA SE NÃO TIVER DADO
+                            className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold transition hover:opacity-90 text-sm whitespace-nowrap disabled:opacity-50"
+                            style={{ background: 'var(--cor-erro)', color: '#fff', borderRadius: radius }}
                         >
                             <PlusCircle size={16} /> Fazer Saída
                         </button>
@@ -186,14 +180,14 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                         titulo="Faturamento Hoje"
                         stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }}
                         icon={<DollarSign size={16} />}
-                        descricao="Clique para abrir o caixa" // <- mudei descrição
+                        descricao="Clique para abrir o caixa"
                         formatCurrency={safeFormat}
                         cardStyle={cardStyle}
                         cardSize={cardSize}
-                        onClick={() => setShowCaixaModal(true)} // 3. ONCLICK AQUI
+                        onClick={() => setShowCaixaModal(true)}
                     />
-                    <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(Number(v) || 0)} cardStyle={cardStyle} cardSize={cardSize} />
-                    <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
+                    <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(Number(v) || 0)} cardStyle={cardStyle} cardSize={cardSize} />
+                    <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
                     <CardAlertaDanger titulo="Saída do Dia" valor={kpis.saidaDiaria} descricao="Total de saídas/retiradas de hoje" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
                 </div>
 
@@ -201,32 +195,32 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                     <div
                         className="p-4 sm:p-6 transition hover:scale-[1.01]"
                         style={{
-                            background: 'color-mix(in srgb, #3b82f6 15%, transparent)',
+                            background: 'color-mix(in srgb, var(--cor-info) 15%, transparent)',
                             backdropFilter: 'blur(16px)',
-                            border: '1px solid color-mix(in srgb, #3b82f6 40%, transparent)',
-                            color: '#3b82f6',
+                            border: '1px solid color-mix(in srgb, var(--cor-info) 40%, transparent)',
+                            color: 'var(--cor-info)',
                             padding: cardSize === 'grande' ? '24px' : '16px',
                             borderRadius: radius,
-                            boxShadow: '0 0 30px color-mix(in srgb, #3b82f6 20%, transparent)'
+                            boxShadow: '0 0 30px color-mix(in srgb, var(--cor-info) 20%, transparent)'
                         }}
                     >
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: '#3b82f6' }}>
+                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: 'var(--cor-info)' }}>
                                     <Info size={14} /> Resumo do Mês - Entradas
                                 </p>
-                                <p className="text-3xl font-bold mt-1" style={{ color: '#3b82f6' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
-                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#3b82f6' }}>Total vendido nos últimos 30 dias</p>
+                                <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-info)' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
+                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-info)' }}>Total vendido nos últimos 30 dias</p>
                             </div>
                         </div>
                     </div>
 
-                    <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, #ef4444 15%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, #ef4444 40%, transparent)', color: '#ef4444', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, #ef4444 20%, transparent)' }}>
+                    <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-erro) 15%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, var(--cor-erro) 40%, transparent)', color: 'var(--cor-erro)', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-erro) 20%, transparent)' }}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: '#ef4444' }}><ArrowDownCircle size={14} /> Resumo do Mês - Saídas</p>
-                                <p className="text-3xl font-bold mt-1" style={{ color: '#ef4444' }}>{loading ? "..." : safeFormat(kpis.totalSaidasMes)}</p>
-                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#ef4444' }}>Total de saídas nos últimos 30 dias</p>
+                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: 'var(--cor-erro)' }}><ArrowDownCircle size={14} /> Resumo do Mês - Saídas</p>
+                                <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-erro)' }}>{loading ? "..." : safeFormat(kpis.totalSaidasMes)}</p>
+                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-erro)' }}>Total de saídas nos últimos 30 dias</p>
                             </div>
                         </div>
                     </div>
@@ -242,24 +236,23 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 lojaNome={loja?.nome}
             />
 
-            <CaixaModal // 4. MODAL AQUI
+            <CaixaModal
                 open={showCaixaModal}
                 onOpenChange={setShowCaixaModal}
-                lojaId={lojaId || ''}
-                token={token || ''}
+                lojaId={lojaId}
+                token={token}
             />
         </>
     )
 }
 
-// ATUALIZADO: CardStats agora aceita onClick
 function CardStats({ titulo, stats, icon, descricao, formatCurrency, cardStyle, cardSize, onClick }: any) {
     const padding = cardSize === 'grande' ? '20px' : '16px';
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     return (
         <div
-            onClick={onClick} // <- NOVO
-            className="transition hover:scale-[1.02] w-full cursor-pointer" // <- NOVO cursor-pointer
+            onClick={onClick}
+            className="transition hover:scale-[1.02] w-full cursor-pointer"
             style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', color: 'var(--cor-primaria)', padding, borderRadius: radius, border: 'none', boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' }}
         >
             <div className="flex items-center justify-between mb-2">
@@ -276,13 +269,13 @@ function CardAlertaDanger({ titulo, valor, descricao, formatCurrency, cardStyle,
     const padding = cardSize === 'grande' ? '20px' : '16px';
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     return (
-        <div className="transition hover:scale-[1.02] w-full" style={{ background: 'color-mix(in srgb, #ef4444 15%, transparent)', backdropFilter: 'blur(12px)', color: '#ef4444', padding, borderRadius: radius, border: '1px solid color-mix(in srgb, #ef4444 40%, transparent)', boxShadow: '0 0 25px color-mix(in srgb, #ef4444 20%, transparent)' }}>
+        <div className="transition hover:scale-[1.02] w-full" style={{ background: 'color-mix(in srgb, var(--cor-erro) 15%, transparent)', backdropFilter: 'blur(12px)', color: 'var(--cor-erro)', padding, borderRadius: radius, border: '1px solid color-mix(in srgb, var(--cor-erro) 40%, transparent)', boxShadow: '0 0 25px color-mix(in srgb, var(--cor-erro) 20%, transparent)' }}>
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: '#ef4444' }}>{titulo}</p>
+                <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-erro)' }}>{titulo}</p>
                 <AlertTriangle size={16} />
             </div>
-            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: '#ef4444' }}>{formatCurrency(valor)}</p>
-            <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: '#ef4444' }}>{descricao}</p>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-erro)' }}>{formatCurrency(valor)}</p>
+            <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-erro)' }}>{descricao}</p>
         </div>
     )
 }

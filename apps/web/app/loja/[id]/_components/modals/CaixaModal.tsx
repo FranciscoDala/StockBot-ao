@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, Plus, Minus, CheckCircle, Lock, Unlock, Loader2 } from "lucide-react";
+import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, Plus, Minus, CheckCircle, Lock, Unlock, Loader2, Inbox } from "lucide-react";
 import { formatCurrency } from "../utils";
 import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
@@ -36,6 +36,9 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         if (open && lojaId && token && !showSangriaModal && !showAberturaModal) {
             carregarResumoCaixa();
         }
+        if (open) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = 'unset';
+        return () => { document.body.style.overflow = 'unset'; }
     }, [open, lojaId, token, showSangriaModal, showAberturaModal]);
 
     const carregarResumoCaixa = async () => {
@@ -56,49 +59,63 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         carregarResumoCaixa();
     }
 
-    const radius = 'var(--radius)';
+    const isCaixaAberto = resumo?.status === 'aberto';
 
     return (
         <>
             <Dialog open={open} onOpenChange={(v) => { if(!showSangriaModal && !showAberturaModal) onOpenChange(v) }}>
                 <DialogContent
-                    className="w-full max-w-full h-[95vh] sm:h-auto sm:max-w-[1000px] p-0 flex flex-col border shadow-2xl [&>button]:hidden"
-                    style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', borderColor: 'var(--cor-borda)', borderRadius: radius }}
-                    onInteractOutside={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }} // TRAVA
-                    onEscapeKeyDown={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }} // TRAVA
+                    className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 flex-col border-0 rounded-none shadow-2xl [&>button]:hidden"
+                    style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
+                    onInteractOutside={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
+                    onEscapeKeyDown={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
                 >
-                    {/* HEADER PADRONIZADO */}
-                    <DialogHeader className="p-4 sm:p-6 pb-4 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)' }}>
+                    {/* HEADER FIXO */}
+                    <DialogHeader className="p-4 sm:p-6 pb-4 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
-                                <DialogTitle className="text-base sm:text-lg flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
-                                    Gestão de Caixa <Wallet size={16} style={{ color: 'var(--cor-primaria)' }} />
+                                <DialogTitle className="text-lg sm:text-xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
+                                    <Wallet size={20} style={{ color: 'var(--cor-primaria)' }} /> Gestão de Caixa
                                 </DialogTitle>
                                 <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
                                     Controle do dinheiro físico da loja
                                 </DialogDescription>
                             </div>
                             <div className="flex gap-2 w-full sm:w-auto">
-                                <Button onClick={() => setShowAberturaModal(true)} className="flex-1 sm:flex-none min-w-[160px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap" style={{ background: resumo?.status === 'aberto' ? '#ef4444' : '#22c55e', color: '#fff', borderRadius: radius }}>
-                                    {resumo?.status === 'aberto' ? <Lock size={16} /> : <Unlock size={16} />} {resumo?.status === 'aberto' ? 'Fechar Caixa' : 'Abrir Caixa'}
+                                <Button
+                                    onClick={() => setShowAberturaModal(true)}
+                                    className="flex-1 sm:flex-none min-w-[160px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap transition hover:opacity-90"
+                                    style={{ background: isCaixaAberto ? 'var(--cor-erro)' : 'var(--cor-sucesso)', color: '#fff', borderRadius: 'var(--radius)' }}
+                                >
+                                    {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />} {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
                                 </Button>
-                                <Button onClick={() => setShowSangriaModal(true)} className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap" style={{ background: '#f97316', color: '#fff', borderRadius: radius }}>
+                                <Button
+                                    onClick={() => setShowSangriaModal(true)}
+                                    disabled={!isCaixaAberto}
+                                    className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius)' }}
+                                >
                                     <Minus size={16} /> Fazer Sangria
                                 </Button>
                             </div>
                         </div>
                     </DialogHeader>
 
-                    {/* TABS */}
-                    <div className="flex gap-2 p-4 sm:p-6 border-b overflow-x-auto whitespace-nowrap scrollbar-none shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 30%, transparent)' }}>
+                    {/* TABS COM BARRA ATIVA */}
+                    <div className="flex gap-1 p-2 px-4 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <TabButton label="Resumo" icon={<Wallet size={16} />} active={abaAtiva === 'resumo'} onClick={() => setAbaAtiva('resumo')} />
                         <TabButton label="Movimentações" icon={<FileText size={16} />} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
                         <TabButton label="Fechamento" icon={<CheckCircle size={16} />} active={abaAtiva === 'fechamento'} onClick={() => setAbaAtiva('fechamento')} />
                     </div>
 
-                    {/* CONTEUDO */}
+                    {/* CONTEUDO SCROLL */}
                     <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
-                        {loading ? (<div className="flex items-center justify-center h-full"><Loader2 className="animate-spin" size={32} /></div>) : (
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-2">
+                                <Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} />
+                                <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Carregando...</p>
+                            </div>
+                        ) : (
                             <>
                                 {abaAtiva === 'resumo' && <AbaResumo resumo={resumo} />}
                                 {abaAtiva === 'movimentacoes' && <AbaMovimentacoes />}
@@ -107,10 +124,13 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                         )}
                     </div>
 
-                    {/* RODAPÉ */}
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
+                    {/* RODAPÉ FIXO */}
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row justify-between" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
+                        <p className="text-xs self-center" style={{ color: 'var(--cor-texto-sec)' }}>
+                            Status: <span className="font-semibold" style={{ color: isCaixaAberto? 'var(--cor-sucesso)' : 'var(--cor-erro)' }}>{isCaixaAberto? 'CAIXA ABERTO' : 'CAIXA FECHADO'}</span>
+                        </p>
                         <DialogClose asChild>
-                            <Button type="button" className="h-11 px-6 flex items-center justify-center gap-2 font-semibold text-sm w-full sm:w-auto" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: radius }}>
+                            <Button type="button" variant="outline" className="h-10 px-6 flex items-center justify-center gap-2 font-semibold text-sm">
                                 <X size={18} /> Fechar
                             </Button>
                         </DialogClose>
@@ -118,54 +138,65 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                 </DialogContent>
             </Dialog>
 
-            {/* SUB-MODAIS */}
             <SangriaModal open={showSangriaModal} onOpenChange={setShowSangriaModal} onSave={handleAcaoConcluida} token={token} lojaId={lojaId} />
             <AberturaFechamentoModal open={showAberturaModal} onOpenChange={setShowAberturaModal} onSave={handleAcaoConcluida} token={token} lojaId={lojaId} statusAtual={resumo?.status} />
-
-            <style jsx>{`.scrollbar-none::-webkit-scrollbar { display: none; } .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
         </>
     )
 }
 
 function TabButton({ label, icon, active, onClick }: any) {
     return (
-        <button onClick={onClick} className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition flex-shrink-0"
-        style={{ background: active ? 'var(--cor-primaria)' : 'transparent', color: active ? '#fff' : 'var(--cor-texto-sec)', border: `1px solid ${active ? 'var(--cor-primaria)' : 'color-mix(in srgb, var(--cor-borda) 40%, transparent)'}`, borderRadius: 'var(--radius-sm)' }}>
+        <button onClick={onClick} className="relative flex items-center gap-2 px-4 py-2 rounded-md font-semibold text-sm transition"
+        style={{ color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)' }}>
             {icon} {label}
+            {active && <div className="absolute -bottom-2 left-0 right-0 h-0.5" style={{ background: 'var(--cor-primaria)' }} />}
         </button>
     )
 }
 
-// ABAS COM CARDS PADRAO
+// ABAS
 function AbaResumo({ resumo }: { resumo: CaixaResumo | null }) {
-    const radius = 'var(--radius)';
-    const padding = '16px';
-
-    const CardPadrao = ({titulo, valor, cor, icon, descricao}: any) => (
-        <div className="transition hover:scale-[1.02] w-full" style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', color: cor, padding, borderRadius: radius, border: `1px solid color-mix(in srgb, ${cor} 30%, transparent)`, boxShadow: `0 0 25px color-mix(in srgb, ${cor} 15%, transparent)` }}>
+    const CardPadrao = ({titulo, valor, corVar, icon, descricao}: any) => (
+        <div className="transition hover:-translate-y-1 w-full" style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', padding: '16px', borderRadius: 'var(--radius)', border: `1px solid color-mix(in srgb, ${corVar} 30%, transparent)` }}>
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: cor }}>{titulo}</p>
-                <div style={{ color: cor }}>{icon}</div>
+                <p className="text-xs font-medium" style={{ color: 'var(--cor-texto-sec)' }}>{titulo}</p>
+                <div style={{ color: corVar }}>{icon}</div>
             </div>
-            <p className="text-xl md:text-2xl font-bold truncate" style={{ color: cor }}>{formatCurrency(valor)}</p>
-            <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: cor }}>{descricao}</p>
+            <p className="text-2xl font-bold" style={{ color: corVar }}>{formatCurrency(valor)}</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>{descricao}</p>
         </div>
     )
 
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <CardPadrao titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} cor="#3b82f6" icon={<Wallet size={16}/>} descricao="Valor inicial do caixa" />
-                <CardPadrao titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} cor="#22c55e" icon={<ArrowUpRight size={16}/>} descricao="Total de vendas em dinheiro" />
-                <CardPadrao titulo="Saídas/Sangrias" valor={resumo?.saidas_hoje || 0} cor="#ef4444" icon={<ArrowDownRight size={16}/>} descricao="Retiradas do dia" />
+                <CardPadrao titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} corVar="var(--cor-info)" icon={<Wallet size={16}/>} descricao="Valor inicial do caixa" />
+                <CardPadrao titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} corVar="var(--cor-sucesso)" icon={<ArrowUpRight size={16}/>} descricao="Total de vendas em dinheiro" />
+                <CardPadrao titulo="Saídas/Sangrias" valor={resumo?.saidas_hoje || 0} corVar="var(--cor-erro)" icon={<ArrowDownRight size={16}/>} descricao="Retiradas do dia" />
             </div>
-            <div className="p-6 rounded-2xl" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--cor-primaria) 40%, transparent)' }}>
-                <p className="text-sm opacity-80">Saldo Atual em Caixa</p>
-                <p className="text-2xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
+            <div className="p-6 rounded-xl" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cor-primaria) 30%, transparent)' }}>
+                <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
+                <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
             </div>
         </div>
     )
 }
 
-function AbaMovimentacoes() { return (<div className="p-4 rounded-xl" style={{ background: 'color-mix(in srgb, var(--cor-card) 85%, transparent)' }}><h3 className="font-bold mb-3">Histórico de Hoje</h3><p className="text-sm opacity-70">Venda Dinheiro #A1B2C3 + 10.000 KZ</p></div>) }
-function AbaFechamento({ resumo }: { resumo: CaixaResumo | null }) { return (<div className="p-4 rounded-xl" style={{ background: 'color-mix(in srgb, var(--cor-card) 85%, transparent)' }}><h3 className="font-bold mb-3">Fechar Caixa do Dia</h3><p className="text-sm opacity-70">Saldo esperado: {formatCurrency(resumo?.saldo_atual || 0)}</p></div>) }
+function AbaMovimentacoes() {
+    return (
+        <div className="flex flex-col items-center justify-center h-96 gap-2 rounded-xl border border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)' }}>
+            <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
+            <h3 className="font-semibold">Nenhuma movimentação hoje</h3>
+            <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>As vendas e sangrias do dia aparecerão aqui.</p>
+        </div>
+    )
+}
+function AbaFechamento({ resumo }: { resumo: CaixaResumo | null }) {
+    return (
+        <div className="p-6 rounded-xl space-y-3" style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid var(--cor-borda)' }}>
+            <h3 className="font-bold text-lg">Fechamento do Caixa</h3>
+            <div className="flex justify-between"><p style={{ color: 'var(--cor-texto-sec)' }}>Saldo Esperado:</p><p className="font-bold">{formatCurrency(resumo?.saldo_atual || 0)}</p></div>
+            <p className="text-xs pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Clique em "Fechar Caixa" no topo para informar o valor contado e finalizar o dia.</p>
+        </div>
+    )
+}
