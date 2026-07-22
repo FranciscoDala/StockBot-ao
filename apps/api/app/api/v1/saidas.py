@@ -7,7 +7,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from app.db.session import get_db # <- IGUAL AO LOJA.PY
-from app.models.saida import Saida
+from app.models.saidas import Saida
 from app.models.usuario import Usuario
 from app.core.deps import get_current_user, verificar_acesso_loja
 
