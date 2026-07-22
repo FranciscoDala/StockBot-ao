@@ -27,7 +27,7 @@ class SaidaOut(BaseModel):
     loja_id: UUID
     valor: Decimal
     descricao: Optional[str]
-    data_saida: datetime
+    created_at: datetime # <- CORRIGIDO: era data_saida
 
     class Config:
         from_attributes = True
@@ -58,7 +58,7 @@ async def listar_saidas(
 ):
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    stmt = select(Saida).where(Saida.loja_id == loja_id).order_by(Saida.data_saida.desc())
+    stmt = select(Saida).where(Saida.loja_id == loja_id).order_by(Saida.created_at.desc()) # <- CORRIGIDO
     result = await db.execute(stmt)
     saidas = result.scalars().all()
     return saidas
