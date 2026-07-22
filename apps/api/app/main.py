@@ -42,7 +42,7 @@ def import_all_models():
     from app.models.role import UserRole
     from app.models.categoria import Categoria
     from app.models.fornecedor import Fornecedor
-    from app.models.saida import Saida # <- ADICIONEI O MODEL SAIDA
+    from app.models.saidas import Saida # <- ADICIONEI O MODEL SAIDA
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
