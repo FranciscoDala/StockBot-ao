@@ -1,15 +1,16 @@
 "use client";
-import { DollarSign, Ban, Wifi, WifiOff, ShoppingBag, TrendingUp, Edit, Package } from "lucide-react";
+import { DollarSign, AlertTriangle, Wifi, WifiOff, ShoppingBag, TrendingUp, Edit, PlusCircle } from "lucide-react";
 import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { SaidaModal } from "../modals/SaidaModal"; // <- modal separada
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
 
 type ItemVenda = { id: string; produto_id: string; nome_produto: string; quantidade: number; preco_unitario: number; subtotal: number }
 type VendaAPI = { id: string | number; total: number; total_itens: number; forma_pagamento: string; data_venda: string; status: string; itens: ItemVenda[] }
-type EstoqueAlertas = { estoque_zerado: number; total_produtos_ativos: number }
+type SaidaAPI = { id: string; valor: number; descricao: string; data_saida: string; loja_id: string }
 
 type Props = {
     loja: Loja | null | undefined;
@@ -32,14 +33,14 @@ const getCookie = (name: string): string | undefined => {
 export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, theme, cardStyle, cardSize }: Props) {
     const [kpis, setKpis] = useState({
         vendaDiaria: 0,
-        saidaDiaria: 0,
+        saidaDiaria: 0, // <- AGORA USAMOS
         totalVendasMes: 0,
-        totalProdutos: 0,
         estoqueZerado: 0,
         qtdVendasHoje: 0
     });
     const [loading, setLoading] = useState(true);
     const [wsConectado, setWsConectado] = useState(false);
+    const [showSaidaModal, setShowSaidaModal] = useState(false); // <- controle da modal
     const ws = useRef<WebSocket | null>(null);
     const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -48,27 +49,33 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
     const carregarKPIs = useCallback(async () => {
         if (!lojaId ||!token ||!API_URL) {
-            console.error("DadosTab: Faltando dados", {lojaId, token:!!token, API_URL})
             setLoading(false);
             return;
         }
         setLoading(true);
         try {
-            console.log("DadosTab: Buscando vendas de", lojaId)
-            const resVendas = await fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (!resVendas.ok) throw new Error("Erro ao buscar vendas: " + resVendas.status);
-            const data: VendaAPI[] = await resVendas.json();
-            console.log("DadosTab: Vendas recebidas:", data.length)
+            const [resVendas, resSaidas] = await Promise.all([
+                fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`${API_URL}/saidas/?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } }) // <- BUSCA SAIDAS
+            ]);
 
-            const vendas = (Array.isArray(data)? data : [])
-               .filter(v => v.status?.toLowerCase().includes("concluid")) // aceita concluida, concluída
-               .map(v => ({
-                   ...v,
-                    total: Number(v.total) || 0,
-                    data_venda: new Date(v.data_venda)
-                }));
+            if (!resVendas.ok) throw new Error("Erro ao buscar vendas");
+            const dataVendas: VendaAPI[] = await resVendas.json();
+
+            let saidasHoje = 0;
+            if (resSaidas.ok) {
+                const dataSaidas: SaidaAPI[] = await resSaidas.json();
+                const agora = new Date();
+                const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0);
+                const fimHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59);
+                saidasHoje = (Array.isArray(dataSaidas)? dataSaidas : [])
+                   .filter(s => new Date(s.data_saida) >= inicioHoje && new Date(s.data_saida) <= fimHoje)
+                   .reduce((acc, s) => acc + Number(s.valor), 0);
+            }
+
+            const vendas = (Array.isArray(dataVendas)? dataVendas : [])
+              .filter(v => v.status?.toLowerCase().includes("concluid"))
+              .map(v => ({...v, total: Number(v.total) || 0, data_venda: new Date(v.data_venda) }));
 
             const agora = new Date();
             const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0);
@@ -79,103 +86,75 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             inicioMes.setDate(agora.getDate() - 30);
             const vendasMes = vendas.filter(v => v.data_venda >= inicioMes);
 
-            let estoqueZerado = 0;
-            let totalProdutos = 0;
-            try {
-                const resEstoque = await fetch(`${API_URL}/lojas/${lojaId}/dashboard/estoque-alertas`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                if (resEstoque.ok) {
-                    const resEstoqueJson: EstoqueAlertas = await resEstoque.json();
-                    estoqueZerado = resEstoqueJson.estoque_zerado || 0;
-                    totalProdutos = resEstoqueJson.total_produtos_ativos || 0;
-                }
-            } catch(e) { console.error("Erro estoque", e) }
-
             setKpis({
                 vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
-                saidaDiaria: 0,
-                totalProdutos: totalProdutos,
+                saidaDiaria: saidasHoje, // <- AQUI
                 totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
-                estoqueZerado: estoqueZerado,
+                estoqueZerado: 0,
                 qtdVendasHoje: vendasHoje.length
             })
-        } catch (error) {
-            console.error("Erro ao carregar KPIs", error);
-        }
+        } catch (error) { console.error("Erro ao carregar KPIs", error); }
         finally { setLoading(false); }
     }, [lojaId, token])
+
+    const handleSaidaCriada = () => { // <- callback pra atualizar depois de salvar
+        setShowSaidaModal(false);
+        carregarKPIs();
+    }
 
     const conectarWebSocket = useCallback(() => {
         if (!token ||!lojaId ||!WS_URL) return;
         if (ws.current?.readyState === WebSocket.OPEN) return;
-
         ws.current = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
-
-        ws.current.onopen = () => {
-            setWsConectado(true);
-            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-        };
-
+        ws.current.onopen = () => { setWsConectado(true); if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current); };
         ws.current.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.tipo === 'stats.updated') {
-                    carregarKPIs();
-                }
-            } catch (e) {
-                console.error("Erro ao ler WS", e);
-            }
+                if (data.tipo === 'stats.updated') carregarKPIs();
+            } catch (e) { console.error("Erro ao ler WS", e); }
         };
-
-        ws.current.onclose = () => {
-            setWsConectado(false);
-            reconnectTimeout.current = setTimeout(conectarWebSocket, 3000);
-        };
-
-        ws.current.onerror = () => {
-            ws.current?.close();
-        };
-
+        ws.current.onclose = () => { setWsConectado(false); reconnectTimeout.current = setTimeout(conectarWebSocket, 3000); };
+        ws.current.onerror = () => { ws.current?.close(); };
     }, [token, lojaId, carregarKPIs]);
 
     useEffect(() => {
-        if (token && lojaId) {
-            carregarKPIs();
-            conectarWebSocket();
-        }
-        return () => {
-            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-            ws.current?.close()
-        }
+        if (token && lojaId) { carregarKPIs(); conectarWebSocket(); }
+        return () => { if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current); ws.current?.close() }
     }, [carregarKPIs, conectarWebSocket, token, lojaId])
 
     const ticketMedio = kpis.qtdVendasHoje > 0? kpis.vendaDiaria / kpis.qtdVendasHoje : 0;
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
-                        Dados {wsConectado? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
-                    </h2>
-                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
+        <>
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
+                            Dados {wsConectado? <Wifi size={16} style={{ color: 'var(--cor-primaria)' }} /> : <WifiOff size={16} className="text-red-500" />}
+                        </h2>
+                        <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Visão geral da loja em tempo real</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <button onClick={() => setShowSaidaModal(true)} className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" style={{ background: '#ef4444', color: '#fff', borderRadius: radius }}>
+                            <PlusCircle size={16} /> Fazer Saída
+                        </button>
+                        <button onClick={carregarKPIs} disabled={loading} className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
+                            <Edit size={16} /> {loading? "Atualizando..." : "Atualizar"}
+                        </button>
+                    </div>
                 </div>
-                <button onClick={carregarKPIs} disabled={loading} className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
-                    <Edit size={16} /> {loading? "Atualizando..." : "Atualizar"}
-                </button>
-            </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Entradas de hoje" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(v)} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
-                <CardStats titulo="Estoque Zerado" stats={{ total: kpis.estoqueZerado, qtdVendas: 0, ticketMedio: 0 }} icon={<Ban size={16} />} descricao="Não consegue vender" formatCurrency={(v: number) => String(v)} cardStyle={cardStyle} cardSize={cardSize} />
-            </div>
+                {/* GRID RESPONSIVO: 1 coluna no mobile, 3 no desktop */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                    <CardStats titulo="Faturamento Hoje" stats={{ total: kpis.vendaDiaria, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<DollarSign size={16} />} descricao="Entradas de hoje" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
+                    <CardStats titulo="Vendas Hoje" stats={{ total: kpis.qtdVendasHoje, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<ShoppingBag size={16} />} descricao="Pedidos concluídos" formatCurrency={(v: number) => String(v)} cardStyle={cardStyle} cardSize={cardSize} />
+                    <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
+                </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <CardStats titulo="Total Produtos" stats={{ total: kpis.totalProdutos, qtdVendas: 0, ticketMedio: 0 }} icon={<Package size={16} />} descricao="Produtos ativos" formatCurrency={(v: number) => String(v)} cardStyle={cardStyle} cardSize={cardSize} />
+                {/* CARD ALERTA DANGER - SAIDA DO DIA */}
+                <CardAlertaDanger titulo="Saída do Dia" valor={kpis.saidaDiaria} descricao="Total de saídas/retiradas de hoje" formatCurrency={formatCurrency} cardStyle={cardStyle} cardSize={cardSize} />
+
                 <div className="p-4 sm:p-6 transition hover:scale-[1.01]" style={{ background: 'color-mix(in srgb, var(--cor-card) 70%, transparent)', backdropFilter: 'blur(16px)', border: 'none', color: 'var(--cor-primaria)', padding: cardSize === 'grande'? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, var(--cor-primaria) 25%, transparent)' }}>
                     <div className="flex items-center justify-between">
                         <div>
@@ -186,7 +165,15 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                     </div>
                 </div>
             </div>
-        </div>
+
+            <SaidaModal
+                open={showSaidaModal}
+                onClose={() => setShowSaidaModal(false)}
+                onSave={handleSaidaCriada}
+                token={token}
+                lojaId={lojaId}
+            />
+        </>
     )
 }
 
@@ -194,13 +181,28 @@ function CardStats({ titulo, stats, icon, descricao, formatCurrency, cardStyle, 
     const padding = cardSize === 'grande'? '20px' : '16px';
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     return (
-        <div className="transition hover:scale-[1.02]" style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', color: 'var(--cor-primaria)', padding, borderRadius: radius, border: 'none', boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' }}>
+        <div className="transition hover:scale-[1.02] w-full" style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', color: 'var(--cor-primaria)', padding, borderRadius: radius, border: 'none', boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' }}>
             <div className="flex items-center justify-between mb-2">
                 <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
                 <div style={{ color: 'var(--cor-primaria)' }}>{icon}</div>
             </div>
             <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(stats.total)}</p>
             <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
+        </div>
+    )
+}
+
+function CardAlertaDanger({ titulo, valor, descricao, formatCurrency, cardStyle, cardSize }: any) {
+    const padding = cardSize === 'grande'? '20px' : '16px';
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    return (
+        <div className="transition hover:scale-[1.02] w-full" style={{ background: 'color-mix(in srgb, #ef4444 15%, transparent)', backdropFilter: 'blur(12px)', color: '#ef4444', padding, borderRadius: radius, border: '1px solid color-mix(in srgb, #ef4444 40%, transparent)', boxShadow: '0 0 25px color-mix(in srgb, #ef4444 20%, transparent)' }}>
+            <div className="flex items-center justify-between mb-2">
+                <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: '#ef4444' }}>{titulo}</p>
+                <AlertTriangle size={16} />
+            </div>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: '#ef4444' }}>{formatCurrency(valor)}</p>
+            <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: '#ef4444' }}>{descricao}</p>
         </div>
     )
 }

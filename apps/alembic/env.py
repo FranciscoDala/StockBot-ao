@@ -23,6 +23,7 @@ import api.app.models.produto        # noqa
 import api.app.models.venda          # noqa
 import api.app.models.itens_venda    # noqa
 import api.app.models.documento      # noqa
+import api.app.models.saidas          # <- ADICIONA ESSA LINHA AQUI
 
 # this is the Alembic Config object
 config = context.config
