@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, Plus, Minus, CheckCircle, Lock, Unlock, Loader2, Inbox } from "lucide-react";
+import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, Unlock, Loader2, Inbox } from "lucide-react";
 import { formatCurrency } from "../utils";
 import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
@@ -42,7 +42,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
     }, [open, lojaId, token, showSangriaModal, showAberturaModal]);
 
     const carregarResumoCaixa = async () => {
-        if (!API_URL) return;
+        if (!API_URL || !lojaId || !token) return; // <- PROTEÇÃO
         setLoading(true);
         try {
             const res = await fetch(`${API_URL}/caixa/resumo?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
@@ -65,7 +65,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         <>
             <Dialog open={open} onOpenChange={(v) => { if(!showSangriaModal && !showAberturaModal) onOpenChange(v) }}>
                 <DialogContent
-                    className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 flex-col border-0 rounded-none shadow-2xl [&>button]:hidden"
+                    className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0" // <- AQUI É O SEGREDO
                     style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
                     onInteractOutside={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
                     onEscapeKeyDown={(e) => { if(showSangriaModal || showAberturaModal) e.preventDefault() }}
@@ -84,7 +84,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                             <div className="flex gap-2 w-full sm:w-auto">
                                 <Button
                                     onClick={() => setShowAberturaModal(true)}
-                                    className="flex-1 sm:flex-none min-w-[160px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap transition hover:opacity-90"
+                                    className="flex-1 sm:flex-none min-w-[160px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap"
                                     style={{ background: isCaixaAberto ? 'var(--cor-erro)' : 'var(--cor-sucesso)', color: '#fff', borderRadius: 'var(--radius)' }}
                                 >
                                     {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />} {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
@@ -92,7 +92,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                                 <Button
                                     onClick={() => setShowSangriaModal(true)}
                                     disabled={!isCaixaAberto}
-                                    className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap transition hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 sm:flex-none min-w-[140px] h-10 px-4 flex items-center justify-center gap-2 font-semibold text-sm whitespace-nowrap disabled:opacity-50"
                                     style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius)' }}
                                 >
                                     <Minus size={16} /> Fazer Sangria
@@ -101,7 +101,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                         </div>
                     </DialogHeader>
 
-                    {/* TABS COM BARRA ATIVA */}
+                    {/* TABS */}
                     <div className="flex gap-1 p-2 px-4 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <TabButton label="Resumo" icon={<Wallet size={16} />} active={abaAtiva === 'resumo'} onClick={() => setAbaAtiva('resumo')} />
                         <TabButton label="Movimentações" icon={<FileText size={16} />} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
@@ -113,7 +113,6 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-full gap-2">
                                 <Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} />
-                                <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Carregando...</p>
                             </div>
                         ) : (
                             <>
@@ -154,7 +153,6 @@ function TabButton({ label, icon, active, onClick }: any) {
     )
 }
 
-// ABAS
 function AbaResumo({ resumo }: { resumo: CaixaResumo | null }) {
     const CardPadrao = ({titulo, valor, corVar, icon, descricao}: any) => (
         <div className="transition hover:-translate-y-1 w-full" style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', padding: '16px', borderRadius: 'var(--radius)', border: `1px solid color-mix(in srgb, ${corVar} 30%, transparent)` }}>
@@ -184,10 +182,9 @@ function AbaResumo({ resumo }: { resumo: CaixaResumo | null }) {
 
 function AbaMovimentacoes() {
     return (
-        <div className="flex flex-col items-center justify-center h-96 gap-2 rounded-xl border border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)' }}>
+        <div className="flex flex-col items-center justify-center h-96 gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)' }}>
             <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
             <h3 className="font-semibold">Nenhuma movimentação hoje</h3>
-            <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>As vendas e sangrias do dia aparecerão aqui.</p>
         </div>
     )
 }
@@ -196,7 +193,6 @@ function AbaFechamento({ resumo }: { resumo: CaixaResumo | null }) {
         <div className="p-6 rounded-xl space-y-3" style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid var(--cor-borda)' }}>
             <h3 className="font-bold text-lg">Fechamento do Caixa</h3>
             <div className="flex justify-between"><p style={{ color: 'var(--cor-texto-sec)' }}>Saldo Esperado:</p><p className="font-bold">{formatCurrency(resumo?.saldo_atual || 0)}</p></div>
-            <p className="text-xs pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Clique em "Fechar Caixa" no topo para informar o valor contado e finalizar o dia.</p>
         </div>
     )
 }
