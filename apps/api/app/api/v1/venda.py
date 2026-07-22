@@ -89,9 +89,6 @@ async def criar_venda_endpoint(
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
     return venda
 
-
-
-
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def get_vendas(
     db: AsyncSession = Depends(get_db),
@@ -109,14 +106,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-.options(
-       joinedload(Venda.usuario),
-       joinedload(Venda.itens).joinedload(ItemVenda.produto)
-   )
-.where(Venda.loja_id == loja_id_usar)
-.order_by(Venda.created_at.desc())
-.limit(limit)
-.offset(offset)
+       .options(
+            joinedload(Venda.usuario),
+            joinedload(Venda.itens).joinedload(ItemVenda.produto)
+        )
+       .where(Venda.loja_id == loja_id_usar)
+       .order_by(Venda.created_at.desc())
+       .limit(limit)
+       .offset(offset)
     )
 
     if data_inicio:
@@ -201,13 +198,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-          .header {{ text-align: center; margin-bottom: 15px; }}
-          .header h1 {{ margin: 0; font-size: 18px; }}
-          .info p {{ margin: 2px 0; }}
+           .header {{ text-align: center; margin-bottom: 15px; }}
+           .header h1 {{ margin: 0; font-size: 18px; }}
+           .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-          .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-          .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+           .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+           .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
@@ -241,8 +238,16 @@ async def imprimir_venda(
     """
     return HTMLResponse(content=html_content)
 
+
+
+
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
-async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
+async def estornar_venda(
+    id: UUID,
+    db: AsyncSession = Depends(get_db),
+    loja_id: UUID = Depends(get_current_loja_id),
+    current_user: Usuario = Depends(get_current_user) # <- ADICIONA ISSO
+):
     itens_estornados = await estornar_venda_service(db=db, venda_id=id, loja_id=loja_id)
 
     valor_estornado = 0
@@ -275,4 +280,25 @@ async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: 
             "acao": "remove"
         }
     )
+
+    # 4. LANÇA ESTORNO NO CAIXA - COLA AQUI EMBAIXO
+    if valor_estornado > 0:
+        try:
+            await registrar_movimento_caixa(
+                db=db,
+                loja_id=loja_id,
+                tipo='saida', # Estorno é SAIDA
+                valor=valor_estornado,
+                descricao=f"Estorno Venda #{str(id)[:8]}",
+                usuario_id=current_user.id,
+                referencia_id=id,
+                referencia_tipo='estorno'
+            )
+            await db.commit()
+            await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
+        except HTTPException as e:
+            await db.rollback()
+            # Se caixa fechado, só loga. Não impede o estorno
+            print(f"AVISO CAIXA ESTORNO: {e.detail}")
+
     return None
