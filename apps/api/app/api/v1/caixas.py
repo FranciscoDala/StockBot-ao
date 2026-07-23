@@ -188,7 +188,6 @@ async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), cu
 async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     caixa = await db.get(Caixa, caixa_id)
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
-
     await verificar_acesso_loja(caixa.loja_id, db, current_user)
     if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado")
 
@@ -196,9 +195,21 @@ async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = D
         saldo_contado_dec = to_decimal(body.saldo_contado)
         saldo_esperado_dec = to_decimal(caixa.saldo_esperado)
 
+        # 1. PRIMEIRO REGISTRA A MOVIMENTACAO
+        await registrar_movimento_caixa(
+            db=db,
+            caixa_id=caixa.id,
+            loja_id=caixa.loja_id,
+            tipo=TipoMovimentacao.FECHAMENTO, # <- precisa ter esse tipo no Enum
+            valor=saldo_contado_dec,
+            descricao=f"Fechamento de caixa: {saldo_contado_dec}",
+            usuario_id=current_user.id
+        )
+
+        # 2. DEPOIS FECHA O CAIXA
         caixa.status = StatusCaixa.FECHADO
         caixa.data_fechamento = datetime.utcnow()
-        caixa.usuario_fechamento_id = current_user.id # salva quem fechou
+        caixa.usuario_fechamento_id = current_user.id
         caixa.saldo_contado = saldo_contado_dec
         caixa.diferenca = saldo_contado_dec - saldo_esperado_dec
         caixa.observacao = body.observacao
@@ -211,7 +222,6 @@ async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = D
         raise HTTPException(status_code=500, detail=f"Erro ao fechar caixa: {e}")
 
     return {"message": "Caixa fechado com sucesso", "diferenca": float(caixa.diferenca or 0)}
-
 
 
 @router.post("/sangria")
