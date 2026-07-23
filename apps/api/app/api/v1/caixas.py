@@ -25,7 +25,7 @@ async def get_caixa_aberto(db: AsyncSession, loja_id: UUID) -> Caixa | None:
         and_(
             Caixa.loja_id == loja_id,
             func.date(Caixa.data_caixa) == hoje,
-            Caixa.status == StatusCaixa.ABERTO.value # <- CORRIGIDO: usa.value pra forçar 'aberto'
+            Caixa.status == StatusCaixa.ABERTO.value
         )
     )
     result = await db.execute(stmt)
@@ -33,7 +33,7 @@ async def get_caixa_aberto(db: AsyncSession, loja_id: UUID) -> Caixa | None:
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> Usuario | None:
     stmt = (select(Usuario).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-        .where(UsuarioLoja.loja_id == loja_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True))
+       .where(UsuarioLoja.loja_id == loja_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True))
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -55,15 +55,17 @@ async def registrar_movimento_caixa(
         raise HTTPException(status_code=400, detail="Não é possível registrar: caixa fechado")
 
     mov = MovimentacaoCaixa(
-        caixa_id=caixa.id, loja_id=loja_id, tipo=tipo.value, valor=valor, descricao=descricao, # <-.value
+        caixa_id=caixa.id, loja_id=loja_id, tipo=tipo.value, valor=valor, descricao=descricao,
         referencia_id=referencia_id, referencia_tipo=referencia_tipo, usuario_id=usuario_id, created_at=datetime.utcnow()
     )
     db.add(mov)
 
+    # CORRECAO 1: ESTORNO NAO ENTRA MAIS NO CALCULO
     if tipo in [TipoMovimentacao.ENTRADA, TipoMovimentacao.ABERTURA]:
         caixa.total_entradas += valor
-    elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA, TipoMovimentacao.ESTORNO]:
+    elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]: # <- TIREI O ESTORNO
         caixa.total_saidas += valor
+
     caixa.saldo_esperado = caixa.saldo_abertura + caixa.total_entradas - caixa.total_saidas
     db.add(caixa)
     return caixa
@@ -132,6 +134,7 @@ async def abrir_caixa(
             db=db, loja_id=body.loja_id, tipo=TipoMovimentacao.ABERTURA, valor=body.saldo_abertura,
             descricao=f"Abertura de caixa: {body.saldo_abertura}", usuario_id=current_user.id
         )
+
         await db.commit()
         await db.refresh(novo_caixa)
     except IntegrityError:
@@ -167,8 +170,9 @@ async def fechar_caixa(
         caixa.diferenca = body.saldo_contado - caixa.saldo_esperado
         caixa.observacao = body.observacao
 
+        # CORRECAO 2: FECHAMENTO USA ESTORNO E NAO ESTOURA SAIDAS
         await registrar_movimento_caixa(
-            db=db, loja_id=caixa.loja_id, tipo=TipoMovimentacao.SAIDA, valor=caixa.saldo_esperado,
+            db=db, loja_id=caixa.loja_id, tipo=TipoMovimentacao.ESTORNO, valor=caixa.saldo_esperado,
             descricao="Fechamento de caixa", usuario_id=current_user.id
         )
         await db.commit()
