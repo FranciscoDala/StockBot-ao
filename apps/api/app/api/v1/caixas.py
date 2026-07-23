@@ -23,8 +23,10 @@ from app.core.security import verify_password
 
 router = APIRouter()
 
-def to_decimal(v) -> Decimal:
-    return Decimal(str(v or 0))
+def to_decimal(v) -> Decimal: # <- TROCA AQUI
+    if v is None:
+        return Decimal('0')
+    return Decimal(str(v))
 
 async def get_caixa_aberto_usuario(db: AsyncSession, loja_id: UUID, usuario_id: UUID) -> Caixa | None:
     hoje = date.today()
@@ -180,34 +182,37 @@ async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), cu
         raise HTTPException(status_code=500, detail=f"Erro ao abrir caixa: {str(e)}")
     return {"message": "Caixa aberto com sucesso", "id": novo_caixa.id}
 
+
+
 @router.post("/fechar/{caixa_id}")
 async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     caixa = await db.get(Caixa, caixa_id)
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
-    if caixa.usuario_abertura_id!= current_user.id: raise HTTPException(status_code=403, detail="Você só pode fechar seu próprio caixa")
+    if caixa.usuario_abertura_id != current_user.id: raise HTTPException(status_code=403, detail="Você só pode fechar seu próprio caixa")
     await verificar_acesso_loja(caixa.loja_id, db, current_user)
     if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado")
 
     try:
-        # CORRECAO: NAO REGISTRA ESTORNO. SO FECHA O CAIXA
-        await registrar_movimento_caixa(
-            db=db, caixa_id=caixa.id, loja_id=caixa.loja_id, tipo=TipoMovimentacao.FECHAMENTO,
-            valor=0, descricao="Fechamento de caixa", usuario_id=current_user.id
-        )
+        # NAO REGISTRA MOVIMENTO DE FECHAMENTO. So atualiza o caixa
+        saldo_contado_dec = to_decimal(body.saldo_contado)
+        saldo_esperado_dec = to_decimal(caixa.saldo_esperado)
 
         caixa.status = StatusCaixa.FECHADO
         caixa.data_fechamento = datetime.utcnow()
         caixa.usuario_fechamento_id = current_user.id
-        caixa.saldo_contado = to_decimal(body.saldo_contado)
-        caixa.diferenca = to_decimal(body.saldo_contado) - to_decimal(caixa.saldo_esperado)
+        caixa.saldo_contado = saldo_contado_dec
+        caixa.diferenca = saldo_contado_dec - saldo_esperado_dec
         caixa.observacao = body.observacao
 
         await db.commit()
         await db.refresh(caixa)
     except Exception as e:
         await db.rollback()
+        logger.error(f"[DEBUG] ERRO AO FECHAR CAIXA: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Erro ao fechar caixa: {e}")
+
     return {"message": "Caixa fechado com sucesso", "diferenca": float(caixa.diferenca or 0)}
+
 
 @router.post("/sangria")
 async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
