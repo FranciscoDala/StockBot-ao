@@ -36,10 +36,10 @@ async def criar_venda_endpoint(
     loja_id: UUID = Depends(get_current_loja_id)
 ):
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
+    
 
     # 1. SALVA A VENDA PRIMEIRO PRA PODER FAZER O JOIN DEPOIS
     await db.commit()
-    await db.refresh(venda)
 
     if venda and venda.itens:
         # 2. ATUALIZA ESTOQUE
@@ -71,7 +71,6 @@ async def criar_venda_endpoint(
 
         # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
-            # BUSCAR CAIXA ABERTO
             stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
@@ -100,7 +99,6 @@ async def criar_venda_endpoint(
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
     return venda
-
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def get_vendas(
