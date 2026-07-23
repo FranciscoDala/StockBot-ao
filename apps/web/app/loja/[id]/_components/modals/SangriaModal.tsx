@@ -45,21 +45,36 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const valorNumerico = Number(valor.replace(',', '.'));
-        if (!valor || valorNumerico <= 0 ||!descricao) return;
+        if (!valor || valorNumerico <= 0 || !descricao) return;
         if (!API_URL) return;
         setLoading(true);
         try {
+            // 1. Primeiro busca o caixa aberto dessa loja
+            const caixaRes = await fetch(`${API_URL}/caixas/aberto?loja_id=${lojaId}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const caixa = await caixaRes.json();
+
+            // 2. Agora sim faz a sangria com caixa_id
             const res = await fetch(`${API_URL}/caixa/sangria`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ loja_id: lojaId, valor: valorNumerico, descricao })
+                body: JSON.stringify({
+                    caixa_id: caixa.id, // <- TROCA AQUI
+                    valor: valorNumerico,
+                    descricao,
+                    tipo: 'sangria' // <- se sua rota pedir
+                })
             });
-            if (!res.ok) throw new Error("Erro ao fazer sangria");
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Erro ao fazer sangria");
+            }
             onSave();
             onOpenChange(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Erro ao registrar sangria");
+            alert(error.message || "Erro ao registrar sangria");
         }
         finally { setLoading(false); }
     }
@@ -90,7 +105,7 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
                                 value={valor}
                                 onChange={e => handleNumberChange(e.target.value)}
                                 className="sm:col-span-3 text-xs h-9"
-                                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
+                                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)', ...focusStyle }}
                                 placeholder="0,00" required autoFocus
                             />
                         </div>
@@ -100,7 +115,7 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
                                 value={descricao}
                                 onChange={e => setDescricao(e.target.value)}
                                 className="sm:col-span-3 text-xs"
-                                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
+                                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)', ...focusStyle }}
                                 placeholder="Ex: Pagamento fornecedor" rows={3} required
                             />
                         </div>

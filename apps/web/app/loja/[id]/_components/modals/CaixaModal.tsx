@@ -34,7 +34,7 @@ type Movimentacao = {
     descricao: string;
     created_at: string;
     forma_pagamento: 'Dinheiro' | 'TPA' | 'Transferencia' | null; // <- tira o ? e coloca | null
-    
+
 }
 
 export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props) { // <- ADICIONADO onSave
@@ -293,23 +293,38 @@ function AbaResumo({ resumo, movimentacoes, isCaixaAberto, onAbrir, onSangria }:
                 <CardMetrica titulo="Saídas/Sangrias" valor={saidasHoje} icon={<TrendingDown size={18} />} cor="var(--cor-erro)" bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)" border="color-mix(in srgb, var(--cor-erro) 20%, transparent)" />
             </div>
 
-            {/* CARD NOVO: FATURAMENTO TOTAL */}
-            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 4%, transparent)', border: '2px solid var(--cor-primaria)' }}>
-                <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Faturamento Total Hoje</p>
-                    <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(faturamentoHoje)}</p>
+            {/* GRID COM OS 2 CARDS PRINCIPAIS */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* CARD FATURAMENTO TOTAL - COR ALERT/INFO */}
+                <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                    style={{
+                        background: 'color-mix(in srgb, var(--cor-aviso) 8%, transparent)',
+                        border: '2px solid var(--cor-aviso)'
+                    }}>
+                    <div>
+                        <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Faturamento Total Hoje</p>
+                        <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-aviso)' }}>{formatCurrency(faturamentoHoje)}</p> {/* <- cor do texto também */}
+                    </div>
+                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Cash + TPA/Transferência</p>
                 </div>
-                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Cash + TPA/Transferência</p>
+
+                {/* CARD SALDO ATUAL - COR SUCESSO */}
+                <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                    style={{
+                        background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)',
+                        border: '2px solid var(--cor-sucesso)'
+                    }}>
+                    <div>
+                        <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
+                        <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-sucesso)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
+                    </div>
+                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Valor esperado no fechamento</p>
+                </div>
+
             </div>
 
-            {/* CARD SALDO ATUAL CONTINUA IGUAL */}
-            <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)', border: '2px solid var(--cor-sucesso)' }}>
-                <div>
-                    <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
-                    <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
-                </div>
-                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Valor esperado no fechamento</p>
-            </div>
+
         </div>
     )
 }
