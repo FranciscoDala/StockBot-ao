@@ -3,12 +3,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea"; // <- se não tiver, usa Input
+import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Minus } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
+
+// PADRÃO NUMERICO REUTILIZAVEL
+const numberInputProps = {
+    type: "text",
+    inputMode: "decimal" as const,
+    pattern: "[0-9]*[.,]?[0-9]*",
+    step: "0.01"
+}
 
 interface Props {
     open: boolean;
@@ -23,22 +31,36 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
     const [descricao, setDescricao] = useState('');
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        if (!open) {
+            setValor('');
+            setDescricao('');
+        }
+    }, [open])
+
+    const handleNumberChange = (val: string) => {
+        setValor(val.replace(/[^0-9.,]/g, '')) // só número,. e,
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!valor || Number(valor) <= 0 ||!descricao) return;
+        const valorNumerico = Number(valor.replace(',', '.'));
+        if (!valor || valorNumerico <= 0 ||!descricao) return;
         if (!API_URL) return;
         setLoading(true);
         try {
             const res = await fetch(`${API_URL}/caixa/sangria`, {
                 method: 'POST',
                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify({ loja_id: lojaId, valor: Number(valor), descricao })
+                body: JSON.stringify({ loja_id: lojaId, valor: valorNumerico, descricao })
             });
             if (!res.ok) throw new Error("Erro ao fazer sangria");
-            setValor('');
-            setDescricao('');
             onSave();
-        } catch (error) { console.error(error); alert("Erro ao registrar sangria"); }
+            onOpenChange(false);
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao registrar sangria");
+        }
         finally { setLoading(false); }
     }
 
@@ -47,8 +69,8 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
             <DialogContent
                 className="w-full max-w-full sm:max-w-[500px] p-0 flex-col border shadow-2xl [&>button]:hidden"
                 style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}
-                onInteractOutside={(e) => e.preventDefault()} // <- TRAVA
-                onEscapeKeyDown={(e) => e.preventDefault()} // <- TRAVA
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <form onSubmit={handleSubmit} className="flex flex-col">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
@@ -64,11 +86,12 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Valor *</Label>
                             <Input
-                                type="number" step="0.01" value={valor}
-                                onChange={e => setValor(e.target.value)}
+                                {...numberInputProps} // <- TECLADO NUMERICO
+                                value={valor}
+                                onChange={e => handleNumberChange(e.target.value)}
                                 className="sm:col-span-3 text-xs h-9"
                                 style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
-                                placeholder="0,00" required
+                                placeholder="0,00" required autoFocus
                             />
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">

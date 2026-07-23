@@ -10,6 +10,14 @@ import { formatCurrency } from "../utils";
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
 
+// PADRÃO PRA NUMERICO
+const numberInputProps = {
+    type: "text", // <- text pra não bugar no mobile
+    inputMode: "decimal" as const, // <- abre teclado numérico com, e.
+    pattern: "[0-9]*[.,]?[0-9]*", // <- valida
+    step: "0.01"
+}
+
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
@@ -26,7 +34,12 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
     const [loading, setLoading] = useState(false);
     const isAbrir = statusAtual!== 'aberto';
 
-    const diferenca = Number(saldoContado || 0) - Number(valorEsperado || 0); // <- garante number
+    const diferenca = Number(saldoContado.replace(',', '.') || 0) - Number(valorEsperado || 0);
+
+    // aceita, ou. e converte pra number
+    const handleNumberChange = (val: string, setter: (v: string) => void) => {
+        setter(val.replace(/[^0-9.,]/g, '')) // só deixa número, e.
+    }
 
     useEffect(() => {
         if (!open) {
@@ -44,7 +57,7 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                 const res = await fetch(`${API_URL}/caixa/abrir`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                    body: JSON.stringify({ loja_id: lojaId, saldo_abertura: Number(saldoInicial) })
+                    body: JSON.stringify({ loja_id: lojaId, saldo_abertura: Number(saldoInicial.replace(',', '.')) })
                 });
                 if (!res.ok) throw new Error((await res.json()).detail || "Erro ao abrir caixa");
             } else {
@@ -53,13 +66,12 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                 });
                 if (!resumoRes.ok) throw new Error("Erro ao buscar caixa aberto");
                 const resumo = await resumoRes.json();
-
                 if (!resumo.id) throw new Error("Nenhum caixa aberto para fechar");
 
                 const res = await fetch(`${API_URL}/caixa/fechar/${resumo.id}`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                    body: JSON.stringify({ saldo_contado: Number(saldoContado) })
+                    body: JSON.stringify({ saldo_contado: Number(saldoContado.replace(',', '.')) })
                 });
                 if (!res.ok) throw new Error((await res.json()).detail || "Erro ao fechar caixa");
             }
@@ -92,7 +104,7 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                     </DialogHeader>
 
                     <div className="grid gap-4 py-4 px-4 sm:px-6">
-                        {!isAbrir && ( // <- SÓ MOSTRA SE FOR FECHAR
+                        {!isAbrir && (
                             <div className="p-3 rounded-lg flex items-center justify-between" style={{ background: 'color-mix(in srgb, var(--cor-info) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cor-info) 30%, transparent)' }}>
                                 <div className="flex items-center gap-2">
                                     <Wallet size={16} style={{ color: 'var(--cor-info)' }} />
@@ -107,9 +119,9 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                                 {isAbrir? 'Saldo Inicial *' : 'Saldo Contado *'}
                             </Label>
                             <Input
-                                type="number" step="0.01"
+                                {...numberInputProps} // <- PADRÃO AQUI
                                 value={isAbrir? saldoInicial : saldoContado}
-                                onChange={e => isAbrir? setSaldoInicial(e.target.value) : setSaldoContado(e.target.value)}
+                                onChange={e => handleNumberChange(e.target.value, isAbrir? setSaldoInicial : setSaldoContado)}
                                 className="sm:col-span-3 text-xs h-9"
                                 style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
                                 placeholder="0,00" required autoFocus
