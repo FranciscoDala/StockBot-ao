@@ -249,98 +249,64 @@ function AbaMovimentacoes({ dataSelecionada, setDataSelecionada, caixasDoDia, mo
     }
 
     return (
-        <div className="flex flex-col h-full"> {/* <- 1. Container vira flex coluna */}
-
-            {/* 2. HEADER FIXO COM DATA */}
-            <div className="sticky top-0 z-10 p-3 rounded-lg mb-4"
-                style={{
-                    background: 'var(--cor-card)',
-                    border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)',
-                    boxShadow: '0 2px 4px color-mix(in srgb, #000 5%, transparent)' // sombra pra destacar quando rolar
-                }}>
-                <div className="flex items-center gap-2">
-                    <Calendar size={18} style={{ color: 'var(--cor-primaria)' }} />
-                    <label className="text-sm font-semibold">Ver histórico de:</label>
-                    <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-auto h-9" />
-                </div>
+        <div className="space-y-4">
+            {/* FILTRO DE DATA */}
+            <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
+                <Calendar size={18} style={{ color: 'var(--cor-primaria)' }} />
+                <label className="text-sm font-semibold">Ver histórico de:</label>
+                <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-auto h-9" />
             </div>
 
-            {/* 3. CONTEUDO COM SCROLL */}
-            <div className="flex-1 overflow-y-auto pr-1 custom-scroll"> {/* <- pr-1 pra sombra nao cortar */}
-
-                {/* CAIXAS DO DIA */}
-                {caixasDoDia.length > 0 && (
-                    <div className="mb-4">
-                        <h3 className="text-sm font-bold mb-2">Caixas do dia {new Date(dataSelecionada).toLocaleDateString('pt-AO')}</h3>
-                        <div className="space-y-2">
-                            {caixasDoDia.map((caixa: CaixaHistorico) => (
-                                <div key={caixa.id} className="p-3 rounded-lg text-sm" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
-                                    <div className="flex justify-between">
-                                        <p className="font-semibold">{caixa.usuario_abertura?.nome || 'Usuário'}</p>
-                                        <p className={caixa.status === 'aberto'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}>{caixa.status}</p>
-                                    </div>
-                                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
-                                        {formatDateTime(caixa.data_abertura)} - {caixa.data_fechamento? formatDateTime(caixa.data_fechamento) : 'Em aberto'}
-                                    </p>
-                                    <p className="font-bold mt-1">Saldo: {formatCurrency(caixa.saldo_esperado)}</p>
+            {/* CAIXAS DO DIA */}
+            {caixasDoDia.length > 0 && (
+                <div>
+                    <h3 className="text-sm font-bold mb-2">Caixas do dia {new Date(dataSelecionada).toLocaleDateString('pt-AO')}</h3>
+                    <div className="space-y-2">
+                        {caixasDoDia.map((caixa: CaixaHistorico) => (
+                            <div key={caixa.id} className="p-3 rounded-lg text-sm" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
+                                <div className="flex justify-between">
+                                    <p className="font-semibold">{caixa.usuario_abertura?.nome || 'Usuário'}</p>
+                                    <p className={caixa.status === 'aberto'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}>{caixa.status}</p>
                                 </div>
-                            ))}
-                        </div>
+                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                                    {formatDateTime(caixa.data_abertura)} - {caixa.data_fechamento? formatDateTime(caixa.data_fechamento) : 'Em aberto'}
+                                </p>
+                                <p className="font-bold mt-1">Saldo: {formatCurrency(caixa.saldo_esperado)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* MOVIMENTACOES */}
+            <div>
+                <h3 className="text-sm font-bold mb-2">Movimentações</h3>
+                {movimentacoes.length === 0? (
+                    <div className="flex flex-col items-center justify-center h-48 gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
+                        <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
+                        <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {movimentacoes.map((mov: Movimentacao) => (
+                            <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
+                                <div className="flex items-center gap-3">
+                                    {getIcon(mov.tipo)}
+                                    <div>
+                                        <p className="font-semibold text-sm">{mov.descricao}</p>
+                                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                                            {mov.usuario?.nome} - {formatDateTime(mov.created_at)}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                                    {mov.tipo === 'entrada' || mov.tipo === 'abertura'? '+' : '-'} {formatCurrency(mov.valor)}
+                                </p>
+                            </div>
+                        ))}
                     </div>
                 )}
-
-                {/* MOVIMENTACOES */}
-                <div>
-                    <h3 className="text-sm font-bold mb-2">Movimentações</h3>
-                    {movimentacoes.length === 0? (
-                        <div className="flex flex-col items-center justify-center h-48 gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
-                            <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
-                            <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
-                        </div>
-                    ) : (
-                        <div className="space-y-2 pb-4"> {/* <- pb-4 pra nao colar no fim */}
-                            {movimentacoes.map((mov: Movimentacao) => (
-                                <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
-                                    <div className="flex items-center gap-3">
-                                        {getIcon(mov.tipo)}
-                                        <div>
-                                            <p className="font-semibold text-sm">{mov.descricao}</p>
-                                            <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
-                                                {mov.usuario?.nome} - {formatDateTime(mov.created_at)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
-                                        {mov.tipo === 'entrada' || mov.tipo === 'abertura'? '+' : '-'} {formatCurrency(mov.valor)}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
             </div>
-
-            {/* 4. CSS DO SCROLL INVISIVEL - COLA NO SEU globals.css */}
-            <style jsx>{`
-                .custom-scroll::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .custom-scroll::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scroll::-webkit-scrollbar-thumb {
-                    background: color-mix(in srgb, var(--cor-borda) 40%, transparent);
-                    border-radius: 10px;
-                }
-                .custom-scroll::-webkit-scrollbar-thumb:hover {
-                    background: color-mix(in srgb, var(--cor-borda) 60%, transparent);
-                }
-                /* Firefox */
-                .custom-scroll {
-                    scrollbar-width: thin;
-                    scrollbar-color: color-mix(in srgb, var(--cor-borda) 40%, transparent) transparent;
-                }
-            `}</style>
         </div>
     )
 }
