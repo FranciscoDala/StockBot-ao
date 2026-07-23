@@ -145,7 +145,16 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
             </Dialog>
 
             <SangriaModal open={showSangriaModal} onOpenChange={setShowSangriaModal} onSave={handleAcaoConcluida} token={token} lojaId={lojaId} />
-            <AberturaFechamentoModal open={showAberturaModal} onOpenChange={setShowAberturaModal} onSave={handleAcaoConcluida} token={token} lojaId={lojaId} statusAtual={resumo?.status} />
+
+            <AberturaFechamentoModal
+                open={showAberturaModal}
+                onOpenChange={setShowAberturaModal}
+                onSave={handleAcaoConcluida}
+                token={token}
+                lojaId={lojaId}
+                statusAtual={resumo?.status}
+                valorEsperado={resumo?.saldo_atual} // <- ADICIONA ISSO
+            />
         </>
     )
 }

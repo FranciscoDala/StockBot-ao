@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Lock, Unlock } from "lucide-react";
-import { useState } from "react";
+import { Loader2, Lock, Unlock, Wallet } from "lucide-react";
+import { useState, useEffect } from "react";
+import { formatCurrency } from "../utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
@@ -16,14 +17,23 @@ interface Props {
     token: string;
     lojaId: string;
     statusAtual?: 'aberto' | 'fechado'
+    valorEsperado?: number
 }
 
-export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, lojaId, statusAtual }: Props) {
+export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, lojaId, statusAtual, valorEsperado = 0 }: Props) {
     const [saldoInicial, setSaldoInicial] = useState('');
     const [saldoContado, setSaldoContado] = useState('');
-    const [senhaDono, setSenhaDono] = useState(''); // <- ADICIONA SENHA
     const [loading, setLoading] = useState(false);
     const isAbrir = statusAtual!== 'aberto';
+
+    const diferenca = Number(saldoContado || 0) - Number(valorEsperado || 0); // <- garante number
+
+    useEffect(() => {
+        if (!open) {
+            setSaldoInicial('');
+            setSaldoContado('');
+        }
+    }, [open])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,18 +41,13 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
         setLoading(true);
         try {
             if (isAbrir) {
-                // ABRIR
                 const res = await fetch(`${API_URL}/caixa/abrir`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                     body: JSON.stringify({ loja_id: lojaId, saldo_abertura: Number(saldoInicial) })
                 });
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.detail || "Erro ao abrir caixa");
-                }
+                if (!res.ok) throw new Error((await res.json()).detail || "Erro ao abrir caixa");
             } else {
-                // FECHAR - precisa buscar o id do caixa aberto primeiro
                 const resumoRes = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, {
                     headers: { "Authorization": `Bearer ${token}` }
                 });
@@ -51,24 +56,15 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
 
                 if (!resumo.id) throw new Error("Nenhum caixa aberto para fechar");
 
-                const res = await fetch(`${API_URL}/caixa/fechar/${resumo.id}`, { // <- ROTA COM ID
+                const res = await fetch(`${API_URL}/caixa/fechar/${resumo.id}`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                    body: JSON.stringify({
-                        saldo_contado: Number(saldoContado),
-                        senha_dono: senhaDono // <- backend exige isso
-                    })
+                    body: JSON.stringify({ saldo_contado: Number(saldoContado) })
                 });
-                if (!res.ok) {
-                    const err = await res.json();
-                    throw new Error(err.detail || "Erro ao fechar caixa");
-                }
+                if (!res.ok) throw new Error((await res.json()).detail || "Erro ao fechar caixa");
             }
-            setSaldoInicial('');
-            setSaldoContado('');
-            setSenhaDono('');
             onSave();
-            onOpenChange(false); // <- fecha modal ao salvar
+            onOpenChange(false);
         } catch (error: any) {
             console.error(error);
             alert(error.message || "Erro ao processar caixa");
@@ -91,11 +87,21 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                             {isAbrir? 'Abrir Caixa' : 'Fechar Caixa'}
                         </DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
-                            {isAbrir? 'Informe o valor inicial em dinheiro no caixa.' : 'Conte o dinheiro, informe o total e senha do dono.'}
+                            {isAbrir? 'Informe o valor inicial em dinheiro no caixa.' : 'Conte o dinheiro e informe o total para conferir.'}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="grid gap-4 py-4 px-4 sm:px-6">
+                        {!isAbrir && ( // <- SÓ MOSTRA SE FOR FECHAR
+                            <div className="p-3 rounded-lg flex items-center justify-between" style={{ background: 'color-mix(in srgb, var(--cor-info) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cor-info) 30%, transparent)' }}>
+                                <div className="flex items-center gap-2">
+                                    <Wallet size={16} style={{ color: 'var(--cor-info)' }} />
+                                    <p className="text-xs font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Valor Esperado</p>
+                                </div>
+                                <p className="text-sm font-bold" style={{ color: 'var(--cor-info)' }}>{formatCurrency(valorEsperado)}</p>
+                            </div>
+                        )}
+
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>
                                 {isAbrir? 'Saldo Inicial *' : 'Saldo Contado *'}
@@ -106,23 +112,18 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                                 onChange={e => isAbrir? setSaldoInicial(e.target.value) : setSaldoContado(e.target.value)}
                                 className="sm:col-span-3 text-xs h-9"
                                 style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
-                                placeholder="0,00" required
+                                placeholder="0,00" required autoFocus
                             />
                         </div>
 
-                        {!isAbrir && ( // <- CAMPO SENHA SÓ NO FECHAMENTO
+                        {!isAbrir && saldoContado && (
                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                 <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>
-                                    Senha Dono *
+                                    Diferença
                                 </Label>
-                                <Input
-                                    type="password"
-                                    value={senhaDono}
-                                    onChange={e => setSenhaDono(e.target.value)}
-                                    className="sm:col-span-3 text-xs h-9"
-                                    style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
-                                    required
-                                />
+                                <p className={`sm:col-span-3 text-sm font-bold ${diferenca === 0? 'text-[var(--cor-sucesso)]' : diferenca > 0? 'text-[var(--cor-info)]' : 'text-[var(--cor-erro)]'}`}>
+                                    {diferenca > 0? '+' : ''}{formatCurrency(diferenca)}
+                                </p>
                             </div>
                         )}
                     </div>

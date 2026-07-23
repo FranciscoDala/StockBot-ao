@@ -159,22 +159,36 @@ async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = D
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
     await verificar_acesso_loja(caixa.loja_id, db, current_user)
     if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado")
-    await verify_dono_password(db, caixa.loja_id, body.senha_dono)
+
+    # REMOVIDO: await verify_dono_password(db, caixa.loja_id, body.senha_dono)
+
     try:
+        # 1. PRIMEIRO registra a movimentação de fechamento enquanto o caixa ainda está ABERTO
+        await registrar_movimento_caixa(
+            db=db,
+            loja_id=caixa.loja_id,
+            tipo=TipoMovimentacao.ESTORNO,
+            valor=to_decimal(caixa.saldo_esperado),
+            descricao="Fechamento de caixa",
+            usuario_id=current_user.id
+        )
+
+        # 2. DEPOIS fecha o caixa
         caixa.status = StatusCaixa.FECHADO
         caixa.data_fechamento = datetime.utcnow()
         caixa.usuario_fechamento_id = current_user.id
         caixa.saldo_contado = to_decimal(body.saldo_contado)
         caixa.diferenca = to_decimal(body.saldo_contado) - to_decimal(caixa.saldo_esperado)
         caixa.observacao = body.observacao
-        await registrar_movimento_caixa(db=db, loja_id=caixa.loja_id, tipo=TipoMovimentacao.ESTORNO, valor=to_decimal(caixa.saldo_esperado), descricao="Fechamento de caixa", usuario_id=current_user.id)
+
         await db.commit()
         await db.refresh(caixa)
     except Exception as e:
         await db.rollback()
-        logger.error(f"[DEBUG] ERRO FECHAR: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Erro ao fechar caixa: {e}")
     return {"message": "Caixa fechado com sucesso", "diferenca": float(caixa.diferenca or 0)}
+
+
 
 @router.post("/sangria")
 async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
