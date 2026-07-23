@@ -1,17 +1,23 @@
-from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Text, Enum
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import UUID, ENUM # <- IMPORTA ENUM
 from app.db.base import Base
 import uuid
 from datetime import datetime
 import enum
 
 class TipoMovimentacao(str, enum.Enum):
-    ABERTURA = 'abertura' # <- MINUSCULO
+    ABERTURA = 'abertura'
     ENTRADA = 'entrada'
     SAIDA = 'saida'
     SANGRIA = 'sangria'
     SUPRIMENTO = 'suprimento'
     ESTORNO = 'estorno'
+
+tipomovimentacao_enum = ENUM(
+    'abertura', 'entrada', 'saida', 'sangria', 'suprimento', 'estorno',
+    name='tipomovimentacao', # <- NOME EXATO DO ENUM DO BANCO
+    create_type=False # <- IMPORTANTE: não tenta criar de novo
+)
 
 class MovimentacaoCaixa(Base):
     __tablename__ = "movimentacoes_caixa"
@@ -22,7 +28,7 @@ class MovimentacaoCaixa(Base):
     usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
     saida_id = Column(UUID(as_uuid=True), ForeignKey("saidas.id"), nullable=True)
 
-    tipo = Column(String(20), nullable=False) # <- TROCA ENUM POR STRING. Resolve 100%
+    tipo = Column(tipomovimentacao_enum, nullable=False) # <- USA A VARIAVEL
     valor = Column(Numeric(14, 2), nullable=False)
     descricao = Column(Text)
     referencia_id = Column(UUID(as_uuid=True), nullable=True)
