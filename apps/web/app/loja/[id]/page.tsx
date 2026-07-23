@@ -89,8 +89,18 @@ export default function LojaPage() {
         { id: "definicoes", label: "Definições", icon: Settings, show: podeVerTudo },
     ];
 
-    const initialTabs = allTabs.filter(t => t.show && (t.id !== "venda" || isCaixaAberto));
+    const initialTabs = useMemo(() =>
+        allTabs.filter(t => t.show && (t.id !== "venda" || isCaixaAberto)),
+        [isCaixaAberto, podeVerVendas] // <- recalcula quando caixa abre ou permissão muda
+    );
     const [activeTab, setActiveTab] = useState(initialTabs[0]?.id || "dados");
+
+    useEffect(() => {
+        const tabExiste = initialTabs.find(t => t.id === activeTab);
+        if (!tabExiste) {
+            setActiveTab(initialTabs[0]?.id || "dados")
+        }
+    }, [initialTabs, activeTab])
 
     const [equipa, setEquipa] = useState<UsuarioLojaPage[]>([]); const [editingUser, setEditingUser] = useState<UsuarioLoja | null>(null);
     const [formDataUser, setFormDataUser] = useState({ nome: "", email: "", senha: "", telefone: "", role: "VENDEDOR" as UserRole, is_active: true });
