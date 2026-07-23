@@ -26,13 +26,13 @@ router = APIRouter()
 def to_decimal(v) -> Decimal:
     return Decimal(str(v or 0))
 
-async def get_caixa_aberto_usuario(db: AsyncSession, loja_id: UUID, usuario_id: UUID) -> Caixa | None: # <- AGORA É POR USUARIO
+async def get_caixa_aberto_usuario(db: AsyncSession, loja_id: UUID, usuario_id: UUID) -> Caixa | None:
     hoje = date.today()
     logger.info(f"[DEBUG] Buscando caixa aberto para loja_id={loja_id} usuario={usuario_id} na data={hoje}")
     stmt = select(Caixa).where(
         and_(
             Caixa.loja_id == loja_id,
-            Caixa.usuario_abertura_id == usuario_id, # <- FILTRO POR USUARIO
+            Caixa.usuario_abertura_id == usuario_id,
             func.date(Caixa.data_caixa) == hoje,
             Caixa.status == StatusCaixa.ABERTO.value
         )
@@ -70,10 +70,12 @@ async def registrar_movimento_caixa(
     caixa.total_saidas = to_decimal(caixa.total_saidas)
     caixa.saldo_abertura = to_decimal(caixa.saldo_abertura)
 
-    if tipo in [TipoMovimentacao.ENTRADA, TipoMovimentacao.ABERTURA]:
+    # CORRECAO: ABERTURA NAO ENTRA COMO ENTRADA
+    if tipo == TipoMovimentacao.ENTRADA:
         caixa.total_entradas += valor
-    elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA, TipoMovimentacao.ESTORNO]: # <- ESTORNO CONTA COMO SAIDA
+    elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]:
         caixa.total_saidas += valor
+    # ABERTURA e FECHAMENTO so registram o movimento, nao mexem nos totais
 
     caixa.saldo_esperado = caixa.saldo_abertura + caixa.total_entradas - caixa.total_saidas
     logger.info(f"[DEBUG] Novo saldo_esperado: {caixa.saldo_esperado}")
@@ -101,11 +103,11 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     saldo_atual = to_decimal(saldo_abertura) + to_decimal(entradas) - to_decimal(saidas)
 
     return CaixaResumoOut(
-        id=meu_caixa_aberto.id if meu_caixa_aberto else None, # <- manda o id do meu caixa pra poder fechar
+        id=meu_caixa_aberto.id if meu_caixa_aberto else None,
         saldo_abertura=to_decimal(saldo_abertura),
-        entradas_hoje=to_decimal(entradas),
+        entradas_hoje=to_decimal(entradas), # <- AGORA SO VENDA
         saidas_hoje=to_decimal(saidas),
-        saldo_atual=saldo_atual,
+        saldo_atual=saldo_atual, # <- AGORA BATE: 2000 + 0 - 0 = 2000
         status=StatusCaixa.ABERTO if tem_caixa_aberto else StatusCaixa.FECHADO
     )
 
@@ -123,7 +125,7 @@ async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), cu
     logger.info(f"[DEBUG] ===== INICIANDO ABERTURA DE CAIXA =====")
     try:
         await verificar_acesso_loja(body.loja_id, db, current_user)
-        if await get_caixa_aberto_usuario(db, body.loja_id, current_user.id): # <- VALIDA POR USUARIO
+        if await get_caixa_aberto_usuario(db, body.loja_id, current_user.id):
             raise HTTPException(status_code=400, detail="Você já possui um caixa aberto para hoje")
 
         loja = await db.get(Loja, body.loja_id)
@@ -165,14 +167,15 @@ async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), cu
 async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     caixa = await db.get(Caixa, caixa_id)
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
-    if caixa.usuario_abertura_id!= current_user.id: raise HTTPException(status_code=403, detail="Você só pode fechar seu próprio caixa") # <- SEGURANÇA
+    if caixa.usuario_abertura_id!= current_user.id: raise HTTPException(status_code=403, detail="Você só pode fechar seu próprio caixa")
     await verificar_acesso_loja(caixa.loja_id, db, current_user)
     if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado")
 
     try:
+        # CORRECAO: NAO REGISTRA ESTORNO. SO FECHA O CAIXA
         await registrar_movimento_caixa(
-            db=db, caixa_id=caixa.id, loja_id=caixa.loja_id, tipo=TipoMovimentacao.ESTORNO,
-            valor=to_decimal(caixa.saldo_esperado), descricao="Fechamento de caixa", usuario_id=current_user.id
+            db=db, caixa_id=caixa.id, loja_id=caixa.loja_id, tipo=TipoMovimentacao.FECHAMENTO,
+            valor=0, descricao="Fechamento de caixa", usuario_id=current_user.id
         )
 
         caixa.status = StatusCaixa.FECHADO
@@ -192,7 +195,7 @@ async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = D
 @router.post("/sangria")
 async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(body.loja_id, db, current_user)
-    caixa = await get_caixa_aberto_usuario(db, body.loja_id, current_user.id) # <- PEGA O CAIXA DO USUARIO
+    caixa = await get_caixa_aberto_usuario(db, body.loja_id, current_user.id)
     if not caixa: raise HTTPException(status_code=400, detail="Você não possui caixa aberto")
     if to_decimal(caixa.saldo_esperado) < to_decimal(body.valor): raise HTTPException(status_code=400, detail="Saldo insuficiente para sangria")
     try:
@@ -206,3 +209,35 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
         logger.error(f"[DEBUG] ERRO SANGRIA: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
     return {"message": "Sangria registrada com sucesso!"}
+
+
+@router.get("/historico")
+async def get_historico_caixa(
+    loja_id: UUID,
+    data: date, # <- 2026-07-22
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    await verificar_acesso_loja(loja_id, db, current_user)
+
+    # 1. Pega todos os caixas daquela data
+    stmt_caixas = select(Caixa).where(
+        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == data)
+    ).order_by(Caixa.data_abertura)
+    caixas = (await db.execute(stmt_caixas)).scalars().all()
+
+    if not caixas:
+        return {"caixas": [], "movimentacoes": []}
+
+    ids_caixas = [c.id for c in caixas]
+
+    # 2. Pega todas as movimentações desses caixas
+    stmt_movs = select(MovimentacaoCaixa).where(
+        MovimentacaoCaixa.caixa_id.in_(ids_caixas)
+    ).order_by(MovimentacaoCaixa.created_at.desc())
+    movs = (await db.execute(stmt_movs)).scalars().all()
+
+    return {
+        "caixas": caixas, # <- pra mostrar: João 08:00-12:00 Fechado
+        "movimentacoes": movs # <- todas as movs do dia
+    }

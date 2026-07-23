@@ -1,6 +1,6 @@
 from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID, ENUM # <- IMPORTA ENUM
-from app.db.base import Base
+from ..db.base import Base
 import uuid
 from datetime import datetime
 import enum
