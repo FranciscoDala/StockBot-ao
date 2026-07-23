@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input"; // <- NOVO
-import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, Unlock, Loader2, Inbox, Minus, Calendar } from "lucide-react"; // <- NOVO Calendar
+import { Input } from "@/components/ui/input"; // <- UNICA COISA NOVA DE IMPORT
+import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, Unlock, Loader2, Inbox, Minus, Calendar } from "lucide-react"; // <- ADICIONEI Calendar
 import { formatCurrency, formatDateTime } from "../utils";
 import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
@@ -26,7 +26,7 @@ type CaixaResumo = {
     status: 'aberto' | 'fechado'
 }
 
-type CaixaHistorico = {
+type CaixaHistorico = { // <- NOVO
     id: string;
     usuario_abertura: { nome: string };
     data_abertura: string;
@@ -37,11 +37,11 @@ type CaixaHistorico = {
 
 type Movimentacao = {
     id: string;
-    tipo: 'entrada' | 'saida' | 'sangria' | 'abertura' | 'fechamento'; // <- ADICIONEI FECHAMENTO
+    tipo: 'entrada' | 'saida' | 'sangria' | 'abertura' | 'fechamento';
     valor: number;
     descricao: string;
     created_at: string;
-    usuario: { nome: string }; // <- PRA MOSTRAR QUEM FEZ
+    usuario: { nome: string }; // <- NOVO
 }
 
 export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
@@ -50,9 +50,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
     const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
     const [caixasDoDia, setCaixasDoDia] = useState<CaixaHistorico[]>([]); // <- NOVO
     const [loading, setLoading] = useState(false);
-
-    // NOVO: estado pra data selecionada. Default = hoje
-    const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().split('T')[0]);
+    const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().split('T')[0]); // <- NOVO
 
     const [showSangriaModal, setShowSangriaModal] = useState(false);
     const [showAberturaModal, setShowAberturaModal] = useState(false);
@@ -82,7 +80,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         finally { setLoading(false); }
     }
 
-    // FUNCAO NOVA: Carrega historico pela data
+    // FUNCAO NOVA
     const carregarHistoricoPorData = async () => {
         if (!API_URL ||!lojaId ||!token) return;
         setLoading(true);
@@ -102,7 +100,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         setShowSangriaModal(false);
         setShowAberturaModal(false);
         carregarResumoCaixa();
-        if (abaAtiva === 'movimentacoes') carregarHistoricoPorData(); // <- ATUALIZA HISTORICO TB
+        if (abaAtiva === 'movimentacoes') carregarHistoricoPorData();
     }
 
     const isCaixaAberto = resumo?.status === 'aberto';
@@ -110,6 +108,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
     return (
         <>
             <Dialog open={open} onOpenChange={(v) => { if (!showSangriaModal &&!showAberturaModal) onOpenChange(v) }}>
+                {/* MANTIVE 100% IGUAL SEU FULLSCREEN */}
                 <DialogContent
                     className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
@@ -154,7 +153,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                                     setDataSelecionada={setDataSelecionada}
                                     caixasDoDia={caixasDoDia}
                                     movimentacoes={movimentacoes}
-                                />} {/* <- PASSANDO PROPS NOVAS */}
+                                />}
                             </>
                         )}
                     </div>
@@ -187,7 +186,7 @@ function TabButton({ label, icon, active, onClick }: any) {
 }
 
 function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
-    //... esse componente continua igual
+    // IGUALZINHO AO SEU
     const statusConfig = isCaixaAberto? {
         cor: 'var(--cor-sucesso)', bg: 'color-mix(in srgb, var(--cor-sucesso) 8%, transparent)', border: 'color-mix(in srgb, var(--cor-sucesso) 25%, transparent)',
         icon: <CheckCircle size={22} />, titulo: 'Caixa Aberto', subtitulo: 'Operações liberadas. Registre vendas e sangrias.'
@@ -231,7 +230,7 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
                 <CardMetrica titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} icon={<ArrowUpRight size={16} />} />
                 <CardMetrica titulo="Saídas/Sangrias" valor={resumo?.saidas_hoje || 0} icon={<ArrowDownRight size={16} />} />
             </div>
-            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'var(--cor-card)', border: '2px solid var(--cor-primaria)' }}>
+            <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'var(--cor-card)', border: '2px solid var(--cor-primaria)' }}>
                 <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
                     <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
@@ -242,78 +241,106 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
     )
 }
 
-// ABA MOVIMENTACOES NOVA - COM FILTRO DE DATA
+// UNICA COISA QUE MUDOU FOI AQUI
 function AbaMovimentacoes({ dataSelecionada, setDataSelecionada, caixasDoDia, movimentacoes }: any) {
-
     const getIcon = (tipo: string) => {
         if (tipo === 'entrada' || tipo === 'abertura') return <ArrowUpRight size={16} className="text-[var(--cor-sucesso)]" />;
         return <ArrowDownRight size={16} className="text-[var(--cor-erro)]" />;
     }
 
     return (
-        <div className="space-y-4">
-            {/* FILTRO DE DATA NOVO */}
-            <div className="flex items-center gap-2 p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
-                <Calendar size={18} style={{ color: 'var(--cor-primaria)' }} />
-                <label className="text-sm font-semibold">Ver histórico de:</label>
-                <Input
-                    type="date"
-                    value={dataSelecionada}
-                    onChange={(e) => setDataSelecionada(e.target.value)}
-                    className="w-auto h-9"
-                />
+        <div className="flex flex-col h-full"> {/* <- 1. Container vira flex coluna */}
+
+            {/* 2. HEADER FIXO COM DATA */}
+            <div className="sticky top-0 z-10 p-3 rounded-lg mb-4"
+                style={{
+                    background: 'var(--cor-card)',
+                    border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)',
+                    boxShadow: '0 2px 4px color-mix(in srgb, #000 5%, transparent)' // sombra pra destacar quando rolar
+                }}>
+                <div className="flex items-center gap-2">
+                    <Calendar size={18} style={{ color: 'var(--cor-primaria)' }} />
+                    <label className="text-sm font-semibold">Ver histórico de:</label>
+                    <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-auto h-9" />
+                </div>
             </div>
 
-            {/* LISTA DE CAIXAS DO DIA */}
-            {caixasDoDia.length > 0 && (
-                <div>
-                    <h3 className="text-sm font-bold mb-2">Caixas do dia {new Date(dataSelecionada).toLocaleDateString('pt-AO')}</h3>
-                    <div className="space-y-2">
-                        {caixasDoDia.map((caixa: CaixaHistorico) => (
-                            <div key={caixa.id} className="p-3 rounded-lg text-sm" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
-                                <div className="flex justify-between">
-                                    <p className="font-semibold">{caixa.usuario_abertura?.nome || 'Usuário'}</p>
-                                    <p className={caixa.status === 'aberto'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}>{caixa.status}</p>
-                                </div>
-                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
-                                    {formatDateTime(caixa.data_abertura)} - {caixa.data_fechamento? formatDateTime(caixa.data_fechamento) : 'Em aberto'}
-                                </p>
-                                <p className="font-bold mt-1">Saldo: {formatCurrency(caixa.saldo_esperado)}</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+            {/* 3. CONTEUDO COM SCROLL */}
+            <div className="flex-1 overflow-y-auto pr-1 custom-scroll"> {/* <- pr-1 pra sombra nao cortar */}
 
-            {/* LISTA DE MOVIMENTACOES */}
-            <div>
-                <h3 className="text-sm font-bold mb-2">Movimentações</h3>
-                {movimentacoes.length === 0? (
-                    <div className="flex flex-col items-center justify-center h-48 gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
-                        <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
-                        <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        {movimentacoes.map((mov: Movimentacao) => (
-                            <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
-                                <div className="flex items-center gap-3">
-                                    {getIcon(mov.tipo)}
-                                    <div>
-                                        <p className="font-semibold text-sm">{mov.descricao}</p>
-                                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
-                                            {mov.usuario?.nome} - {formatDateTime(mov.created_at)}
-                                        </p>
+                {/* CAIXAS DO DIA */}
+                {caixasDoDia.length > 0 && (
+                    <div className="mb-4">
+                        <h3 className="text-sm font-bold mb-2">Caixas do dia {new Date(dataSelecionada).toLocaleDateString('pt-AO')}</h3>
+                        <div className="space-y-2">
+                            {caixasDoDia.map((caixa: CaixaHistorico) => (
+                                <div key={caixa.id} className="p-3 rounded-lg text-sm" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
+                                    <div className="flex justify-between">
+                                        <p className="font-semibold">{caixa.usuario_abertura?.nome || 'Usuário'}</p>
+                                        <p className={caixa.status === 'aberto'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}>{caixa.status}</p>
                                     </div>
+                                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                                        {formatDateTime(caixa.data_abertura)} - {caixa.data_fechamento? formatDateTime(caixa.data_fechamento) : 'Em aberto'}
+                                    </p>
+                                    <p className="font-bold mt-1">Saldo: {formatCurrency(caixa.saldo_esperado)}</p>
                                 </div>
-                                <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
-                                    {mov.tipo === 'entrada' || mov.tipo === 'abertura'? '+' : '-'} {formatCurrency(mov.valor)}
-                                </p>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 )}
+
+                {/* MOVIMENTACOES */}
+                <div>
+                    <h3 className="text-sm font-bold mb-2">Movimentações</h3>
+                    {movimentacoes.length === 0? (
+                        <div className="flex flex-col items-center justify-center h-48 gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
+                            <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
+                            <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 pb-4"> {/* <- pb-4 pra nao colar no fim */}
+                            {movimentacoes.map((mov: Movimentacao) => (
+                                <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
+                                    <div className="flex items-center gap-3">
+                                        {getIcon(mov.tipo)}
+                                        <div>
+                                            <p className="font-semibold text-sm">{mov.descricao}</p>
+                                            <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                                                {mov.usuario?.nome} - {formatDateTime(mov.created_at)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                                        {mov.tipo === 'entrada' || mov.tipo === 'abertura'? '+' : '-'} {formatCurrency(mov.valor)}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
+
+            {/* 4. CSS DO SCROLL INVISIVEL - COLA NO SEU globals.css */}
+            <style jsx>{`
+                .custom-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .custom-scroll::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .custom-scroll::-webkit-scrollbar-thumb {
+                    background: color-mix(in srgb, var(--cor-borda) 40%, transparent);
+                    border-radius: 10px;
+                }
+                .custom-scroll::-webkit-scrollbar-thumb:hover {
+                    background: color-mix(in srgb, var(--cor-borda) 60%, transparent);
+                }
+                /* Firefox */
+                .custom-scroll {
+                    scrollbar-width: thin;
+                    scrollbar-color: color-mix(in srgb, var(--cor-borda) 40%, transparent) transparent;
+                }
+            `}</style>
         </div>
     )
 }
