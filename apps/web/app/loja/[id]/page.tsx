@@ -59,6 +59,7 @@ const fetchComAuth = async (url: string, token: string, options: RequestInit = {
 export default function LojaPage() {
     const router = useRouter(); const params = useParams(); const lojaId = params.id as string;
     const [isClient, setIsClient] = useState(false); const [user, setUser] = useState<userread | null>(null); const [token, setToken] = useState<string | null>(null); const [loading, setLoading] = useState(true); const [loja, setLoja] = useState<Loja | null>(null);
+    const [isCaixaAberto, setIsCaixaAberto] = useState(false);
 
     const [theme, setTheme] = useState("dark");
     const [cardStyle, setCardStyle] = useState("padrao");
@@ -87,7 +88,8 @@ export default function LojaPage() {
         { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo },
         { id: "definicoes", label: "Definições", icon: Settings, show: podeVerTudo },
     ];
-    const initialTabs = allTabs.filter(t => t.show);
+
+    const initialTabs = allTabs.filter(t => t.show && (t.id !== "venda" || isCaixaAberto));
     const [activeTab, setActiveTab] = useState(initialTabs[0]?.id || "dados");
 
     const [equipa, setEquipa] = useState<UsuarioLojaPage[]>([]); const [editingUser, setEditingUser] = useState<UsuarioLoja | null>(null);
@@ -176,6 +178,16 @@ export default function LojaPage() {
         } catch (e) { setEquipa([]) }
     };
 
+
+    const fetchStatusCaixa = useCallback(async (currentToken: string, lojaId: string) => {
+        if (!currentToken || !lojaId) { setIsCaixaAberto(false); return; }
+        try {
+            const res = await fetchComAuth(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, currentToken);
+            setIsCaixaAberto(res.status === 'aberto');
+        } catch (e) { setIsCaixaAberto(false); }
+    }, []);
+
+
     const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { setProdutos([]); } }, []);
     const fetchVendas = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setVendas([]); return; } try { const data = await fetchComAuth(`${API_URL}/vendas?loja_id=${lojaId}`, currentToken); setVendas(z.array(VendaSchema).parse(data)); } catch (e) { setVendas([]); } }, []);
 
@@ -198,7 +210,7 @@ export default function LojaPage() {
         setIsClient(true); const currentToken = getCookie("token"); const userStr = getCookie("user"); setToken(currentToken || null);
         if (!currentToken || !userStr) { handleSair(); return; } try {
             const userData: userread = JSON.parse(userStr); if (userData.loja_id !== lojaId) { handleSair(); return; } setUser(userData);
-            const loadData = async () => { setLoading(true); await Promise.all([fetchLoja(currentToken), fetchEquipa(currentToken), fetchProdutos(currentToken, userData.loja_id || ""), fetchVendas(currentToken, userData.loja_id || "")]); setLoading(false); }
+            const loadData = async () => { setLoading(true); await Promise.all([fetchLoja(currentToken), fetchStatusCaixa(currentToken, userData.loja_id || ""), fetchEquipa(currentToken), fetchProdutos(currentToken, userData.loja_id || ""), fetchVendas(currentToken, userData.loja_id || "")]); setLoading(false); }
             loadData();
         } catch (err) { handleSair(); }
     }, [router, lojaId, fetchProdutos, fetchLoja, fetchVendas]);
