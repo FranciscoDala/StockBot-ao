@@ -288,9 +288,18 @@ async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = D
 @router.post("/sangria")
 async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(body.loja_id, db, current_user)
-    caixa = await get_caixa_aberto_loja(db, body.loja_id) # <- MUDOU AQUI
+    caixa = await get_caixa_aberto_loja(db, body.loja_id)
     if not caixa: raise HTTPException(status_code=400, detail="Não há caixa aberto para esta loja")
-    if to_decimal(caixa.saldo_esperado) < to_decimal(body.valor): raise HTTPException(status_code=400, detail="Saldo insuficiente para sangria")
+
+    # CALCULA APENAS O DINHEIRO DISPONIVEL NO CAIXA
+    saldo_dinheiro = to_decimal(caixa.saldo_abertura) + to_decimal(caixa.total_entradas) - to_decimal(caixa.total_saidas)
+
+    if saldo_dinheiro < to_decimal(body.valor):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Saldo insuficiente para sangria. Disponível em dinheiro: {saldo_dinheiro}"
+        )
+
     try:
         await registrar_movimento_caixa(
             db=db, caixa_id=caixa.id, loja_id=body.loja_id, tipo=TipoMovimentacao.SANGRIA,
@@ -303,6 +312,8 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
         raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
     return {"message": "Sangria registrada com sucesso!"}
 
+
+    
 @router.get("/historico")
 async def get_historico_caixa(
     loja_id: UUID,
