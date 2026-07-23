@@ -12,11 +12,12 @@ class TipoMovimentacao(str, enum.Enum):
     SANGRIA = 'sangria'
     SUPRIMENTO = 'suprimento'
     ESTORNO = 'estorno'
+    FECHAMENTO = 'fechamento'
 
 tipomovimentacao_enum = ENUM(
-    'abertura', 'entrada', 'saida', 'sangria', 'suprimento', 'estorno',
-    name='tipomovimentacao', # <- NOME EXATO DO ENUM DO BANCO
-    create_type=False # <- IMPORTANTE: não tenta criar de novo
+    'abertura', 'entrada', 'saida', 'sangria', 'suprimento', 'estorno', 'fechamento',
+    name='tipomovimentacao',
+    create_type=False
 )
 
 class MovimentacaoCaixa(Base):
@@ -28,7 +29,7 @@ class MovimentacaoCaixa(Base):
     usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
     saida_id = Column(UUID(as_uuid=True), ForeignKey("saidas.id"), nullable=True)
 
-    tipo = Column(tipomovimentacao_enum, nullable=False) # <- USA A VARIAVEL
+    tipo = Column(tipomovimentacao_enum, nullable=False)
     valor = Column(Numeric(14, 2), nullable=False)
     descricao = Column(Text)
     referencia_id = Column(UUID(as_uuid=True), nullable=True)
