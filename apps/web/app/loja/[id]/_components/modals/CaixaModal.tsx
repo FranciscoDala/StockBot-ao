@@ -180,7 +180,7 @@ function TabButton({ label, icon, active, onClick }: any) {
     return (
         <button
             onClick={onClick}
-            className="relative flex-1 items-center justify-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition rounded-t-lg sm:flex-initial"
+            className="relative flex flex-1 items-center justify-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition rounded-t-lg sm:flex-initial"
             style={{
                 color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)',
                 backgroundColor: active ? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent'
