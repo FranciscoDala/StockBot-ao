@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import selectinload
 from uuid import UUID
 from decimal import Decimal
 from datetime import datetime, date
@@ -9,16 +10,19 @@ import traceback
 import logging
 
 logger = logging.getLogger(__name__)
+
 from app.db.session import get_db
 from app.models.caixa import Caixa, StatusCaixa
-from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao # <- ESSE É O CERTO
+from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao
 from app.models.loja import Loja
 from app.models.usuario import Usuario
+from app.models.venda import Venda # <- ADICIONA ESSA LINHA
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
 from app.schemas.caixa import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut, MovimentacaoOut
 from app.core.deps import get_current_user, verificar_acesso_loja
 from app.core.security import verify_password
+
 router = APIRouter()
 
 def to_decimal(v) -> Decimal: # <- TROCA AQUI
@@ -243,6 +247,7 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
 
 
 
+
 @router.get("/historico")
 async def get_historico_caixa(
     loja_id: UUID,
@@ -250,11 +255,11 @@ async def get_historico_caixa(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    from app.models.venda import Venda # <- import dentro pra evitar ciclo
+    from app.models.venda import Venda
 
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    stmt_caixas = select(Caixa).where(
+    stmt_caixas = select(Caixa).options(selectinload(Caixa.usuario_abertura)).where(
         and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == data)
     ).order_by(Caixa.data_abertura)
     caixas = (await db.execute(stmt_caixas)).scalars().all()
@@ -289,7 +294,7 @@ async def get_historico_caixa(
     caixas_serializados = [
         {
             "id": str(c.id),
-            "usuario_nome": c.usuario_nome,
+            "usuario_nome": c.usuario_abertura.nome if c.usuario_abertura else "Sistema",
             "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None,
             "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None,
             "saldo_abertura": float(c.saldo_abertura),
