@@ -15,8 +15,8 @@ from app.models.venda import Venda
 from app.models.itens_venda import ItemVenda
 from app.models.produto import Produto
 from app.models.loja import Loja
-# REMOVIDO: from app.models.caixa import Caixa, StatusCaixa
-# REMOVIDO: from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao
+from app.models.caixa import Caixa, StatusCaixa # <- VOLTEI ESSE IMPORT
+from app.models.movimentacao_caixa import TipoMovimentacao # <- VOLTEI ESSE IMPORT
 from app.db.session import get_db
 from app.schemas.venda import VendaCreate, VendaRead
 from app.services.venda import criar_venda, estornar_venda_service
@@ -68,10 +68,19 @@ async def criar_venda_endpoint(
         # 3. LANÇA NO CAIXA SE FOR DINHEIRO - AJUSTADO
         if venda.forma_pagamento and venda.forma_pagamento.lower() == 'dinheiro':
             try:
+                # BUSCAR CAIXA ABERTO
+                stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+                result_caixa = await db.execute(stmt_caixa)
+                caixa_aberto = result_caixa.scalar_one_or_none()
+
+                if not caixa_aberto:
+                    raise HTTPException(status_code=400, detail="Nenhum caixa aberto para registrar a venda em dinheiro")
+
                 await registrar_movimento_caixa(
                     db=db,
+                    caixa_id=caixa_aberto.id, # <- ADICIONADO
                     loja_id=loja_id,
-                    tipo='estorno',
+                    tipo=TipoMovimentacao.ENTRADA, # <- CORRIGIDO: venda é ENTRADA
                     valor=venda.total,
                     descricao=f"Venda #{str(venda.id)[:8]}",
                     usuario_id=current_user.id,
@@ -107,14 +116,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-       .options(
+      .options(
             joinedload(Venda.usuario),
             joinedload(Venda.itens).joinedload(ItemVenda.produto)
         )
-       .where(Venda.loja_id == loja_id_usar)
-       .order_by(Venda.created_at.desc())
-       .limit(limit)
-       .offset(offset)
+      .where(Venda.loja_id == loja_id_usar)
+      .order_by(Venda.created_at.desc())
+      .limit(limit)
+      .offset(offset)
     )
 
     if data_inicio:
@@ -199,13 +208,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-           .header {{ text-align: center; margin-bottom: 15px; }}
-           .header h1 {{ margin: 0; font-size: 18px; }}
-           .info p {{ margin: 2px 0; }}
+          .header {{ text-align: center; margin-bottom: 15px; }}
+          .header h1 {{ margin: 0; font-size: 18px; }}
+          .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-           .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-           .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+          .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+          .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
@@ -238,9 +247,6 @@ async def imprimir_venda(
     </html>
     """
     return HTMLResponse(content=html_content)
-
-
-
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(
@@ -285,10 +291,19 @@ async def estornar_venda(
     # 4. LANÇA ESTORNO NO CAIXA - COLA AQUI EMBAIXO
     if valor_estornado > 0:
         try:
+            # BUSCAR CAIXA ABERTO
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+            result_caixa = await db.execute(stmt_caixa)
+            caixa_aberto = result_caixa.scalar_one_or_none()
+
+            if not caixa_aberto:
+                raise HTTPException(status_code=400, detail="Nenhum caixa aberto para registrar o estorno")
+
             await registrar_movimento_caixa(
                 db=db,
+                caixa_id=caixa_aberto.id, # <- ADICIONADO
                 loja_id=loja_id,
-                tipo='saida', # Estorno é SAIDA
+                tipo=TipoMovimentacao.SAIDA, # <- CORRIGIDO: usei o Enum
                 valor=valor_estornado,
                 descricao=f"Estorno Venda #{str(id)[:8]}",
                 usuario_id=current_user.id,
