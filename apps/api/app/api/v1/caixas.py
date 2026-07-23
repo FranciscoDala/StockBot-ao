@@ -202,4 +202,4 @@ async def fazer_sangria(
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
 
-    return {"message": "Sangria registrada com sucesso"}
+    return {"message": "Sangria registrada com sucesso!"}
