@@ -58,7 +58,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         setLoading(true);
         try {
             const res = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) throw new Error("Erro ao buscar caixa!");
+            if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
             setResumo(data);
         } catch (error) {
@@ -75,7 +75,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
             const res = await fetch(`${API_URL}/caixas/${resumo.id}/movimentacoes`, { // <- ROTA MELHOR
                 headers: { "Authorization": `Bearer ${token}` }
             });
-            if (!res.ok) throw new Error("Erro ao buscar movimentacoes!");
+            if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
             const data = await res.json();
             setMovimentacoes(data);
         } catch (error) { console.error(error); setMovimentacoes([]); }
