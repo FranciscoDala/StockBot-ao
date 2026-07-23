@@ -150,6 +150,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                 lojaId={lojaId}
                 statusAtual={resumo?.status}
                 valorEsperado={resumo?.saldo_atual || 0}
+                caixaId={resumo?.id} // <- ESSA LINHA
             />
         </>
     )

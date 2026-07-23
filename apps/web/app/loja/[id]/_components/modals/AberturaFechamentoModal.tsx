@@ -26,9 +26,10 @@ interface Props {
     lojaId: string;
     statusAtual?: 'aberto' | 'fechado'
     valorEsperado?: number
+    caixaId?: string // <- ADICIONADO
 }
 
-export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, lojaId, statusAtual, valorEsperado = 0 }: Props) {
+export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, lojaId, statusAtual, valorEsperado = 0, caixaId }: Props) {
     const [saldoInicial, setSaldoInicial] = useState('');
     const [saldoContado, setSaldoContado] = useState('');
     const [loading, setLoading] = useState(false);
@@ -38,7 +39,7 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
 
     // aceita, ou. e converte pra number
     const handleNumberChange = (val: string, setter: (v: string) => void) => {
-        setter(val.replace(/[^0-9.,]/g, '')) // só deixa número, e.
+        setter(val.replace(/[^0-9.,]/g, '')) // só deixa número,, e.
     }
 
     useEffect(() => {
@@ -61,14 +62,10 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                 });
                 if (!res.ok) throw new Error((await res.json()).detail || "Erro ao abrir caixa");
             } else {
-                const resumoRes = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                if (!resumoRes.ok) throw new Error("Erro ao buscar caixa aberto");
-                const resumo = await resumoRes.json();
-                if (!resumo.id) throw new Error("Nenhum caixa aberto para fechar");
+                // CORRECAO: USA O ID QUE JA VEIO DA PROPS
+                if (!caixaId) throw new Error("Nenhum caixa aberto para fechar");
 
-                const res = await fetch(`${API_URL}/caixas/fechar/${resumo.id}`, {
+                const res = await fetch(`${API_URL}/caixas/fechar/${caixaId}`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                     body: JSON.stringify({ saldo_contado: Number(saldoContado.replace(',', '.')) })
