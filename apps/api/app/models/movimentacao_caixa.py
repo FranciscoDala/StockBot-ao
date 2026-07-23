@@ -6,13 +6,13 @@ from datetime import datetime
 import enum
 
 class TipoMovimentacao(str, enum.Enum):
-    ABERTURA = 'abertura' # <- ADICIONA
-    ENTRADA = 'entrada'
-    SAIDA = 'saida'
-    SANGRIA = 'sangria'
-    SUPRIMENTO = 'suprimento'
-    ESTORNO = 'estorno' # <- ADICIONA
-
+    ABERTURA = 'ABERTURA'
+    ENTRADA = 'ENTRADA'
+    SAIDA = 'SAIDA'
+    SANGRIA = 'SANGRIA'
+    SUPRIMENTO = 'SUPRIMENTO'
+    ESTORNO = 'ESTORNO'
+    
 class MovimentacaoCaixa(Base):
     __tablename__ = "movimentacoes_caixa"
 
