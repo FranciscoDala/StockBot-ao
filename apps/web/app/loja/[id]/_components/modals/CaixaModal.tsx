@@ -33,7 +33,8 @@ type Movimentacao = {
     valor: number;
     descricao: string;
     created_at: string;
-    forma_pagamento: 'dinheiro' | 'tpa' | 'transferencia' | null;
+    forma_pagamento: 'Dinheiro' | 'TPA' | 'Transferencia' | null; // <- tira o ? e coloca | null
+    
 }
 
 export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props) { // <- ADICIONADO onSave
@@ -213,7 +214,7 @@ function AbaResumo({ resumo, movimentacoes, isCaixaAberto, onAbrir, onSangria }:
 
     // NOVOS CÁLCULOS SEPARADOS POR FORMA DE PAGAMENTO
     const cashHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && m.forma_pagamento === 'dinheiro')
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && m.forma_pagamento === 'Dinheiro')
         .reduce((acc, m) => acc + Number(m.valor), 0);
 
     const tpaHoje = movimentacoes
@@ -382,11 +383,10 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                         {mov.forma_pagamento && (
                                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                                                 style={{
-                                                    background: mov.forma_pagamento === 'dinheiro'
-
+                                                    background: mov.forma_pagamento === 'Dinheiro'
                                                         ? 'color-mix(in srgb, var(--cor-sucesso) 15%, transparent)'
                                                         : 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
-                                                    color: mov.forma_pagamento === 'dinheiro' ? 'var(--cor-sucesso)' : 'var(--cor-primaria)'
+                                                    color: mov.forma_pagamento === 'Dinheiro' ? 'var(--cor-sucesso)' : 'var(--cor-primaria)'
                                                 }}>
                                                 {mov.forma_pagamento}
                                             </span>

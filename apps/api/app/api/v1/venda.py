@@ -37,8 +37,12 @@ async def criar_venda_endpoint(
 ):
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
+    # 1. SALVA A VENDA PRIMEIRO PRA PODER FAZER O JOIN DEPOIS
+    await db.commit()
+    await db.refresh(venda)
+
     if venda and venda.itens:
-        # 1. ATUALIZA ESTOQUE
+        # 2. ATUALIZA ESTOQUE
         for item in venda.itens:
             if isinstance(item, dict):
                 produto_id = item.get("produto_id")
@@ -54,7 +58,7 @@ async def criar_venda_endpoint(
                 {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
             )
 
-        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
+        # 3. ATUALIZA ESTATISTICAS EM TEMPO REAL
         await manager.broadcast_to_loja(
             str(loja_id),
             {
@@ -65,38 +69,38 @@ async def criar_venda_endpoint(
             }
         )
 
-        # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC - AJUSTADO
+        # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
             # BUSCAR CAIXA ABERTO
             stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
-            if not caixa_aberto:
-                raise HTTPException(status_code=400, detail="Nenhum caixa aberto para registrar a venda")
+            if caixa_aberto:
+                await registrar_movimento_caixa(
+                    db=db,
+                    caixa_id=caixa_aberto.id,
+                    loja_id=loja_id,
+                    tipo=TipoMovimentacao.ENTRADA,
+                    valor=venda.total,
+                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
+                    usuario_id=current_user.id,
+                    referencia_id=venda.id,
+                    referencia_tipo='venda'
+                )
+                await db.commit() # commit só do movimento
+                await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
+            else:
+                print("AVISO CAIXA: Nenhum caixa aberto para registrar a venda")
 
-            await registrar_movimento_caixa(
-                db=db,
-                caixa_id=caixa_aberto.id,
-                loja_id=loja_id,
-                tipo=TipoMovimentacao.ENTRADA,
-                valor=venda.total,
-                descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
-                usuario_id=current_user.id,
-                referencia_id=venda.id,
-                referencia_tipo='venda'
-            )
-
-            await db.commit() # commit do movimento
-            await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
-        except HTTPException as e:
+        except Exception as e:
             await db.rollback()
-            # Se caixa fechado, só loga. Não impede a venda
-            print(f"AVISO CAIXA: {e.detail}")
+            print(f"ERRO AO LANÇAR NO CAIXA: {e}")
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
     return venda
+
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def get_vendas(
