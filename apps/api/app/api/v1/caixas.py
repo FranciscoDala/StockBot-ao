@@ -9,20 +9,16 @@ import traceback
 import logging
 
 logger = logging.getLogger(__name__)
-
 from app.db.session import get_db
 from app.models.caixa import Caixa, StatusCaixa
-from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao
+from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao # <- ESSE É O CERTO
 from app.models.loja import Loja
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
-from app.models.venda import Venda
-from app.models.caixa import Caixa, MovimentacaoCaixa
 from app.schemas.caixa import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut, MovimentacaoOut
 from app.core.deps import get_current_user, verificar_acesso_loja
 from app.core.security import verify_password
-
 router = APIRouter()
 
 def to_decimal(v) -> Decimal: # <- TROCA AQUI
@@ -246,6 +242,7 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
 
 
 
+
 @router.get("/historico")
 async def get_historico_caixa(
     loja_id: UUID,
@@ -253,6 +250,8 @@ async def get_historico_caixa(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    from app.models.venda import Venda # <- import dentro pra evitar ciclo
+
     await verificar_acesso_loja(loja_id, db, current_user)
 
     stmt_caixas = select(Caixa).where(
@@ -265,7 +264,6 @@ async def get_historico_caixa(
 
     ids_caixas = [c.id for c in caixas]
 
-    # JOIN com vendas pra pegar a forma_pagamento
     stmt_movs = select(
         MovimentacaoCaixa,
         Venda.forma_pagamento
@@ -277,7 +275,6 @@ async def get_historico_caixa(
 
     resultados = (await db.execute(stmt_movs)).all()
 
-    # Monta o objeto pra mandar pro front
     movimentacoes = []
     for mov, forma_pagamento in resultados:
         movimentacoes.append({
@@ -286,10 +283,9 @@ async def get_historico_caixa(
             "valor": float(mov.valor),
             "descricao": mov.descricao,
             "created_at": mov.created_at.isoformat(),
-            "forma_pagamento": forma_pagamento # Dinheiro, TPA, Transferencia ou None
+            "forma_pagamento": forma_pagamento
         })
 
-    # Serializa os caixas também
     caixas_serializados = [
         {
             "id": str(c.id),
