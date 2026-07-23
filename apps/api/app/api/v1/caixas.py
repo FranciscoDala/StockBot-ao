@@ -57,6 +57,9 @@ async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
     if not verify_password(senha, dono.senha_hash):
         raise HTTPException(status_code=403, detail="Senha do DONO incorreta")
 
+
+
+
 async def registrar_movimento_caixa(
     db: AsyncSession, loja_id: UUID, tipo: TipoMovimentacao, valor: Decimal,
     descricao: str, usuario_id: UUID, referencia_id: UUID | None = None, referencia_tipo: str | None = None
@@ -70,8 +73,15 @@ async def registrar_movimento_caixa(
     logger.info(f"[DEBUG] Caixa aberto encontrado: {caixa.id}")
 
     mov = MovimentacaoCaixa(
-        caixa_id=caixa.id, loja_id=loja_id, tipo=tipo.value, valor=to_decimal(valor), descricao=descricao,
-        referencia_id=referencia_id, referencia_tipo=referencia_tipo, usuario_id=usuario_id, created_at=datetime.utcnow()
+        caixa_id=caixa.id,
+        loja_id=loja_id,
+        tipo=tipo, # <- MUDA AQUI: passa o Enum direto, não .value
+        valor=to_decimal(valor),
+        descricao=descricao,
+        referencia_id=referencia_id,
+        referencia_tipo=referencia_tipo,
+        usuario_id=usuario_id,
+        created_at=datetime.utcnow()
     )
     db.add(mov)
     logger.info(f"[DEBUG] Movimentacao adicionada na session")
@@ -91,6 +101,9 @@ async def registrar_movimento_caixa(
     logger.info(f"[DEBUG] Novo saldo_esperado: {caixa.saldo_esperado}")
     db.add(caixa)
     return caixa
+
+
+
 
 @router.get("/resumo", response_model=CaixaResumoOut)
 async def get_resumo_caixa(
