@@ -6,14 +6,14 @@ import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, U
 import { formatCurrency, formatDateTime } from "../utils";
 import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
-import { Input } from "@/components/ui/input"; // <- ADICIONA ESSE IMPORT NO TOPO
-
+import { Input } from "@/components/ui/input";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type Props = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    onSave: () => void; // <- ADICIONADO
     lojaId: string;
     token: string;
 }
@@ -35,7 +35,7 @@ type Movimentacao = {
     created_at: string;
 }
 
-export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
+export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props) { // <- ADICIONADO onSave
     const [abaAtiva, setAbaAtiva] = useState<'resumo' | 'movimentacoes'>('resumo');
     const [resumo, setResumo] = useState<CaixaResumo | null>(null);
     const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
@@ -54,12 +54,11 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         return () => { document.body.style.overflow = 'unset'; }
     }, [open, lojaId, token, showSangriaModal, showAberturaModal, abaAtiva]);
 
-
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } }); // <- ROTA NOVA
+            const res = await fetch(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
             setResumo(data);
@@ -87,6 +86,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         setShowAberturaModal(false);
         carregarResumoCaixa();
         carregarMovimentacoes();
+        onSave(); // <- ADICIONADO: avisa o DadosTab pra atualizar
     }
 
     const isCaixaAberto = resumo?.status === 'aberto';
@@ -150,7 +150,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
                 lojaId={lojaId}
                 statusAtual={resumo?.status}
                 valorEsperado={resumo?.saldo_atual || 0}
-                caixaId={resumo?.id} // <- ESSA LINHA
+                caixaId={resumo?.id}
             />
         </>
     )
@@ -166,7 +166,6 @@ function TabButton({ label, icon, active, onClick }: any) {
     )
 }
 
-// ABA RESUMO NOVA - 1 CARD UNICO
 function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
 
     const statusConfig = isCaixaAberto ? {
@@ -197,7 +196,6 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
 
     return (
         <div className="space-y-4">
-            {/* CARD UNICO DE STATUS */}
             <div className="p-4 sm:p-5 rounded-xl" style={{ background: statusConfig.bg, border: `1.5px solid ${statusConfig.border}` }}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -228,15 +226,13 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
                 </div>
             </div>
 
-            {/* GRID DE MÉTRICAS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <CardMetrica titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} icon={<Wallet size={16} />} />
                 <CardMetrica titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} icon={<ArrowUpRight size={16} />} />
                 <CardMetrica titulo="Saídas/Sangrias" valor={resumo?.saidas_hoje || 0} icon={<ArrowDownRight size={16} />} />
             </div>
 
-            {/* CARD SALDO ATUAL DESTACADO */}
-            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'var(--cor-card)', border: '2px solid var(--cor-primaria)' }}>
+            <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'var(--cor-card)', border: '2px solid var(--cor-primaria)' }}>
                 <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
                     <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
@@ -255,7 +251,6 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
         return <ArrowDownRight size={16} className="text-[var(--cor-erro)]" />;
     }
 
-    // FILTRO LOCAL POR DATA
     const movimentacoesFiltradas = movimentacoes.filter(mov => {
         const dataMov = new Date(mov.created_at).toISOString().split('T')[0];
         return dataMov === dataSelecionada;
@@ -264,7 +259,6 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
     if (movimentacoesFiltradas.length === 0) {
         return (
             <div className="flex flex-col h-full">
-                {/* INPUT DATA FIXO */}
                 <div className="sticky top-0 z-10 p-3 rounded-lg mb-4"
                     style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -275,8 +269,6 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                         <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-full sm:w-auto h-9" />
                     </div>
                 </div>
-
-                {/* ESTADO VAZIO */}
                 <div className="flex-1 flex-col items-center justify-center gap-2 rounded-xl border-dashed"
                     style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                     <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
@@ -288,7 +280,6 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
 
     return (
         <div className="flex flex-col h-full">
-            {/* INPUT DATA FIXO */}
             <div className="sticky top-0 z-10 p-3 rounded-lg mb-4"
                 style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -299,8 +290,6 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                     <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-full sm:w-auto h-9" />
                 </div>
             </div>
-
-            {/* LISTA COM SCROLL-Y INVISIVEL */}
             <div className="flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                 <div className="space-y-2 pb-4">
                     {movimentacoesFiltradas.map(mov => (
