@@ -56,11 +56,10 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
 
     // 2. Carrega movimentacoes quando tiver resumo.id e estiver na aba
     useEffect(() => {
-        if (open && abaAtiva === 'movimentacoes' && resumo?.id) {
+        if (open && abaAtiva === 'movimentacoes' && lojaId && token) {
             carregarMovimentacoes();
         }
-    }, [open, abaAtiva, resumo?.id]);
-
+    }, [open, abaAtiva, lojaId, token]);
 
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
@@ -76,19 +75,23 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         }
         finally { setLoading(false); }
     }
+
+
+
     const carregarMovimentacoes = async () => {
-        if (!API_URL || !lojaId || !token || !resumo?.id) return;
+        if (!API_URL || !lojaId || !token) return;
         try {
-            const res = await fetch(`${API_URL}/caixas/${resumo.id}/movimentacoes`, {
+            const hoje = new Date().toISOString().split('T')[0]; // "2026-07-23"
+            const res = await fetch(`${API_URL}/caixas/historico?loja_id=${lojaId}&data=${hoje}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
-            const data: Movimentacao[] = await res.json();
+            const data = await res.json();
+
+            const movs: Movimentacao[] = Array.isArray(data.movimentacoes) ? data.movimentacoes : [];
 
             // Ordena da mais recente para a mais antiga
-            const ordenadas = Array.isArray(data)
-                ? data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                : [];
+            const ordenadas = movs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
             setMovimentacoes(ordenadas);
         } catch (error) {
