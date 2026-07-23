@@ -17,6 +17,8 @@ from app.models.loja import Loja
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
+from app.models.venda import Venda
+from app.models.caixa import Caixa, MovimentacaoCaixa
 from app.schemas.caixa import CaixaAbrirIn, CaixaFecharIn, SangriaIn, CaixaResumoOut, MovimentacaoOut
 from app.core.deps import get_current_user, verificar_acesso_loja
 from app.core.security import verify_password
@@ -242,16 +244,17 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
         raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
     return {"message": "Sangria registrada com sucesso!"}
 
+
+
 @router.get("/historico")
 async def get_historico_caixa(
     loja_id: UUID,
-    data: date, # <- 2026-07-22
+    data: date,
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    # 1. Pega todos os caixas daquela data
     stmt_caixas = select(Caixa).where(
         and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == data)
     ).order_by(Caixa.data_abertura)
@@ -262,13 +265,45 @@ async def get_historico_caixa(
 
     ids_caixas = [c.id for c in caixas]
 
-    # 2. Pega todas as movimentações desses caixas
-    stmt_movs = select(MovimentacaoCaixa).where(
+    # JOIN com vendas pra pegar a forma_pagamento
+    stmt_movs = select(
+        MovimentacaoCaixa,
+        Venda.forma_pagamento
+    ).outerjoin(
+        Venda, Venda.id == MovimentacaoCaixa.referencia_id
+    ).where(
         MovimentacaoCaixa.caixa_id.in_(ids_caixas)
     ).order_by(MovimentacaoCaixa.created_at.desc())
-    movs = (await db.execute(stmt_movs)).scalars().all()
+
+    resultados = (await db.execute(stmt_movs)).all()
+
+    # Monta o objeto pra mandar pro front
+    movimentacoes = []
+    for mov, forma_pagamento in resultados:
+        movimentacoes.append({
+            "id": str(mov.id),
+            "tipo": mov.tipo,
+            "valor": float(mov.valor),
+            "descricao": mov.descricao,
+            "created_at": mov.created_at.isoformat(),
+            "forma_pagamento": forma_pagamento # Dinheiro, TPA, Transferencia ou None
+        })
+
+    # Serializa os caixas também
+    caixas_serializados = [
+        {
+            "id": str(c.id),
+            "usuario_nome": c.usuario_nome,
+            "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None,
+            "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None,
+            "saldo_abertura": float(c.saldo_abertura),
+            "saldo_fechamento": float(c.saldo_fechamento) if c.saldo_fechamento else None,
+            "status": c.status
+        }
+        for c in caixas
+    ]
 
     return {
-        "caixas": caixas, # <- pra mostrar: João 08:00-12:00 Fechado
-        "movimentacoes": movs # <- todas as movs do dia
+        "caixas": caixas_serializados,
+        "movimentacoes": movimentacoes
     }

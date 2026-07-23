@@ -8,7 +8,6 @@ import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
 import { Input } from "@/components/ui/input";
 
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 type Props = {
@@ -30,10 +29,11 @@ type CaixaResumo = {
 
 type Movimentacao = {
     id: string;
-    tipo: 'entrada' | 'saida' | 'sangria' | 'abertura' | 'suprimento' | 'fechamento' | 'estorno'; // <- ADICIONA
+    tipo: 'entrada' | 'saida' | 'sangria' | 'abertura' | 'suprimento' | 'fechamento' | 'estorno';
     valor: number;
     descricao: string;
     created_at: string;
+    forma_pagamento: 'Dinheiro' | 'TPA' | 'Transferencia' | null; // <- tira o ? e coloca | null
 }
 
 export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props) { // <- ADICIONADO onSave
@@ -209,17 +209,21 @@ function AbaResumo({ resumo, movimentacoes, isCaixaAberto, onAbrir, onSangria }:
     const hoje = new Date().toISOString().split('T')[0];
 
     const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
-    const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno']; // <- ADICIONEI ESTORNO
+    const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
-    const entradasHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo))
+    // NOVOS CÁLCULOS SEPARADOS POR FORMA DE PAGAMENTO
+    const cashHoje = movimentacoes
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && m.forma_pagamento === 'Dinheiro')
         .reduce((acc, m) => acc + Number(m.valor), 0);
 
+    const tpaHoje = movimentacoes
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && m.forma_pagamento && ['TPA', 'Transferencia'].includes(m.forma_pagamento))
+        .reduce((acc, m) => acc + Number(m.valor), 0);
     const saidasHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo)) // <- USA O ARRAY
+        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
         .reduce((acc, m) => acc + Number(m.valor), 0);
 
-
+    const faturamentoHoje = cashHoje + tpaHoje;
 
     const statusConfig = isCaixaAberto ? {
         cor: 'var(--cor-sucesso)',
@@ -280,13 +284,25 @@ function AbaResumo({ resumo, movimentacoes, isCaixaAberto, onAbrir, onSangria }:
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* GRID ATUALIZADA COM 4 CARDS */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <CardMetrica titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} icon={<Banknote size={18} />} cor="var(--cor-primaria)" bg="color-mix(in srgb, var(--cor-primaria) 6%, transparent)" border="color-mix(in srgb, var(--cor-primaria) 20%, transparent)" />
-                <CardMetrica titulo="Entradas Hoje" valor={entradasHoje} icon={<TrendingUp size={18} />} cor="var(--cor-sucesso)" bg="color-mix(in srgb, var(--cor-sucesso) 6%, transparent)" border="color-mix(in srgb, var(--cor-sucesso) 20%, transparent)" />
+                <CardMetrica titulo="Cash em Mão" valor={cashHoje} icon={<Banknote size={18} />} cor="var(--cor-sucesso)" bg="color-mix(in srgb, var(--cor-sucesso) 6%, transparent)" border="color-mix(in srgb, var(--cor-sucesso) 20%, transparent)" />
+                <CardMetrica titulo="TPA/Transferência" valor={tpaHoje} icon={<TrendingUp size={18} />} cor="var(--cor-primaria)" bg="color-mix(in srgb, var(--cor-primaria) 6%, transparent)" border="color-mix(in srgb, var(--cor-primaria) 20%, transparent)" />
                 <CardMetrica titulo="Saídas/Sangrias" valor={saidasHoje} icon={<TrendingDown size={18} />} cor="var(--cor-erro)" bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)" border="color-mix(in srgb, var(--cor-erro) 20%, transparent)" />
             </div>
 
-            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)', border: '2px solid var(--cor-sucesso)' }}>
+            {/* CARD NOVO: FATURAMENTO TOTAL */}
+            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 4%, transparent)', border: '2px solid var(--cor-primaria)' }}>
+                <div>
+                    <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Faturamento Total Hoje</p>
+                    <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(faturamentoHoje)}</p>
+                </div>
+                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Cash + TPA/Transferência</p>
+            </div>
+
+            {/* CARD SALDO ATUAL CONTINUA IGUAL */}
+            <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)', border: '2px solid var(--cor-sucesso)' }}>
                 <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
                     <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
@@ -356,11 +372,25 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
             <div className="flex-1 overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="space-y-2 pb-8">
                     {movimentacoesFiltradas.map(mov => (
+
                         <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
                             <div className="flex items-center gap-3">
                                 {getIcon(mov.tipo)}
                                 <div>
-                                    <p className="font-semibold text-sm">{mov.descricao}</p>
+                                    <p className="font-semibold text-sm flex items-center gap-2 flex-wrap">
+                                        {mov.descricao}
+                                        {mov.forma_pagamento && (
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                style={{
+                                                    background: mov.forma_pagamento === 'Dinheiro'
+                                                        ? 'color-mix(in srgb, var(--cor-sucesso) 15%, transparent)'
+                                                        : 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
+                                                    color: mov.forma_pagamento === 'Dinheiro' ? 'var(--cor-sucesso)' : 'var(--cor-primaria)'
+                                                }}>
+                                                {mov.forma_pagamento}
+                                            </span>
+                                        )}
+                                    </p>
                                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
                                 </div>
                             </div>
@@ -368,6 +398,7 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                 {isEntrada(mov.tipo) ? '+' : '-'} {formatCurrency(mov.valor)}
                             </p>
                         </div>
+                        
                     ))}
                 </div>
             </div>
