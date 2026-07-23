@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, Unlock, Loader2, Inbox, Minus, Calendar } from "lucide-react";
+import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, Unlock, Loader2, Inbox, Minus, Calendar, Banknote, TrendingUp, TrendingDown } from "lucide-react";
 import { formatCurrency, formatDateTime } from "../utils";
 import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
 import { Input } from "@/components/ui/input";
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -178,8 +179,17 @@ function TabButton({ label, icon, active, onClick }: any) {
     return (
         <button
             onClick={onClick}
-            className="relative flex items-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition rounded-t-lg hover:bg-[color-mix(in_srgb,var(--cor-primaria)_8%,transparent)]"
-            style={{ color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)' }}
+            className="relative flex items-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition rounded-t-lg"
+            style={{
+                color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)',
+                backgroundColor: active ? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent'
+            }}
+            onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)'
+            }}
+            onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.backgroundColor = 'transparent'
+            }}
         >
             {icon} {label}
             {active && <div className="absolute -bottom-px left-0 right-0 h-0.5" style={{ background: 'var(--cor-primaria)' }} />}
@@ -205,13 +215,26 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
         subtitulo: 'Abra o caixa para iniciar as operações do dia.'
     }
 
-    const CardMetrica = ({ titulo, valor, icon }: any) => (
-        <div className="w-full" style={{ background: 'var(--cor-card)', padding: '16px', borderRadius: 'var(--radius)', border: `1px solid color-mix(in srgb, var(--cor-borda) 15%, transparent)` }}>
-            <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>{titulo}</p>
-                <div style={{ color: 'var(--cor-texto-sec)' }}>{icon}</div>
+    const CardMetrica = ({ titulo, valor, cor, bg, border, icon }: any) => (
+        <div
+            className="w-full transition hover:scale-[1.02]"
+            style={{
+                background: bg,
+                padding: '18px',
+                borderRadius: 'var(--radius)',
+                border: `1.5px solid ${border}`
+            }}
+        >
+            <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold" style={{ color: 'var(--cor-texto-sec)' }}>{titulo}</p>
+                <div
+                    className="p-2 rounded-lg"
+                    style={{ background: 'color-mix(in srgb, var(--cor-fundo) 50%, transparent)', color: cor }}
+                >
+                    {icon}
+                </div>
             </div>
-            <p className="text-2xl font-bold" style={{ color: 'var(--cor-texto)' }}>{formatCurrency(valor)}</p>
+            <p className="text-2xl font-bold" style={{ color: cor }}>{formatCurrency(valor)}</p>
         </div>
     )
 
@@ -248,12 +271,38 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <CardMetrica titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} icon={<Wallet size={16} />} />
-                <CardMetrica titulo="Entradas Hoje" valor={resumo?.entradas_hoje || 0} icon={<ArrowUpRight size={16} />} />
-                <CardMetrica titulo="Saídas/Sangrias" valor={resumo?.saidas_hoje || 0} icon={<ArrowDownRight size={16} />} />
+                <CardMetrica
+                    titulo="Saldo Abertura"
+                    valor={resumo?.saldo_abertura || 0}
+                    icon={<Banknote size={18} />}
+                    cor="var(--cor-primaria)"
+                    bg="color-mix(in srgb, var(--cor-primaria) 6%, transparent)"
+                    border="color-mix(in srgb, var(--cor-primaria) 20%, transparent)"
+                />
+                <CardMetrica
+                    titulo="Entradas Hoje"
+                    valor={resumo?.entradas_hoje || 0}
+                    icon={<TrendingUp size={18} />}
+                    cor="var(--cor-sucesso)"
+                    bg="color-mix(in srgb, var(--cor-sucesso) 6%, transparent)"
+                    border="color-mix(in srgb, var(--cor-sucesso) 20%, transparent)"
+                />
+                <CardMetrica
+                    titulo="Saídas/Sangrias"
+                    valor={resumo?.saidas_hoje || 0}
+                    icon={<TrendingDown size={18} />}
+                    cor="var(--cor-erro)"
+                    bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)"
+                    border="color-mix(in srgb, var(--cor-erro) 20%, transparent)"
+                />
             </div>
 
-            <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'var(--cor-card)', border: '2px solid var(--cor-primaria)' }}>
+            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+                style={{
+                    background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)',
+                    border: '2px solid var(--cor-sucesso)'
+                }}
+            >
                 <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
                     <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
@@ -292,7 +341,7 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                     </div>
                 </div>
                 {/* AJUSTE 2: Centralizado */}
-                <div className="flex-1 flex-col items-center justify-center gap-2 rounded-xl border-dashed p-6 text-center"
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 text-center"
                     style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                     <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
                     <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
@@ -326,8 +375,8 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
                                 </div>
                             </div>
-                            <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
-                                {mov.tipo === 'entrada' || mov.tipo === 'abertura'? '+' : '-'} {formatCurrency(mov.valor)}
+                            <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura' ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                                {mov.tipo === 'entrada' || mov.tipo === 'abertura' ? '+' : '-'} {formatCurrency(mov.valor)}
                             </p>
                         </div>
                     ))}
