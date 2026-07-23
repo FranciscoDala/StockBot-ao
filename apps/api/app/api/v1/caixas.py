@@ -298,7 +298,7 @@ async def get_historico_caixa(
             "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None,
             "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None,
             "saldo_abertura": float(c.saldo_abertura),
-            "saldo_fechamento": float(c.saldo_fechamento) if c.saldo_fechamento else None,
+            "saldo_contado": float(c.saldo_contado) if c.saldo_contado else None, # <- CORRIGIDO
             "status": c.status
         }
         for c in caixas
