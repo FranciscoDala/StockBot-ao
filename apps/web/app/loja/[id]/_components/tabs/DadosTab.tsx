@@ -122,7 +122,6 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
     }
 
     const handleAcaoCaixa = () => {
-        setShowCaixaModal(false);
         carregarDados(); // atualiza KPIs
         onCaixaMudou?.(); // <- ADICIONA ESSA: avisa o page.tsx pra atualizar o menu
     }

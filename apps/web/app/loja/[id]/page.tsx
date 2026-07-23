@@ -572,7 +572,7 @@ export default function LojaPage() {
                                 theme={theme}
                                 cardStyle={cardStyle}
                                 cardSize={cardSize}
-                                onCaixaMudou={() => fetchStatusCaixa(token!, lojaId)} // <- ADICIONA ESSA
+                                onCaixaMudou={fetchStatusCaixa.bind(null, token!, lojaId)} // <- ADICIONA ESSA
                             />
                         }
 
