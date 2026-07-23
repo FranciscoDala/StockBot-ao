@@ -57,7 +57,7 @@ export function CaixaModal({ open, onOpenChange, lojaId, token }: Props) {
         if (!API_URL || !lojaId || !token) return;
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
+            const res = await fetch(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } }); // <- ROTA NOVA
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
             setResumo(data);

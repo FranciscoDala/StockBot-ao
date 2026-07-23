@@ -54,7 +54,7 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
         setLoading(true);
         try {
             if (isAbrir) {
-                const res = await fetch(`${API_URL}/caixa/abrir`, {
+                const res = await fetch(`${API_URL}/caixas/abrir`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                     body: JSON.stringify({ loja_id: lojaId, saldo_abertura: Number(saldoInicial.replace(',', '.')) })
@@ -68,7 +68,7 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                 const resumo = await resumoRes.json();
                 if (!resumo.id) throw new Error("Nenhum caixa aberto para fechar");
 
-                const res = await fetch(`${API_URL}/caixa/fechar/${resumo.id}`, {
+                const res = await fetch(`${API_URL}/caixas/fechar/${resumo.id}`, {
                     method: 'POST',
                     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                     body: JSON.stringify({ saldo_contado: Number(saldoContado.replace(',', '.')) })
