@@ -45,8 +45,6 @@ async def get_caixa_aberto_loja(db: AsyncSession, loja_id: UUID) -> Caixa | None
     logger.info(f"[DEBUG] Caixa encontrado: {caixa.id if caixa else 'NENHUM'}")
     return caixa
 
-
-
 async def registrar_movimento_caixa(
     db: AsyncSession, caixa_id: UUID, loja_id: UUID, tipo: TipoMovimentacao, valor: Decimal,
     descricao: str, usuario_id: UUID, referencia_id: UUID | None = None, referencia_tipo: str | None = None
@@ -75,9 +73,21 @@ async def registrar_movimento_caixa(
     caixa.total_saidas = to_decimal(caixa.total_saidas)
     caixa.saldo_abertura = to_decimal(caixa.saldo_abertura)
 
-    # CORRECAO: ABERTURA NAO ENTRA COMO ENTRADA
+    # CORRECAO: SO SOMA EM TOTAL_ENTRADAS SE FOR DINHEIRO
     if tipo == TipoMovimentacao.ENTRADA:
-        caixa.total_entradas += valor
+        if referencia_tipo == 'venda' and referencia_id:
+            # Pega a forma de pagamento da venda
+            stmt_venda = select(Venda.forma_pagamento).where(Venda.id == referencia_id)
+            result = await db.execute(stmt_venda)
+            forma = result.scalar_one_or_none()
+
+            if forma and forma.lower() == 'dinheiro':
+                caixa.total_entradas += valor
+            # Se for TPA/PIX/CARTAO nao soma no caixa fisico
+        else:
+            # Suprimento, etc. sempre soma
+            caixa.total_entradas += valor
+
     elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]:
         caixa.total_saidas += valor
     # ABERTURA e FECHAMENTO so registram o movimento, nao mexem nos totais
@@ -138,7 +148,6 @@ async def get_movimentacoes_caixa(caixa_id: UUID, db: AsyncSession = Depends(get
     result = await db.execute(stmt)
     return result.scalars().all()
 
-
 @router.post("/abrir", status_code=status.HTTP_201_CREATED)
 async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     logger.info(f"[DEBUG] ===== INICIANDO ABERTURA DE CAIXA =====")
@@ -184,8 +193,6 @@ async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), cu
         raise HTTPException(status_code=500, detail=f"Erro ao abrir caixa: {str(e)}")
     return {"message": "Caixa aberto com sucesso", "id": novo_caixa.id}
 
-
-
 @router.post("/fechar/{caixa_id}")
 async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     caixa = await db.get(Caixa, caixa_id)
@@ -225,7 +232,6 @@ async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = D
 
     return {"message": "Caixa fechado com sucesso", "diferenca": float(caixa.diferenca or 0)}
 
-
 @router.post("/sangria")
 async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(body.loja_id, db, current_user)
@@ -244,10 +250,6 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
         raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
     return {"message": "Sangria registrada com sucesso!"}
 
-
-
-
-
 @router.get("/historico")
 async def get_historico_caixa(
     loja_id: UUID,
@@ -265,7 +267,7 @@ async def get_historico_caixa(
     caixas = (await db.execute(stmt_caixas)).scalars().all()
 
     if not caixas:
-        return {"caixas": [], "movimentacoes": []}
+        return {"caixas": [], "movimentacoes": [], "resumo": {}}
 
     ids_caixas = [c.id for c in caixas]
 
@@ -273,7 +275,7 @@ async def get_historico_caixa(
         MovimentacaoCaixa,
         Venda.forma_pagamento
     ).outerjoin(
-        Venda, Venda.id == MovimentacaoCaixa.referencia_id
+        Venda, and_(Venda.id == MovimentacaoCaixa.referencia_id, MovimentacaoCaixa.referencia_tipo == 'venda')
     ).where(
         MovimentacaoCaixa.caixa_id.in_(ids_caixas)
     ).order_by(MovimentacaoCaixa.created_at.desc())
@@ -281,15 +283,29 @@ async def get_historico_caixa(
     resultados = (await db.execute(stmt_movs)).all()
 
     movimentacoes = []
+    total_cash = Decimal('0')
+    total_tpa = Decimal('0')
+    total_saidas = Decimal('0')
+
     for mov, forma_pagamento in resultados:
+        val = to_decimal(mov.valor)
         movimentacoes.append({
             "id": str(mov.id),
             "tipo": mov.tipo,
-            "valor": float(mov.valor),
+            "valor": float(val),
             "descricao": mov.descricao,
             "created_at": mov.created_at.isoformat(),
             "forma_pagamento": forma_pagamento
         })
+
+        # CALCULO DO RESUMO
+        if mov.tipo == TipoMovimentacao.ENTRADA.value:
+            if forma_pagamento and forma_pagamento.lower() in ['dinheiro', 'cash']:
+                total_cash += val
+            else: # cartao, tpa, transferencia, pix
+                total_tpa += val
+        elif mov.tipo in [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value]:
+            total_saidas += val
 
     caixas_serializados = [
         {
@@ -298,7 +314,7 @@ async def get_historico_caixa(
             "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None,
             "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None,
             "saldo_abertura": float(c.saldo_abertura),
-            "saldo_contado": float(c.saldo_contado) if c.saldo_contado else None, # <- CORRIGIDO
+            "saldo_contado": float(c.saldo_contado) if c.saldo_contado else None,
             "status": c.status
         }
         for c in caixas
@@ -306,5 +322,11 @@ async def get_historico_caixa(
 
     return {
         "caixas": caixas_serializados,
-        "movimentacoes": movimentacoes
+        "movimentacoes": movimentacoes,
+        "resumo": {
+            "cash_em_mao": float(total_cash),
+            "tpa_transferencia": float(total_tpa),
+            "saidas_sangrias": float(total_saidas),
+            "faturamento_total": float(total_cash + total_tpa)
+        }
     }

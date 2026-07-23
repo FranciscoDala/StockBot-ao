@@ -65,35 +65,34 @@ async def criar_venda_endpoint(
             }
         )
 
-        # 3. LANÇA NO CAIXA SE FOR DINHEIRO - AJUSTADO
-        if venda.forma_pagamento and venda.forma_pagamento.lower() == 'dinheiro':
-            try:
-                # BUSCAR CAIXA ABERTO
-                stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
-                result_caixa = await db.execute(stmt_caixa)
-                caixa_aberto = result_caixa.scalar_one_or_none()
+        # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC - AJUSTADO
+        try:
+            # BUSCAR CAIXA ABERTO
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+            result_caixa = await db.execute(stmt_caixa)
+            caixa_aberto = result_caixa.scalar_one_or_none()
 
-                if not caixa_aberto:
-                    raise HTTPException(status_code=400, detail="Nenhum caixa aberto para registrar a venda em dinheiro")
+            if not caixa_aberto:
+                raise HTTPException(status_code=400, detail="Nenhum caixa aberto para registrar a venda")
 
-                await registrar_movimento_caixa(
-                    db=db,
-                    caixa_id=caixa_aberto.id, # <- ADICIONADO
-                    loja_id=loja_id,
-                    tipo=TipoMovimentacao.ENTRADA, # <- CORRIGIDO: venda é ENTRADA
-                    valor=venda.total,
-                    descricao=f"Venda #{str(venda.id)[:8]}",
-                    usuario_id=current_user.id,
-                    referencia_id=venda.id,
-                    referencia_tipo='venda'
-                )
+            await registrar_movimento_caixa(
+                db=db,
+                caixa_id=caixa_aberto.id,
+                loja_id=loja_id,
+                tipo=TipoMovimentacao.ENTRADA,
+                valor=venda.total,
+                descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
+                usuario_id=current_user.id,
+                referencia_id=venda.id,
+                referencia_tipo='venda'
+            )
 
-                await db.commit() # commit do movimento
-                await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
-            except HTTPException as e:
-                await db.rollback()
-                # Se caixa fechado, só loga. Não impede a venda
-                print(f"AVISO CAIXA: {e.detail}")
+            await db.commit() # commit do movimento
+            await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
+        except HTTPException as e:
+            await db.rollback()
+            # Se caixa fechado, só loga. Não impede a venda
+            print(f"AVISO CAIXA: {e.detail}")
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
@@ -116,14 +115,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-      .options(
+     .options(
             joinedload(Venda.usuario),
             joinedload(Venda.itens).joinedload(ItemVenda.produto)
         )
-      .where(Venda.loja_id == loja_id_usar)
-      .order_by(Venda.created_at.desc())
-      .limit(limit)
-      .offset(offset)
+     .where(Venda.loja_id == loja_id_usar)
+     .order_by(Venda.created_at.desc())
+     .limit(limit)
+     .offset(offset)
     )
 
     if data_inicio:
@@ -208,13 +207,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-          .header {{ text-align: center; margin-bottom: 15px; }}
-          .header h1 {{ margin: 0; font-size: 18px; }}
-          .info p {{ margin: 2px 0; }}
+         .header {{ text-align: center; margin-bottom: 15px; }}
+         .header h1 {{ margin: 0; font-size: 18px; }}
+         .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-          .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-          .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+         .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+         .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
