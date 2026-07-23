@@ -138,7 +138,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
                         </button>
                     </DialogHeader>
 
-                    <div className="flex gap-1 px-4 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
+                    <div className="flex gap-1 px-4 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'transparent' }}>
                         <TabButton label="Resumo" icon={<Wallet size={16} />} active={abaAtiva === 'resumo'} onClick={() => setAbaAtiva('resumo')} />
                         <TabButton label="Movimentações" icon={<FileText size={16} />} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
                     </div>
@@ -176,8 +176,11 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
 
 function TabButton({ label, icon, active, onClick }: any) {
     return (
-        <button onClick={onClick} className="relative flex items-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition"
-            style={{ color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)' }}>
+        <button
+            onClick={onClick}
+            className="relative flex items-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition rounded-t-lg hover:bg-[color-mix(in_srgb,var(--cor-primaria)_8%,transparent)]"
+            style={{ color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)' }}
+        >
             {icon} {label}
             {active && <div className="absolute -bottom-px left-0 right-0 h-0.5" style={{ background: 'var(--cor-primaria)' }} />}
         </button>
@@ -261,6 +264,7 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
     )
 }
 
+
 function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) {
     const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().split('T')[0]);
 
@@ -287,10 +291,12 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                         <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-full sm:w-auto h-9" />
                     </div>
                 </div>
-                <div className="flex-1 flex-col items-center justify-center gap-2 rounded-xl border-dashed"
+                {/* AJUSTE 2: Centralizado */}
+                <div className="flex-1 flex-col items-center justify-center gap-2 rounded-xl border-dashed p-6 text-center"
                     style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                     <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
                     <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
+                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Tente selecionar outra data</p>
                 </div>
             </div>
         )
@@ -308,7 +314,8 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                     <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-full sm:w-auto h-9" />
                 </div>
             </div>
-            <div className="flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
+            {/* AJUSTE 1: Scroll Y invisível */}
+            <div className="flex-1 overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="space-y-2 pb-4">
                     {movimentacoesFiltradas.map(mov => (
                         <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
@@ -319,8 +326,8 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
                                 </div>
                             </div>
-                            <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura' ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
-                                {mov.tipo === 'entrada' || mov.tipo === 'abertura' ? '+' : '-'} {formatCurrency(mov.valor)}
+                            <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                                {mov.tipo === 'entrada' || mov.tipo === 'abertura'? '+' : '-'} {formatCurrency(mov.valor)}
                             </p>
                         </div>
                     ))}
