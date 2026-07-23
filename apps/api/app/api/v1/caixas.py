@@ -88,28 +88,45 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     await verificar_acesso_loja(loja_id, db, current_user)
     hoje = date.today()
 
-    stmt = select(
-        func.coalesce(func.sum(Caixa.saldo_abertura), 0),
-        func.coalesce(func.sum(Caixa.total_entradas), 0),
-        func.coalesce(func.sum(Caixa.total_saidas), 0),
-    ).where(and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje))
-    result = await db.execute(stmt)
-    saldo_abertura, entradas, saidas = result.one()
+    # 1. Soma saldo_abertura de todos os caixas de hoje
+    stmt_saldo = select(func.coalesce(func.sum(Caixa.saldo_abertura), 0)).where(
+        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje)
+    )
+    saldo_abertura = (await db.execute(stmt_saldo)).scalar_one()
 
-    # Verifica se o usuario logado tem caixa aberto
+    # 2. Soma só as MOVIMENTAÇÕES do tipo ENTRADA de hoje
+    stmt_entradas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+        and_(
+            MovimentacaoCaixa.loja_id == loja_id,
+            func.date(MovimentacaoCaixa.created_at) == hoje,
+            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value
+        )
+    )
+    entradas = (await db.execute(stmt_entradas)).scalar_one()
+
+    # 3. Soma só SAIDA e SANGRIA de hoje
+    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+        and_(
+            MovimentacaoCaixa.loja_id == loja_id,
+            func.date(MovimentacaoCaixa.created_at) == hoje,
+            MovimentacaoCaixa.tipo.in_([TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value])
+        )
+    )
+    saidas = (await db.execute(stmt_saidas)).scalar_one()
+
     meu_caixa_aberto = await get_caixa_aberto_usuario(db, loja_id, current_user.id)
     tem_caixa_aberto = meu_caixa_aberto is not None
-
     saldo_atual = to_decimal(saldo_abertura) + to_decimal(entradas) - to_decimal(saidas)
 
     return CaixaResumoOut(
         id=meu_caixa_aberto.id if meu_caixa_aberto else None,
         saldo_abertura=to_decimal(saldo_abertura),
-        entradas_hoje=to_decimal(entradas), # <- AGORA SO VENDA
+        entradas_hoje=to_decimal(entradas), # <- agora vem 0 se não teve venda
         saidas_hoje=to_decimal(saidas),
-        saldo_atual=saldo_atual, # <- AGORA BATE: 2000 + 0 - 0 = 2000
+        saldo_atual=saldo_atual,
         status=StatusCaixa.ABERTO if tem_caixa_aberto else StatusCaixa.FECHADO
     )
+
 
 @router.get("/{caixa_id}/movimentacoes", response_model=list[MovimentacaoOut])
 async def get_movimentacoes_caixa(caixa_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):

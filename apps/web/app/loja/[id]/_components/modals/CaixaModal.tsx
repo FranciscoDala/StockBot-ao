@@ -276,7 +276,8 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                 </div>
 
                 {/* ESTADO VAZIO */}
-                <div className="flex-1 flex-col items-center justify-center gap-2 rounded-xl border-dashed" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
+                <div className="flex-1 flex-col items-center justify-center gap-2 rounded-xl border-dashed"
+                    style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                     <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
                     <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
                 </div>
@@ -299,7 +300,7 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
             </div>
 
             {/* LISTA COM SCROLL-Y INVISIVEL */}
-            <div className="flex-1 overflow-y-auto pr-1" style={{scrollbarWidth: 'thin'}}>
+            <div className="flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
                 <div className="space-y-2 pb-4">
                     {movimentacoesFiltradas.map(mov => (
                         <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
@@ -310,8 +311,8 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
                                 </div>
                             </div>
-                            <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura'? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
-                                {mov.tipo === 'entrada' || mov.tipo === 'abertura'? '+' : '-'} {formatCurrency(mov.valor)}
+                            <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura' ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                                {mov.tipo === 'entrada' || mov.tipo === 'abertura' ? '+' : '-'} {formatCurrency(mov.valor)}
                             </p>
                         </div>
                     ))}
