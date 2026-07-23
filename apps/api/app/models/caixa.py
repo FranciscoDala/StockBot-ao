@@ -1,11 +1,11 @@
-from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Date, Text, CheckConstraint, Enum
+from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Date, Text, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from app.db.base import Base
 import uuid
 from datetime import date
-import enum # <- ADICIONA
+import enum
 
-class StatusCaixa(str, enum.Enum): # <- ADICIONA ISSO
+class StatusCaixa(str, enum.Enum):
     ABERTO = 'aberto'
     FECHADO = 'fechado'
 
@@ -27,7 +27,15 @@ class Caixa(Base):
     saldo_contado = Column(Numeric(14, 2), nullable=True)
     diferenca = Column(Numeric(14, 2), nullable=True)
 
-    status = Column(Enum(StatusCaixa), default=StatusCaixa.ABERTO, nullable=False) # <- TROCA AQUI
+    # CORRECAO PRINCIPAL: name + native_enum=False + values_callable
+    status = Column(
+        Enum(
+            StatusCaixa,
+            name="statuscaixa",
+            native_enum=False,
+            values_callable=lambda x: [e.value for e in x]
+        ),
+        default=StatusCaixa.ABERTO,
+        nullable=False
+    )
     observacao = Column(Text)
-
-    # Pode tirar o CheckConstraint agora
