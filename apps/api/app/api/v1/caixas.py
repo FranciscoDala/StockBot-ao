@@ -149,15 +149,20 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
 
 
 
+from datetime import datetime, date
+
 @router.get("/resumo-mes")
 async def get_resumo_mes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
-    data_inicio = date.today() - timedelta(days=30) # últimos 30 dias
+
+    hoje = date.today()
+    primeiro_dia_mes = hoje.replace(day=1) # 2026-07-01
 
     stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
         and_(
             MovimentacaoCaixa.loja_id == loja_id,
-            MovimentacaoCaixa.created_at >= data_inicio,
+            func.date(MovimentacaoCaixa.created_at) >= primeiro_dia_mes, # de 01/07 até hoje
+            func.date(MovimentacaoCaixa.created_at) <= hoje,
             MovimentacaoCaixa.tipo.in_([
                 TipoMovimentacao.SAIDA.value,
                 TipoMovimentacao.SANGRIA.value,
@@ -166,9 +171,26 @@ async def get_resumo_mes(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
             ])
         )
     )
-    saidas = (await db.execute(stmt_saidas)).scalar_one()
+    saidas_mes = (await db.execute(stmt_saidas)).scalar_one()
 
-    return {"saidas_30dias": float(saidas)}
+    # Bônus: já manda também entradas e faturamento do mês
+    stmt_entradas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+        and_(
+            MovimentacaoCaixa.loja_id == loja_id,
+            func.date(MovimentacaoCaixa.created_at) >= primeiro_dia_mes,
+            func.date(MovimentacaoCaixa.created_at) <= hoje,
+            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value
+        )
+    )
+    entradas_mes = (await db.execute(stmt_entradas)).scalar_one()
+
+    return {
+        "saidas_mes": float(saidas_mes),
+        "entradas_mes": float(entradas_mes),
+        "faturamento_mes": float(entradas_mes) # se tu quiser separar cash/tpa faz igual do historico
+    }
+
+
 
 @router.get("/{caixa_id}/movimentacoes", response_model=list[MovimentacaoOut])
 async def get_movimentacoes_caixa(caixa_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
