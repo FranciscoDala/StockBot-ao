@@ -5,6 +5,10 @@ from sqlalchemy.exc import IntegrityError
 from uuid import UUID
 from decimal import Decimal
 from datetime import datetime, date
+import traceback # <- NOVO
+import logging # <- NOVO
+
+logger = logging.getLogger(__name__) # <- NOVO
 
 from app.db.session import get_db
 from app.models.caixa import Caixa, StatusCaixa
@@ -21,6 +25,7 @@ router = APIRouter()
 
 async def get_caixa_aberto(db: AsyncSession, loja_id: UUID) -> Caixa | None:
     hoje = date.today()
+    logger.info(f"[DEBUG] Buscando caixa aberto para loja_id={loja_id} na data={hoje}") # <- DEBUG
     stmt = select(Caixa).where(
         and_(
             Caixa.loja_id == loja_id,
@@ -29,11 +34,13 @@ async def get_caixa_aberto(db: AsyncSession, loja_id: UUID) -> Caixa | None:
         )
     )
     result = await db.execute(stmt)
-    return result.scalar_one_or_none()
+    caixa = result.scalar_one_or_none()
+    logger.info(f"[DEBUG] Caixa encontrado: {caixa.id if caixa else 'NENHUM'}") # <- DEBUG
+    return caixa
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> Usuario | None:
     stmt = (select(Usuario).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-       .where(UsuarioLoja.loja_id == loja_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True))
+      .where(UsuarioLoja.loja_id == loja_id, UsuarioLoja.role == UserRole.DONO, UsuarioLoja.is_active == True))
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -50,23 +57,28 @@ async def registrar_movimento_caixa(
     db: AsyncSession, loja_id: UUID, tipo: TipoMovimentacao, valor: Decimal,
     descricao: str, usuario_id: UUID, referencia_id: UUID | None = None, referencia_tipo: str | None = None
 ):
+    logger.info(f"[DEBUG] REGISTRANDO MOV: tipo={tipo.value} valor={valor} loja={loja_id}") # <- DEBUG
     caixa = await get_caixa_aberto(db, loja_id)
     if not caixa:
+        logger.error(f"[DEBUG] ERRO: Tentou registrar movimento mas caixa fechado. loja_id={loja_id}") # <- DEBUG
         raise HTTPException(status_code=400, detail="Não é possível registrar: caixa fechado")
+
+    logger.info(f"[DEBUG] Caixa aberto encontrado: {caixa.id}") # <- DEBUG
 
     mov = MovimentacaoCaixa(
         caixa_id=caixa.id, loja_id=loja_id, tipo=tipo.value, valor=valor, descricao=descricao,
         referencia_id=referencia_id, referencia_tipo=referencia_tipo, usuario_id=usuario_id, created_at=datetime.utcnow()
     )
     db.add(mov)
+    logger.info(f"[DEBUG] Movimentacao adicionada na session") # <- DEBUG
 
-    # CORRECAO 1: ESTORNO NAO ENTRA MAIS NO CALCULO
     if tipo in [TipoMovimentacao.ENTRADA, TipoMovimentacao.ABERTURA]:
         caixa.total_entradas += valor
-    elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]: # <- TIREI O ESTORNO
+    elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]:
         caixa.total_saidas += valor
 
     caixa.saldo_esperado = caixa.saldo_abertura + caixa.total_entradas - caixa.total_saidas
+    logger.info(f"[DEBUG] Novo saldo_esperado: {caixa.saldo_esperado}") # <- DEBUG
     db.add(caixa)
     return caixa
 
@@ -108,15 +120,22 @@ async def abrir_caixa(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    await verificar_acesso_loja(body.loja_id, db, current_user)
-    if await get_caixa_aberto(db, body.loja_id):
-        raise HTTPException(status_code=400, detail="Já existe um caixa aberto para hoje")
-
-    loja = await db.get(Loja, body.loja_id)
-    if not loja:
-        raise HTTPException(status_code=404, detail="Loja não encontrada")
+    logger.info(f"[DEBUG] ===== INICIANDO ABERTURA DE CAIXA =====") # <- DEBUG
+    logger.info(f"[DEBUG] Body recebido: loja_id={body.loja_id} saldo_abertura={body.saldo_abertura} user={current_user.id}") # <- DEBUG
 
     try:
+        await verificar_acesso_loja(body.loja_id, db, current_user)
+        logger.info(f"[DEBUG] Acesso a loja verificado OK") # <- DEBUG
+
+        if await get_caixa_aberto(db, body.loja_id):
+            logger.warning(f"[DEBUG] Ja existe caixa aberto para hoje") # <- DEBUG
+            raise HTTPException(status_code=400, detail="Já existe um caixa aberto para hoje")
+
+        loja = await db.get(Loja, body.loja_id)
+        if not loja:
+            logger.error(f"[DEBUG] Loja nao encontrada: {body.loja_id}") # <- DEBUG
+            raise HTTPException(status_code=404, detail="Loja não encontrada")
+
         novo_caixa = Caixa(
             loja_id=body.loja_id,
             data_caixa=date.today(),
@@ -128,22 +147,33 @@ async def abrir_caixa(
             observacao=body.observacao
         )
         db.add(novo_caixa)
-        await db.flush()
+        await db.flush() # <- IMPORTANTE: flush pra pegar o ID
+        logger.info(f"[DEBUG] Caixa criado com ID: {novo_caixa.id}") # <- DEBUG
 
         await registrar_movimento_caixa(
             db=db, loja_id=body.loja_id, tipo=TipoMovimentacao.ABERTURA, valor=body.saldo_abertura,
             descricao=f"Abertura de caixa: {body.saldo_abertura}", usuario_id=current_user.id
         )
+        logger.info(f"[DEBUG] Movimento de abertura registrado") # <- DEBUG
 
         await db.commit()
+        logger.info(f"[DEBUG] COMMIT OK") # <- DEBUG
         await db.refresh(novo_caixa)
-    except IntegrityError:
+
+    except HTTPException as e:
         await db.rollback()
+        logger.error(f"[DEBUG] HTTPException: {e.detail}") # <- DEBUG
+        raise e
+    except IntegrityError as e:
+        await db.rollback()
+        logger.error(f"[DEBUG] IntegrityError: {e}\n{traceback.format_exc()}") # <- DEBUG
         raise HTTPException(status_code=400, detail="Já existe caixa para esta data")
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Erro ao abrir caixa: {e}")
+        logger.error(f"[DEBUG] ERRO 500 CRITICO: {e}\n{traceback.format_exc()}") # <- DEBUG AQUI VAI MOSTRAR TUDO
+        raise HTTPException(status_code=500, detail=f"Erro ao abrir caixa: {str(e)}")
 
+    logger.info(f"[DEBUG] ===== ABERTURA CONCLUIDA COM SUCESSO =====") # <- DEBUG
     return {"message": "Caixa aberto com sucesso", "id": novo_caixa.id}
 
 @router.post("/fechar/{caixa_id}")
@@ -170,7 +200,6 @@ async def fechar_caixa(
         caixa.diferenca = body.saldo_contado - caixa.saldo_esperado
         caixa.observacao = body.observacao
 
-        # CORRECAO 2: FECHAMENTO USA ESTORNO E NAO ESTOURA SAIDAS
         await registrar_movimento_caixa(
             db=db, loja_id=caixa.loja_id, tipo=TipoMovimentacao.ESTORNO, valor=caixa.saldo_esperado,
             descricao="Fechamento de caixa", usuario_id=current_user.id
