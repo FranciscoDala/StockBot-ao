@@ -6,13 +6,13 @@ from datetime import datetime
 import enum
 
 class TipoMovimentacao(str, enum.Enum):
-    ABERTURA = 'ABERTURA'
-    ENTRADA = 'ENTRADA'
-    SAIDA = 'SAIDA'
-    SANGRIA = 'SANGRIA'
-    SUPRIMENTO = 'SUPRIMENTO'
-    ESTORNO = 'ESTORNO'
-    
+    ABERTURA = 'abertura' # <- MINUSCULO
+    ENTRADA = 'entrada'
+    SAIDA = 'saida'
+    SANGRIA = 'sangria'
+    SUPRIMENTO = 'suprimento'
+    ESTORNO = 'estorno'
+
 class MovimentacaoCaixa(Base):
     __tablename__ = "movimentacoes_caixa"
 
@@ -22,9 +22,9 @@ class MovimentacaoCaixa(Base):
     usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"))
     saida_id = Column(UUID(as_uuid=True), ForeignKey("saidas.id"), nullable=True)
 
-    tipo = Column(Enum(TipoMovimentacao), nullable=False)
+    tipo = Column(String(20), nullable=False) # <- TROCA ENUM POR STRING. Resolve 100%
     valor = Column(Numeric(14, 2), nullable=False)
     descricao = Column(Text)
-    referencia_id = Column(UUID(as_uuid=True), nullable=True) # <- ADICIONA
-    referencia_tipo = Column(String(50), nullable=True) # <- ADICIONA
+    referencia_id = Column(UUID(as_uuid=True), nullable=True)
+    referencia_tipo = Column(String(50), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)
