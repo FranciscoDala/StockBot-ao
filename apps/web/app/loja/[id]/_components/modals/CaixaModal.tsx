@@ -114,7 +114,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         <>
             <Dialog open={open} onOpenChange={(v) => { if (!showSangriaModal && !showAberturaModal) onOpenChange(v) }}>
                 <DialogContent
-                    className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
+                    className="!fixed!inset-0!w-screen!h-[100dvh]!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
                     onInteractOutside={(e) => { if (showSangriaModal || showAberturaModal) e.preventDefault() }}
                     onEscapeKeyDown={(e) => { if (showSangriaModal || showAberturaModal) e.preventDefault() }}
@@ -144,7 +144,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
                         <TabButton label="Movimentações" icon={<FileText size={16} />} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-4 sm:p-6 min-h-0">
+                    <div className="flex-1 overflow-y-auto px-4 sm:p-6 min-h-0 pb-8">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-full gap-2">
                                 <Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} />
@@ -239,7 +239,7 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
     )
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 pb-4">
             <div className="p-4 sm:p-5 rounded-xl" style={{ background: statusConfig.bg, border: `1.5px solid ${statusConfig.border}` }}>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -365,7 +365,7 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
             </div>
             {/* AJUSTE 1: Scroll Y invisível */}
             <div className="flex-1 overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <div className="space-y-2 pb-4">
+                <div className="space-y-2 pb-8">
                     {movimentacoesFiltradas.map(mov => (
                         <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
                             <div className="flex items-center gap-3">
