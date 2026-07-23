@@ -54,7 +54,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
     const lojaId = lojaIdProp || user?.loja_id
     const token = tokenProp || getCookie('token')
 
-    const carregarDados = useCallback(async () => { // <- JUNTEI KPI + STATUS CAIXA
+    const carregarDados = useCallback(async () => { // <- JUNTEI KPI + STATUS CAIXA + MOV CAIXA
         if (!lojaId || !token || !API_URL) {
             setLoading(false);
             return;
@@ -70,22 +70,25 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 setIsCaixaAberto(false);
             }
 
-            // 2. Busca KPIs
-            const [resVendas, resSaidas] = await Promise.all([
-                fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`${API_URL}/saidas?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } })
-            ]);
-
-            if (!resVendas.ok) throw new Error(`Erro Vendas: ${resVendas.status}`);
-            const dataVendas: VendaAPI[] = await resVendas.json();
-            const dataSaidas: SaidaAPI[] = resSaidas.ok ? await resSaidas.json() : [];
-
+            // 2. Busca KPIs + Movimentacoes do caixa
             const agora = new Date();
             const hojeStr = agora.toISOString().split('T')[0];
             const inicioMes = new Date(agora);
             inicioMes.setDate(agora.getDate() - 30);
             const inicioMesStr = inicioMes.toISOString().split('T')[0];
 
+            const [resVendas, resSaidas, resMov] = await Promise.all([
+                fetch(`${API_URL}/vendas/?loja_id=${lojaId}&limit=5000`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`${API_URL}/saidas?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`${API_URL}/caixas/historico?loja_id=${lojaId}&data=${hojeStr}`, { headers: { "Authorization": `Bearer ${token}` } }) // <- NOVO
+            ]);
+
+            if (!resVendas.ok) throw new Error(`Erro Vendas: ${resVendas.status}`);
+            const dataVendas: VendaAPI[] = await resVendas.json();
+            const dataSaidas: SaidaAPI[] = resSaidas.ok ? await resSaidas.json() : [];
+            const dataMov: { movimentacoes: any[] } = resMov.ok ? await resMov.json() : { movimentacoes: [] };
+
+            // 3. Calcula Saidas da tabela saidas
             let saidasHoje = 0;
             let saidasMes = 0;
             if (Array.isArray(dataSaidas)) {
@@ -93,6 +96,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                 saidasMes = dataSaidas.filter(s => s.created_at?.split('T')[0] >= inicioMesStr).reduce((acc, s) => acc + Number(s.valor || 0), 0);
             }
 
+            // 4. Calcula Vendas
             const statusValidos = ["concluida", "concluído", "paga", "finalizada"];
             const vendas = (Array.isArray(dataVendas) ? dataVendas : [])
                 .filter(v => statusValidos.includes(v.status?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
@@ -101,9 +105,20 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             const vendasHoje = vendas.filter(v => v.data_venda && v.data_venda.startsWith(hojeStr));
             const vendasMes = vendas.filter(v => v.data_venda && v.data_venda.split('T')[0] >= inicioMesStr);
 
+            const totalVendasHoje = vendasHoje.reduce((acc, v) => acc + v.total, 0);
+
+            // 5. Calcula Movimentacoes do Caixa de hoje
+            const movsHoje = dataMov.movimentacoes || [];
+            const entradasCaixa = movsHoje
+                .filter(m => m.tipo === 'entrada' || m.tipo === 'suprimento')
+                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+            const saidasCaixa = movsHoje
+                .filter(m => m.tipo === 'saida' || m.tipo === 'sangria')
+                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+
             setKpis({
-                vendaDiaria: vendasHoje.reduce((acc, v) => acc + v.total, 0),
-                saidaDiaria: saidasHoje,
+                vendaDiaria: totalVendasHoje + entradasCaixa, // <- SOMA VENDAS + ENTRADAS DO CAIXA
+                saidaDiaria: saidasHoje + saidasCaixa, // <- SOMA SAIDAS + SANGRIA
                 totalVendasMes: vendasMes.reduce((acc, v) => acc + v.total, 0),
                 totalSaidasMes: saidasMes,
                 estoqueZerado: 0,
@@ -116,6 +131,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
         finally { setLoading(false); }
     }, [lojaId, token])
 
+    
     const handleSaidaCriada = () => {
         setShowSaidaModal(false);
         carregarDados(); // <- atualiza depois de criar saida

@@ -30,7 +30,7 @@ type CaixaResumo = {
 
 type Movimentacao = {
     id: string;
-    tipo: 'entrada' | 'saida' | 'sangria' | 'abertura';
+    tipo: 'entrada' | 'saida' | 'sangria' | 'abertura' | 'suprimento' | 'fechamento' | 'estorno'; // <- ADICIONA
     valor: number;
     descricao: string;
     created_at: string;
@@ -45,27 +45,33 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
     const [showSangriaModal, setShowSangriaModal] = useState(false);
     const [showAberturaModal, setShowAberturaModal] = useState(false);
 
-    // 1. Carrega resumo + controla scroll
+    // 1. Carrega resumo + movimentacoes + controla scroll
     useEffect(() => {
         if (open && lojaId && token && !showSangriaModal && !showAberturaModal) {
-            carregarResumoCaixa();
+            setLoading(true);
+            Promise.all([
+                carregarResumoCaixa(),
+                carregarMovimentacoes()
+            ]).finally(() => setLoading(false));
         }
         if (open) document.body.style.overflow = 'hidden';
         else document.body.style.overflow = 'unset';
         return () => { document.body.style.overflow = 'unset'; }
     }, [open, lojaId, token, showSangriaModal, showAberturaModal]);
 
-    // 2. Carrega movimentacoes quando tiver resumo.id e estiver na aba
+
+    // 2. Carrega movimentacoes quando trocar de aba
     useEffect(() => {
         if (open && abaAtiva === 'movimentacoes' && lojaId && token) {
-            carregarMovimentacoes();
+            setLoading(true);
+            carregarMovimentacoes().finally(() => setLoading(false));
         }
     }, [open, abaAtiva, lojaId, token]);
 
+
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
-        setLoading(true);
-        try {
+        try { // <- tira o setLoading(true) daqui
             const res = await fetch(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
@@ -74,26 +80,19 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
             console.error(error);
             setResumo(null);
         }
-        finally { setLoading(false); }
     }
-
-
 
     const carregarMovimentacoes = async () => {
         if (!API_URL || !lojaId || !token) return;
-        try {
-            const hoje = new Date().toISOString().split('T')[0]; // "2026-07-23"
+        try { // <- tira o setLoading(true) daqui também
+            const hoje = new Date().toISOString().split('T')[0];
             const res = await fetch(`${API_URL}/caixas/historico?loja_id=${lojaId}&data=${hoje}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
             const data = await res.json();
-
             const movs: Movimentacao[] = Array.isArray(data.movimentacoes) ? data.movimentacoes : [];
-
-            // Ordena da mais recente para a mais antiga
             const ordenadas = movs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
             setMovimentacoes(ordenadas);
         } catch (error) {
             console.error(error);
@@ -101,10 +100,15 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         }
     }
 
+
     const handleAcaoConcluida = () => {
         setShowSangriaModal(false);
         setShowAberturaModal(false);
-        carregarResumoCaixa(); // só isso. O useEffect de baixo pega e busca as movs
+        setLoading(true);
+        Promise.all([
+            carregarResumoCaixa(),
+            carregarMovimentacoes()
+        ]).finally(() => setLoading(false));
         onSave();
     }
 
@@ -140,7 +144,8 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
                         </button>
                     </DialogHeader>
 
-                    <div className="flex gap-1 px-4 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'transparent' }}>
+                    <div className="flex gap-1 px-4 sm:px-6 border-b shrink-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+                        style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'transparent' }}>
                         <TabButton label="Resumo" icon={<Wallet size={16} />} active={abaAtiva === 'resumo'} onClick={() => setAbaAtiva('resumo')} />
                         <TabButton label="Movimentações" icon={<FileText size={16} />} active={abaAtiva === 'movimentacoes'} onClick={() => setAbaAtiva('movimentacoes')} />
                     </div>
@@ -152,7 +157,8 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
                             </div>
                         ) : (
                             <>
-                                {abaAtiva === 'resumo' && <AbaResumo resumo={resumo} isCaixaAberto={isCaixaAberto} onAbrir={() => setShowAberturaModal(true)} onSangria={() => setShowSangriaModal(true)} />}
+                                {abaAtiva === 'resumo' && <AbaResumo resumo={resumo} movimentacoes={movimentacoes} isCaixaAberto={isCaixaAberto} onAbrir={() => setShowAberturaModal(true)} onSangria={() => setShowSangriaModal(true)} />}
+
                                 {abaAtiva === 'movimentacoes' && <AbaMovimentacoes movimentacoes={movimentacoes} />}
                             </>
                         )}
@@ -198,7 +204,22 @@ function TabButton({ label, icon, active, onClick }: any) {
     )
 }
 
-function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
+function AbaResumo({ resumo, movimentacoes, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, movimentacoes: Movimentacao[], isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
+
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
+    const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno']; // <- ADICIONEI ESTORNO
+
+    const entradasHoje = movimentacoes
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo))
+        .reduce((acc, m) => acc + Number(m.valor), 0);
+
+    const saidasHoje = movimentacoes
+        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo)) // <- USA O ARRAY
+        .reduce((acc, m) => acc + Number(m.valor), 0);
+
+
 
     const statusConfig = isCaixaAberto ? {
         cor: 'var(--cor-sucesso)',
@@ -228,10 +249,7 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
         >
             <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-semibold" style={{ color: 'var(--cor-texto-sec)' }}>{titulo}</p>
-                <div
-                    className="p-2 rounded-lg"
-                    style={{ background: 'color-mix(in srgb, var(--cor-fundo) 50%, transparent)', color: cor }}
-                >
+                <div className="p-2 rounded-lg" style={{ background: 'color-mix(in srgb, var(--cor-fundo) 50%, transparent)', color: cor }}>
                     {icon}
                 </div>
             </div>
@@ -251,20 +269,11 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <Button
-                            onClick={onAbrir}
-                            className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs"
-                            style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}
-                        >
+                        <Button onClick={onAbrir} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs" style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />}
                             {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
                         </Button>
-                        <Button
-                            onClick={onSangria}
-                            disabled={!isCaixaAberto}
-                            className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40"
-                            style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}
-                        >
+                        <Button onClick={onSangria} disabled={!isCaixaAberto} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40" style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             <Minus size={16} /> Sangria
                         </Button>
                     </div>
@@ -272,38 +281,12 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <CardMetrica
-                    titulo="Saldo Abertura"
-                    valor={resumo?.saldo_abertura || 0}
-                    icon={<Banknote size={18} />}
-                    cor="var(--cor-primaria)"
-                    bg="color-mix(in srgb, var(--cor-primaria) 6%, transparent)"
-                    border="color-mix(in srgb, var(--cor-primaria) 20%, transparent)"
-                />
-                <CardMetrica
-                    titulo="Entradas Hoje"
-                    valor={resumo?.entradas_hoje || 0}
-                    icon={<TrendingUp size={18} />}
-                    cor="var(--cor-sucesso)"
-                    bg="color-mix(in srgb, var(--cor-sucesso) 6%, transparent)"
-                    border="color-mix(in srgb, var(--cor-sucesso) 20%, transparent)"
-                />
-                <CardMetrica
-                    titulo="Saídas/Sangrias"
-                    valor={resumo?.saidas_hoje || 0}
-                    icon={<TrendingDown size={18} />}
-                    cor="var(--cor-erro)"
-                    bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)"
-                    border="color-mix(in srgb, var(--cor-erro) 20%, transparent)"
-                />
+                <CardMetrica titulo="Saldo Abertura" valor={resumo?.saldo_abertura || 0} icon={<Banknote size={18} />} cor="var(--cor-primaria)" bg="color-mix(in srgb, var(--cor-primaria) 6%, transparent)" border="color-mix(in srgb, var(--cor-primaria) 20%, transparent)" />
+                <CardMetrica titulo="Entradas Hoje" valor={entradasHoje} icon={<TrendingUp size={18} />} cor="var(--cor-sucesso)" bg="color-mix(in srgb, var(--cor-sucesso) 6%, transparent)" border="color-mix(in srgb, var(--cor-sucesso) 20%, transparent)" />
+                <CardMetrica titulo="Saídas/Sangrias" valor={saidasHoje} icon={<TrendingDown size={18} />} cor="var(--cor-erro)" bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)" border="color-mix(in srgb, var(--cor-erro) 20%, transparent)" />
             </div>
 
-            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
-                style={{
-                    background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)',
-                    border: '2px solid var(--cor-sucesso)'
-                }}
-            >
+            <div className="p-5 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2" style={{ background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)', border: '2px solid var(--cor-sucesso)' }}>
                 <div>
                     <p className="text-sm font-medium" style={{ color: 'var(--cor-texto-sec)' }}>Saldo Atual em Caixa</p>
                     <p className="text-3xl font-bold mt-1" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(resumo?.saldo_atual || 0)}</p>
@@ -318,10 +301,15 @@ function AbaResumo({ resumo, isCaixaAberto, onAbrir, onSangria }: { resumo: Caix
 function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) {
     const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().split('T')[0]);
 
+    const tiposEntrada = ['entrada', 'abertura', 'suprimento']; // <- ADICIONA
+    const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno']; // <- ADICIONA
+
     const getIcon = (tipo: string) => {
-        if (tipo === 'entrada' || tipo === 'abertura') return <ArrowUpRight size={16} className="text-[var(--cor-sucesso)]" />;
+        if (tiposEntrada.includes(tipo)) return <ArrowUpRight size={16} className="text-[var(--cor-sucesso)]" />;
         return <ArrowDownRight size={16} className="text-[var(--cor-erro)]" />;
     }
+
+    const isEntrada = (tipo: string) => tiposEntrada.includes(tipo); // <- HELPER
 
     const movimentacoesFiltradas = movimentacoes.filter(mov => {
         const dataMov = new Date(mov.created_at).toISOString().split('T')[0];
@@ -376,8 +364,8 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
                                 </div>
                             </div>
-                            <p className={`font-bold text-sm ${mov.tipo === 'entrada' || mov.tipo === 'abertura' ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
-                                {mov.tipo === 'entrada' || mov.tipo === 'abertura' ? '+' : '-'} {formatCurrency(mov.valor)}
+                            <p className={`font-bold text-sm ${isEntrada(mov.tipo) ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                                {isEntrada(mov.tipo) ? '+' : '-'} {formatCurrency(mov.valor)}
                             </p>
                         </div>
                     ))}
