@@ -213,7 +213,11 @@ api_v1_router.include_router(webhook_router.router, prefix="/webhook", tags=["wh
 api_v1_router.include_router(documentos_router.router, prefix="/kyc", tags=["kyc"])
 api_v1_router.include_router(websocket_router.router)
 api_v1_router.include_router(saidas_router.router)
-api_v1_router.include_router(caixas_router.router, prefix="/caixas", tags=["caixas"]) # <- NOVO
-api_v1_router.include_router(movimentos_caixas_router.router, prefix="/movimentos-caixas", tags=["movimentos-caixas"]) # <- NOVO
+
+# COMPATIBILIDADE: registra com s e sem s pra nao quebrar o front
+api_v1_router.include_router(caixas_router.router, prefix="/caixas", tags=["caixas"])
+api_v1_router.include_router(caixas_router.router, prefix="/caixa", tags=["caixas"]) # <- ACEITA OS 2 AGORA
+
+api_v1_router.include_router(movimentos_caixas_router.router, prefix="/movimentos-caixas", tags=["movimentos-caixas"])
 
 app.include_router(api_v1_router)
