@@ -49,21 +49,20 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
         if (!API_URL) return;
         setLoading(true);
         try {
-            // 1. Primeiro busca o caixa aberto dessa loja
-            const caixaRes = await fetch(`${API_URL}/caixas/aberto?loja_id=${lojaId}`, {
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-            const caixa = await caixaRes.json();
+            // 1. REMOVE essa busca do caixa. Não precisa mais
 
-            // 2. Agora sim faz a sangria com caixa_id
-            const res = await fetch(`${API_URL}/caixa/sangria`, {
+            // 2. Faz a sangria direto passando loja_id
+            const res = await fetch(`${API_URL}/caixas/sangria`, { // <- CORRIGIDO: caixas com S
                 method: 'POST',
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                 body: JSON.stringify({
-                    caixa_id: caixa.id, // <- TROCA AQUI
+                    loja_id: lojaId, // <- CORRIGIDO: é loja_id e não caixa_id
                     valor: valorNumerico,
-                    descricao,
-                    tipo: 'sangria' // <- se sua rota pedir
+                    descricao
+                    // <- REMOVE tipo. Sua rota não pede
                 })
             });
             if (!res.ok) {
@@ -79,6 +78,7 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
         finally { setLoading(false); }
     }
 
+    
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent

@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 from uuid import UUID
 from decimal import Decimal
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import traceback
 import logging
 
@@ -97,6 +97,8 @@ async def registrar_movimento_caixa(
     db.add(caixa)
     return caixa
 
+
+
 # ROTA NOVA: RESUMO DO DIA SOMANDO TODOS OS CAIXAS
 @router.get("/resumo-dia", response_model=CaixaResumoOut)
 async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -117,27 +119,56 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     )
     entradas = (await db.execute(stmt_entradas)).scalar_one()
 
+    # CORRIGIDO: agora soma SAIDA + SANGRIA + FECHAMENTO + ESTORNO
     stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
         and_(
             MovimentacaoCaixa.loja_id == loja_id,
             func.date(MovimentacaoCaixa.created_at) == hoje,
-            MovimentacaoCaixa.tipo.in_([TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value])
+            MovimentacaoCaixa.tipo.in_([
+                TipoMovimentacao.SAIDA.value,
+                TipoMovimentacao.SANGRIA.value,
+                TipoMovimentacao.FECHAMENTO.value,
+                TipoMovimentacao.ESTORNO.value
+            ])
         )
     )
     saidas = (await db.execute(stmt_saidas)).scalar_one()
 
-    caixa_loja_aberto = await get_caixa_aberto_loja(db, loja_id) # <- MUDOU AQUI
+    caixa_loja_aberto = await get_caixa_aberto_loja(db, loja_id)
     tem_caixa_aberto = caixa_loja_aberto is not None
     saldo_atual = to_decimal(saldo_abertura) + to_decimal(entradas) - to_decimal(saidas)
 
     return CaixaResumoOut(
-        id=caixa_loja_aberto.id if caixa_loja_aberto else None, # <- MUDOU AQUI
+        id=caixa_loja_aberto.id if caixa_loja_aberto else None,
         saldo_abertura=to_decimal(saldo_abertura),
         entradas_hoje=to_decimal(entradas),
         saidas_hoje=to_decimal(saidas),
         saldo_atual=saldo_atual,
         status=StatusCaixa.ABERTO if tem_caixa_aberto else StatusCaixa.FECHADO
     )
+
+
+
+@router.get("/resumo-mes")
+async def get_resumo_mes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    await verificar_acesso_loja(loja_id, db, current_user)
+    data_inicio = date.today() - timedelta(days=30) # últimos 30 dias
+
+    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+        and_(
+            MovimentacaoCaixa.loja_id == loja_id,
+            MovimentacaoCaixa.created_at >= data_inicio,
+            MovimentacaoCaixa.tipo.in_([
+                TipoMovimentacao.SAIDA.value,
+                TipoMovimentacao.SANGRIA.value,
+                TipoMovimentacao.FECHAMENTO.value,
+                TipoMovimentacao.ESTORNO.value
+            ])
+        )
+    )
+    saidas = (await db.execute(stmt_saidas)).scalar_one()
+
+    return {"saidas_30dias": float(saidas)}
 
 @router.get("/{caixa_id}/movimentacoes", response_model=list[MovimentacaoOut])
 async def get_movimentacoes_caixa(caixa_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
