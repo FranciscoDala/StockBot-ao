@@ -21,9 +21,8 @@ class CaixaAbrirIn(BaseModel):
     saldo_abertura: Decimal = Field(default=Decimal(0))
     observacao: str | None = None
 
-class CaixaFecharIn(BaseModel):
+class CaixaFecharIn(BaseModel): # <- AJUSTADO
     saldo_contado: Decimal
-    senha_dono: str
     observacao: str | None = None
 
 class SangriaIn(BaseModel):
