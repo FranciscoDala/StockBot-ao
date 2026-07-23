@@ -44,15 +44,23 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
     const [showSangriaModal, setShowSangriaModal] = useState(false);
     const [showAberturaModal, setShowAberturaModal] = useState(false);
 
+    // 1. Carrega resumo + controla scroll
     useEffect(() => {
         if (open && lojaId && token && !showSangriaModal && !showAberturaModal) {
             carregarResumoCaixa();
-            if (abaAtiva === 'movimentacoes') carregarMovimentacoes();
         }
         if (open) document.body.style.overflow = 'hidden';
         else document.body.style.overflow = 'unset';
         return () => { document.body.style.overflow = 'unset'; }
-    }, [open, lojaId, token, showSangriaModal, showAberturaModal, abaAtiva]);
+    }, [open, lojaId, token, showSangriaModal, showAberturaModal]);
+
+    // 2. Carrega movimentacoes quando tiver resumo.id e estiver na aba
+    useEffect(() => {
+        if (open && abaAtiva === 'movimentacoes' && resumo?.id) {
+            carregarMovimentacoes();
+        }
+    }, [open, abaAtiva, resumo?.id]);
+
 
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
@@ -68,7 +76,6 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         }
         finally { setLoading(false); }
     }
-
     const carregarMovimentacoes = async () => {
         if (!API_URL || !lojaId || !token || !resumo?.id) return;
         try {
@@ -76,17 +83,25 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
-            const data = await res.json();
-            setMovimentacoes(data);
-        } catch (error) { console.error(error); setMovimentacoes([]); }
+            const data: Movimentacao[] = await res.json();
+
+            // Ordena da mais recente para a mais antiga
+            const ordenadas = Array.isArray(data)
+                ? data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                : [];
+
+            setMovimentacoes(ordenadas);
+        } catch (error) {
+            console.error(error);
+            setMovimentacoes([]);
+        }
     }
 
     const handleAcaoConcluida = () => {
         setShowSangriaModal(false);
         setShowAberturaModal(false);
-        carregarResumoCaixa();
-        carregarMovimentacoes();
-        onSave(); // <- ADICIONADO: avisa o DadosTab pra atualizar
+        carregarResumoCaixa(); // só isso. O useEffect de baixo pega e busca as movs
+        onSave();
     }
 
     const isCaixaAberto = resumo?.status === 'aberto';
