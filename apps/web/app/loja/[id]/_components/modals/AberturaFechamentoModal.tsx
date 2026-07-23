@@ -21,25 +21,58 @@ interface Props {
 export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, lojaId, statusAtual }: Props) {
     const [saldoInicial, setSaldoInicial] = useState('');
     const [saldoContado, setSaldoContado] = useState('');
+    const [senhaDono, setSenhaDono] = useState(''); // <- ADICIONA SENHA
     const [loading, setLoading] = useState(false);
     const isAbrir = statusAtual!== 'aberto';
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!API_URL) return;
+        if (!API_URL ||!token) return;
         setLoading(true);
         try {
-            const endpoint = isAbrir? '/caixa/abrir' : '/caixa/fechar';
-            const body = isAbrir? { loja_id: lojaId, saldo_abertura: Number(saldoInicial) } : { loja_id: lojaId, saldo_contado: Number(saldoContado) }
-            const res = await fetch(`${API_URL}${endpoint}`, {
-                method: 'POST',
-                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                body: JSON.stringify(body)
-            });
-            if (!res.ok) throw new Error("Erro na operação de caixa");
-            setSaldoInicial(''); setSaldoContado('');
+            if (isAbrir) {
+                // ABRIR
+                const res = await fetch(`${API_URL}/caixa/abrir`, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                    body: JSON.stringify({ loja_id: lojaId, saldo_abertura: Number(saldoInicial) })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Erro ao abrir caixa");
+                }
+            } else {
+                // FECHAR - precisa buscar o id do caixa aberto primeiro
+                const resumoRes = await fetch(`${API_URL}/caixas/resumo?loja_id=${lojaId}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (!resumoRes.ok) throw new Error("Erro ao buscar caixa aberto");
+                const resumo = await resumoRes.json();
+
+                if (!resumo.id) throw new Error("Nenhum caixa aberto para fechar");
+
+                const res = await fetch(`${API_URL}/caixa/fechar/${resumo.id}`, { // <- ROTA COM ID
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                    body: JSON.stringify({
+                        saldo_contado: Number(saldoContado),
+                        senha_dono: senhaDono // <- backend exige isso
+                    })
+                });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.detail || "Erro ao fechar caixa");
+                }
+            }
+            setSaldoInicial('');
+            setSaldoContado('');
+            setSenhaDono('');
             onSave();
-        } catch (error) { console.error(error); alert("Erro ao processar caixa"); }
+            onOpenChange(false); // <- fecha modal ao salvar
+        } catch (error: any) {
+            console.error(error);
+            alert(error.message || "Erro ao processar caixa");
+        }
         finally { setLoading(false); }
     }
 
@@ -48,8 +81,8 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
             <DialogContent
                 className="w-full max-w-full sm:max-w-[500px] p-0 flex-col border shadow-2xl [&>button]:hidden"
                 style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}
-                onInteractOutside={(e) => e.preventDefault()} // <- TRAVA
-                onEscapeKeyDown={(e) => e.preventDefault()} // <- TRAVA
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <form onSubmit={handleSubmit} className="flex flex-col">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
@@ -58,7 +91,7 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                             {isAbrir? 'Abrir Caixa' : 'Fechar Caixa'}
                         </DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
-                            {isAbrir? 'Informe o valor inicial em dinheiro no caixa.' : 'Conte o dinheiro e informe o total para fechar.'}
+                            {isAbrir? 'Informe o valor inicial em dinheiro no caixa.' : 'Conte o dinheiro, informe o total e senha do dono.'}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -76,6 +109,22 @@ export function AberturaFechamentoModal({ open, onOpenChange, onSave, token, loj
                                 placeholder="0,00" required
                             />
                         </div>
+
+                        {!isAbrir && ( // <- CAMPO SENHA SÓ NO FECHAMENTO
+                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>
+                                    Senha Dono *
+                                </Label>
+                                <Input
+                                    type="password"
+                                    value={senhaDono}
+                                    onChange={e => setSenhaDono(e.target.value)}
+                                    className="sm:col-span-3 text-xs h-9"
+                                    style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
+                                    required
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
