@@ -36,13 +36,14 @@ async def criar_venda_endpoint(
     loja_id: UUID = Depends(get_current_loja_id)
 ):
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
-    
+
 
     # 1. SALVA A VENDA PRIMEIRO PRA PODER FAZER O JOIN DEPOIS
     await db.commit()
 
     if venda and venda.itens:
         # 2. ATUALIZA ESTOQUE
+        # 2. ATUALIZA ESTOQUE APENAS SE O PRODUTO CONTROLAR ESTOQUE
         for item in venda.itens:
             if isinstance(item, dict):
                 produto_id = item.get("produto_id")
@@ -53,10 +54,14 @@ async def criar_venda_endpoint(
                 nome_produto = item.nome_produto
                 novo_estoque = item.estoque_atual
 
-            await manager.broadcast_to_loja(
-                str(loja_id),
-                {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
-            )
+            # Busca o produto pra ver se controla estoque
+            produto_db = await db.get(Produto, produto_id)
+            if produto_db and produto_db.controla_estoque:
+                # Aqui já está dando baixa no service criar_venda, então só faz o broadcast
+                await manager.broadcast_to_loja(
+                    str(loja_id),
+                    {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
+                )
 
         # 3. ATUALIZA ESTATISTICAS EM TEMPO REAL
         await manager.broadcast_to_loja(
@@ -319,3 +324,4 @@ async def estornar_venda(
             print(f"AVISO CAIXA ESTORNO: {e.detail}")
 
     return None
+

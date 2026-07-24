@@ -37,17 +37,23 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
             produto = (await db.execute(stmt_prod)).scalar_one_or_none()
             if not produto:
                 raise HTTPException(status_code=404, detail=f"Produto {item_in.produto_id} não encontrado")
-            if produto.estoque < item_in.quantidade:
-                raise HTTPException(status_code=400, detail=f"Estoque insuficiente para {produto.nome}")
 
-            produto.estoque -= item_in.quantidade
-            db.add(produto)
+            # REGRA 3: SÓ VALIDA E BAIXA SE CONTROLAR ESTOQUE
+            if produto.controla_estoque:
+                if produto.estoque < item_in.quantidade:
+                    raise HTTPException(status_code=400, detail=f"Estoque insuficiente para {produto.nome}")
+
+                produto.estoque -= item_in.quantidade
+                db.add(produto)
+                novo_estoque = produto.estoque
+            else:
+                novo_estoque = None # produto de serviço/comida não tem estoque
 
             # GUARDA PRA MANDAR PRO WS DEPOIS DO COMMIT
             itens_para_broadcast.append({
                 "produto_id": produto.id,
                 "nome": produto.nome,
-                "novo_estoque": produto.estoque
+                "novo_estoque": novo_estoque
             })
 
             # Criar item da venda
@@ -68,7 +74,7 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
 
         # 2. ANEXA O ESTOQUE ATUALIZADO NA VENDA PRA ROTA USAR
         venda_read.itens = [
-            {**item.model_dump(), "estoque_atual": next((i["novo_estoque"] for i in itens_para_broadcast if i["produto_id"] == item.produto_id), 0)}
+            {**item.model_dump(), "estoque_atual": next((i["novo_estoque"] for i in itens_para_broadcast if i["produto_id"] == item.produto_id), None)}
             for item in venda_read.itens
         ]
         return venda_read
@@ -158,18 +164,21 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
     if venda.status == 'estornada': # <- MINUSCULO
         raise HTTPException(status_code=400, detail="Venda já estornada")
 
-    # 4. DEVOLVE ESTOQUE
+    # 4. DEVOLVE ESTOQUE APENAS SE CONTROLAR
     for item in venda.itens:
         stmt_prod = select(Produto).where(Produto.id == item.produto_id, Produto.loja_id == loja_id)
         produto = (await db.execute(stmt_prod)).scalar_one_or_none()
         if produto:
-            produto.estoque += item.quantidade
-            db.add(produto)
+            novo_estoque = None
+            if produto.controla_estoque: # REGRA 3
+                produto.estoque += item.quantidade
+                db.add(produto)
+                novo_estoque = produto.estoque
 
             itens_para_broadcast.append({
                 "produto_id": produto.id,
                 "nome": produto.nome,
-                "novo_estoque": produto.estoque
+                "novo_estoque": novo_estoque
             })
 
     venda.status = 'estornada' # <- MINUSCULO

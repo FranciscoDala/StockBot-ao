@@ -55,6 +55,7 @@ class Produto(BaseModel):
     estoque: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     estoque_minimo: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
     estoque_maximo: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    controla_estoque: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False) # <- ADICIONA ESSA LINHA
     unidade: Mapped[UnidadeEnum] = mapped_column(Enum(UnidadeEnum), default=UnidadeEnum.UN, nullable=False)
     peso_kg: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
 

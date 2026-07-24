@@ -34,3 +34,31 @@ async def listar_produtos_service(db: AsyncSession, slug: str) -> list[Produto]:
     # 2. Lista só os produtos dessa loja
     result = await db.execute(select(Produto).where(Produto.loja_id == loja.id))
     return result.scalars().all()
+
+async def listar_produtos_estoque_baixo_service(db: AsyncSession, slug: str) -> list[Produto]:
+    result = await db.execute(select(Loja).where(Loja.slug == slug))
+    loja = result.scalar_one_or_none()
+    if not loja:
+        raise HTTPException(status_code=404, detail=f"Loja com slug '{slug}' não encontrada")
+
+    stmt = select(Produto).where(
+        Produto.loja_id == loja.id,
+        Produto.controla_estoque == True, # só quem controla
+        Produto.estoque <= Produto.estoque_minimo # <- AQUI: <= mínimo
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+async def listar_produtos_sem_estoque_service(db: AsyncSession, slug: str) -> list[Produto]:
+    result = await db.execute(select(Loja).where(Loja.slug == slug))
+    loja = result.scalar_one_or_none()
+    if not loja:
+        raise HTTPException(status_code=404, detail=f"Loja com slug '{slug}' não encontrada")
+
+    stmt = select(Produto).where(
+        Produto.loja_id == loja.id,
+        Produto.controla_estoque == True,
+        Produto.estoque == 0 # <- AQUI: == 0
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()

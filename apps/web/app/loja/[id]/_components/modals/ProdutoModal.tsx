@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UploadCloud, X, Loader2, DollarSign, Package, Image as ImageIcon, QrCode, AlertCircle, RefreshCw } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
@@ -222,6 +223,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 <TabsTrigger value="preco" className="text-xs data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white"><DollarSign size={14} className="mr-1" />Preço</TabsTrigger>
                             </TabsList>
                             <div className="py-4">
+
+
                                 <TabsContent value="dados" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Nome *</Label>
@@ -248,6 +251,21 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Marca</Label>
                                         <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                    </div>
+
+                                    {/* NOVO: SWITCH CONTROLAR ESTOQUE */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                        <Label className="text-xs sm:text-right" style={labelStyle}>Controlar Estoque</Label>
+                                        <div className="sm:col-span-3 flex items-center gap-2">
+                                            <Switch
+                                                checked={formData.controla_estoque ?? true}
+                                                onCheckedChange={(val) => handleInputChange("controla_estoque", val)}
+                                                className="data-[state=checked]:bg-[var(--cor-primaria)]"
+                                            />
+                                            <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                                                {formData.controla_estoque ?? true ? "Baixa estoque na venda" : "Não baixa estoque"}
+                                            </span>
+                                        </div>
                                     </div>
                                 </TabsContent>
 

@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, status, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
@@ -8,15 +9,19 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.db.session import get_db
-from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate
+from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate, UnidadeEnum as SchemaUnidadeEnum
 from app.schemas.usuario import Role
 from app.core.deps import get_current_user, require_role
-from app.models.produto import Produto
+from app.models.produto import Produto, UnidadeEnum as ModelUnidadeEnum
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
 from app.models.loja import Loja
 from app.models.usuario import Usuario
 from app.core.security import verify_password
+from app.services.produto import (
+    listar_produtos_estoque_baixo_service,
+    listar_produtos_sem_estoque_service
+)
 import qrcode
 import io
 import base64
@@ -56,7 +61,7 @@ def gerar_qr_code_base64(produto_id: UUID, sku: str, nome: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
-    img.save(buf, format='PNG')
+    img.save(buf, format="PNG")  # type: ignore
     return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
 
 def to_schema(produto: Produto) -> ProdutoOut:
@@ -71,7 +76,9 @@ def to_schema(produto: Produto) -> ProdutoOut:
         estoque=float(produto.estoque),
         estoque_minimo=float(produto.estoque_minimo),
         estoque_maximo=float(produto.estoque_maximo) if produto.estoque_maximo else None,
-        unidade=produto.unidade, peso_kg=float(produto.peso_kg) if produto.peso_kg else None,
+        controla_estoque=produto.controla_estoque,
+        unidade=SchemaUnidadeEnum(produto.unidade.value), # CORRIGIDO: converte Enum do model pro Enum do schema
+        peso_kg=float(produto.peso_kg) if produto.peso_kg else None,
         fornecedor_id=produto.fornecedor_id, localizacao=produto.localizacao, is_active=produto.is_active,
         created_at=produto.created_at, updated_at=produto.updated_at, deleted_at=produto.deleted_at,
         margem_lucro=float(produto.margem_lucro) if produto.margem_lucro else 0.0
@@ -131,7 +138,7 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
         estoque_maximo=payload.get("estoque_maximo"), unidade=payload.get("unidade"),
         fornecedor_id=payload.get("fornecedor_id"), localizacao=payload.get("localizacao"),
         preco_venda=preco_venda, preco_compra=preco_compra,
-        margem_lucro = 0 if preco_compra == 0 else ((preco_venda - preco_compra) / preco_compra) * 100,
+        margem_lucro = Decimal('0') if preco_compra == 0 else ((preco_venda - preco_compra) / preco_compra) * 100, # CORRIGIDO: Decimal
         codigo_qr=None
     )
     db.add(novo)
@@ -140,7 +147,7 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
 
     if not codigo_barras_enviado:
         novo.codigo_barras = gerar_ean13_interno(novo.id)
-    novo.codigo_qr = gerar_qr_code_base64(novo.id, novo.sku, novo.nome)
+    novo.codigo_qr = gerar_qr_code_base64(novo.id, novo.sku or "", novo.nome or "") # CORRIGIDO: or ""
 
     await db.commit()
     await db.refresh(novo)
@@ -164,8 +171,6 @@ async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Dep
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
     produto = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     return to_schema(produto)
-
-
 
 @router.patch("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithAuth, db: AsyncSession = Depends(get_db)):
@@ -192,7 +197,6 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
 
     update_data = produto_update.model_dump(exclude_unset=True, exclude={"senha_dono", "senha_confirmacao", "sku"})
 
-    # TRATAMENTO ESPECIAL PRA IMAGEM - ESSA É A LINHA QUE FALTAVA
     if hasattr(produto_update, 'imagem_url'):
         produto_db.imagem_url = produto_update.imagem_url or ""
 
@@ -203,17 +207,13 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
         setattr(produto_db, key, value)
 
     if 'nome' in update_data or 'sku' in update_data:
-        produto_db.codigo_qr = gerar_qr_code_base64(produto_db.id, produto_db.sku, produto_db.nome)
+        produto_db.codigo_qr = gerar_qr_code_base64(produto_db.id, produto_db.sku or "", produto_db.nome or "") # CORRIGIDO: or ""
 
-    produto_db.margem_lucro = 0 if produto_db.preco_compra == 0 else ((produto_db.preco_venda - produto_db.preco_compra) / produto_db.preco_compra) * 100
+    produto_db.margem_lucro = Decimal('0') if produto_db.preco_compra == 0 else ((produto_db.preco_venda - produto_db.preco_compra) / produto_db.preco_compra) * 100 # CORRIGIDO: Decimal
 
     await db.commit()
     await db.refresh(produto_db)
     return to_schema(produto_db)
-
-
-
-
 
 @router.delete("/{produto_id}", status_code=status.HTTP_200_OK, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def apagar_produto(
@@ -223,7 +223,7 @@ async def apagar_produto(
 ):
     loja_id = payload.get("loja_id")
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório")
-    await verify_dono_password(db, loja_id, payload.get("senha_dono"), payload.get("senha_confirmacao")) # <- CORRIGIDO AQUI
+    await verify_dono_password(db, loja_id, payload.get("senha_dono") or "", payload.get("senha_confirmacao") or "") # CORRIGIDO: or ""
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     produto_db.deleted_at = datetime.utcnow()
     await db.commit()
@@ -241,3 +241,17 @@ async def get_produto_publico(sku: str, db: AsyncSession = Depends(get_db)):
         "marca": produto.marca, "descricao": produto.descricao, "imagem_url": produto.imagem_url,
         "loja_nome": produto.loja.nome if produto.loja else "Loja não informada"
     }
+
+@router.get("/{slug}/produtos/estoque-baixo", response_model=List[ProdutoOut])
+async def get_produtos_estoque_baixo(
+    slug: str,
+    db: AsyncSession = Depends(get_db)
+):
+    return await listar_produtos_estoque_baixo_service(db, slug)
+
+@router.get("/{slug}/produtos/sem-estoque", response_model=List[ProdutoOut])
+async def get_produtos_sem_estoque(
+    slug: str,
+    db: AsyncSession = Depends(get_db)
+):
+    return await listar_produtos_sem_estoque_service(db, slug)

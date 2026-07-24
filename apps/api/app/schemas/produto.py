@@ -30,13 +30,14 @@ class ProdutoBase(BaseModel):
 
     # ENTRADA: continua Decimal pra aceitar do banco
     preco: Decimal = Field(..., gt=0, description="Preco de venda")
-    preco_custo: Decimal = Field(0, ge=0, description="Preco de compra")
+    preco_custo: Decimal = Field(Decimal('0'), ge=0, description="Preco de compra")
     preco_promocao: Optional[Decimal] = Field(None, ge=0)
 
-    custo_medio: Decimal = Field(0, ge=0)
+    custo_medio: Decimal = Field(Decimal('0'), ge=0)
     estoque: int = Field(0, ge=0, description="Estoque atual")
     estoque_minimo: int = Field(5, ge=0)
     estoque_maximo: Optional[int] = Field(None, ge=0)
+    controla_estoque: bool = Field(True, description="Se False não baixa estoque na venda") # <- ADICIONA
     unidade: UnidadeEnum = Field(UnidadeEnum.UN)
     peso_kg: Optional[Decimal] = Field(None, ge=0)
     localizacao: Optional[str] = Field(None, max_length=100)
@@ -67,6 +68,7 @@ class ProdutoUpdate(BaseModel): # <- TUDO OPTIONAL PRA NAO ZERAR O DB
     estoque: Optional[int] = Field(None, ge=0)
     estoque_minimo: Optional[int] = Field(None, ge=0)
     estoque_maximo: Optional[int] = Field(None, ge=0)
+    controla_estoque: Optional[bool] = None # <- ADICIONA
     unidade: Optional[UnidadeEnum] = None
     peso_kg: Optional[Decimal] = Field(None, ge=0)
     localizacao: Optional[str] = Field(None, max_length=100)
@@ -101,6 +103,7 @@ class ProdutoOut(BaseModel):
     estoque: float
     estoque_minimo: float
     estoque_maximo: Optional[float] = None
+    controla_estoque: bool # <- ADICIONA
     unidade: UnidadeEnum
     peso_kg: Optional[float] = None
     localizacao: Optional[str] = None
