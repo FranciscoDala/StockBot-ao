@@ -297,7 +297,6 @@ RETURNING id;
 
 
 
-
 "use client";
 import { Plus, Edit, Trash2, Package, TrendingUp, TrendingDown, AlertTriangle, Tag, ImageOff, QrCode, Download, DollarSign, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -308,6 +307,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Loja, userread } from "../../page";
 import { formatCurrency } from "../utils";
+
+// 1. IMPORT DOS 2 MODAIS
+import { EstoqueModalBaixo } from "../modals/EstoqueModal_baixo";
+import { SemEstoqueModal } from "../modals/SemEstoqueModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -341,8 +344,12 @@ export function ProdutosTab({
 }: Props) {
     const [qrProduto, setQrProduto] = useState<any>(null);
 
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
-    const padding = cardSize === 'grande' ? '20px' : '16px';
+    // 2. ESTADOS DOS MODAIS
+    const [modalBaixoOpen, setModalBaixoOpen] = useState(false);
+    const [modalZeradoOpen, setModalZeradoOpen] = useState(false);
+
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const padding = cardSize === 'grande'? '20px' : '16px';
 
     const getEstoqueStatus = (estoque: number, minimo: number) => {
         if (estoque === 0) return { color: "#ef4444", bg: "#ef444414", border: "#ef444430", label: "Sem Estoque", icon: <AlertTriangle size={12} /> };
@@ -356,7 +363,12 @@ export function ProdutosTab({
         const estoqueBaixo = produtos.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo).length;
         const semEstoque = produtos.filter(p => p.estoque === 0).length;
         const valorTotalEstoque = produtos.reduce((acc, p) => acc + ((p.preco_custo || 0) * (p.estoque || 0)), 0);
-        return { totalProdutos, totalEmEstoque, estoqueBaixo, semEstoque, valorTotalEstoque };
+
+        // 3. FILTRA OS PRODUTOS PRA PASSAR PRO MODAL
+        const produtosEstoqueBaixo = produtos.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo);
+        const produtosSemEstoque = produtos.filter(p => p.estoque === 0);
+
+        return { totalProdutos, totalEmEstoque, estoqueBaixo, semEstoque, valorTotalEstoque, produtosEstoqueBaixo, produtosSemEstoque };
     }, [produtos]);
 
     const handleDownloadQR = (p: any) => {
@@ -375,10 +387,10 @@ export function ProdutosTab({
     return (
         <>
             <style jsx global>{`
-                .scrollbar-hide::-webkit-scrollbar { display: none; }
-                .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-                .snap-x { scroll-snap-type: x mandatory; }
-                .snap-center { scroll-snap-align: center; }
+               .scrollbar-hide::-webkit-scrollbar { display: none; }
+               .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+               .snap-x { scroll-snap-type: x mandatory; }
+               .snap-center { scroll-snap-align: center; }
         `}</style>
             <div
                 className="space-y-6"
@@ -451,50 +463,54 @@ export function ProdutosTab({
                         <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos com estoque ok</p>
                     </div>
 
+                    {/* 4. CARD ESTOQUE BAIXO AGORA É CLICÁVEL */}
                     <div
-                        className="transition hover:scale-[1.02] min-w-0"
+                        onClick={() => setModalBaixoOpen(true)}
+                        className="transition hover:scale-[1.02] min-w-0 cursor-pointer"
                         style={{
-                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                            background: 'color-mix(in srgb, var(--cor-aviso) 10%, transparent)', // 👈 glass
                             backdropFilter: 'blur(12px)',
-                            color: 'var(--cor-primaria)', // 👈 letras primary
+                            color: 'var(--cor-aviso)', // 👈 letras aviso
                             borderRadius: radius,
                             padding,
-                            border: 'none', // 👈 remove borda
-                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
+                            border: '1px solid color-mix(in srgb, var(--cor-aviso) 20%, transparent)', // 👈 borda aviso
+                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-aviso) 15%, transparent)' // 👈 shadow aviso
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Estoque Baixo</p>
-                            <AlertTriangle size={16} style={{ color: 'var(--cor-primaria)' }} />
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-aviso)' }}>Estoque Baixo</p>
+                            <AlertTriangle size={16} style={{ color: 'var(--cor-aviso)' }} />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.estoqueBaixo}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Abaixo do mínimo</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-aviso)' }}>{kpis.estoqueBaixo}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-aviso)' }}>Abaixo do mínimo</p>
                     </div>
 
+                    {/* 5. CARD SEM ESTOQUE AGORA É CLICÁVEL */}
                     <div
-                        className="transition hover:scale-[1.02] min-w-0"
+                        onClick={() => setModalZeradoOpen(true)}
+                        className="transition hover:scale-[1.02] min-w-0 cursor-pointer"
                         style={{
-                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
+                            background: 'color-mix(in srgb, var(--cor-erro) 10%, transparent)', // 👈 glass
                             backdropFilter: 'blur(12px)',
-                            color: 'var(--cor-primaria)', // 👈 letras primary
+                            color: 'var(--cor-erro)', // 👈 letras erro
                             borderRadius: radius,
                             padding,
-                            border: 'none', // 👈 remove borda
-                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
+                            border: '1px solid color-mix(in srgb, var(--cor-erro) 20%, transparent)', // 👈 borda erro
+                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-erro) 15%, transparent)' // 👈 shadow erro
                         }}
                     >
                         <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Sem Estoque</p>
-                            <TrendingDown size={16} style={{ color: 'var(--cor-primaria)' }} />
+                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-erro)' }}>Sem Estoque</p>
+                            <TrendingDown size={16} style={{ color: 'var(--cor-erro)' }} />
                         </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.semEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos zerados</p>
+                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-erro)' }}>{kpis.semEstoque}</p>
+                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-erro)' }}>Produtos zerados</p>
                     </div>
                 </div>
 
                 {/* GRID DE PRODUTOS - MOBILE SCROLL | DESKTOP GRID */}
                 <div className="">
-                    {produtos.length === 0 ? (
+                    {produtos.length === 0? (
                         <div
                             className="text-center py-16 border mt-4"
                             style={{
@@ -516,24 +532,24 @@ export function ProdutosTab({
                                     {produtos.map(p => {
                                         const preco = p.preco_venda || p.preco || 0;
                                         const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                        const imgSrc = p.imagem_url?.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                        const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
 
                                         return (
                                             <div
                                                 key={`mobile-${p.id}`} // ou desktop
-                                                className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''} w-[calc(100vw-32px)] snap-center shrink-0 mx-auto`}
+                                                className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active? 'opacity-50' : ''} w-[calc(100vw-32px)] snap-center shrink-0 mx-auto`}
                                                 style={{
                                                     background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)', // 👈 glass leve
                                                     backdropFilter: 'blur(8px)',
                                                     border: `1px solid color-mix(in srgb, var(--cor-primaria) 15%, transparent)`, // 👈 borda quase invisivel primary
                                                     borderRadius: radius,
                                                     boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 12%, transparent), 0 4px 16px rgba(0,0,0,0.15)`, // 👈 shadow primary + leve
-                                                    opacity: p.is_active ? 1 : 0.6
+                                                    opacity: p.is_active? 1 : 0.6
                                                 }}
                                             >
                                                 {/* IMAGEM */}
                                                 <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                    {p.imagem_url ? (
+                                                    {p.imagem_url? (
                                                         <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                     ) : (
                                                         <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
@@ -573,24 +589,24 @@ export function ProdutosTab({
                                 {produtos.map(p => {
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                    const imgSrc = p.imagem_url?.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                    const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
 
                                     return (
                                         <div
                                             key={`desktop-${p.id}`}
-                                            className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active ? 'opacity-50' : ''}`}
+                                            className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active? 'opacity-50' : ''}`}
                                             style={{
                                                 background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)', // 👈 glass leve
                                                 backdropFilter: 'blur(8px)',
                                                 border: `1px solid color-mix(in srgb, var(--cor-primaria) 15%, transparent)`, // 👈 borda quase invisivel
                                                 borderRadius: radius,
                                                 boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 12%, transparent), 0 4px 16px rgba(0,0,0,0.15)`, // 👈 shadow primary
-                                                opacity: p.is_active ? 1 : 0.6
+                                                opacity: p.is_active? 1 : 0.6
                                             }}
                                         >
                                             {/* IMAGEM */}
                                             <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                {p.imagem_url ? (
+                                                {p.imagem_url? (
                                                     <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
@@ -629,6 +645,19 @@ export function ProdutosTab({
 
             </div>
 
+            {/* 6. RENDERIZA OS 2 MODAIS AQUI NO FINAL */}
+            <EstoqueModalBaixo
+                open={modalBaixoOpen}
+                onOpenChange={setModalBaixoOpen}
+                produtos={kpis.produtosEstoqueBaixo}
+            />
+
+            <SemEstoqueModal
+                open={modalZeradoOpen}
+                onOpenChange={setModalZeradoOpen}
+                produtos={kpis.produtosSemEstoque}
+            />
+
             <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
                 <DialogContent
                     className="border-0 max-w-sm w-[calc(100%-2rem)] p-0 overflow-hidden flex-col h-[80dvh] [&>button]:hidden items-center"
@@ -653,7 +682,7 @@ export function ProdutosTab({
                         >
                             {qrProduto?.imagem_url && (
                                 <img
-                                    src={qrProduto.imagem_url.startsWith('http') ? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
+                                    src={qrProduto.imagem_url.startsWith('http')? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
                                     alt={qrProduto.nome}
                                     className="w-16 h-16 rounded-full object-cover border-2"
                                     style={{ borderColor: 'var(--cor-primaria)30' }}

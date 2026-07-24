@@ -59,15 +59,18 @@ export function ProdutosTab({
     }
 
     const kpis = useMemo(() => {
+        // AJUSTE 1: só considera produtos que controlam estoque para os KPIs
+        const produtosComEstoque = produtos.filter(p => p.controla_estoque);
+
         const totalProdutos = produtos.length;
-        const totalEmEstoque = produtos.filter(p => p.estoque > p.estoque_minimo).length;
-        const estoqueBaixo = produtos.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo).length;
-        const semEstoque = produtos.filter(p => p.estoque === 0).length;
-        const valorTotalEstoque = produtos.reduce((acc, p) => acc + ((p.preco_custo || 0) * (p.estoque || 0)), 0);
+        const totalEmEstoque = produtosComEstoque.filter(p => p.estoque > p.estoque_minimo).length;
+        const estoqueBaixo = produtosComEstoque.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo).length;
+        const semEstoque = produtosComEstoque.filter(p => p.estoque === 0).length;
+        const valorTotalEstoque = produtosComEstoque.reduce((acc, p) => acc + ((p.preco_custo || 0) * (p.estoque || 0)), 0);
 
         // 3. FILTRA OS PRODUTOS PRA PASSAR PRO MODAL
-        const produtosEstoqueBaixo = produtos.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo);
-        const produtosSemEstoque = produtos.filter(p => p.estoque === 0);
+        const produtosEstoqueBaixo = produtosComEstoque.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo);
+        const produtosSemEstoque = produtosComEstoque.filter(p => p.estoque === 0);
 
         return { totalProdutos, totalEmEstoque, estoqueBaixo, semEstoque, valorTotalEstoque, produtosEstoqueBaixo, produtosSemEstoque };
     }, [produtos]);
@@ -88,10 +91,10 @@ export function ProdutosTab({
     return (
         <>
             <style jsx global>{`
-               .scrollbar-hide::-webkit-scrollbar { display: none; }
-               .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-               .snap-x { scroll-snap-type: x mandatory; }
-               .snap-center { scroll-snap-align: center; }
+              .scrollbar-hide::-webkit-scrollbar { display: none; }
+              .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+              .snap-x { scroll-snap-type: x mandatory; }
+              .snap-center { scroll-snap-align: center; }
         `}</style>
             <div
                 className="space-y-6"
@@ -269,9 +272,11 @@ export function ProdutosTab({
                                                     <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
                                                     <div className="space-y-2.5 text-sm flex-1 mb-3">
                                                         <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                        <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
+                                                        {/* AJUSTE 2: só mostra linha de estoque se controla_estoque */}
+                                                        {p.controla_estoque && (<div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>)}
                                                     </div>
-                                                    <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
+                                                    {/* AJUSTE 3: só mostra badge de status se controla_estoque */}
+                                                    {p.controla_estoque && (<div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>)}
                                                     {isAdmin && (
                                                         <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                             <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>
@@ -326,9 +331,11 @@ export function ProdutosTab({
                                                 <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
                                                 <div className="space-y-2.5 text-sm flex-1 mb-3">
                                                     <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                    <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
+                                                    {/* AJUSTE 2: só mostra linha de estoque se controla_estoque */}
+                                                    {p.controla_estoque && (<div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>)}
                                                 </div>
-                                                <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
+                                                {/* AJUSTE 3: só mostra badge de status se controla_estoque */}
+                                                {p.controla_estoque && (<div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>)}
                                                 {isAdmin && (
                                                     <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                         <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>
