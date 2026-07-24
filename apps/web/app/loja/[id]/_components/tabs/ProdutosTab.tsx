@@ -59,8 +59,8 @@ export function ProdutosTab({
     }
 
     const kpis = useMemo(() => {
-        // AJUSTE 1: só considera produtos que controlam estoque para os KPIs
-        const produtosComEstoque = produtos.filter(p => p.controla_estoque);
+        // AJUSTE: só conta produtos que controlam estoque
+        const produtosComEstoque = produtos.filter(p => p.controla_estoque!== false);
 
         const totalProdutos = produtos.length;
         const totalEmEstoque = produtosComEstoque.filter(p => p.estoque > p.estoque_minimo).length;
@@ -237,6 +237,7 @@ export function ProdutosTab({
                                         const preco = p.preco_venda || p.preco || 0;
                                         const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
                                         const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                        const mostraEstoque = p.controla_estoque!== false; // AJUSTE CHAVE
 
                                         return (
                                             <div
@@ -272,11 +273,11 @@ export function ProdutosTab({
                                                     <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
                                                     <div className="space-y-2.5 text-sm flex-1 mb-3">
                                                         <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                        {/* AJUSTE 2: só mostra linha de estoque se controla_estoque */}
-                                                        {p.controla_estoque && (<div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>)}
+                                                        {/* AJUSTE: só mostra estoque se controla */}
+                                                        {mostraEstoque && (<div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>)}
                                                     </div>
-                                                    {/* AJUSTE 3: só mostra badge de status se controla_estoque */}
-                                                    {p.controla_estoque && (<div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>)}
+                                                    {/* AJUSTE: só mostra badge se controla */}
+                                                    {mostraEstoque && (<div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>)}
                                                     {isAdmin && (
                                                         <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                             <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>
@@ -296,6 +297,7 @@ export function ProdutosTab({
                                     const preco = p.preco_venda || p.preco || 0;
                                     const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
                                     const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+                                    const mostraEstoque = p.controla_estoque!== false; // AJUSTE CHAVE
 
                                     return (
                                         <div
@@ -331,11 +333,11 @@ export function ProdutosTab({
                                                 <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
                                                 <div className="space-y-2.5 text-sm flex-1 mb-3">
                                                     <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                    {/* AJUSTE 2: só mostra linha de estoque se controla_estoque */}
-                                                    {p.controla_estoque && (<div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>)}
+                                                    {/* AJUSTE: só mostra estoque se controla */}
+                                                    {mostraEstoque && (<div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>)}
                                                 </div>
-                                                {/* AJUSTE 3: só mostra badge de status se controla_estoque */}
-                                                {p.controla_estoque && (<div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>)}
+                                                {/* AJUSTE: só mostra badge se controla */}
+                                                {mostraEstoque && (<div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>)}
                                                 {isAdmin && (
                                                     <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
                                                         <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>

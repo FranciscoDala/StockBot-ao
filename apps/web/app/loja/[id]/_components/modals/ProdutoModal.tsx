@@ -17,7 +17,7 @@ const API_BASE = API_URL.replace('/api/v1', '');
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
-const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
+const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name? decodeURIComponent(parts[1]) : r; }, ''); };
 
 const gerarSkuAleatorio = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -50,6 +50,7 @@ export type Produto = {
     data_validade?: string;
     ncm?: string;
     peso_kg?: number | null;
+    controla_estoque?: boolean; // <- AJUSTE 1: ADICIONADO
 }
 
 interface Props {
@@ -71,26 +72,25 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const lucro = (formData.preco || 0) - (formData.preco_custo || 0);
-    const qrLink = formData.sku ? `${APP_URL}/p/${formData.sku}` : null;
+    const qrLink = formData.sku? `${APP_URL}/p/${formData.sku}` : null;
+    const controlaEstoque = formData.controla_estoque?? true; // <- AJUSTE 2
 
     useEffect(() => {
-        if (open && !editingProduto && !formData.sku) {
-            setFormData((prev: any) => ({ ...prev, sku: gerarSkuAleatorio() }));
+        if (open &&!editingProduto &&!formData.sku) {
+            setFormData((prev: any) => ({...prev, sku: gerarSkuAleatorio(), controla_estoque: true })); // <- default true
         }
 
         if (editingProduto?.imagem_url) {
-            const url = editingProduto.imagem_url.startsWith('http') ? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
+            const url = editingProduto.imagem_url.startsWith('http')? editingProduto.imagem_url : `${API_BASE}${editingProduto.imagem_url}`;
             setPreview(url);
-            // Repõe a url antiga no formData pra não perder ao salvar sem trocar imagem
-            setFormData((prev: any) => ({ ...prev, imagem_url: editingProduto.imagem_url }));
+            setFormData((prev: any) => ({...prev, imagem_url: editingProduto.imagem_url }));
         } else {
             setPreview(null);
-            // Se não tem imagem, garante que está vazio
-            setFormData((prev: any) => ({ ...prev, imagem_url: "" }));
+            setFormData((prev: any) => ({...prev, imagem_url: "" }));
         }
 
         if (editingProduto && editingProduto.codigo_barras === "") {
-            setFormData((prev: any) => ({ ...prev, codigo_barras: undefined }));
+            setFormData((prev: any) => ({...prev, codigo_barras: undefined }));
         }
 
         if (errorMsg) {
@@ -105,7 +105,6 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         }
     }, [editingProduto, open, errorMsg, setFormData, formData.sku]);
 
-
     const validateFile = (file: File) => {
         if (!file.type.startsWith('image/')) { toast.error("Apenas imagens são permitidas"); return false; }
         if (file.size > MAX_FILE_SIZE) { toast.error("Imagem muito grande. Máximo 5MB"); return false; }
@@ -115,7 +114,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
     const handleFile = (file: File) => {
         if (!validateFile(file)) return;
         setPreview(URL.createObjectURL(file));
-        setFormData({ ...formData, file_to_upload: file });
+        setFormData({...formData, file_to_upload: file });
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,8 +124,6 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
     const handleDrag = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (e.type === "dragenter" || e.type === "dragover") setDragActive(true); else if (e.type === "dragleave") setDragActive(false); };
     const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setDragActive(false); const file = e.dataTransfer.files?.[0]; if (file) handleFile(file); };
-
-
 
     const handleSaveClick = async () => {
         if (!formData.nome || formData.nome.length < 2) { toast.error("Nome do produto é obrigatório"); return; }
@@ -160,8 +157,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         }
 
         let finalData = {
-            ...formData,
-            imagem_url: imagemUrlFinal, // << FORÇA AQUI
+           ...formData,
+            imagem_url: imagemUrlFinal,
             public_id: formData.public_id || ""
         };
 
@@ -170,14 +167,11 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             finalData.codigo_barras = null;
         }
 
-        onSave(finalData); // << MANDA A URL JUNTO
+        onSave(finalData);
     };
 
-
-
-
     const handleInputChange = (field: string, value: any) => {
-        setFormData({ ...formData, [field]: value });
+        setFormData({...formData, [field]: value });
     }
 
     const inputStyle = {
@@ -208,7 +202,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     }}
                 >
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
-                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>{editingProduto ? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
+                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
                     </DialogHeader>
 
@@ -224,22 +218,21 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                             </TabsList>
                             <div className="py-4">
 
-
                                 <TabsContent value="dados" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Nome *</Label>
-                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                        <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right pt-2" style={labelStyle}>Descrição</Label>
-                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="sm:col-span-3 px-3 py-2 min-h-24 text-xs" style={{ ...inputStyle, ...focusStyle }} />
+                                        <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="sm:col-span-3 px-3 py-2 min-h-24 text-xs" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>SKU</Label>
                                         <div className="sm:col-span-3 flex gap-2">
-                                            <Input placeholder="Gerado automaticamente" value={formData.sku || ''} disabled className="h-9 flex-1 text-xs" style={{ ...inputStyle, backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto-sec)', cursor: 'not-allowed' }} />
+                                            <Input placeholder="Gerado automaticamente" value={formData.sku || ''} disabled className="h-9 flex-1 text-xs" style={{...inputStyle, backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto-sec)', cursor: 'not-allowed' }} />
                                             {!editingProduto && (
                                                 <Button type="button" size="icon" onClick={() => handleInputChange("sku", gerarSkuAleatorio())} className="h-9 w-9 shrink-0" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)' }}>
                                                     <RefreshCw size={14} />
@@ -250,20 +243,20 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Marca</Label>
-                                        <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                        <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
-                                    {/* NOVO: SWITCH CONTROLAR ESTOQUE */}
+                                    {/* SWITCH CONTROLAR ESTOQUE */}
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Controlar Estoque</Label>
                                         <div className="sm:col-span-3 flex items-center gap-2">
                                             <Switch
-                                                checked={formData.controla_estoque ?? true}
+                                                checked={controlaEstoque}
                                                 onCheckedChange={(val) => handleInputChange("controla_estoque", val)}
                                                 className="data-[state=checked]:bg-[var(--cor-primaria)]"
                                             />
                                             <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
-                                                {formData.controla_estoque ?? true ? "Baixa estoque na venda" : "Não baixa estoque"}
+                                                {controlaEstoque? "Baixa estoque na venda" : "Não baixa estoque"}
                                             </span>
                                         </div>
                                     </div>
@@ -280,18 +273,18 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                                 onDrop={handleDrop}
                                                 className="relative w-full h-52 sm:h-64 border-2 border-dashed transition-colors"
                                                 style={{
-                                                    borderColor: dragActive ? 'var(--cor-primaria)' : 'var(--cor-borda)',
-                                                    backgroundColor: dragActive ? 'var(--cor-primaria)10' : 'var(--cor-fundo)',
+                                                    borderColor: dragActive? 'var(--cor-primaria)' : 'var(--cor-borda)',
+                                                    backgroundColor: dragActive? 'var(--cor-primaria)10' : 'var(--cor-fundo)',
                                                     borderRadius: 'var(--radius)'
                                                 }}
                                             >
-                                                {preview ? (
+                                                {preview? (
                                                     <>
                                                         <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-lg p-2" />
-                                                        <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({ ...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
+                                                        <Button type="button" size="icon" variant="destructive" className="absolute top-2 right-2 h-8 w-8 rounded-full" onClick={() => { setPreview(null); setFormData({...formData, file_to_upload: null, imagem_url: "" }) }}><X size={16} /></Button>
                                                     </>
                                                 ) : (
-                                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center" style={{ color: 'var(--cor-texto-sec)' }}>
+                                                    <div className="absolute inset-0 flex-col items-center justify-center text-center" style={{ color: 'var(--cor-texto-sec)' }}>
                                                         <UploadCloud size={32} className="mb-2" />
                                                         <p className="text-sm font-medium">Arraste e solte ou clique</p>
                                                         <p className="text-xs">PNG, JPG, WEBP até 5MB</p>
@@ -320,32 +313,37 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 <TabsContent value="preco" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Preço Custo</Label>
-                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Preço Venda *</Label>
-                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{ ...inputStyle, ...focusStyle }} />
+                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Lucro</Label>
                                         <div className="sm:col-span-3 p-3 border" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}>
-                                            <span className="font-bold text-sm" style={{ color: lucro >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)' }}>
+                                            <span className="font-bold text-sm" style={{ color: lucro >= 0? 'var(--cor-primaria)' : 'var(--cor-erro)' }}>
                                                 {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(lucro)}
                                             </span>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Estoque</Label>
-                                        <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{ ...inputStyle, ...focusStyle }} />
-                                    </div>
+                                    {/* AJUSTE 3: SÓ MOSTRA ESTOQUE SE CONTROLAR */}
+                                    {controlaEstoque && (
+                                        <>
+                                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                                <Label className="text-xs sm:text-right" style={labelStyle}>Estoque</Label>
+                                                <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
+                                            </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Estoque Mín</Label>
-                                        <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{ ...inputStyle, ...focusStyle }} />
-                                    </div>
+                                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                                <Label className="text-xs sm:text-right" style={labelStyle}>Estoque Mín</Label>
+                                                <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
+                                            </div>
+                                        </>
+                                    )}
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right" style={labelStyle}>Unidade</Label>
@@ -369,7 +367,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                     <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
                         <div className="flex items-center space-x-2 mr-auto">
-                            <Checkbox id="active" checked={formData.is_active ?? true} onCheckedChange={(val) => handleInputChange("is_active", !!val)} className="data-[state=checked]:bg-[var(--cor-primaria)] data-[state=checked]:border-[var(--cor-primaria)]" />
+                            <Checkbox id="active" checked={formData.is_active?? true} onCheckedChange={(val) => handleInputChange("is_active",!!val)} className="data-[state=checked]:bg-[var(--cor-primaria)] data-[state=checked]:border-[var(--cor-primaria)]" />
                             <Label htmlFor="active" className="text-xs font-medium cursor-pointer" style={labelStyle}>Produto Ativo</Label>
                         </div>
                         <div className="flex gap-2">
@@ -378,7 +376,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                             </Button>
                             <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="gap-2 text-xs flex-1 sm:flex-initial font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                                 {(saving || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                {editingProduto ? 'Salvar Alterações' : 'Salvar'}
+                                {editingProduto? 'Salvar Alterações' : 'Salvar'}
                             </Button>
                         </div>
                     </DialogFooter>
