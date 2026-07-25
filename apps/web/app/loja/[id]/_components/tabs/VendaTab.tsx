@@ -23,6 +23,7 @@ interface Produto {
     imagem_url?: string;
     is_active: boolean;
     loja_id: string;
+    controla_estoque?: boolean; // <- ADICIONA ESSA LINHA
     descricao?: string;
     codigo_barras?: string | null;
     marca?: string;
@@ -288,11 +289,13 @@ export function VendaTab({
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
                             const preco = p.preco_venda ?? p.preco ?? 0;
+                            const controlaEstoque = p.controla_estoque === true;
+                            const podeVender = !controlaEstoque || p.estoque > 0; // <- REGRA CHAVE
                             return (
                                 <button
                                     key={p.id}
                                     onClick={() => adicionarAoCarrinho(p)}
-                                    disabled={p.estoque <= 0}
+                                    disabled={!podeVender} // <- AJUSTE 1
                                     className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
                                     style={{
                                         backgroundColor: 'var(--cor-card)',
@@ -302,14 +305,17 @@ export function VendaTab({
                                     onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
                                     onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
                                 >
+
                                     <div className="relative w-full aspect-square" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                                         {p.imagem_url ? (
                                             <img src={p.imagem_url.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
                                         )}
-                                        {p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>)}
-                                        {p.estoque > 0 && (<Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>{p.estoque}</Badge>)}
+
+                                        {/* AJUSTE 2: Só mostra badge se controla estoque */}
+                                        {controlaEstoque && p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>)}
+                                        {controlaEstoque && p.estoque > 0 && (<Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>{p.estoque}</Badge>)}
                                     </div>
                                     <div className="p-2">
                                         <h4 className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
