@@ -187,6 +187,13 @@ export function VendaTab({
         }
     }, [formatCurrency, gerarHeaderFactura]);
 
+
+    //teste ---
+    useEffect(() => {
+        console.log("Produtos do PDV:", produtos)
+    }, [produtos])
+
+
     useEffect(() => {
         if (formaPagamento !== "Dinheiro") {
             setValorRecebido("")
@@ -289,22 +296,16 @@ export function VendaTab({
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
                             const preco = p.preco_venda ?? p.preco ?? 0;
-                            const controlaEstoque = p.controla_estoque === true; // true = controla, false/null = não controla
-                            const podeVender = !controlaEstoque || p.estoque > 0; // pode vender se não controla OU se tem estoque
+                            const controlaEstoque = p.controla_estoque === true; // só true mostra
+                            const podeVender = !controlaEstoque || p.estoque > 0;
 
                             return (
                                 <button
                                     key={p.id}
                                     onClick={() => adicionarAoCarrinho(p)}
-                                    disabled={!podeVender} // <- trava só se controla E estoque = 0
+                                    disabled={!podeVender}
                                     className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
-                                    style={{
-                                        backgroundColor: 'var(--cor-card)',
-                                        borderColor: 'var(--cor-primaria)20',
-                                        borderRadius: radius
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
+                                    style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)20', borderRadius: radius }}
                                 >
                                     <div className="relative w-full aspect-square" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                                         {p.imagem_url ? (
@@ -313,13 +314,14 @@ export function VendaTab({
                                             <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
                                         )}
 
-                                        {/* AJUSTE AQUI: SÓ MOSTRA CONTADOR SE CONTROLA ESTOQUE */}
-                                        {controlaEstoque && (
-                                            p.estoque <= 0 ? (
-                                                <Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>
-                                            ) : (
-                                                <Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>{p.estoque}</Badge>
-                                            )
+                                        {/* SÓ MOSTRA SE CONTROLA = TRUE */}
+                                        {controlaEstoque && p.estoque > 0 && (
+                                            <Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>
+                                                {p.estoque}
+                                            </Badge>
+                                        )}
+                                        {controlaEstoque && p.estoque <= 0 && (
+                                            <Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>
                                         )}
                                     </div>
                                     <div className="p-2">
