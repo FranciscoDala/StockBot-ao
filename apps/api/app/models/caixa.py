@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Date, Text, Enum, Index
+from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Date, Text, Enum as SQLEnum, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from ..db.base import Base
+from..db.base import Base
 import uuid
 from datetime import date
 import enum
@@ -29,13 +29,13 @@ class Caixa(Base):
     diferenca = Column(Numeric(14, 2), nullable=True)
 
     status = Column(
-        Enum(
+        SQLEnum(
             StatusCaixa,
             name="statuscaixa",
             native_enum=False,
             values_callable=lambda x: [e.value for e in x]
         ),
-        default=StatusCaixa.ABERTO,
+        default=StatusCaixa.ABERTO.value, # <-.value
         nullable=False,
         index=True
     )
@@ -46,9 +46,13 @@ class Caixa(Base):
     usuario_abertura = relationship("Usuario", foreign_keys=[usuario_abertura_id])
     usuario_fechamento = relationship("Usuario", foreign_keys=[usuario_fechamento_id])
 
-    # REGRA NOVA: So pode ter 1 caixa ABERTO por usuario por dia
-    # Isso evita que o mesmo user abra 2 caixas ao mesmo tempo
     __table_args__ = (
-        Index('ix_caixa_usuario_dia_aberto', 'loja_id', 'usuario_abertura_id', 'data_caixa', unique=True,
-              postgresql_where=(status == StatusCaixa.ABERTO)),
+        Index(
+            'ix_caixa_usuario_dia_aberto',
+            'loja_id',
+            'usuario_abertura_id',
+            'data_caixa',
+            unique=True,
+            postgresql_where=(status == StatusCaixa.ABERTO.value) # <-.value
+        ),
     )

@@ -7,6 +7,7 @@ from datetime import date
 from typing import List
 from uuid import UUID
 import asyncio
+from decimal import Decimal
 
 from app.core.deps import get_current_user, require_role, get_current_loja_id
 from app.schemas.usuario import Role
@@ -15,14 +16,13 @@ from app.models.venda import Venda
 from app.models.itens_venda import ItemVenda
 from app.models.produto import Produto
 from app.models.loja import Loja
-from app.models.caixa import Caixa, StatusCaixa # <- VOLTEI ESSE IMPORT
-from app.models.movimentacao_caixa import TipoMovimentacao # <- VOLTEI ESSE IMPORT
+from app.models.caixa import Caixa, StatusCaixa
+from app.models.movimentacao_caixa import TipoMovimentacao
 from app.db.session import get_db
 from app.schemas.venda import VendaCreate, VendaRead
 from app.services.venda import criar_venda, estornar_venda_service
 from app.services.whatsapp import enviar_msg_venda
 from app.websocket.manager import manager
-# NOVO: Import do helper
 from app.api.v1.caixas import registrar_movimento_caixa
 
 router = APIRouter()
@@ -37,30 +37,21 @@ async def criar_venda_endpoint(
 ):
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
-
     # 1. SALVA A VENDA PRIMEIRO PRA PODER FAZER O JOIN DEPOIS
     await db.commit()
 
     if venda and venda.itens:
-        # 2. ATUALIZA ESTOQUE
-        # 2. ATUALIZA ESTOQUE APENAS SE O PRODUTO CONTROLAR ESTOQUE
+        # 2. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
         for item in venda.itens:
-            if isinstance(item, dict):
-                produto_id = item.get("produto_id")
-                nome_produto = item.get("nome_produto")
-                novo_estoque = item.get("estoque_atual")
-            else:
-                produto_id = item.produto_id
-                nome_produto = item.nome_produto
-                novo_estoque = item.estoque_atual
+            produto_id = item.produto_id
+            nome_produto = item.nome_produto
 
-            # Busca o produto pra ver se controla estoque
+            # Busca o produto pra ver se controla estoque e pegar estoque atual
             produto_db = await db.get(Produto, produto_id)
             if produto_db and produto_db.controla_estoque:
-                # Aqui já está dando baixa no service criar_venda, então só faz o broadcast
                 await manager.broadcast_to_loja(
                     str(loja_id),
-                    {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": novo_estoque}
+                    {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
                 )
 
         # 3. ATUALIZA ESTATISTICAS EM TEMPO REAL
@@ -76,19 +67,19 @@ async def criar_venda_endpoint(
 
         # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
             if caixa_aberto:
                 await registrar_movimento_caixa(
                     db=db,
-                    caixa_id=caixa_aberto.id,
-                    loja_id=loja_id,
+                    caixa_id=caixa_aberto.id, # type: ignore
+                    loja_id=loja_id, # type: ignore
                     tipo=TipoMovimentacao.ENTRADA,
-                    valor=venda.total,
+                    valor=Decimal(str(venda.total)),
                     descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
-                    usuario_id=current_user.id,
+                    usuario_id=current_user.id, # type: ignore
                     referencia_id=venda.id,
                     referencia_tipo='venda'
                 )
@@ -102,7 +93,7 @@ async def criar_venda_endpoint(
             print(f"ERRO AO LANÇAR NO CAIXA: {e}")
 
     if venda:
-        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda)
+        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id) # <- MUDEI: passa id
     return venda
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
@@ -122,14 +113,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-     .options(
+      .options(
             joinedload(Venda.usuario),
             joinedload(Venda.itens).joinedload(ItemVenda.produto)
         )
-     .where(Venda.loja_id == loja_id_usar)
-     .order_by(Venda.created_at.desc())
-     .limit(limit)
-     .offset(offset)
+      .where(Venda.loja_id == loja_id_usar)
+      .order_by(Venda.created_at.desc())
+      .limit(limit)
+      .offset(offset)
     )
 
     if data_inicio:
@@ -172,19 +163,19 @@ async def get_vendas(
             "itens": itens
         })
 
-    return vendas_response
+    return vendas_response # type: ignore
 
-@router.get("/{venda_id}/imprimir", response_class=HTMLResponse) # <- TIREI O DEPENDS
+@router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
 async def imprimir_venda(
     venda_id: UUID,
     db: AsyncSession = Depends(get_db),
-    loja_id: UUID = Depends(get_current_loja_id) # <- mantém isso pra segurança
+    loja_id: UUID = Depends(get_current_loja_id)
 ):
     # Busca a venda com itens e loja
     stmt = select(Venda).options(
         selectinload(Venda.itens).selectinload(ItemVenda.produto),
         selectinload(Venda.loja),
-        selectinload(Venda.usuario) # <- adiciona isso pra não dar erro no venda.usuario.nome
+        selectinload(Venda.usuario)
     ).where(Venda.id == venda_id, Venda.loja_id == loja_id)
 
     result = await db.execute(stmt)
@@ -214,13 +205,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-         .header {{ text-align: center; margin-bottom: 15px; }}
-         .header h1 {{ margin: 0; font-size: 18px; }}
-         .info p {{ margin: 2px 0; }}
+      .header {{ text-align: center; margin-bottom: 15px; }}
+      .header h1 {{ margin: 0; font-size: 18px; }}
+      .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-         .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-         .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+      .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+      .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
@@ -259,27 +250,20 @@ async def estornar_venda(
     id: UUID,
     db: AsyncSession = Depends(get_db),
     loja_id: UUID = Depends(get_current_loja_id),
-    current_user: Usuario = Depends(get_current_user) # <- ADICIONA ISSO
+    current_user: Usuario = Depends(get_current_user)
 ):
     itens_estornados = await estornar_venda_service(db=db, venda_id=id, loja_id=loja_id)
 
-    valor_estornado = 0
+    valor_estornado = Decimal('0')
     total_itens_estornados = 0
 
     if itens_estornados:
         for item in itens_estornados:
-            if isinstance(item, dict):
-                produto_id = item.get("produto_id")
-                nome = item.get("nome")
-                novo_estoque = item.get("novo_estoque")
-                valor_estornado += float(item.get("subtotal", 0))
-                total_itens_estornados += item.get("quantidade", 0)
-            else:
-                produto_id = item.produto_id
-                nome = item.nome
-                novo_estoque = item.novo_estoque
-                valor_estornado += float(item.subtotal)
-                total_itens_estornados += item.quantidade
+            produto_id = item.get("produto_id")
+            nome = item.get("nome")
+            novo_estoque = item.get("novo_estoque")
+            valor_estornado += Decimal(str(item.get("subtotal", 0)))
+            total_itens_estornados += item.get("quantidade", 0)
 
             await manager.broadcast_to_loja(str(loja_id),{"tipo": "stock.updated","produto_id": str(produto_id),"nome_produto": nome,"novo_estoque": novo_estoque})
 
@@ -288,17 +272,17 @@ async def estornar_venda(
         str(loja_id),
         {
             "tipo": "stats.updated",
-            "valor_venda": -valor_estornado,
+            "valor_venda": -float(valor_estornado),
             "total_itens": -total_itens_estornados,
             "acao": "remove"
         }
     )
 
-    # 4. LANÇA ESTORNO NO CAIXA - COLA AQUI EMBAIXO
+    # 4. LANÇA ESTORNO NO CAIXA
     if valor_estornado > 0:
         try:
             # BUSCAR CAIXA ABERTO
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
@@ -307,12 +291,12 @@ async def estornar_venda(
 
             await registrar_movimento_caixa(
                 db=db,
-                caixa_id=caixa_aberto.id, # <- ADICIONADO
-                loja_id=loja_id,
-                tipo=TipoMovimentacao.SAIDA, # <- CORRIGIDO: usei o Enum
+                caixa_id=caixa_aberto.id, # type: ignore
+                loja_id=loja_id, # type: ignore
+                tipo=TipoMovimentacao.SAIDA,
                 valor=valor_estornado,
                 descricao=f"Estorno Venda #{str(id)[:8]}",
-                usuario_id=current_user.id,
+                usuario_id=current_user.id, # type: ignore
                 referencia_id=id,
                 referencia_tipo='estorno'
             )
@@ -320,8 +304,6 @@ async def estornar_venda(
             await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
         except HTTPException as e:
             await db.rollback()
-            # Se caixa fechado, só loga. Não impede o estorno
             print(f"AVISO CAIXA ESTORNO: {e.detail}")
 
     return None
-

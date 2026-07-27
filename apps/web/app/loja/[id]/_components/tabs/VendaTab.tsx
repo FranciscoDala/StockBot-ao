@@ -116,10 +116,10 @@ export function VendaTab({
     cardSize
 }: Props) {
 
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
-    //const padding = cardSize === 'grande' ? '24px' : '16px';
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    //const padding = cardSize === 'grande'? '24px' : '16px';
 
-    const getPreco = (item: CarrinhoItem) => item.preco_venda ?? item.preco ?? 0;
+    const getPreco = (item: CarrinhoItem) => item.preco_venda?? item.preco?? 0;
 
     const gerarHeaderFactura = useCallback(() => `
         <div class="header">
@@ -149,15 +149,15 @@ export function VendaTab({
             <style>
                 @page { size: 80mm auto; margin: 5mm; }
                 body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; font-size: 11px; color: #000; background: #fff; }
-         .header { text-align: center; margin-bottom: 5px; }
-         .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
-         .header p { margin: 1px 0; font-size: 10px; }
-         .info p { margin: 1px 0; }
+        .header { text-align: center; margin-bottom: 5px; }
+        .header h1 { margin: 0; font-size: 14px; font-weight: bold; }
+        .header p { margin: 1px 0; font-size: 10px; }
+        .info p { margin: 1px 0; }
                 table { width: 100%; border-collapse: collapse; margin-top: 5px; }
                 th, td { padding: 2px 0; font-size: 11px; }
                 hr { border: none; border-top: 1px dashed #000; margin: 3px 0; }
-         .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
-         .footer { text-align: center; margin-top: 8px; font-size: 10px; }
+        .total { display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 5px; }
+        .footer { text-align: center; margin-top: 8px; font-size: 10px; }
             </style>
         </head>
         <body onload="window.print()">
@@ -187,15 +187,13 @@ export function VendaTab({
         }
     }, [formatCurrency, gerarHeaderFactura]);
 
-
     //teste ---
     useEffect(() => {
         console.log("Produtos do PDV:", produtos)
     }, [produtos])
 
-
     useEffect(() => {
-        if (formaPagamento !== "Dinheiro") {
+        if (formaPagamento!== "Dinheiro") {
             setValorRecebido("")
         }
     }, [formaPagamento, setValorRecebido])
@@ -295,9 +293,9 @@ export function VendaTab({
 
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
-                            const preco = p.preco_venda ?? p.preco ?? 0;
-                            const controlaEstoque = p.controla_estoque === true; // só true mostra
-                            const podeVender = !controlaEstoque || p.estoque > 0;
+                            const preco = p.preco_venda?? p.preco?? 0;
+                            const controlaEstoque = p.controla_estoque?? false; // ALTERADO: aceita undefined como false
+                            const podeVender =!controlaEstoque || p.estoque > 0; // ALTERADO: libera se não controla estoque
 
                             return (
                                 <button
@@ -308,8 +306,8 @@ export function VendaTab({
                                     style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)20', borderRadius: radius }}
                                 >
                                     <div className="relative w-full aspect-square" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                        {p.imagem_url ? (
-                                            <img src={p.imagem_url.startsWith('http') ? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
+                                        {p.imagem_url? (
+                                            <img src={p.imagem_url.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
                                         )}
@@ -409,8 +407,6 @@ export function VendaTab({
                             </div>
                         )}
 
-
-
                         <div className="flex justify-between items-center">
                             <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total</span>
                             <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(subtotal)}</span>
@@ -422,7 +418,7 @@ export function VendaTab({
                             className="w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                             style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
                         >
-                            {loadingVenda ? (
+                            {loadingVenda? (
                                 <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -431,17 +427,6 @@ export function VendaTab({
                         </Button>
                     </div>
                 </div>
-
-
-
-
-
-
-
-
-
-
-
 
                 {/* DESKTOP CARRINHO */}
                 <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
@@ -522,24 +507,19 @@ export function VendaTab({
                             </div>
                         )}
 
-
-
-
                         <Button
                             onClick={handleFinalizar}
                             disabled={!podeFinalizar || loadingVenda}
                             className="w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                             style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
                         >
-                            {loadingVenda ? (
+                            {loadingVenda? (
                                 <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
                             ) : "Finalizar [Enter]"}
                         </Button>
-
-
 
                     </div>
                 </div>

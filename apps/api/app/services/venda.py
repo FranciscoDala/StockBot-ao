@@ -53,7 +53,9 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
             itens_para_broadcast.append({
                 "produto_id": produto.id,
                 "nome": produto.nome,
-                "novo_estoque": novo_estoque
+                "novo_estoque": novo_estoque,
+                "subtotal": item_in.subtotal, # <- ADICIONADO
+                "quantidade": item_in.quantidade # <- ADICIONADO
             })
 
             # Criar item da venda
@@ -72,12 +74,8 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
 
         venda_read = await listar_venda_por_id(db, nova_venda.id, loja_id)
 
-        # 2. ANEXA O ESTOQUE ATUALIZADO NA VENDA PRA ROTA USAR
-        venda_read.itens = [
-            {**item.model_dump(), "estoque_atual": next((i["novo_estoque"] for i in itens_para_broadcast if i["produto_id"] == item.produto_id), None)}
-            for item in venda_read.itens
-        ]
-        return venda_read
+        # REMOVIDO: Não pode atribuir estoque_atual no VendaRead
+        return venda_read # <- ALTERADO
 
     except Exception:
         await db.rollback() # <- ROLLBACK SE DER ERRO
@@ -152,7 +150,7 @@ async def listar_vendas(
             ]
         }))
 
-    return vendas_read
+    return list(vendas_read) # <- ALTERADO: cast para list
 
 async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID):
     itens_para_broadcast = [] # <- 3. GUARDA OS DADOS PRA DEVOLVER
@@ -178,7 +176,9 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
             itens_para_broadcast.append({
                 "produto_id": produto.id,
                 "nome": produto.nome,
-                "novo_estoque": novo_estoque
+                "novo_estoque": novo_estoque,
+                "subtotal": item.subtotal, # <- ADICIONADO
+                "quantidade": item.quantidade # <- ADICIONADO
             })
 
     venda.status = 'estornada' # <- MINUSCULO

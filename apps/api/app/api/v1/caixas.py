@@ -35,14 +35,14 @@ async def get_caixa_aberto_loja(db: AsyncSession, loja_id: UUID) -> Caixa | None
     logger.info(f"[DEBUG] Buscando caixa aberto para loja_id={loja_id} na data={hoje}")
     stmt = select(Caixa).where(
         and_(
-            Caixa.loja_id == loja_id,
-            func.date(Caixa.data_caixa) == hoje,
-            Caixa.status == StatusCaixa.ABERTO.value
+            Caixa.loja_id == loja_id, # type: ignore
+            func.date(Caixa.data_caixa) == hoje, # type: ignore
+            Caixa.status == StatusCaixa.ABERTO # <- SEM.value
         )
     )
     result = await db.execute(stmt)
     caixa = result.scalar_one_or_none()
-    logger.info(f"[DEBUG] Caixa encontrado: {caixa.id if caixa else 'NENHUM'}")
+    logger.info(f"[DEBUG] Caixa encontrado: {caixa.id if caixa else 'NENHUM'}") # type: ignore
     return caixa
 
 async def registrar_movimento_caixa(
@@ -51,53 +51,53 @@ async def registrar_movimento_caixa(
 ):
     logger.info(f"[DEBUG] REGISTRANDO MOV: tipo={tipo.value} valor={valor} caixa={caixa_id}")
     caixa = await db.get(Caixa, caixa_id)
-    if not caixa or caixa.status == StatusCaixa.FECHADO:
+    if not caixa or caixa.status == StatusCaixa.FECHADO: # <- SEM.value # type: ignore
         logger.error(f"[DEBUG] ERRO: Tentou registrar movimento mas caixa fechado. caixa_id={caixa_id}")
         raise HTTPException(status_code=400, detail="Não é possível registrar: caixa fechado")
 
     mov = MovimentacaoCaixa(
-        caixa_id=caixa.id,
-        loja_id=loja_id,
+        caixa_id=caixa.id, # type: ignore
+        loja_id=loja_id, # type: ignore
         tipo=tipo.value,
         valor=to_decimal(valor),
         descricao=descricao,
         referencia_id=referencia_id,
         referencia_tipo=referencia_tipo,
-        usuario_id=usuario_id,
+        usuario_id=usuario_id, # type: ignore
         created_at=datetime.utcnow()
     )
     db.add(mov)
 
-    valor = to_decimal(valor)
-    caixa.total_entradas = to_decimal(caixa.total_entradas)
-    caixa.total_saidas = to_decimal(caixa.total_saidas)
-    caixa.saldo_abertura = to_decimal(caixa.saldo_abertura)
+    valor_dec = to_decimal(valor)
+
+    # FORÇA CAST PRA PYLANCE PARAR DE RECLAMAR
+    total_entradas = to_decimal(caixa.total_entradas) # type: ignore
+    total_saidas = to_decimal(caixa.total_saidas) # type: ignore
+    saldo_abertura = to_decimal(caixa.saldo_abertura) # type: ignore
 
     # CORRECAO: SO SOMA EM TOTAL_ENTRADAS SE FOR DINHEIRO
     if tipo == TipoMovimentacao.ENTRADA:
         if referencia_tipo == 'venda' and referencia_id:
-            # Pega a forma de pagamento da venda
-            stmt_venda = select(Venda.forma_pagamento).where(Venda.id == referencia_id)
+            stmt_venda = select(Venda.forma_pagamento).where(Venda.id == referencia_id) # type: ignore
             result = await db.execute(stmt_venda)
             forma = result.scalar_one_or_none()
 
             if forma and forma.lower() == 'dinheiro':
-                caixa.total_entradas += valor
-            # Se for TPA/PIX/CARTAO nao soma no caixa fisico
+                total_entradas += valor_dec
         else:
-            # Suprimento, etc. sempre soma
-            caixa.total_entradas += valor
+            total_entradas += valor_dec
 
     elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]:
-        caixa.total_saidas += valor
-    # ABERTURA e FECHAMENTO so registram o movimento, nao mexem nos totais
+        total_saidas += valor_dec
 
-    caixa.saldo_esperado = caixa.saldo_abertura + caixa.total_entradas - caixa.total_saidas
-    logger.info(f"[DEBUG] Novo saldo_esperado: {caixa.saldo_esperado}")
+    # ATRIBUI DE VOLTA
+    caixa.total_entradas = total_entradas # type: ignore
+    caixa.total_saidas = total_saidas # type: ignore
+    caixa.saldo_esperado = saldo_abertura + total_entradas - total_saidas # type: ignore
+
+    logger.info(f"[DEBUG] Novo saldo_esperado: {caixa.saldo_esperado}") # type: ignore
     db.add(caixa)
     return caixa
-
-
 
 # ROTA NOVA: RESUMO DO DIA SOMANDO TODOS OS CAIXAS
 @router.get("/resumo-dia", response_model=CaixaResumoOut)
@@ -105,26 +105,26 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     await verificar_acesso_loja(loja_id, db, current_user)
     hoje = date.today()
 
-    stmt_saldo = select(func.coalesce(func.sum(Caixa.saldo_abertura), 0)).where(
-        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje)
+    stmt_saldo = select(func.coalesce(func.sum(Caixa.saldo_abertura), 0)).where( # type: ignore
+        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje) # type: ignore
     )
     saldo_abertura = (await db.execute(stmt_saldo)).scalar_one()
 
-    stmt_entradas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+    stmt_entradas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where( # type: ignore
         and_(
-            MovimentacaoCaixa.loja_id == loja_id,
-            func.date(MovimentacaoCaixa.created_at) == hoje,
-            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value
+            MovimentacaoCaixa.loja_id == loja_id, # type: ignore
+            func.date(MovimentacaoCaixa.created_at) == hoje, # type: ignore
+            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value # type: ignore
         )
     )
     entradas = (await db.execute(stmt_entradas)).scalar_one()
 
     # CORRIGIDO: agora soma SAIDA + SANGRIA + FECHAMENTO + ESTORNO
-    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where( # type: ignore
         and_(
-            MovimentacaoCaixa.loja_id == loja_id,
-            func.date(MovimentacaoCaixa.created_at) == hoje,
-            MovimentacaoCaixa.tipo.in_([
+            MovimentacaoCaixa.loja_id == loja_id, # type: ignore
+            func.date(MovimentacaoCaixa.created_at) == hoje, # type: ignore
+            MovimentacaoCaixa.tipo.in_([ # type: ignore
                 TipoMovimentacao.SAIDA.value,
                 TipoMovimentacao.SANGRIA.value,
                 TipoMovimentacao.FECHAMENTO.value,
@@ -139,15 +139,13 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     saldo_atual = to_decimal(saldo_abertura) + to_decimal(entradas) - to_decimal(saidas)
 
     return CaixaResumoOut(
-        id=caixa_loja_aberto.id if caixa_loja_aberto else None,
+        id=caixa_loja_aberto.id if caixa_loja_aberto else None, # type: ignore
         saldo_abertura=to_decimal(saldo_abertura),
         entradas_hoje=to_decimal(entradas),
         saidas_hoje=to_decimal(saidas),
         saldo_atual=saldo_atual,
-        status=StatusCaixa.ABERTO if tem_caixa_aberto else StatusCaixa.FECHADO
+        status=(StatusCaixa.ABERTO.value if tem_caixa_aberto else StatusCaixa.FECHADO.value) # type: ignore
     )
-
-
 
 from datetime import datetime, date
 
@@ -158,12 +156,12 @@ async def get_resumo_mes(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     hoje = date.today()
     primeiro_dia_mes = hoje.replace(day=1) # 2026-07-01
 
-    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where( # type: ignore
         and_(
-            MovimentacaoCaixa.loja_id == loja_id,
-            func.date(MovimentacaoCaixa.created_at) >= primeiro_dia_mes, # de 01/07 até hoje
-            func.date(MovimentacaoCaixa.created_at) <= hoje,
-            MovimentacaoCaixa.tipo.in_([
+            MovimentacaoCaixa.loja_id == loja_id, # type: ignore
+            func.date(MovimentacaoCaixa.created_at) >= primeiro_dia_mes, # type: ignore
+            func.date(MovimentacaoCaixa.created_at) <= hoje, # type: ignore
+            MovimentacaoCaixa.tipo.in_([ # type: ignore
                 TipoMovimentacao.SAIDA.value,
                 TipoMovimentacao.SANGRIA.value,
                 TipoMovimentacao.FECHAMENTO.value,
@@ -174,12 +172,12 @@ async def get_resumo_mes(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     saidas_mes = (await db.execute(stmt_saidas)).scalar_one()
 
     # Bônus: já manda também entradas e faturamento do mês
-    stmt_entradas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+    stmt_entradas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where( # type: ignore
         and_(
-            MovimentacaoCaixa.loja_id == loja_id,
-            func.date(MovimentacaoCaixa.created_at) >= primeiro_dia_mes,
-            func.date(MovimentacaoCaixa.created_at) <= hoje,
-            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value
+            MovimentacaoCaixa.loja_id == loja_id, # type: ignore
+            func.date(MovimentacaoCaixa.created_at) >= primeiro_dia_mes, # type: ignore
+            func.date(MovimentacaoCaixa.created_at) <= hoje, # type: ignore
+            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value # type: ignore
         )
     )
     entradas_mes = (await db.execute(stmt_entradas)).scalar_one()
@@ -187,19 +185,17 @@ async def get_resumo_mes(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     return {
         "saidas_mes": float(saidas_mes),
         "entradas_mes": float(entradas_mes),
-        "faturamento_mes": float(entradas_mes) # se tu quiser separar cash/tpa faz igual do historico
+        "faturamento_mes": float(entradas_mes)
     }
-
-
 
 @router.get("/{caixa_id}/movimentacoes", response_model=list[MovimentacaoOut])
 async def get_movimentacoes_caixa(caixa_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     caixa = await db.get(Caixa, caixa_id)
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
-    await verificar_acesso_loja(caixa.loja_id, db, current_user)
-    stmt = select(MovimentacaoCaixa).where(MovimentacaoCaixa.caixa_id == caixa_id).order_by(MovimentacaoCaixa.created_at.desc())
+    await verificar_acesso_loja(caixa.loja_id, db, current_user) # type: ignore
+    stmt = select(MovimentacaoCaixa).where(MovimentacaoCaixa.caixa_id == caixa_id).order_by(MovimentacaoCaixa.created_at.desc()) # type: ignore
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return list(result.scalars().all())
 
 @router.post("/abrir", status_code=status.HTTP_201_CREATED)
 async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -216,23 +212,23 @@ async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), cu
 
         saldo_abertura_dec = to_decimal(body.saldo_abertura)
         novo_caixa = Caixa(
-            loja_id=body.loja_id,
+            loja_id=body.loja_id, # type: ignore
             data_caixa=date.today(),
             data_abertura=datetime.utcnow(),
-            usuario_abertura_id=current_user.id, # continua salvando quem abriu pra auditoria
+            usuario_abertura_id=current_user.id, # type: ignore
             saldo_abertura=saldo_abertura_dec,
             saldo_esperado=saldo_abertura_dec,
-            total_entradas=0,
-            total_saidas=0,
-            status=StatusCaixa.ABERTO,
+            total_entradas=Decimal('0'),
+            total_saidas=Decimal('0'),
+            status=StatusCaixa.ABERTO.value, # <- COM.value
             observacao=body.observacao
         )
         db.add(novo_caixa)
         await db.flush()
 
         await registrar_movimento_caixa(
-            db=db, caixa_id=novo_caixa.id, loja_id=body.loja_id, tipo=TipoMovimentacao.ABERTURA,
-            valor=saldo_abertura_dec, descricao=f"Abertura de caixa: {saldo_abertura_dec}", usuario_id=current_user.id
+            db=db, caixa_id=novo_caixa.id, loja_id=body.loja_id, tipo=TipoMovimentacao.ABERTURA, # type: ignore
+            valor=saldo_abertura_dec, descricao=f"Abertura de caixa: {saldo_abertura_dec}", usuario_id=current_user.id # type: ignore
         )
 
         await db.commit()
@@ -244,37 +240,37 @@ async def abrir_caixa(body: CaixaAbrirIn, db: AsyncSession = Depends(get_db), cu
         await db.rollback()
         logger.error(f"[DEBUG] ERRO 500 CRITICO: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Erro ao abrir caixa: {str(e)}")
-    return {"message": "Caixa aberto com sucesso", "id": novo_caixa.id}
+    return {"message": "Caixa aberto com sucesso", "id": novo_caixa.id} # type: ignore
 
 @router.post("/fechar/{caixa_id}")
 async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     caixa = await db.get(Caixa, caixa_id)
     if not caixa: raise HTTPException(status_code=404, detail="Caixa não encontrado")
-    await verificar_acesso_loja(caixa.loja_id, db, current_user)
-    if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado")
+    await verificar_acesso_loja(caixa.loja_id, db, current_user) # type: ignore
+    if caixa.status == StatusCaixa.FECHADO: raise HTTPException(status_code=400, detail="Caixa já está fechado") # type: ignore
 
     try:
         saldo_contado_dec = to_decimal(body.saldo_contado)
-        saldo_esperado_dec = to_decimal(caixa.saldo_esperado)
+        saldo_esperado_dec = to_decimal(caixa.saldo_esperado) # type: ignore
 
         # 1. PRIMEIRO REGISTRA A MOVIMENTACAO
         await registrar_movimento_caixa(
             db=db,
-            caixa_id=caixa.id,
-            loja_id=caixa.loja_id,
-            tipo=TipoMovimentacao.FECHAMENTO, # <- precisa ter esse tipo no Enum
+            caixa_id=caixa.id, # type: ignore
+            loja_id=caixa.loja_id, # type: ignore
+            tipo=TipoMovimentacao.FECHAMENTO,
             valor=saldo_contado_dec,
             descricao=f"Fechamento de caixa: {saldo_contado_dec}",
-            usuario_id=current_user.id
+            usuario_id=current_user.id # type: ignore
         )
 
         # 2. DEPOIS FECHA O CAIXA
-        caixa.status = StatusCaixa.FECHADO
-        caixa.data_fechamento = datetime.utcnow()
-        caixa.usuario_fechamento_id = current_user.id
-        caixa.saldo_contado = saldo_contado_dec
-        caixa.diferenca = saldo_contado_dec - saldo_esperado_dec
-        caixa.observacao = body.observacao
+        caixa.status = StatusCaixa.FECHADO.value # type: ignore
+        caixa.data_fechamento = datetime.utcnow() # type: ignore
+        caixa.usuario_fechamento_id = current_user.id # type: ignore
+        caixa.saldo_contado = saldo_contado_dec # type: ignore
+        caixa.diferenca = saldo_contado_dec - saldo_esperado_dec # type: ignore
+        caixa.observacao = body.observacao # type: ignore
 
         await db.commit()
         await db.refresh(caixa)
@@ -283,7 +279,7 @@ async def fechar_caixa(caixa_id: UUID, body: CaixaFecharIn, db: AsyncSession = D
         logger.error(f"[DEBUG] ERRO AO FECHAR CAIXA: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Erro ao fechar caixa: {e}")
 
-    return {"message": "Caixa fechado com sucesso", "diferenca": float(caixa.diferenca or 0)}
+    return {"message": "Caixa fechado com sucesso", "diferenca": float(caixa.diferenca or 0)} # type: ignore
 
 @router.post("/sangria")
 async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -292,7 +288,7 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
     if not caixa: raise HTTPException(status_code=400, detail="Não há caixa aberto para esta loja")
 
     # CALCULA APENAS O DINHEIRO DISPONIVEL NO CAIXA
-    saldo_dinheiro = to_decimal(caixa.saldo_abertura) + to_decimal(caixa.total_entradas) - to_decimal(caixa.total_saidas)
+    saldo_dinheiro = to_decimal(caixa.saldo_abertura) + to_decimal(caixa.total_entradas) - to_decimal(caixa.total_saidas) # type: ignore
 
     if saldo_dinheiro < to_decimal(body.valor):
         raise HTTPException(
@@ -302,8 +298,8 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
 
     try:
         await registrar_movimento_caixa(
-            db=db, caixa_id=caixa.id, loja_id=body.loja_id, tipo=TipoMovimentacao.SANGRIA,
-            valor=to_decimal(body.valor), descricao=body.descricao, usuario_id=current_user.id
+            db=db, caixa_id=caixa.id, loja_id=body.loja_id, tipo=TipoMovimentacao.SANGRIA, # type: ignore
+            valor=to_decimal(body.valor), descricao=body.descricao, usuario_id=current_user.id # type: ignore
         )
         await db.commit()
     except Exception as e:
@@ -312,8 +308,6 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
         raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
     return {"message": "Sangria registrada com sucesso!"}
 
-
-    
 @router.get("/historico")
 async def get_historico_caixa(
     loja_id: UUID,
@@ -325,24 +319,24 @@ async def get_historico_caixa(
 
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    stmt_caixas = select(Caixa).options(selectinload(Caixa.usuario_abertura)).where(
-        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == data)
-    ).order_by(Caixa.data_abertura)
+    stmt_caixas = select(Caixa).options(selectinload(Caixa.usuario_abertura)).where( # type: ignore
+        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == data) # type: ignore
+    ).order_by(Caixa.data_abertura) # type: ignore
     caixas = (await db.execute(stmt_caixas)).scalars().all()
 
     if not caixas:
         return {"caixas": [], "movimentacoes": [], "resumo": {}}
 
-    ids_caixas = [c.id for c in caixas]
+    ids_caixas = [c.id for c in caixas] # type: ignore
 
     stmt_movs = select(
         MovimentacaoCaixa,
         Venda.forma_pagamento
     ).outerjoin(
-        Venda, and_(Venda.id == MovimentacaoCaixa.referencia_id, MovimentacaoCaixa.referencia_tipo == 'venda')
+        Venda, and_(Venda.id == MovimentacaoCaixa.referencia_id, MovimentacaoCaixa.referencia_tipo == 'venda') # type: ignore
     ).where(
-        MovimentacaoCaixa.caixa_id.in_(ids_caixas)
-    ).order_by(MovimentacaoCaixa.created_at.desc())
+        MovimentacaoCaixa.caixa_id.in_(ids_caixas) # type: ignore
+    ).order_by(MovimentacaoCaixa.created_at.desc()) # type: ignore
 
     resultados = (await db.execute(stmt_movs)).all()
 
@@ -373,13 +367,13 @@ async def get_historico_caixa(
 
     caixas_serializados = [
         {
-            "id": str(c.id),
-            "usuario_nome": c.usuario_abertura.nome if c.usuario_abertura else "Sistema",
-            "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None,
-            "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None,
-            "saldo_abertura": float(c.saldo_abertura),
-            "saldo_contado": float(c.saldo_contado) if c.saldo_contado else None,
-            "status": c.status
+            "id": str(c.id), # type: ignore
+            "usuario_nome": c.usuario_abertura.nome if c.usuario_abertura else "Sistema", # type: ignore
+            "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None, # type: ignore
+            "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None, # type: ignore
+            "saldo_abertura": float(c.saldo_abertura), # type: ignore
+            "saldo_contado": float(c.saldo_contado) if c.saldo_contado else None, # type: ignore
+            "status": c.status # type: ignore
         }
         for c in caixas
     ]

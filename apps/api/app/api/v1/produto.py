@@ -11,6 +11,9 @@ from pydantic import BaseModel, Field
 from app.db.session import get_db
 from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate, UnidadeEnum as SchemaUnidadeEnum
 from app.schemas.usuario import Role
+
+from app.schemas.produto import ProdutoOut
+
 from app.core.deps import get_current_user, require_role
 from app.models.produto import Produto, UnidadeEnum as ModelUnidadeEnum
 from app.models.usuario_loja import UsuarioLoja
@@ -153,18 +156,25 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
     await db.refresh(novo)
     return to_schema(novo)
 
-@router.get("", response_model=list[ProdutoOut], dependencies=[Depends(get_current_user)])
-async def listar_produtos(loja_id: UUID, db: AsyncSession = Depends(get_db)):
-    if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
 
+
+
+@router.get("/", response_model=List[ProdutoOut], dependencies=[Depends(get_current_user)])
+async def listar_produtos(
+    loja_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
     stmt = select(Produto).where(
         Produto.loja_id == loja_id,
         Produto.deleted_at.is_(None)
-    ).order_by(Produto.created_at.desc())
+    ).order_by(Produto.nome)
 
     result = await db.execute(stmt)
     produtos = result.scalars().all()
-    return [to_schema(p) for p in produtos]
+    return produtos
+
+
+
 
 @router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
 async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Depends(get_db)):
