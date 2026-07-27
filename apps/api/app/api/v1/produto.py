@@ -155,13 +155,12 @@ async def listar_produtos(
     stmt = select(Produto).where(
         Produto.loja_id == loja_id,
         Produto.deleted_at.is_(None),
-        Produto.is_active == True # <- ADICIONA ISSO. Se não, pode estar vindo inativo
+        Produto.is_active == True
     ).order_by(Produto.nome)
 
     result = await db.execute(stmt)
     produtos = result.scalars().all()
-    return produtos # <- VOLTA A RETORNAR DIRETO. Deixa o Pydantic fazer o trabalho
-
+    return [to_schema(p) for p in produtos] # <- VOLTA A USAR O to_schema
 
 
 @router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])

@@ -98,17 +98,17 @@ class ProdutoOut(BaseModel):
     imagem_url: Optional[str] = None
     ncm: Optional[str] = None
 
-    preco: Decimal # <- MUDOU
-    preco_custo: Decimal # <- MUDOU
-    preco_promocao: Optional[Decimal] = None # <- MUDOU
-    custo_medio: Decimal # <- MUDOU
-    estoque: Decimal # <- MUDOU
-    estoque_minimo: Decimal # <- MUDOU
-    estoque_maximo: Optional[Decimal] = None # <- MUDOU
+    preco: Decimal = Field(alias="preco_venda") # <- CORRIGIDO
+    preco_custo: Decimal = Field(alias="preco_compra") # <- CORRIGIDO
+    preco_promocao: Optional[Decimal] = None
+    custo_medio: Decimal
+    estoque: Decimal
+    estoque_minimo: Decimal
+    estoque_maximo: Optional[Decimal] = None
 
     controla_estoque: bool
     unidade: UnidadeEnum
-    peso_kg: Optional[Decimal] = None # <- MUDOU
+    peso_kg: Optional[Decimal] = None
     localizacao: Optional[str] = None
 
     categoria_id: Optional[UUID] = None
@@ -118,6 +118,6 @@ class ProdutoOut(BaseModel):
     updated_at: datetime
     deleted_at: Optional[datetime] = None
 
-    margem_lucro: Decimal # <- MUDOU
+    margem_lucro: Decimal
 
-    model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True, json_encoders={Decimal: float}) # <- populate_by_name
