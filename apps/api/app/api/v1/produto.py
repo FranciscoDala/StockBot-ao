@@ -9,16 +9,12 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.db.session import get_db
-from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate, UnidadeEnum as SchemaUnidadeEnum
+from app.schemas.produto import ProdutoCreate, ProdutoOut, ProdutoUpdate
 from app.schemas.usuario import Role
-
-from app.schemas.produto import ProdutoOut
-
 from app.core.deps import get_current_user, require_role
-from app.models.produto import Produto, UnidadeEnum as ModelUnidadeEnum
+from app.models.produto import Produto
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
-from app.models.loja import Loja
 from app.models.usuario import Usuario
 from app.core.security import verify_password
 from app.services.produto import (
@@ -64,28 +60,12 @@ def gerar_qr_code_base64(produto_id: UUID, sku: str, nome: str) -> str:
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
     buf = io.BytesIO()
-    img.save(buf, format="PNG")  # type: ignore
+    img.save(buf, "PNG")
     return f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
 
 def to_schema(produto: Produto) -> ProdutoOut:
-    return ProdutoOut(
-        id=produto.id, loja_id=produto.loja_id, nome=produto.nome, descricao=produto.descricao,
-        categoria_id=produto.categoria_id, marca=produto.marca, imagem_url=produto.imagem_url,
-        sku=produto.sku, codigo_barras=produto.codigo_barras, codigo_qr=produto.codigo_qr, ncm=produto.ncm,
-        preco=float(produto.preco_venda) if produto.preco_venda else 0.0,
-        preco_custo=float(produto.preco_compra) if produto.preco_compra else 0.0,
-        preco_promocao=float(produto.preco_promocao) if produto.preco_promocao else None,
-        custo_medio=float(produto.custo_medio) if produto.custo_medio else 0.0,
-        estoque=float(produto.estoque),
-        estoque_minimo=float(produto.estoque_minimo),
-        estoque_maximo=float(produto.estoque_maximo) if produto.estoque_maximo else None,
-        controla_estoque=produto.controla_estoque,
-        unidade=SchemaUnidadeEnum(produto.unidade.value), # CORRIGIDO: converte Enum do model pro Enum do schema
-        peso_kg=float(produto.peso_kg) if produto.peso_kg else None,
-        fornecedor_id=produto.fornecedor_id, localizacao=produto.localizacao, is_active=produto.is_active,
-        created_at=produto.created_at, updated_at=produto.updated_at, deleted_at=produto.deleted_at,
-        margem_lucro=float(produto.margem_lucro) if produto.margem_lucro else 0.0
-    )
+    # CORRIGIDO: Pydantic já converte Decimal->float no JSON. Não precisa mais de float()
+    return ProdutoOut.model_validate(produto)
 
 async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha_dono: str, senha_confirmacao: str):
     if not senha_dono or not senha_confirmacao: raise HTTPException(status_code=403, detail="Senha do dono não informada")
@@ -134,14 +114,24 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
     preco_compra = Decimal(str(payload.get("preco_custo", 0)))
 
     novo = Produto(
-        loja_id=loja_id, nome=payload.get("nome"), descricao=payload.get("descricao"),
-        categoria_id=payload.get("categoria_id"), marca=payload.get("marca"), imagem_url=payload.get("imagem_url") or "",
-        sku=sku_final, codigo_barras=codigo_barras_final, ncm=payload.get("ncm"),
-        estoque=payload.get("estoque", 0), estoque_minimo=payload.get("estoque_minimo", 5),
-        estoque_maximo=payload.get("estoque_maximo"), unidade=payload.get("unidade"),
-        fornecedor_id=payload.get("fornecedor_id"), localizacao=payload.get("localizacao"),
-        preco_venda=preco_venda, preco_compra=preco_compra,
-        margem_lucro = Decimal('0') if preco_compra == 0 else ((preco_venda - preco_compra) / preco_compra) * 100, # CORRIGIDO: Decimal
+        loja_id=loja_id,
+        nome=payload.get("nome"),
+        descricao=payload.get("descricao"),
+        categoria_id=payload.get("categoria_id"),
+        marca=payload.get("marca"),
+        imagem_url=payload.get("imagem_url") or "",
+        sku=sku_final,
+        codigo_barras=codigo_barras_final,
+        ncm=payload.get("ncm"),
+        estoque=payload.get("estoque", 0),
+        estoque_minimo=payload.get("estoque_minimo", 5),
+        estoque_maximo=payload.get("estoque_maximo"),
+        unidade=payload.get("unidade"),
+        fornecedor_id=payload.get("fornecedor_id"),
+        localizacao=payload.get("localizacao"),
+        preco_venda=preco_venda,
+        preco_compra=preco_compra,
+        margem_lucro = Decimal('0') if preco_compra == 0 else ((preco_venda - preco_compra) / preco_compra) * 100,
         codigo_qr=None
     )
     db.add(novo)
@@ -150,14 +140,11 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
 
     if not codigo_barras_enviado:
         novo.codigo_barras = gerar_ean13_interno(novo.id)
-    novo.codigo_qr = gerar_qr_code_base64(novo.id, novo.sku or "", novo.nome or "") # CORRIGIDO: or ""
+    novo.codigo_qr = gerar_qr_code_base64(novo.id, novo.sku or "", novo.nome or "")
 
     await db.commit()
     await db.refresh(novo)
     return to_schema(novo)
-
-
-
 
 @router.get("/", response_model=List[ProdutoOut], dependencies=[Depends(get_current_user)])
 async def listar_produtos(
@@ -171,10 +158,7 @@ async def listar_produtos(
 
     result = await db.execute(stmt)
     produtos = result.scalars().all()
-    return produtos
-
-
-
+    return [to_schema(p) for p in produtos]
 
 @router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
 async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Depends(get_db)):
@@ -217,9 +201,9 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
         setattr(produto_db, key, value)
 
     if 'nome' in update_data or 'sku' in update_data:
-        produto_db.codigo_qr = gerar_qr_code_base64(produto_db.id, produto_db.sku or "", produto_db.nome or "") # CORRIGIDO: or ""
+        produto_db.codigo_qr = gerar_qr_code_base64(produto_db.id, produto_db.sku or "", produto_db.nome or "")
 
-    produto_db.margem_lucro = Decimal('0') if produto_db.preco_compra == 0 else ((produto_db.preco_venda - produto_db.preco_compra) / produto_db.preco_compra) * 100 # CORRIGIDO: Decimal
+    produto_db.margem_lucro = Decimal('0') if produto_db.preco_compra == 0 else ((produto_db.preco_venda - produto_db.preco_compra) / produto_db.preco_compra) * 100
 
     await db.commit()
     await db.refresh(produto_db)
@@ -233,7 +217,7 @@ async def apagar_produto(
 ):
     loja_id = payload.get("loja_id")
     if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório")
-    await verify_dono_password(db, loja_id, payload.get("senha_dono") or "", payload.get("senha_confirmacao") or "") # CORRIGIDO: or ""
+    await verify_dono_password(db, loja_id, payload.get("senha_dono") or "", payload.get("senha_confirmacao") or "")
     produto_db = await get_produto_da_loja_or_404(db, loja_id, produto_id)
     produto_db.deleted_at = datetime.utcnow()
     await db.commit()
@@ -246,9 +230,16 @@ async def get_produto_publico(sku: str, db: AsyncSession = Depends(get_db)):
     produto = result.scalar_one_or_none()
     if not produto: raise HTTPException(status_code=404, detail="Produto não encontrado")
     return {
-        "id": str(produto.id), "nome": produto.nome, "sku": produto.sku, "preco": float(produto.preco_venda),
-        "preco_custo": float(produto.preco_compra), "estoque": float(produto.estoque), "unidade": produto.unidade,
-        "marca": produto.marca, "descricao": produto.descricao, "imagem_url": produto.imagem_url,
+        "id": str(produto.id),
+        "nome": produto.nome,
+        "sku": produto.sku,
+        "preco": produto.preco_venda,
+        "preco_custo": produto.preco_compra,
+        "estoque": produto.estoque,
+        "unidade": produto.unidade,
+        "marca": produto.marca,
+        "descricao": produto.descricao,
+        "imagem_url": produto.imagem_url,
         "loja_nome": produto.loja.nome if produto.loja else "Loja não informada"
     }
 

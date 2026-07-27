@@ -1,21 +1,21 @@
 from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Boolean, Integer, Numeric, ForeignKey, Text, Enum, DateTime
+from sqlalchemy import String, Boolean, Integer, Numeric, ForeignKey, Text, Enum, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 import enum
 from datetime import datetime
-from  ..db.base import BaseModel
+from..db.base import BaseModel
 from typing import TYPE_CHECKING
 from decimal import Decimal
 
 if TYPE_CHECKING:
-    from  app.models.loja import Loja
-    from  app.models.itens_venda import ItemVenda
-    from  app.models.categoria import Categoria
-    from  app.models.fornecedor import Fornecedor
+    from app.models.loja import Loja
+    from app.models.itens_venda import ItemVenda
+    from app.models.categoria import Categoria
+    from app.models.fornecedor import Fornecedor
 
-class UnidadeEnum(str, enum.Enum):
+class UnidadeEnum(str, enum.Enum): # <- Herda de str pra serializar direto
     UN = "UN"
     KG = "KG"
     CX = "CX"
@@ -27,6 +27,10 @@ class UnidadeEnum(str, enum.Enum):
 
 class Produto(BaseModel):
     __tablename__ = "produtos"
+
+    __table_args__ = ( # <- Garante sku único por loja
+        UniqueConstraint("loja_id", "sku", name="uq_produtos_loja_sku"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -40,8 +44,8 @@ class Produto(BaseModel):
 
     # 2. CODIGOS
     sku: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
-    codigo_barras: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True, unique=False)
-    codigo_qr: Mapped[str | None] = mapped_column(Text, nullable=True) # <-- MUDOU AQUI: Text em vez de String(255)
+    codigo_barras: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    codigo_qr: Mapped[str | None] = mapped_column(Text, nullable=True)
     ncm: Mapped[str | None] = mapped_column(String(10), nullable=True)
 
     # 3. PREÇOS
@@ -51,12 +55,12 @@ class Produto(BaseModel):
     margem_lucro: Mapped[Decimal] = mapped_column(Numeric(5, 2), default=0, nullable=False)
     custo_medio: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=0, nullable=False)
 
-    # 4. ESTOQUE
-    estoque: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    estoque_minimo: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
-    estoque_maximo: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    controla_estoque: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False) # <- ADICIONA ESSA LINHA
-    unidade: Mapped[UnidadeEnum] = mapped_column(Enum(UnidadeEnum), default=UnidadeEnum.UN, nullable=False)
+    # 4. ESTOQUE - Mudei pra Decimal pra bater com o schema
+    estoque: Mapped[Decimal] = mapped_column(Numeric(10, 3), default=0, nullable=False)
+    estoque_minimo: Mapped[Decimal] = mapped_column(Numeric(10, 3), default=5, nullable=False)
+    estoque_maximo: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
+    controla_estoque: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    unidade: Mapped[UnidadeEnum] = mapped_column(Enum(UnidadeEnum, name="unidade_enum", native_enum=False), default=UnidadeEnum.UN, nullable=False) # <- CORRIGIDO
     peso_kg: Mapped[Decimal | None] = mapped_column(Numeric(10, 3), nullable=True)
 
     # 5. FORNECEDOR
