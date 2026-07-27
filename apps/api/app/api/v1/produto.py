@@ -146,6 +146,7 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
     await db.refresh(novo)
     return to_schema(novo)
 
+
 @router.get("/", response_model=List[ProdutoOut], dependencies=[Depends(get_current_user)])
 async def listar_produtos(
     loja_id: UUID,
@@ -153,12 +154,15 @@ async def listar_produtos(
 ):
     stmt = select(Produto).where(
         Produto.loja_id == loja_id,
-        Produto.deleted_at.is_(None)
+        Produto.deleted_at.is_(None),
+        Produto.is_active == True # <- ADICIONA ISSO. Se não, pode estar vindo inativo
     ).order_by(Produto.nome)
 
     result = await db.execute(stmt)
     produtos = result.scalars().all()
-    return [to_schema(p) for p in produtos]
+    return produtos # <- VOLTA A RETORNAR DIRETO. Deixa o Pydantic fazer o trabalho
+
+
 
 @router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
 async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Depends(get_db)):
