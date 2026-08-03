@@ -92,7 +92,7 @@ async def gerar_sku_unico(db: AsyncSession, loja_id: UUID) -> str:
         if not existing.scalar_one_or_none():
             return sku
 
-@router.get("/", response_model=List[ProdutoOut], dependencies=[Depends(get_current_user)])
+@router.get("/listar", response_model=List[ProdutoOut], dependencies=[Depends(get_current_user)])
 async def listar_produtos(
     loja_id: UUID,
     db: AsyncSession = Depends(get_db)
@@ -105,7 +105,8 @@ async def listar_produtos(
 
     result = await db.execute(stmt)
     produtos = result.scalars().all()
-    return [to_schema(p) for p in produtos] # <- VOLTA A USAR O to_schema
+    return [to_schema(p) for p in produtos]
+
 
 @router.get("/publico/{sku}")
 async def get_produto_publico(sku: str, db: AsyncSession = Depends(get_db)):

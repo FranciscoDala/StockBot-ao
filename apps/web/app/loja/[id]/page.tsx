@@ -198,7 +198,7 @@ export default function LojaPage() {
     }, []);
 
 
-    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { setProdutos([]); } }, []);
+    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos/listar?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { setProdutos([]); } }, []);
     const fetchVendas = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setVendas([]); return; } try { const data = await fetchComAuth(`${API_URL}/vendas?loja_id=${lojaId}`, currentToken); setVendas(z.array(VendaSchema).parse(data)); } catch (e) { setVendas([]); } }, []);
 
     const fetchLoja = useCallback(async (currentToken: string) => {
