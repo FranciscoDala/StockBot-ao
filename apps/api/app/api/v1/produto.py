@@ -92,6 +92,61 @@ async def gerar_sku_unico(db: AsyncSession, loja_id: UUID) -> str:
         if not existing.scalar_one_or_none():
             return sku
 
+@router.get("/", response_model=List[ProdutoOut], dependencies=[Depends(get_current_user)])
+async def listar_produtos(
+    loja_id: UUID,
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Produto).where(
+        Produto.loja_id == loja_id,
+        Produto.deleted_at.is_(None),
+        Produto.is_active == True
+    ).order_by(Produto.nome)
+
+    result = await db.execute(stmt)
+    produtos = result.scalars().all()
+    return [to_schema(p) for p in produtos] # <- VOLTA A USAR O to_schema
+
+@router.get("/publico/{sku}")
+async def get_produto_publico(sku: str, db: AsyncSession = Depends(get_db)):
+    stmt = (select(Produto).options(selectinload(Produto.loja)).where(Produto.sku == sku, Produto.deleted_at.is_(None), Produto.is_active == True))
+    result = await db.execute(stmt)
+    produto = result.scalar_one_or_none()
+    if not produto: raise HTTPException(status_code=404, detail="Produto não encontrado")
+    return {
+        "id": str(produto.id),
+        "nome": produto.nome,
+        "sku": produto.sku,
+        "preco": produto.preco_venda,
+        "preco_custo": produto.preco_compra,
+        "estoque": produto.estoque,
+        "unidade": produto.unidade,
+        "marca": produto.marca,
+        "descricao": produto.descricao,
+        "imagem_url": produto.imagem_url,
+        "loja_nome": produto.loja.nome if produto.loja else "Loja não informada"
+    }
+
+@router.get("/{slug}/produtos/estoque-baixo", response_model=List[ProdutoOut])
+async def get_produtos_estoque_baixo(
+    slug: str,
+    db: AsyncSession = Depends(get_db)
+):
+    return await listar_produtos_estoque_baixo_service(db, slug)
+
+@router.get("/{slug}/produtos/sem-estoque", response_model=List[ProdutoOut])
+async def get_produtos_sem_estoque(
+    slug: str,
+    db: AsyncSession = Depends(get_db)
+):
+    return await listar_produtos_sem_estoque_service(db, slug)
+
+@router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
+async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Depends(get_db)):
+    if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
+    produto = await get_produto_da_loja_or_404(db, loja_id, produto_id)
+    return to_schema(produto)
+
 @router.post("", response_model=ProdutoOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depends(get_db)):
     loja_id = produto.loja_id
@@ -145,29 +200,6 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
     await db.commit()
     await db.refresh(novo)
     return to_schema(novo)
-
-
-@router.get("/", response_model=List[ProdutoOut], dependencies=[Depends(get_current_user)])
-async def listar_produtos(
-    loja_id: UUID,
-    db: AsyncSession = Depends(get_db)
-):
-    stmt = select(Produto).where(
-        Produto.loja_id == loja_id,
-        Produto.deleted_at.is_(None),
-        Produto.is_active == True
-    ).order_by(Produto.nome)
-
-    result = await db.execute(stmt)
-    produtos = result.scalars().all()
-    return [to_schema(p) for p in produtos] # <- VOLTA A USAR O to_schema
-
-
-@router.get("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(get_current_user)])
-async def buscar_produto(produto_id: UUID, loja_id: UUID, db: AsyncSession = Depends(get_db)):
-    if not loja_id: raise HTTPException(status_code=400, detail="loja_id é obrigatório na query")
-    produto = await get_produto_da_loja_or_404(db, loja_id, produto_id)
-    return to_schema(produto)
 
 @router.patch("/{produto_id}", response_model=ProdutoOut, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithAuth, db: AsyncSession = Depends(get_db)):
@@ -225,37 +257,3 @@ async def apagar_produto(
     produto_db.deleted_at = datetime.utcnow()
     await db.commit()
     return {"message": "Produto apagado com sucesso"}
-
-@router.get("/publico/{sku}")
-async def get_produto_publico(sku: str, db: AsyncSession = Depends(get_db)):
-    stmt = (select(Produto).options(selectinload(Produto.loja)).where(Produto.sku == sku, Produto.deleted_at.is_(None), Produto.is_active == True))
-    result = await db.execute(stmt)
-    produto = result.scalar_one_or_none()
-    if not produto: raise HTTPException(status_code=404, detail="Produto não encontrado")
-    return {
-        "id": str(produto.id),
-        "nome": produto.nome,
-        "sku": produto.sku,
-        "preco": produto.preco_venda,
-        "preco_custo": produto.preco_compra,
-        "estoque": produto.estoque,
-        "unidade": produto.unidade,
-        "marca": produto.marca,
-        "descricao": produto.descricao,
-        "imagem_url": produto.imagem_url,
-        "loja_nome": produto.loja.nome if produto.loja else "Loja não informada"
-    }
-
-@router.get("/{slug}/produtos/estoque-baixo", response_model=List[ProdutoOut])
-async def get_produtos_estoque_baixo(
-    slug: str,
-    db: AsyncSession = Depends(get_db)
-):
-    return await listar_produtos_estoque_baixo_service(db, slug)
-
-@router.get("/{slug}/produtos/sem-estoque", response_model=List[ProdutoOut])
-async def get_produtos_sem_estoque(
-    slug: str,
-    db: AsyncSession = Depends(get_db)
-):
-    return await listar_produtos_sem_estoque_service(db, slug)
