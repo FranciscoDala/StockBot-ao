@@ -269,3 +269,10 @@ async def get_produtos_sem_estoque(
     db: AsyncSession = Depends(get_db)
 ):
     return await listar_produtos_sem_estoque_service(db, slug)
+
+
+
+
+
+
+sh -c "uvicorn app.main:app --host 0.0.0.0 --port $PORT & python scheduler.py"
