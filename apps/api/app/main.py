@@ -109,7 +109,9 @@ async def upload_produto_local(file: UploadFile = File(...)):
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     MAX_FILE_SIZE = 5 * 1024 * 1024
 
-    extension = file.filename.split(".")[-1].lower()
+    filename = file.filename or f"arquivo_{uuid.uuid4()}" # <- CORRIGIDO
+    extension = filename.split(".")[-1].lower() if "." in filename else "jpg" # <- CORRIGIDO
+
     if extension not in ALLOWED_EXTENSIONS:
         return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
 
@@ -137,7 +139,9 @@ async def _upload_to_cloudinary(file: UploadFile):
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     MAX_FILE_SIZE = 5 * 1024 * 1024
 
-    extension = file.filename.split(".")[-1].lower()
+    filename = file.filename or f"arquivo_{uuid.uuid4()}" # <- CORRIGIDO
+    extension = filename.split(".")[-1].lower() if "." in filename else "jpg" # <- CORRIGIDO
+
     if extension not in ALLOWED_EXTENSIONS:
         return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
 
@@ -146,12 +150,15 @@ async def _upload_to_cloudinary(file: UploadFile):
         return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
 
     try:
-        logger.info(f"[CLOUDINARY] Enviando arquivo: {file.filename} - Tamanho: {len(contents)} bytes")
+        logger.info(f"[CLOUDINARY] Enviando arquivo: {filename} - Tamanho: {len(contents)} bytes")
 
         upload_result = cloudinary.uploader.upload(
             contents,
             folder="stockbot/apps/uploads/produtos",
-            resource_type="image"
+            resource_type="image",
+            upload_preset="stockbot_produtos", # <- ADICIONADO: cria preset unsigned no cloudinary
+            overwrite=True,
+            invalidate=True
         )
 
         logger.info(f"[CLOUDINARY] SUCESSO! URL: {upload_result['secure_url']}")
