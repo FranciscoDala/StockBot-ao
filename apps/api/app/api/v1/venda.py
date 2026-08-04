@@ -67,23 +67,24 @@ async def criar_venda_endpoint(
 
         # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
             if caixa_aberto:
                 await registrar_movimento_caixa(
                     db=db,
-                    caixa_id=caixa_aberto.id, # type: ignore
-                    loja_id=loja_id, # type: ignore
+                    caixa_id=UUID(str(caixa_aberto.id)), # <- ADICIONA UUID()
+                    loja_id=UUID(str(loja_id)), # <- ADICIONA UUID()
                     tipo=TipoMovimentacao.ENTRADA,
                     valor=Decimal(str(venda.total)),
-                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
-                    usuario_id=current_user.id, # type: ignore
-                    referencia_id=venda.id,
-                    referencia_tipo='venda'
+                    descricao=f"Venda #{str(venda.id)[:8]}",
+                    usuario_id=UUID(str(current_user.id)), # <- ADICIONA UUID()
+                    referencia_id=UUID(str(venda.id)), # <- ADICIONA UUID()
+                    referencia_tipo='venda',
+                    forma_pagamento=venda.forma_pagamento
                 )
-                await db.commit() # commit só do movimento
+                await db.commit()
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             else:
                 print("AVISO CAIXA: Nenhum caixa aberto para registrar a venda")
@@ -93,7 +94,7 @@ async def criar_venda_endpoint(
             print(f"ERRO AO LANÇAR NO CAIXA: {e}")
 
     if venda:
-        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id) # <- MUDEI: passa id
+        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
     return venda
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
@@ -113,14 +114,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-      .options(
+     .options(
             joinedload(Venda.usuario),
             joinedload(Venda.itens).joinedload(ItemVenda.produto)
         )
-      .where(Venda.loja_id == loja_id_usar)
-      .order_by(Venda.created_at.desc())
-      .limit(limit)
-      .offset(offset)
+     .where(Venda.loja_id == loja_id_usar)
+     .order_by(Venda.created_at.desc())
+     .limit(limit)
+     .offset(offset)
     )
 
     if data_inicio:
@@ -163,7 +164,7 @@ async def get_vendas(
             "itens": itens
         })
 
-    return vendas_response # type: ignore
+    return vendas_response
 
 @router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
 async def imprimir_venda(
@@ -171,7 +172,6 @@ async def imprimir_venda(
     db: AsyncSession = Depends(get_db),
     loja_id: UUID = Depends(get_current_loja_id)
 ):
-    # Busca a venda com itens e loja
     stmt = select(Venda).options(
         selectinload(Venda.itens).selectinload(ItemVenda.produto),
         selectinload(Venda.loja),
@@ -184,7 +184,6 @@ async def imprimir_venda(
     if not venda:
         raise HTTPException(status_code=404, detail="Venda não encontrada")
 
-    # Monta HTML da factura
     itens_html = ""
     for item in venda.itens:
         nome = item.produto.nome if item.produto else "Produto Removido"
@@ -205,13 +204,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-      .header {{ text-align: center; margin-bottom: 15px; }}
-      .header h1 {{ margin: 0; font-size: 18px; }}
-      .info p {{ margin: 2px 0; }}
+     .header {{ text-align: center; margin-bottom: 15px; }}
+     .header h1 {{ margin: 0; font-size: 18px; }}
+     .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-      .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-      .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+     .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+     .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
@@ -256,6 +255,7 @@ async def estornar_venda(
 
     valor_estornado = Decimal('0')
     total_itens_estornados = 0
+    forma_pagamento_estorno = None # <- ADICIONADO
 
     if itens_estornados:
         for item in itens_estornados:
@@ -264,10 +264,10 @@ async def estornar_venda(
             novo_estoque = item.get("novo_estoque")
             valor_estornado += Decimal(str(item.get("subtotal", 0)))
             total_itens_estornados += item.get("quantidade", 0)
+            forma_pagamento_estorno = item.get("forma_pagamento") # <- PEGA FORMA DO ITEM
 
             await manager.broadcast_to_loja(str(loja_id),{"tipo": "stock.updated","produto_id": str(produto_id),"nome_produto": nome,"novo_estoque": novo_estoque})
 
-    # ATUALIZA ESTATISTICAS DO ESTORNO
     await manager.broadcast_to_loja(
         str(loja_id),
         {
@@ -281,8 +281,7 @@ async def estornar_venda(
     # 4. LANÇA ESTORNO NO CAIXA
     if valor_estornado > 0:
         try:
-            # BUSCAR CAIXA ABERTO
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
@@ -291,14 +290,15 @@ async def estornar_venda(
 
             await registrar_movimento_caixa(
                 db=db,
-                caixa_id=caixa_aberto.id, # type: ignore
-                loja_id=loja_id, # type: ignore
+                caixa_id=UUID(str(caixa_aberto.id)), # <- ADICIONA UUID()
+                loja_id=UUID(str(loja_id)), # <- ADICIONA UUID()
                 tipo=TipoMovimentacao.SAIDA,
                 valor=valor_estornado,
                 descricao=f"Estorno Venda #{str(id)[:8]}",
-                usuario_id=current_user.id, # type: ignore
-                referencia_id=id,
-                referencia_tipo='estorno'
+                usuario_id=UUID(str(current_user.id)), # <- ADICIONA UUID()
+                referencia_id=UUID(str(id)), # <- ADICIONA UUID()
+                referencia_tipo='estorno',
+                forma_pagamento=forma_pagamento_estorno
             )
             await db.commit()
             await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})

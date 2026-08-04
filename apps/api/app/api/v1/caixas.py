@@ -45,11 +45,13 @@ async def get_caixa_aberto_loja(db: AsyncSession, loja_id: UUID) -> Caixa | None
     logger.info(f"[DEBUG] Caixa encontrado: {caixa.id if caixa else 'NENHUM'}") # type: ignore
     return caixa
 
+
 async def registrar_movimento_caixa(
     db: AsyncSession, caixa_id: UUID, loja_id: UUID, tipo: TipoMovimentacao, valor: Decimal,
-    descricao: str, usuario_id: UUID, referencia_id: UUID | None = None, referencia_tipo: str | None = None
+    descricao: str, usuario_id: UUID, referencia_id: UUID | None = None, referencia_tipo: str | None = None,
+    forma_pagamento: str | None = None # <- ADICIONADO
 ):
-    logger.info(f"[DEBUG] REGISTRANDO MOV: tipo={tipo.value} valor={valor} caixa={caixa_id}")
+    logger.info(f"[DEBUG] REGISTRANDO MOV: tipo={tipo.value} valor={valor} caixa={caixa_id} forma={forma_pagamento}")
     caixa = await db.get(Caixa, caixa_id)
     if not caixa or caixa.status == StatusCaixa.FECHADO: # <- SEM.value # type: ignore
         logger.error(f"[DEBUG] ERRO: Tentou registrar movimento mas caixa fechado. caixa_id={caixa_id}")
@@ -64,6 +66,7 @@ async def registrar_movimento_caixa(
         referencia_id=referencia_id,
         referencia_tipo=referencia_tipo,
         usuario_id=usuario_id, # type: ignore
+        forma_pagamento=forma_pagamento, # <- ADICIONADO: salva direto na movimentacao
         created_at=datetime.utcnow()
     )
     db.add(mov)
@@ -77,14 +80,15 @@ async def registrar_movimento_caixa(
 
     # CORRECAO: SO SOMA EM TOTAL_ENTRADAS SE FOR DINHEIRO
     if tipo == TipoMovimentacao.ENTRADA:
-        if referencia_tipo == 'venda' and referencia_id:
+        forma_para_soma = forma_pagamento # <- usa o param que veio
+        if not forma_para_soma and referencia_tipo == 'venda' and referencia_id: # <- fallback pra vendas antigas
             stmt_venda = select(Venda.forma_pagamento).where(Venda.id == referencia_id) # type: ignore
             result = await db.execute(stmt_venda)
-            forma = result.scalar_one_or_none()
+            forma_para_soma = result.scalar_one_or_none()
 
-            if forma and forma.lower() == 'dinheiro':
-                total_entradas += valor_dec
-        else:
+        if forma_para_soma and forma_para_soma.lower() == 'dinheiro':
+            total_entradas += valor_dec
+        elif not forma_para_soma: # se for suprimento/abertura sem forma
             total_entradas += valor_dec
 
     elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]:
@@ -98,6 +102,9 @@ async def registrar_movimento_caixa(
     logger.info(f"[DEBUG] Novo saldo_esperado: {caixa.saldo_esperado}") # type: ignore
     db.add(caixa)
     return caixa
+
+
+
 
 # ROTA NOVA: RESUMO DO DIA SOMANDO TODOS OS CAIXAS
 @router.get("/resumo-dia", response_model=CaixaResumoOut)
