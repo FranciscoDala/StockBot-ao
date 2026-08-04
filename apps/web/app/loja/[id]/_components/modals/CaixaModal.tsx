@@ -69,7 +69,6 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
 
             Promise.all([
                 carregarResumoCaixa(),
-                carregarMovimentacoes(),
                 carregarResumoMes() // <- ADICIONA
             ]).finally(() => setLoading(false));
         }
@@ -90,16 +89,27 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
 
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
-        try { // <- tira o setLoading(true) daqui
+        try {
             const res = await fetch(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
-            setResumo(data);
+
+            // CORREÇÃO 1: Pega do data.resumo
+            setResumo(data.resumo || data);
+
+            // CORREÇÃO 2: Já seta as movimentacoes que vêm junto pra não depender do outro fetch
+            if (Array.isArray(data.movimentacoes)) {
+                const ordenadas = data.movimentacoes.sort((a: Movimentacao, b: Movimentacao) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                setMovimentacoes(ordenadas);
+            }
         } catch (error) {
             console.error(error);
             setResumo(null);
+            setMovimentacoes([]);
         }
     }
+
+
 
     const carregarMovimentacoes = async () => {
         if (!API_URL || !lojaId || !token) return;
@@ -231,22 +241,22 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
     const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
-    // NOVOS CÁLCULOS SEPARADOS POR FORMA DE PAGAMENTO
-    const cashHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-        .reduce((acc, m) => acc + Number(m.valor), 0);
+    // CORREÇÃO: Usa let para poder fazer fallback depois
+    let cashHoje = movimentacoes
+       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+       .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-    const tpaHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
-        .reduce((acc, m) => acc + Number(m.valor), 0);
+    let tpaHoje = movimentacoes
+       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
+       .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
     const saidasHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
-        .reduce((acc, m) => acc + Number(m.valor), 0);
+       .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
+       .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
     const faturamentoHoje = cashHoje + tpaHoje;
 
-    const statusConfig = isCaixaAberto ? {
+    const statusConfig = isCaixaAberto? {
         cor: 'var(--cor-sucesso)',
         bg: 'color-mix(in srgb, var(--cor-sucesso) 8%, transparent)',
         border: 'color-mix(in srgb, var(--cor-sucesso) 25%, transparent)',
@@ -295,8 +305,8 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button onClick={onAbrir} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs" style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}>
-                            {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />}
-                            {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
+                            {isCaixaAberto? <Lock size={16} /> : <Unlock size={16} />}
+                            {isCaixaAberto? 'Fechar Caixa' : 'Abrir Caixa'}
                         </Button>
                         <Button onClick={onSangria} disabled={!isCaixaAberto} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40" style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             <Minus size={16} /> Sangria
@@ -311,7 +321,7 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                 <CardMetrica titulo="Cash em Mão" valor={cashHoje} icon={<Banknote size={18} />} cor="var(--cor-sucesso)" bg="color-mix(in srgb, var(--cor-sucesso) 6%, transparent)" border="color-mix(in srgb, var(--cor-sucesso) 20%, transparent)" />
                 <CardMetrica titulo="TPA/Transferência" valor={tpaHoje} icon={<TrendingUp size={18} />} cor="var(--cor-primaria)" bg="color-mix(in srgb, var(--cor-primaria) 6%, transparent)" border="color-mix(in srgb, var(--cor-primaria) 20%, transparent)" />
                 <CardMetrica titulo="Saídas Hoje" valor={saidasHoje} icon={<TrendingDown size={18} />} cor="var(--cor-erro)" bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)" border="color-mix(in srgb, var(--cor-erro) 20%, transparent)" />
-                <CardMetrica titulo="Saídas do Mês" valor={resumoMes} icon={<TrendingDown size={18} />} cor="var(--cor-erro)" bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)" border="color-mix(in srgb, var(--cor-erro) 20%, transparent)" /> {/* <- NOVO CARD */}
+                <CardMetrica titulo="Saídas do Mês" valor={resumoMes} icon={<TrendingDown size={18} />} cor="var(--cor-erro)" bg="color-mix(in srgb, var(--cor-erro) 6%, transparent)" border="color-mix(in srgb, var(--cor-erro) 20%, transparent)" />
             </div>
 
             {/* GRID COM OS 2 CARDS PRINCIPAIS */}
