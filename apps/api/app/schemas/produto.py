@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field, field_validator
 from typing import Optional
 from datetime import datetime
 from decimal import Decimal
@@ -28,16 +28,16 @@ class ProdutoBase(BaseModel):
     imagem_url: Optional[str] = Field(None, max_length=255)
     ncm: Optional[str] = Field(None, max_length=10)
 
+    # ENTRADA: continua Decimal pra aceitar do banco
     preco: Decimal = Field(..., gt=0, description="Preco de venda")
     preco_custo: Decimal = Field(Decimal('0'), ge=0, description="Preco de compra")
     preco_promocao: Optional[Decimal] = Field(None, ge=0)
+
     custo_medio: Decimal = Field(Decimal('0'), ge=0)
-
-    estoque: Decimal = Field(Decimal('0'), ge=0, description="Estoque atual") # <- MUDOU
-    estoque_minimo: Decimal = Field(Decimal('5'), ge=0) # <- MUDOU
-    estoque_maximo: Optional[Decimal] = Field(None, ge=0) # <- MUDOU
-
-    controla_estoque: bool = Field(True)
+    estoque: int = Field(0, ge=0, description="Estoque atual")
+    estoque_minimo: int = Field(5, ge=0)
+    estoque_maximo: Optional[int] = Field(None, ge=0)
+    controla_estoque: bool = Field(True, description="Se False não baixa estoque na venda") # <- ADICIONA
     unidade: UnidadeEnum = Field(UnidadeEnum.UN)
     peso_kg: Optional[Decimal] = Field(None, ge=0)
     localizacao: Optional[str] = Field(None, max_length=100)
@@ -46,17 +46,17 @@ class ProdutoBase(BaseModel):
     fornecedor_id: Optional[UUID] = None
     is_active: bool = True
 
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True, json_encoders={Decimal: float})
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 class ProdutoCreate(ProdutoBase):
     loja_id: UUID
 
-class ProdutoUpdate(BaseModel):
+class ProdutoUpdate(BaseModel): # <- TUDO OPTIONAL PRA NAO ZERAR O DB
     nome: Optional[str] = Field(None, min_length=2, max_length=150)
     descricao: Optional[str] = None
     sku: Optional[str] = Field(None, max_length=50)
     codigo_barras: Optional[str] = Field(None, max_length=50)
-    codigo_qr: Optional[str] = None
+    codigo_qr: Optional[str] = Field(None)
     marca: Optional[str] = Field(None, max_length=100)
     imagem_url: Optional[str] = Field(None, max_length=255)
     ncm: Optional[str] = Field(None, max_length=10)
@@ -65,12 +65,10 @@ class ProdutoUpdate(BaseModel):
     preco_custo: Optional[Decimal] = Field(None, ge=0)
     preco_promocao: Optional[Decimal] = Field(None, ge=0)
     custo_medio: Optional[Decimal] = Field(None, ge=0)
-
-    estoque: Optional[Decimal] = Field(None, ge=0) # <- MUDOU
-    estoque_minimo: Optional[Decimal] = Field(None, ge=0) # <- MUDOU
-    estoque_maximo: Optional[Decimal] = Field(None, ge=0) # <- MUDOU
-
-    controla_estoque: Optional[bool] = None
+    estoque: Optional[int] = Field(None, ge=0)
+    estoque_minimo: Optional[int] = Field(None, ge=0)
+    estoque_maximo: Optional[int] = Field(None, ge=0)
+    controla_estoque: Optional[bool] = None # <- ADICIONA
     unidade: Optional[UnidadeEnum] = None
     peso_kg: Optional[Decimal] = Field(None, ge=0)
     localizacao: Optional[str] = Field(None, max_length=100)
@@ -78,11 +76,11 @@ class ProdutoUpdate(BaseModel):
     fornecedor_id: Optional[UUID] = None
     is_active: Optional[bool] = None
 
-class ProdutoCreateWithAuth(ProdutoCreate):
+class ProdutoCreateWithAuth(ProdutoCreate): # <- HERDA DO CREATE
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
-class ProdutoUpdateWithAuth(ProdutoUpdate):
+class ProdutoUpdateWithAuth(ProdutoUpdate): # <- HERDA DO UPDATE
     senha_dono: str = Field(..., min_length=1)
     senha_confirmacao: str = Field(..., min_length=1)
 
@@ -98,17 +96,16 @@ class ProdutoOut(BaseModel):
     imagem_url: Optional[str] = None
     ncm: Optional[str] = None
 
-    preco: Decimal = Field(alias="preco_venda") # <- CORRIGIDO
-    preco_custo: Decimal = Field(alias="preco_compra") # <- CORRIGIDO
-    preco_promocao: Optional[Decimal] = None
-    custo_medio: Decimal
-    estoque: Decimal
-    estoque_minimo: Decimal
-    estoque_maximo: Optional[Decimal] = None
-
-    controla_estoque: bool
+    preco: float
+    preco_custo: float
+    preco_promocao: Optional[float] = None
+    custo_medio: float
+    estoque: float
+    estoque_minimo: float
+    estoque_maximo: Optional[float] = None
+    controla_estoque: bool # <- ADICIONA
     unidade: UnidadeEnum
-    peso_kg: Optional[Decimal] = None
+    peso_kg: Optional[float] = None
     localizacao: Optional[str] = None
 
     categoria_id: Optional[UUID] = None
@@ -118,6 +115,6 @@ class ProdutoOut(BaseModel):
     updated_at: datetime
     deleted_at: Optional[datetime] = None
 
-    margem_lucro: Decimal
+    margem_lucro: float
 
-    model_config = ConfigDict(from_attributes=True, populate_by_name=True, json_encoders={Decimal: float}) # <- populate_by_name
+    model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})

@@ -32,8 +32,6 @@ import { VendaSucessoModal } from "./_components/modals/VendaSucessoModal";
 // SCHEMAS ZOD
 const ItemVendaSchema = z.object({ produto_id: z.union([z.string(), z.number()]), quantidade: z.number().int().positive(), preco_unitario: z.number(), subtotal: z.number(), nome: z.string().optional() });
 const VendaSchema = z.object({ id: z.union([z.string(), z.number()]), total: z.number(), total_itens: z.number(), forma_pagamento: z.string(), valor_pago: z.number().optional(), troco: z.number().optional(), data_venda: z.string().optional(), itens: z.array(ItemVendaSchema).optional(), loja_id: z.string().optional() });
-
-
 const ProdutoSchema = z.object({ id: z.union([z.string(), z.number()]).transform(String), nome: z.string(), sku: z.string(), preco: z.number(), preco_custo: z.number(), preco_venda: z.number().optional(), estoque: z.number(), estoque_minimo: z.number(), is_active: z.boolean(), loja_id: z.string(), descricao: z.string().optional(), codigo_barras: z.string().optional().nullable(), marca: z.string().optional(), categoria_id: z.union([z.string(), z.number()]).optional().nullable(), unidade: z.string(), localizacao: z.string().optional(), fornecedor_id: z.union([z.string(), z.number()]).optional().nullable(), data_validade: z.string().optional(), ncm: z.string().optional(), peso_kg: z.number().optional().nullable(), imagem_url: z.string().optional() });
 
 export type ItemVenda = z.infer<typeof ItemVendaSchema>;
@@ -200,21 +198,7 @@ export default function LojaPage() {
     }, []);
 
 
-    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => {
-        if (!currentToken || !lojaId) { setProdutos([]); return; }
-        try {
-            const data = await fetchComAuth(`${API_URL}/produtos/listar?loja_id=${lojaId}`, currentToken);
-            console.log("RAW DA API:", data) // 1. Vê o que veio
-            const produtosValidados = z.array(ProdutoSchema).parse(data); // 2. Valida
-            console.log("VALIDADOS:", produtosValidados) // 3. Se passou
-            setProdutos(produtosValidados);
-        } catch (e) {
-            console.error("ERRO NO ZOD:", e) // 4. Pega o erro real
-            console.error("ERRO DETALHADO:", JSON.stringify(e, null, 2))
-            setProdutos([]);
-        }
-    }, []);
-
+    const fetchProdutos = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setProdutos([]); return; } try { const data = await fetchComAuth(`${API_URL}/produtos?loja_id=${lojaId}`, currentToken); setProdutos(z.array(ProdutoSchema).parse(data)); } catch (e) { setProdutos([]); } }, []);
     const fetchVendas = useCallback(async (currentToken: string, lojaId: string) => { if (!currentToken || !lojaId) { setVendas([]); return; } try { const data = await fetchComAuth(`${API_URL}/vendas?loja_id=${lojaId}`, currentToken); setVendas(z.array(VendaSchema).parse(data)); } catch (e) { setVendas([]); } }, []);
 
     const fetchLoja = useCallback(async (currentToken: string) => {
