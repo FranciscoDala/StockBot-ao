@@ -1,5 +1,3 @@
-import logging # <- ADICIONADO
-import traceback # <- ADICIONADO
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,8 +8,6 @@ from typing import List
 from uuid import UUID
 import asyncio
 from decimal import Decimal
-
-logger = logging.getLogger(__name__) # <- ADICIONADO
 
 from app.core.deps import get_current_user, require_role, get_current_loja_id
 from app.schemas.usuario import Role
@@ -27,16 +23,9 @@ from app.schemas.venda import VendaCreate, VendaRead
 from app.services.venda import criar_venda, estornar_venda_service
 from app.services.whatsapp import enviar_msg_venda
 from app.websocket.manager import manager
-
 from app.api.v1.caixas import registrar_movimento_caixa
 
 router = APIRouter()
-
-
-
-
-
-
 
 @router.post("/", response_model=VendaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def criar_venda_endpoint(
@@ -46,67 +35,66 @@ async def criar_venda_endpoint(
     current_user: Usuario = Depends(get_current_user),
     loja_id: UUID = Depends(get_current_loja_id)
 ):
-    try:
-        venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
+    venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
-        if venda and venda.itens:
-            # 1. ATUALIZA ESTOQUE
-            for item in venda.itens:
-                produto_id = item.produto_id
-                nome_produto = item.nome_produto
-                produto_db = await db.get(Produto, produto_id)
-                if produto_db and produto_db.controla_estoque:
-                    await manager.broadcast_to_loja(
-                        str(loja_id),
-                        {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
-                    )
+    # 1. SALVA A VENDA PRIMEIRO PRA PODER FAZER O JOIN DEPOIS
+    await db.commit()
 
-            # 2. ATUALIZA ESTATISTICAS
-            await manager.broadcast_to_loja(
-                str(loja_id),
-                {"tipo": "stats.updated", "valor_venda": float(venda.total), "total_itens": venda.total_itens, "acao": "add"}
-            )
+    if venda and venda.itens:
+        # 2. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
+        for item in venda.itens:
+            produto_id = item.produto_id
+            nome_produto = item.nome_produto
 
-            # 3. LANÇA NO CAIXA
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+            # Busca o produto pra ver se controla estoque e pegar estoque atual
+            produto_db = await db.get(Produto, produto_id)
+            if produto_db and produto_db.controla_estoque:
+                await manager.broadcast_to_loja(
+                    str(loja_id),
+                    {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
+                )
+
+        # 3. ATUALIZA ESTATISTICAS EM TEMPO REAL
+        await manager.broadcast_to_loja(
+            str(loja_id),
+            {
+                "tipo": "stats.updated",
+                "valor_venda": float(venda.total),
+                "total_itens": venda.total_itens,
+                "acao": "add"
+            }
+        )
+
+        # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
+        try:
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
             if caixa_aberto:
                 await registrar_movimento_caixa(
                     db=db,
-                    caixa_id=UUID(str(caixa_aberto.id)),
-                    loja_id=UUID(str(loja_id)),
+                    caixa_id=caixa_aberto.id, # type: ignore
+                    loja_id=loja_id, # type: ignore
                     tipo=TipoMovimentacao.ENTRADA,
                     valor=Decimal(str(venda.total)),
-                    descricao=f"Venda #{str(venda.id)[:8]}",
-                    usuario_id=UUID(str(current_user.id)),
-                    referencia_id=UUID(str(venda.id)),
-                    referencia_tipo='venda',
-                    forma_pagamento=venda.forma_pagamento
+                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
+                    usuario_id=current_user.id, # type: ignore
+                    referencia_id=venda.id,
+                    referencia_tipo='venda'
                 )
+                await db.commit() # commit só do movimento
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             else:
-                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto para venda {venda.id}")
+                print("AVISO CAIXA: Nenhum caixa aberto para registrar a venda")
 
-        # 4. COMMIT UNICO AQUI. O service nao deve dar commit
-        await db.commit()
-        await db.refresh(venda)
+        except Exception as e:
+            await db.rollback()
+            print(f"ERRO AO LANÇAR NO CAIXA: {e}")
 
-        if venda:
-            background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
-        return venda
-
-    except Exception as e:
-        await db.rollback() # <- ROLLBACK SE DER ERRO
-        logger.error(f"ERRO AO CRIAR VENDA: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Erro ao criar venda: {str(e)}")
-
-
-
-
-
-
+    if venda:
+        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id) # <- MUDEI: passa id
+    return venda
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def get_vendas(
@@ -125,14 +113,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-    .options(
+      .options(
             joinedload(Venda.usuario),
             joinedload(Venda.itens).joinedload(ItemVenda.produto)
         )
-    .where(Venda.loja_id == loja_id_usar)
-    .order_by(Venda.created_at.desc())
-    .limit(limit)
-    .offset(offset)
+      .where(Venda.loja_id == loja_id_usar)
+      .order_by(Venda.created_at.desc())
+      .limit(limit)
+      .offset(offset)
     )
 
     if data_inicio:
@@ -175,7 +163,7 @@ async def get_vendas(
             "itens": itens
         })
 
-    return vendas_response
+    return vendas_response # type: ignore
 
 @router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
 async def imprimir_venda(
@@ -183,6 +171,7 @@ async def imprimir_venda(
     db: AsyncSession = Depends(get_db),
     loja_id: UUID = Depends(get_current_loja_id)
 ):
+    # Busca a venda com itens e loja
     stmt = select(Venda).options(
         selectinload(Venda.itens).selectinload(ItemVenda.produto),
         selectinload(Venda.loja),
@@ -195,6 +184,7 @@ async def imprimir_venda(
     if not venda:
         raise HTTPException(status_code=404, detail="Venda não encontrada")
 
+    # Monta HTML da factura
     itens_html = ""
     for item in venda.itens:
         nome = item.produto.nome if item.produto else "Produto Removido"
@@ -215,13 +205,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-    .header {{ text-align: center; margin-bottom: 15px; }}
-    .header h1 {{ margin: 0; font-size: 18px; }}
-    .info p {{ margin: 2px 0; }}
+      .header {{ text-align: center; margin-bottom: 15px; }}
+      .header h1 {{ margin: 0; font-size: 18px; }}
+      .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-    .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-    .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+      .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+      .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>
@@ -266,7 +256,6 @@ async def estornar_venda(
 
     valor_estornado = Decimal('0')
     total_itens_estornados = 0
-    forma_pagamento_estorno = None # <- ADICIONADO
 
     if itens_estornados:
         for item in itens_estornados:
@@ -275,10 +264,10 @@ async def estornar_venda(
             novo_estoque = item.get("novo_estoque")
             valor_estornado += Decimal(str(item.get("subtotal", 0)))
             total_itens_estornados += item.get("quantidade", 0)
-            forma_pagamento_estorno = item.get("forma_pagamento") # <- PEGA FORMA DO ITEM
 
             await manager.broadcast_to_loja(str(loja_id),{"tipo": "stock.updated","produto_id": str(produto_id),"nome_produto": nome,"novo_estoque": novo_estoque})
 
+    # ATUALIZA ESTATISTICAS DO ESTORNO
     await manager.broadcast_to_loja(
         str(loja_id),
         {
@@ -292,7 +281,8 @@ async def estornar_venda(
     # 4. LANÇA ESTORNO NO CAIXA
     if valor_estornado > 0:
         try:
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+            # BUSCAR CAIXA ABERTO
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
@@ -301,15 +291,14 @@ async def estornar_venda(
 
             await registrar_movimento_caixa(
                 db=db,
-                caixa_id=UUID(str(caixa_aberto.id)), # <- ADICIONA UUID()
-                loja_id=UUID(str(loja_id)), # <- ADICIONA UUID()
+                caixa_id=caixa_aberto.id, # type: ignore
+                loja_id=loja_id, # type: ignore
                 tipo=TipoMovimentacao.SAIDA,
                 valor=valor_estornado,
                 descricao=f"Estorno Venda #{str(id)[:8]}",
-                usuario_id=UUID(str(current_user.id)), # <- ADICIONA UUID()
-                referencia_id=UUID(str(id)), # <- ADICIONA UUID()
-                referencia_tipo='estorno',
-                forma_pagamento=forma_pagamento_estorno
+                usuario_id=current_user.id, # type: ignore
+                referencia_id=id,
+                referencia_tipo='estorno'
             )
             await db.commit()
             await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
