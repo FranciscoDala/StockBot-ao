@@ -13,6 +13,7 @@ from app.core.deps import get_current_user, require_role
 from app.core.config import settings
 from app.models.usuario import Usuario
 from app.schemas.usuario import userread, Role
+from app.websocket.manager import manager # <- ADICIONADO
 
 # Cloudinary
 import cloudinary
@@ -53,6 +54,11 @@ def import_all_models():
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("stockbot ao api a iniciar...")
     import_all_models()
+
+    # <- INICIA REDIS AQUI
+    await manager.connect_redis()
+    logger.info("Redis PubSub conectado")
+
     try:
         async with engine.begin() as conn:
             table_exists = await conn.run_sync(lambda sync_conn: sync_conn.dialect.has_table(sync_conn, "usuarios"))
@@ -65,6 +71,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"erro critico: {e}\n{traceback.format_exc()}")
         raise e
     yield
+
+    # <- FECHA REDIS AQUI
+    await manager.close()
+    logger.info("Redis PubSub fechado")
     logger.info("api a desligar...")
 
 app = FastAPI(
@@ -129,8 +139,6 @@ async def upload_produto_local(file: UploadFile = File(...)):
     logger.info(f"[LOCAL] Arquivo salvo: {url}")
     return {"url": url, "filename": file_name, "storage": "local"}
 
-
-
 # ROTA 2: SALVAR CLOUDINARY - pra produção
 @api_v1_router.post("/upload/produto/cloudinary", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_cloudinary(file: UploadFile = File(...)):
@@ -181,14 +189,6 @@ async def _upload_to_cloudinary(file: UploadFile):
     except Exception as e:
         logger.error(f"[CLOUDINARY] ERRO: {e}\n{traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"detail": f"Erro ao enviar para Cloudinary: {str(e)}"})
-
-
-
-
-
-
-
-
 
 @api_v1_router.get("/health", tags=["health"])
 async def health_check():

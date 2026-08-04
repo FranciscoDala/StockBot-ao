@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # DATABASE - Neon Pooler precisa de ssl e connection timeout
     DATABASE_URL: str = "postgresql+asyncpg://postgres:12345@localhost:5432/stockbot_db"
 
+    # REDIS - ADICIONADO
+    REDIS_URL: str = "redis://localhost:6379"
+
     # AUTH
     JWT_SECRET: str = "stockbot-dev-secret-2026"
     JWT_ALGORITHM: str = "HS256"
@@ -47,5 +50,6 @@ class Settings(BaseSettings):
 settings = Settings()
 
 print(f"DEBUG CONFIG LOADED: DB={settings.DATABASE_URL[:30]}...")
+print(f"DEBUG REDIS: {settings.REDIS_URL[:30]}...")
 print(f"DEBUG CORS: {settings.ALLOWED_ORIGINS_LIST}")
 print(f"DEBUG BASE_URL: {settings.BASE_URL}")
