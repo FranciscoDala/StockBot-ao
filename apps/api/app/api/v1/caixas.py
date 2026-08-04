@@ -354,12 +354,14 @@ async def get_historico_caixa(
     total_tpa = Decimal('0')
     total_saidas = Decimal('0')
 
-    for row in resultados:
-        mov: MovimentacaoCaixa = row[0]
-        forma_pagamento_venda: str | None = row[1]
+    tipos_entrada = [TipoMovimentacao.ENTRADA.value, TipoMovimentacao.ABERTURA.value, TipoMovimentacao.SUPRIMENTO.value] # <- ADICIONADO
+    tipos_saida = [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value, TipoMovimentacao.FECHAMENTO.value, TipoMovimentacao.ESTORNO.value] # <- ADICIONADO
 
+    for mov, forma_pagamento in resultados:
         val = to_decimal(mov.valor)
-        forma_final = mov.forma_pagamento or forma_pagamento_venda
+
+        # PROTECAO 1: FORCA PRA STRING E MINUSCULA
+        forma = str(forma_pagamento or "").lower()
 
         movimentacoes.append({
             "id": str(mov.id),
@@ -367,20 +369,18 @@ async def get_historico_caixa(
             "valor": float(val),
             "descricao": mov.descricao,
             "created_at": mov.created_at.isoformat(),
-            "forma_pagamento": forma_final
+            "forma_pagamento": forma_pagamento
         })
 
-        # CORRECAO FINAL ANTI-PYLANCE
-        tipo_mov = str(mov.tipo)
-        forma_str = str(forma_final or "") # <- SEPARA EM 2
-        forma_lower = forma_str.lower()
-
-        if tipo_mov == TipoMovimentacao.ENTRADA.value:
-            if forma_lower in ['dinheiro', 'cash']:
+        # CALCULO DO RESUMO - AGORA COM TODOS OS TIPOS
+        if mov.tipo in tipos_entrada: # <- MUDOU
+            if forma == 'dinheiro' or forma == 'cash':
                 total_cash += val
-            elif forma_lower in ['tpa', 'transferencia', 'pix', 'cartao']:
+            elif forma in ['tpa', 'transferencia', 'pix', 'cartao']:
                 total_tpa += val
-        elif tipo_mov in [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value, TipoMovimentacao.ESTORNO.value]:
+            else: # suprimento/abertura sem forma
+                total_cash += val
+        elif mov.tipo in tipos_saida: # <- MUDOU: AGORA TEM FECHAMENTO E ESTORNO
             total_saidas += val
 
     caixas_serializados = [
