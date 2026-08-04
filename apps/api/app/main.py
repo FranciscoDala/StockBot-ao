@@ -55,9 +55,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("stockbot ao api a iniciar...")
     import_all_models()
 
-    # <- INICIA REDIS AQUI
-    await manager.connect_redis()
-    logger.info("Redis PubSub conectado")
+    # <- INICIA REDIS AQUI - AJUSTE: NAO DERRUBA O APP SE FALHAR
+    try:
+        await manager.connect_redis()
+        logger.info("Redis PubSub conectado")
+    except Exception as e:
+        logger.error(f"AVISO: Redis nao conectou. Websocket so funciona em 1 instancia. Erro: {e}")
 
     try:
         async with engine.begin() as conn:
