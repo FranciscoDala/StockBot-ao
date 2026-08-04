@@ -9,6 +9,7 @@ from datetime import datetime, date, timedelta
 import traceback
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 from app.db.session import get_db
@@ -46,14 +47,24 @@ async def get_caixa_aberto_loja(db: AsyncSession, loja_id: UUID) -> Caixa | None
     return caixa
 
 
+
+
 async def registrar_movimento_caixa(
-    db: AsyncSession, caixa_id: UUID, loja_id: UUID, tipo: TipoMovimentacao, valor: Decimal,
-    descricao: str, usuario_id: UUID, referencia_id: UUID | None = None, referencia_tipo: str | None = None,
-    forma_pagamento: str | None = None # <- ADICIONADO
+    db: AsyncSession,
+    caixa_id: UUID,
+    loja_id: UUID,
+    tipo: TipoMovimentacao,
+    valor: Decimal,
+    descricao: str,
+    usuario_id: UUID,
+    referencia_id: UUID | None = None,
+    referencia_tipo: str | None = None,
+    forma_pagamento: str | None = None # <- NOVO PARAMETRO
 ):
     logger.info(f"[DEBUG] REGISTRANDO MOV: tipo={tipo.value} valor={valor} caixa={caixa_id} forma={forma_pagamento}")
+
     caixa = await db.get(Caixa, caixa_id)
-    if not caixa or caixa.status == StatusCaixa.FECHADO: # <- SEM.value # type: ignore
+    if not caixa or caixa.status == StatusCaixa.FECHADO: # type: ignore
         logger.error(f"[DEBUG] ERRO: Tentou registrar movimento mas caixa fechado. caixa_id={caixa_id}")
         raise HTTPException(status_code=400, detail="Não é possível registrar: caixa fechado")
 
@@ -66,35 +77,38 @@ async def registrar_movimento_caixa(
         referencia_id=referencia_id,
         referencia_tipo=referencia_tipo,
         usuario_id=usuario_id, # type: ignore
-        forma_pagamento=forma_pagamento, # <- ADICIONADO: salva direto na movimentacao
+        forma_pagamento=forma_pagamento, # <- SALVA DIRETO NA COLUNA NOVA
         created_at=datetime.utcnow()
     )
     db.add(mov)
 
     valor_dec = to_decimal(valor)
 
-    # FORÇA CAST PRA PYLANCE PARAR DE RECLAMAR
+    # CAST PRA EVITAR ERRO DE TIPO
     total_entradas = to_decimal(caixa.total_entradas) # type: ignore
     total_saidas = to_decimal(caixa.total_saidas) # type: ignore
     saldo_abertura = to_decimal(caixa.saldo_abertura) # type: ignore
 
-    # CORRECAO: SO SOMA EM TOTAL_ENTRADAS SE FOR DINHEIRO
+    # REGRA: SÓ CONTA EM TOTAL_ENTRADAS SE FOR DINHEIRO
     if tipo == TipoMovimentacao.ENTRADA:
-        forma_para_soma = forma_pagamento # <- usa o param que veio
-        if not forma_para_soma and referencia_tipo == 'venda' and referencia_id: # <- fallback pra vendas antigas
+        forma_para_soma = forma_pagamento
+
+        # FALLBACK: se não veio forma, busca na venda. Pra vendas antigas
+        if not forma_para_soma and referencia_tipo == 'venda' and referencia_id:
+            from app.models.venda import Venda # import local pra evitar circular
             stmt_venda = select(Venda.forma_pagamento).where(Venda.id == referencia_id) # type: ignore
             result = await db.execute(stmt_venda)
             forma_para_soma = result.scalar_one_or_none()
 
         if forma_para_soma and forma_para_soma.lower() == 'dinheiro':
             total_entradas += valor_dec
-        elif not forma_para_soma: # se for suprimento/abertura sem forma
+        elif not forma_para_soma: # suprimento/abertura sem forma específica
             total_entradas += valor_dec
 
     elif tipo in [TipoMovimentacao.SAIDA, TipoMovimentacao.SANGRIA]:
         total_saidas += valor_dec
 
-    # ATRIBUI DE VOLTA
+    # ATUALIZA O CAIXA
     caixa.total_entradas = total_entradas # type: ignore
     caixa.total_saidas = total_saidas # type: ignore
     caixa.saldo_esperado = saldo_abertura + total_entradas - total_saidas # type: ignore
@@ -102,7 +116,6 @@ async def registrar_movimento_caixa(
     logger.info(f"[DEBUG] Novo saldo_esperado: {caixa.saldo_esperado}") # type: ignore
     db.add(caixa)
     return caixa
-
 
 
 
@@ -326,82 +339,86 @@ async def get_historico_caixa(
     current_user: Usuario = Depends(get_current_user)
 ):
     from app.models.venda import Venda
+    import traceback
+    try:
+        await verificar_acesso_loja(loja_id, db, current_user)
 
-    await verificar_acesso_loja(loja_id, db, current_user)
+        stmt_caixas = select(Caixa).options(selectinload(Caixa.usuario_abertura)).where( # type: ignore
+            and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == data) # type: ignore
+        ).order_by(Caixa.data_abertura) # type: ignore
+        caixas = (await db.execute(stmt_caixas)).scalars().all()
 
-    stmt_caixas = select(Caixa).options(selectinload(Caixa.usuario_abertura)).where( # type: ignore
-        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == data) # type: ignore
-    ).order_by(Caixa.data_abertura) # type: ignore
-    caixas = (await db.execute(stmt_caixas)).scalars().all()
+        if not caixas:
+            return {"caixas": [], "movimentacoes": [], "resumo": {}}
 
-    if not caixas:
+        ids_caixas = [c.id for c in caixas] # type: ignore
+
+        stmt_movs = select(
+            MovimentacaoCaixa,
+            Venda.forma_pagamento
+        ).outerjoin(
+            Venda, and_(Venda.id == MovimentacaoCaixa.referencia_id, MovimentacaoCaixa.referencia_tipo == 'venda') # type: ignore
+        ).where(
+            MovimentacaoCaixa.caixa_id.in_(ids_caixas) # type: ignore
+        ).order_by(MovimentacaoCaixa.created_at.desc()) # type: ignore
+
+        resultados = (await db.execute(stmt_movs)).all()
+
+        movimentacoes = []
+        total_cash = Decimal('0')
+        total_tpa = Decimal('0')
+        total_saidas = Decimal('0')
+
+        tipos_entrada = [TipoMovimentacao.ENTRADA.value, TipoMovimentacao.ABERTURA.value, TipoMovimentacao.SUPRIMENTO.value]
+        tipos_saida = [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value, TipoMovimentacao.FECHAMENTO.value, TipoMovimentacao.ESTORNO.value]
+
+        for mov, forma_pagamento_venda in resultados:
+            val = to_decimal(mov.valor)
+            forma_final = mov.forma_pagamento or forma_pagamento_venda # <- USA A NOVA + FALLBACK PROS ANTIGOS
+            forma_lower = str(forma_final or "").lower()
+
+            movimentacoes.append({
+                "id": str(mov.id),
+                "tipo": mov.tipo,
+                "valor": float(val),
+                "descricao": mov.descricao,
+                "created_at": mov.created_at.isoformat(),
+                "forma_pagamento": forma_final
+            })
+
+            if mov.tipo in tipos_entrada:
+                if forma_lower in ['dinheiro', 'cash']:
+                    total_cash += val
+                elif forma_lower in ['tpa', 'transferencia', 'pix', 'cartao']:
+                    total_tpa += val
+                else:
+                    total_cash += val
+            elif mov.tipo in tipos_saida:
+                total_saidas += val
+
+        caixas_serializados = [
+            {
+                "id": str(c.id), # type: ignore
+                "usuario_nome": c.usuario_abertura.nome if c.usuario_abertura else "Sistema", # type: ignore
+                "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None, # type: ignore
+                "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None, # type: ignore
+                "saldo_abertura": float(c.saldo_abertura), # type: ignore
+                "saldo_contado": float(c.saldo_contado) if c.saldo_contado else None, # type: ignore
+                "status": c.status # type: ignore
+            }
+            for c in caixas
+        ]
+
+        return {
+            "caixas": caixas_serializados,
+            "movimentacoes": movimentacoes,
+            "resumo": {
+                "cash_em_mao": float(total_cash),
+                "tpa_transferencia": float(total_tpa),
+                "saidas_sangrias": float(total_saidas),
+                "faturamento_total": float(total_cash + total_tpa)
+            }
+        }
+    except Exception as e:
+        logger.error(f"[ERRO HISTORICO]: {e}\n{traceback.format_exc()}")
         return {"caixas": [], "movimentacoes": [], "resumo": {}}
-
-    ids_caixas = [c.id for c in caixas] # type: ignore
-
-    # VERSAO SEM DEPENDER DA COLUNA forma_pagamento
-    stmt_movs = select(
-        MovimentacaoCaixa,
-        Venda.forma_pagamento
-    ).outerjoin(
-        Venda, and_(Venda.id == MovimentacaoCaixa.referencia_id, MovimentacaoCaixa.referencia_tipo == 'venda') # type: ignore
-    ).where(
-        MovimentacaoCaixa.caixa_id.in_(ids_caixas) # type: ignore
-    ).order_by(MovimentacaoCaixa.created_at.desc()) # type: ignore
-
-    resultados = (await db.execute(stmt_movs)).all()
-
-    movimentacoes = []
-    total_cash = Decimal('0')
-    total_tpa = Decimal('0')
-    total_saidas = Decimal('0')
-
-    tipos_entrada = [TipoMovimentacao.ENTRADA.value, TipoMovimentacao.ABERTURA.value, TipoMovimentacao.SUPRIMENTO.value]
-    tipos_saida = [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value, TipoMovimentacao.FECHAMENTO.value, TipoMovimentacao.ESTORNO.value]
-
-    for mov, forma_pagamento in resultados:
-        val = to_decimal(mov.valor)
-        forma = str(forma_pagamento or "").lower() # <- USA SÓ O DA VENDA
-
-        movimentacoes.append({
-            "id": str(mov.id),
-            "tipo": mov.tipo,
-            "valor": float(val),
-            "descricao": mov.descricao,
-            "created_at": mov.created_at.isoformat(),
-            "forma_pagamento": forma_pagamento
-        })
-
-        if mov.tipo in tipos_entrada:
-            if forma == 'dinheiro' or forma == 'cash':
-                total_cash += val
-            elif forma in ['tpa', 'transferencia', 'pix', 'cartao']:
-                total_tpa += val
-            else:
-                total_cash += val
-        elif mov.tipo in tipos_saida:
-            total_saidas += val
-
-    caixas_serializados = [
-        {
-            "id": str(c.id), # type: ignore
-            "usuario_nome": c.usuario_abertura.nome if c.usuario_abertura else "Sistema", # type: ignore
-            "data_abertura": c.data_abertura.isoformat() if c.data_abertura else None, # type: ignore
-            "data_fechamento": c.data_fechamento.isoformat() if c.data_fechamento else None, # type: ignore
-            "saldo_abertura": float(c.saldo_abertura), # type: ignore
-            "saldo_contado": float(c.saldo_contado) if c.saldo_contado else None, # type: ignore
-            "status": c.status # type: ignore
-        }
-        for c in caixas
-    ]
-
-    return {
-        "caixas": caixas_serializados,
-        "movimentacoes": movimentacoes,
-        "resumo": {
-            "cash_em_mao": float(total_cash),
-            "tpa_transferencia": float(total_tpa),
-            "saidas_sangrias": float(total_saidas),
-            "faturamento_total": float(total_cash + total_tpa)
-        }
-    }

@@ -23,7 +23,9 @@ from app.schemas.venda import VendaCreate, VendaRead
 from app.services.venda import criar_venda, estornar_venda_service
 from app.services.whatsapp import enviar_msg_venda
 from app.websocket.manager import manager
+
 from app.api.v1.caixas import registrar_movimento_caixa
+
 
 router = APIRouter()
 
