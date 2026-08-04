@@ -234,19 +234,20 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
 
     // NOVOS CÁLCULOS SEPARADOS POR FORMA DE PAGAMENTO
     const cashHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && m.forma_pagamento === 'Dinheiro')
-       .reduce((acc, m) => acc + Number(m.valor), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+        .reduce((acc, m) => acc + Number(m.valor), 0);
 
     const tpaHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && m.forma_pagamento && ['TPA', 'Transferencia'].includes(m.forma_pagamento))
-       .reduce((acc, m) => acc + Number(m.valor), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
+        .reduce((acc, m) => acc + Number(m.valor), 0);
+
     const saidasHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
-       .reduce((acc, m) => acc + Number(m.valor), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
+        .reduce((acc, m) => acc + Number(m.valor), 0);
 
     const faturamentoHoje = cashHoje + tpaHoje;
 
-    const statusConfig = isCaixaAberto? {
+    const statusConfig = isCaixaAberto ? {
         cor: 'var(--cor-sucesso)',
         bg: 'color-mix(in srgb, var(--cor-sucesso) 8%, transparent)',
         border: 'color-mix(in srgb, var(--cor-sucesso) 25%, transparent)',
@@ -295,8 +296,8 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button onClick={onAbrir} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs" style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}>
-                            {isCaixaAberto? <Lock size={16} /> : <Unlock size={16} />}
-                            {isCaixaAberto? 'Fechar Caixa' : 'Abrir Caixa'}
+                            {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />}
+                            {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
                         </Button>
                         <Button onClick={onSangria} disabled={!isCaixaAberto} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40" style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             <Minus size={16} /> Sangria
@@ -418,10 +419,10 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                         {mov.forma_pagamento && (
                                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                                                 style={{
-                                                    background: mov.forma_pagamento === 'Dinheiro'
+                                                    background: String(mov.forma_pagamento || '').toLowerCase() === 'dinheiro'
                                                         ? 'color-mix(in srgb, var(--cor-sucesso) 15%, transparent)'
                                                         : 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
-                                                    color: mov.forma_pagamento === 'Dinheiro' ? 'var(--cor-sucesso)' : 'var(--cor-primaria)'
+                                                    color: String(mov.forma_pagamento || '').toLowerCase() === 'dinheiro' ? 'var(--cor-sucesso)' : 'var(--cor-primaria)'
                                                 }}>
                                                 {mov.forma_pagamento}
                                             </span>
