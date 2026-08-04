@@ -103,7 +103,6 @@ async def registrar_movimento_caixa(
     return caixa
 
 
-
 @router.get("/resumo-dia")
 async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
@@ -135,41 +134,39 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     tpa_hoje = Decimal('0')
     saidas = Decimal('0')
 
-    tipos_entrada = [TipoMovimentacao.ENTRADA.value, TipoMovimentacao.ABERTURA.value, TipoMovimentacao.SUPRIMENTO.value]
+    # REGRA NOVA: SÓ CONTA VENDA. IGNORA ABERTURA E SUPRIMENTO
+    tipos_venda = [TipoMovimentacao.ENTRADA.value]
     tipos_saida = [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value, TipoMovimentacao.FECHAMENTO.value, TipoMovimentacao.ESTORNO.value]
 
     for mov in movimentacoes_db:
         val = to_decimal(mov.valor)
         forma = str(mov.forma_pagamento or "").lower()
-        if mov.tipo in tipos_entrada:
+        if mov.tipo in tipos_venda:
             if forma in ['dinheiro', 'cash']:
                 cash_hoje += val
-            else:
+            elif forma in ['tpa', 'transferencia', 'pix', 'cartao']: # <- Mais seguro
                 tpa_hoje += val
         elif mov.tipo in tipos_saida:
             saidas += val
 
-    # 5. FALLBACK: SE NAO TEM MOV, SOMA PELAS VENDAS
     # 5. FALLBACK: SE NAO TEM MOV, SOMA PELAS VENDAS
     if cash_hoje == 0 and tpa_hoje == 0:
         logger.info("[RESUMO-DIA] Sem movs, usando fallback de Vendas")
         stmt_vendas = select(Venda).where(
             and_(
                 Venda.loja_id == loja_id,
-                func.date(Venda.created_at) == hoje, # <- TROQUEI data_venda por created_at
+                func.date(Venda.created_at) == hoje,
                 Venda.status.in_(['concluida', 'paga'])
             )
         )
         vendas_hoje = (await db.execute(stmt_vendas)).scalars().all()
         for v in vendas_hoje:
-            val = to_decimal(v.total) # <- AQUI ESTA CERTO, É VALOR
+            val = to_decimal(v.total)
             forma = str(v.forma_pagamento or "").lower()
             if forma in ['dinheiro', 'cash']:
                 cash_hoje += val
-            else: # tpa, pix, transferencia, etc
+            elif forma in ['tpa', 'transferencia', 'pix', 'cartao']: # <- Mais seguro
                 tpa_hoje += val
-
-
 
     saldo_atual = to_decimal(saldo_abertura) + cash_hoje + tpa_hoje - saidas
 
@@ -177,27 +174,25 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     movs_serializadas = [{
         "id": str(m.id),
         "tipo": m.tipo,
-        "valor": float(str(m.valor)), # <- AQUI
+        "valor": float(str(m.valor)),
         "descricao": m.descricao,
         "created_at": m.created_at.isoformat(),
         "forma_pagamento": m.forma_pagamento
     } for m in movimentacoes_db]
 
-
     retorno = {
         "id": str(caixa_aberto.id) if caixa_aberto else None,
         "saldo_abertura": float(saldo_abertura),
-        "entradas_hoje": float(cash_hoje + tpa_hoje),
+        "entradas_hoje": float(cash_hoje + tpa_hoje), # <- AGORA É SÓ VENDA
         "cash_hoje": float(cash_hoje),
         "tpa_hoje": float(tpa_hoje),
         "saidas_hoje": float(saidas),
         "saldo_atual": float(saldo_atual),
         "status": StatusCaixa.ABERTO.value if caixa_aberto else StatusCaixa.FECHADO.value,
-        "movimentacoes": movs_serializadas # <- AGORA MANDA AS MOVS TAMBEM
+        "movimentacoes": movs_serializadas
     }
     logger.info(f"[RESUMO-DIA] RETORNO: cash={cash_hoje} tpa={tpa_hoje}")
     return retorno
-
 
 
 
