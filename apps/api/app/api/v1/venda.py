@@ -3,12 +3,13 @@ from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPExce
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_ # <- adiciona and_ no topo se não tiver
 from datetime import date
 from typing import List
 from uuid import UUID
 import asyncio
 from decimal import Decimal
+
 
 from app.core.deps import get_current_user, require_role, get_current_loja_id
 from app.schemas.usuario import Role
@@ -31,6 +32,8 @@ logger = logging.getLogger(__name__) # <- ADICIONA ISSO NO TOPO
 
 router = APIRouter()
 
+
+
 @router.post("/", response_model=VendaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def criar_venda_endpoint(
     venda_in: VendaCreate,
@@ -42,12 +45,9 @@ async def criar_venda_endpoint(
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
     if venda and venda.itens:
-        # 1. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
         for item in venda.itens:
             produto_id = item.produto_id
             nome_produto = item.nome_produto
-
-            # Busca o produto pra ver se controla estoque e pegar estoque atual
             produto_db = await db.get(Produto, produto_id)
             if produto_db and produto_db.controla_estoque:
                 await manager.broadcast_to_loja(
@@ -55,50 +55,51 @@ async def criar_venda_endpoint(
                     {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
                 )
 
-        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
         await manager.broadcast_to_loja(
             str(loja_id),
-            {
-                "tipo": "stats.updated",
-                "valor_venda": float(venda.total),
-                "total_itens": venda.total_itens,
-                "acao": "add"
-            }
+            {"tipo": "stats.updated", "valor_venda": float(venda.total), "total_itens": venda.total_itens, "acao": "add"}
         )
 
         # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
+            hoje = date.today()
+            stmt_caixa = select(Caixa).where(
+                and_(
+                    Caixa.loja_id == loja_id,
+                    Caixa.status == StatusCaixa.ABERTO,
+                    func.date(Caixa.data_caixa) == hoje
+                )
+            )
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
+
+            logger.info(f"[VENDA] Caixa encontrado: {caixa_aberto.id if caixa_aberto else 'NENHUM'}")
 
             if caixa_aberto:
                 await registrar_movimento_caixa(
                     db=db,
-                    caixa_id=caixa_aberto.id, # type: ignore
-                    loja_id=loja_id, # type: ignore
+                    caixa_id=UUID(str(caixa_aberto.id)), # type: ignore
+                    loja_id=loja_id,
                     tipo=TipoMovimentacao.ENTRADA,
                     valor=Decimal(str(venda.total)),
                     descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
-                    usuario_id=current_user.id, # type: ignore
+                    usuario_id=current_user.id,
                     referencia_id=venda.id,
                     referencia_tipo='venda',
-                    forma_pagamento=venda.forma_pagamento # <- JÁ ESTAVA CERTO
+                    forma_pagamento=venda.forma_pagamento
                 )
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             else:
-                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto para venda {venda.id}")
+                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto HOJE para venda {venda.id}")
 
         except Exception as e:
-            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}")
+            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}", exc_info=True)
 
-    # 4. COMMIT UNICO NO FINAL
     await db.commit()
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
     return venda
-
 
 
 
@@ -172,6 +173,8 @@ async def get_vendas(
         })
 
     return vendas_response # type: ignore
+
+
 
 @router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
 async def imprimir_venda(
@@ -253,6 +256,8 @@ async def imprimir_venda(
     """
     return HTMLResponse(content=html_content)
 
+
+
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def estornar_venda(
     id: UUID,
@@ -289,29 +294,43 @@ async def estornar_venda(
     # 4. LANÇA ESTORNO NO CAIXA
     if valor_estornado > 0:
         try:
-            # BUSCAR CAIXA ABERTO
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
+            hoje = date.today() # <- ADICIONADO
+            # BUSCAR CAIXA ABERTO DE HOJE
+            stmt_caixa = select(Caixa).where(
+                and_(
+                    Caixa.loja_id == loja_id,
+                    Caixa.status == StatusCaixa.ABERTO,
+                    func.date(Caixa.data_caixa) == hoje # <- ADICIONADO
+                )
+            )
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
+            logger.info(f"[ESTORNO] Caixa encontrado: {caixa_aberto.id if caixa_aberto else 'NENHUM'}") # <- LOG
+
             if not caixa_aberto:
+                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto HOJE para estorno {id}") # <- LOG
                 raise HTTPException(status_code=400, detail="Nenhum caixa aberto para registrar o estorno")
 
             await registrar_movimento_caixa(
                 db=db,
-                caixa_id=caixa_aberto.id, # type: ignore
-                loja_id=loja_id, # type: ignore
+                caixa_id=UUID(str(caixa_aberto.id)), # type: ignore
+                loja_id=loja_id,
                 tipo=TipoMovimentacao.SAIDA,
                 valor=valor_estornado,
                 descricao=f"Estorno Venda #{str(id)[:8]}",
-                usuario_id=current_user.id, # type: ignore
+                usuario_id=current_user.id,
                 referencia_id=id,
-                referencia_tipo='estorno'
+                referencia_tipo='estorno',
+                forma_pagamento=None # <- estorno não tem forma
             )
             await db.commit()
             await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
         except HTTPException as e:
             await db.rollback()
-            print(f"AVISO CAIXA ESTORNO: {e.detail}")
+            logger.error(f"AVISO CAIXA ESTORNO: {e.detail}") # <- troquei print por logger
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"ERRO AO LANÇAR ESTORNO NO CAIXA: {e}", exc_info=True)
 
     return None
