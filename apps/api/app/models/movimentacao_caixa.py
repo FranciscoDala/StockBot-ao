@@ -34,4 +34,5 @@ class MovimentacaoCaixa(Base):
     descricao = Column(Text)
     referencia_id = Column(UUID(as_uuid=True), nullable=True)
     referencia_tipo = Column(String(50), nullable=True)
+    forma_pagamento = Column(String(50), nullable=True) # <- ADICIONA SÓ ESSA LINHA
     created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)

@@ -315,6 +315,8 @@ async def fazer_sangria(body: SangriaIn, db: AsyncSession = Depends(get_db), cur
         raise HTTPException(status_code=500, detail=f"Erro ao registrar sangria: {e}")
     return {"message": "Sangria registrada com sucesso!"}
 
+
+
 @router.get("/historico")
 async def get_historico_caixa(
     loja_id: UUID,
@@ -352,24 +354,33 @@ async def get_historico_caixa(
     total_tpa = Decimal('0')
     total_saidas = Decimal('0')
 
-    for mov, forma_pagamento in resultados:
+    for row in resultados:
+        mov: MovimentacaoCaixa = row[0]
+        forma_pagamento_venda: str | None = row[1]
+
         val = to_decimal(mov.valor)
+        forma_final = mov.forma_pagamento or forma_pagamento_venda
+
         movimentacoes.append({
             "id": str(mov.id),
             "tipo": mov.tipo,
             "valor": float(val),
             "descricao": mov.descricao,
             "created_at": mov.created_at.isoformat(),
-            "forma_pagamento": forma_pagamento
+            "forma_pagamento": forma_final
         })
 
-        # CALCULO DO RESUMO
-        if mov.tipo == TipoMovimentacao.ENTRADA.value:
-            if forma_pagamento and forma_pagamento.lower() in ['dinheiro', 'cash']:
+        # CORRECAO FINAL ANTI-PYLANCE
+        tipo_mov = str(mov.tipo)
+        forma_str = str(forma_final or "") # <- SEPARA EM 2
+        forma_lower = forma_str.lower()
+
+        if tipo_mov == TipoMovimentacao.ENTRADA.value:
+            if forma_lower in ['dinheiro', 'cash']:
                 total_cash += val
-            else: # cartao, tpa, transferencia, pix
+            elif forma_lower in ['tpa', 'transferencia', 'pix', 'cartao']:
                 total_tpa += val
-        elif mov.tipo in [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value]:
+        elif tipo_mov in [TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value, TipoMovimentacao.ESTORNO.value]:
             total_saidas += val
 
     caixas_serializados = [

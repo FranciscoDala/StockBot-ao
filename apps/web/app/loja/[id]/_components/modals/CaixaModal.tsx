@@ -33,8 +33,7 @@ type Movimentacao = {
     valor: number;
     descricao: string;
     created_at: string;
-    forma_pagamento: 'Dinheiro' | 'TPA' | 'Transferencia' | null; // <- tira o ? e coloca | null
-
+    forma_pagamento: string | null; // <- MUDA AQUI. Aceita qualquer string
 }
 
 export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props) { // <- ADICIONADO onSave
