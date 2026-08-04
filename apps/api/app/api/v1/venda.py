@@ -1,3 +1,4 @@
+import logging # <- ADICIONADO
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,8 @@ from typing import List
 from uuid import UUID
 import asyncio
 from decimal import Decimal
+
+logger = logging.getLogger(__name__) # <- ADICIONADO
 
 from app.core.deps import get_current_user, require_role, get_current_loja_id
 from app.schemas.usuario import Role
@@ -26,7 +29,6 @@ from app.websocket.manager import manager
 
 from app.api.v1.caixas import registrar_movimento_caixa
 
-
 router = APIRouter()
 
 @router.post("/", response_model=VendaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
@@ -39,16 +41,12 @@ async def criar_venda_endpoint(
 ):
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
-    # 1. SALVA A VENDA PRIMEIRO PRA PODER FAZER O JOIN DEPOIS
-    await db.commit()
-
     if venda and venda.itens:
-        # 2. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
+        # 1. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
         for item in venda.itens:
             produto_id = item.produto_id
             nome_produto = item.nome_produto
 
-            # Busca o produto pra ver se controla estoque e pegar estoque atual
             produto_db = await db.get(Produto, produto_id)
             if produto_db and produto_db.controla_estoque:
                 await manager.broadcast_to_loja(
@@ -56,7 +54,7 @@ async def criar_venda_endpoint(
                     {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
                 )
 
-        # 3. ATUALIZA ESTATISTICAS EM TEMPO REAL
+        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
         await manager.broadcast_to_loja(
             str(loja_id),
             {
@@ -67,7 +65,7 @@ async def criar_venda_endpoint(
             }
         )
 
-        # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
+        # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
             stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
@@ -76,27 +74,31 @@ async def criar_venda_endpoint(
             if caixa_aberto:
                 await registrar_movimento_caixa(
                     db=db,
-                    caixa_id=UUID(str(caixa_aberto.id)), # <- ADICIONA UUID()
-                    loja_id=UUID(str(loja_id)), # <- ADICIONA UUID()
+                    caixa_id=UUID(str(caixa_aberto.id)),
+                    loja_id=UUID(str(loja_id)),
                     tipo=TipoMovimentacao.ENTRADA,
                     valor=Decimal(str(venda.total)),
                     descricao=f"Venda #{str(venda.id)[:8]}",
-                    usuario_id=UUID(str(current_user.id)), # <- ADICIONA UUID()
-                    referencia_id=UUID(str(venda.id)), # <- ADICIONA UUID()
+                    usuario_id=UUID(str(current_user.id)),
+                    referencia_id=UUID(str(venda.id)),
                     referencia_tipo='venda',
-                    forma_pagamento=venda.forma_pagamento
+                    forma_pagamento=venda.forma_pagamento # <- já salva na tabela
                 )
-                await db.commit()
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             else:
-                print("AVISO CAIXA: Nenhum caixa aberto para registrar a venda")
+                logger.warning("AVISO CAIXA: Nenhum caixa aberto para registrar a venda")
 
         except Exception as e:
-            await db.rollback()
-            print(f"ERRO AO LANÇAR NO CAIXA: {e}")
+            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}") # <- NÃO DA ROLLBACK. Só loga
+
+    # 4. COMMIT UNICO NO FINAL. Salva venda + movimento junto
+    await db.commit()
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
+
+    # Precisa fazer refresh pra retornar com os relacionamentos
+    await db.refresh(venda)
     return venda
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
@@ -116,14 +118,14 @@ async def get_vendas(
 
     query = (
         select(Venda)
-     .options(
+    .options(
             joinedload(Venda.usuario),
             joinedload(Venda.itens).joinedload(ItemVenda.produto)
         )
-     .where(Venda.loja_id == loja_id_usar)
-     .order_by(Venda.created_at.desc())
-     .limit(limit)
-     .offset(offset)
+    .where(Venda.loja_id == loja_id_usar)
+    .order_by(Venda.created_at.desc())
+    .limit(limit)
+    .offset(offset)
     )
 
     if data_inicio:
@@ -206,13 +208,13 @@ async def imprimir_venda(
         <title>Factura #{str(venda.id)[:8]}</title>
         <style>
             body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
-     .header {{ text-align: center; margin-bottom: 15px; }}
-     .header h1 {{ margin: 0; font-size: 18px; }}
-     .info p {{ margin: 2px 0; }}
+    .header {{ text-align: center; margin-bottom: 15px; }}
+    .header h1 {{ margin: 0; font-size: 18px; }}
+    .info p {{ margin: 2px 0; }}
             table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
             th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
-     .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
-     .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+    .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+    .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
             @media print {{ body {{ margin: 0; }} }}
         </style>
     </head>

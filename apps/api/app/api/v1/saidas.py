@@ -10,9 +10,16 @@ from app.db.session import get_db
 from app.models.saidas import Saida
 from app.models.usuario import Usuario
 from app.models.caixa import Caixa, StatusCaixa
-from app.models.movimentacao_caixa import MovimentacaoCaixa, TipoMovimentacao
+from app.models.movimentacao_caixa import TipoMovimentacao
 from app.core.deps import get_current_user, verificar_acesso_loja
 from app.websocket.manager import manager
+from app.api.v1.caixas import registrar_movimento_caixa
+
+def to_decimal(value) -> Decimal: # <- ADICIONADO LOCAL
+    if value is None:
+        return Decimal('0')
+    return Decimal(str(value))
+
 
 router = APIRouter(prefix="/saidas", tags=["Saidas"])
 
@@ -24,6 +31,7 @@ class SaidaCreateIn(BaseModel):
     loja_id: UUID
     valor: Decimal = Field(gt=0)
     descricao: Optional[str] = "Saída manual"
+    forma_pagamento: Optional[str] = "dinheiro"
 
 class SaidaOut(BaseModel):
     id: UUID
@@ -35,12 +43,12 @@ class SaidaOut(BaseModel):
     class Config:
         from_attributes = True
 
-async def get_caixa_aberto_loja(db: AsyncSession, loja_id: UUID) -> Caixa | None: # <- HELPER NOVO
+async def get_caixa_aberto_loja(db: AsyncSession, loja_id: UUID) -> Caixa | None:
     hoje = date.today()
     stmt = select(Caixa).where(
         Caixa.loja_id == loja_id,
         Caixa.status == StatusCaixa.ABERTO,
-        func.date(Caixa.data_caixa) == hoje # <- era data, corrigi pra data_caixa
+        func.date(Caixa.data_caixa) == hoje
     )
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
@@ -53,7 +61,6 @@ async def criar_saida(
 ):
     await verificar_acesso_loja(body.loja_id, db, current_user)
 
-    # BLOQUEIO: SO PODE CRIAR SAIDA COM CAIXA ABERTO
     caixa = await get_caixa_aberto_loja(db, body.loja_id)
     if not caixa:
         raise HTTPException(status_code=400, detail="Não é possível fazer saída: caixa fechado")
@@ -65,35 +72,33 @@ async def criar_saida(
             descricao=body.descricao
         )
         db.add(nova_saida)
-        await db.flush() # <- flush pra ter o id antes do commit
+        await db.flush() # <- flush pra ter o id
 
-        # LANÇA NO CAIXA AUTOMATICAMENTE
-        mov = MovimentacaoCaixa(
-            caixa_id=caixa.id,
+        # CAST PRA PARAR O PYLANCE DE RECLAMAR
+        valor_saida = to_decimal(nova_saida.valor) # type: ignore
+        saida_id = UUID(str(nova_saida.id)) # type: ignore
+
+        # LANÇA NO CAIXA USANDO A FUNCAO CENTRAL
+        await registrar_movimento_caixa(
+            db=db,
+            caixa_id=caixa.id, # type: ignore
             loja_id=body.loja_id,
-            usuario_id=current_user.id,
             tipo=TipoMovimentacao.SAIDA,
-            valor=nova_saida.valor,
-            descricao=nova_saida.descricao,
-            saida_id=nova_saida.id
+            valor=valor_saida, # <- AGORA É DECIMAL
+            descricao=f"{nova_saida.descricao} #{str(saida_id)[:8]}",
+            usuario_id=current_user.id, # type: ignore
+            referencia_id=saida_id, # <- AGORA É UUID
+            referencia_tipo='saida',
+            forma_pagamento=body.forma_pagamento
         )
-        db.add(mov)
-
-        # Atualiza totais do caixa
-        caixa.total_saidas = Decimal(str(caixa.total_saidas or 0)) + nova_saida.valor
-        caixa.saldo_esperado = Decimal(str(caixa.saldo_abertura or 0)) + Decimal(str(caixa.total_entradas or 0)) - caixa.total_saidas
 
         await db.commit()
         await db.refresh(nova_saida)
 
-        # ATUALIZA ESTATISTICAS EM TEMPO REAL
+        # ATUALIZA ESTATISTICAS
         await manager.broadcast_to_loja(
             str(body.loja_id),
-            {
-                "tipo": "stats.updated",
-                "valor_saida": float(nova_saida.valor),
-                "acao": "add_saida"
-            }
+            {"tipo": "stats.updated", "valor_saida": float(valor_saida), "acao": "add_saida"} # <- USA O CAST
         )
         await manager.broadcast_to_loja(str(body.loja_id), {"tipo": "caixa.updated"})
 
@@ -111,7 +116,7 @@ async def listar_saidas(
 ):
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    stmt = select(Saida).where(Saida.loja_id == loja_id).order_by(Saida.created_at.desc()) # <- CORRIGI: era Caixa.loja_id
+    stmt = select(Saida).where(Saida.loja_id == loja_id).order_by(Saida.created_at.desc())
     result = await db.execute(stmt)
     saidas = result.scalars().all()
     return saidas
