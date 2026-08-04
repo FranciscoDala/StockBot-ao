@@ -263,17 +263,17 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     console.log("3. MOVIMENTACOES RAW:", movimentacoes); // LOG 4
     console.log("4. DATA HOJE:", hoje); // LOG 5
 
-    const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
     const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
     // 1. TENTA PEGAR DO BACKEND PRIMEIRO
-    let cashHoje = resumo?.cash_hoje ?? 0;
-    let tpaHoje = resumo?.tpa_hoje ?? 0;
-    let saidasHoje = resumo?.saidas_hoje ?? 0;
+    let cashHoje = resumo?.cash_hoje?? 0;
+    let tpaHoje = resumo?.tpa_hoje?? 0;
+    let saidasHoje = resumo?.saidas_hoje?? 0;
 
     console.log("5. VALORES DO BACKEND:", { cashHoje, tpaHoje, saidasHoje }); // LOG 6
 
     // 2. FALLBACK: SE BACKEND VEIO 0, CALCULA PELAS MOVIMENTACOES
+    // REGRA NOVA: SÓ CONTA TIPO 'entrada'. IGNORA 'abertura' E 'suprimento'
     if (cashHoje === 0 && tpaHoje === 0) {
         console.log("6. ENTRANDO NO FALLBACK - CALCULANDO PELAS MOV"); // LOG 7
 
@@ -281,16 +281,16 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
         console.log("7. MOVS DE HOJE:", movsHoje); // LOG 8
 
         cashHoje = movsHoje
-            .filter(m => tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+           .filter(m => m.tipo === 'entrada' && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+           .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
         tpaHoje = movsHoje
-            .filter(m => tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia', 'pix', 'cartao'].includes(String(m.forma_pagamento || '').toLowerCase()))
-            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+           .filter(m => m.tipo === 'entrada' && ['tpa', 'transferencia', 'pix', 'cartao'].includes(String(m.forma_pagamento || '').toLowerCase()))
+           .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
         saidasHoje = movsHoje
-            .filter(m => tiposSaida.includes(m.tipo))
-            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+           .filter(m => tiposSaida.includes(m.tipo))
+           .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
         console.log("8. VALORES CALCULADOS NO FRONT:", { cashHoje, tpaHoje, saidasHoje }); // LOG 9
     }
@@ -298,7 +298,7 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     const faturamentoHoje = cashHoje + tpaHoje;
     console.log("9. FATURAMENTO FINAL:", faturamentoHoje); // LOG 10
 
-    const statusConfig = isCaixaAberto ? {
+    const statusConfig = isCaixaAberto? {
         cor: 'var(--cor-sucesso)',
         bg: 'color-mix(in srgb, var(--cor-sucesso) 8%, transparent)',
         border: 'color-mix(in srgb, var(--cor-sucesso) 25%, transparent)',
@@ -347,8 +347,8 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button onClick={onAbrir} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs" style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}>
-                            {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />}
-                            {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
+                            {isCaixaAberto? <Lock size={16} /> : <Unlock size={16} />}
+                            {isCaixaAberto? 'Fechar Caixa' : 'Abrir Caixa'}
                         </Button>
                         <Button onClick={onSangria} disabled={!isCaixaAberto} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40" style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             <Minus size={16} /> Sangria
@@ -410,7 +410,8 @@ function AbaMovimentacoes({
     loading: boolean
 }) {
 
-    const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
+
+    const tiposEntrada = ['entrada']; // <- SÓ ENTRADA
     const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
     const getIcon = (tipo: string) => {
