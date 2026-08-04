@@ -1,3 +1,4 @@
+import logging # <- ADICIONA ISSO NO TOPO
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +25,9 @@ from app.services.venda import criar_venda, estornar_venda_service
 from app.services.whatsapp import enviar_msg_venda
 from app.websocket.manager import manager
 from app.api.v1.caixas import registrar_movimento_caixa
+
+
+logger = logging.getLogger(__name__) # <- ADICIONA ISSO NO TOPO
 
 router = APIRouter()
 
@@ -65,9 +69,10 @@ async def criar_venda_endpoint(
             }
         )
 
+
         # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
-            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO) # <- SEM.value
+            stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
 
@@ -78,19 +83,23 @@ async def criar_venda_endpoint(
                     loja_id=loja_id, # type: ignore
                     tipo=TipoMovimentacao.ENTRADA,
                     valor=Decimal(str(venda.total)),
-                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
+                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}", # <- JÁ TEM AQUI
                     usuario_id=current_user.id, # type: ignore
                     referencia_id=venda.id,
                     referencia_tipo='venda'
+                    # <- SEM forma_pagamento aqui pra não quebrar
                 )
                 await db.commit() # commit só do movimento
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             else:
-                print("AVISO CAIXA: Nenhum caixa aberto para registrar a venda")
+                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto para venda {venda.id}") # <- TROQUEI print por logger
 
         except Exception as e:
             await db.rollback()
-            print(f"ERRO AO LANÇAR NO CAIXA: {e}")
+            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}") # <- TROQUEI print por logger
+
+
+
 
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id) # <- MUDEI: passa id
