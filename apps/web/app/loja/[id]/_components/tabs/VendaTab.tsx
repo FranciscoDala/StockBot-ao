@@ -286,11 +286,12 @@ export function VendaTab({
                     )}
 
                     <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
+
                         {produtosFiltrados.map(p => {
                             const preco = p.preco_venda ?? p.preco ?? 0;
                             return (
                                 <button
-                                    key={p.id}
+                                    key={`${p.id}-${p.estoque}`} // <- FORÇA ATUALIZAR QUANDO ESTOQUE MUDA
                                     onClick={() => adicionarAoCarrinho(p)}
                                     disabled={p.estoque <= 0}
                                     className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
@@ -308,8 +309,8 @@ export function VendaTab({
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
                                         )}
-                                        {p.estoque <= 0 && (<Badge variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>)}
-                                        {p.estoque > 0 && (<Badge className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>{p.estoque}</Badge>)}
+                                        {p.estoque <= 0 && (<Badge key={`badge-0-${p.id}-${p.estoque}`} variant="destructive" className="absolute top-1 right-1 text-[9px] px-1" style={{ backgroundColor: '#ef4444' }}>0</Badge>)}
+                                        {p.estoque > 0 && (<Badge key={`badge-${p.id}-${p.estoque}`} className="absolute top-1 right-1 text-white border-none text-[9px] px-1.5" style={{ backgroundColor: 'var(--cor-primaria)' }}>{p.estoque}</Badge>)}
                                     </div>
                                     <div className="p-2">
                                         <h4 className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
@@ -320,6 +321,7 @@ export function VendaTab({
                                 </button>
                             )
                         })}
+
                     </div>
                     {/* MOBILE CARRINHO */}
                     <div className="lg:hidden mt-4">
