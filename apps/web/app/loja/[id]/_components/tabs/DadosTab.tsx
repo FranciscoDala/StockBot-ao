@@ -68,9 +68,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
     const carregarDados = useCallback(async () => {
         console.log("=== DEBUG DADOS TAB INICIO ===");
-        console.log("lojaId:", lojaId, "token:", !!token, "API_URL:", !!API_URL);
+        console.log("lojaId:", lojaId, "token:",!!token, "API_URL:",!!API_URL);
 
-        if (!lojaId || !token || !API_URL) {
+        if (!lojaId ||!token ||!API_URL) {
             setLoading(false);
             console.log("FALTOU PARAMETRO, SAINDO");
             return;
@@ -102,9 +102,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
             console.log("STATUS RESPOSTAS:", { vendas: resVendas.status, saidas: resSaidas.status, mov: resMov.status });
 
-            const dataVendas: VendaAPI[] = resVendas.ok ? await resVendas.json() : [];
-            const dataSaidas: SaidaAPI[] = resSaidas.ok ? await resSaidas.json() : [];
-            const dataMov: { movimentacoes: any[] } = resMov.ok ? await resMov.json() : { movimentacoes: [] };
+            const dataVendas: VendaAPI[] = resVendas.ok? await resVendas.json() : [];
+            const dataSaidas: SaidaAPI[] = resSaidas.ok? await resSaidas.json() : [];
+            const dataMov: { movimentacoes: any[] } = resMov.ok? await resMov.json() : { movimentacoes: [] };
 
             console.log("MOVIMENTACOES RAW:", dataMov);
             console.log("QTD MOVIMENTACOES:", dataMov.movimentacoes?.length);
@@ -117,9 +117,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             }
 
             const statusValidos = ["concluida", "concluído", "paga", "finalizada"];
-            const vendas = (Array.isArray(dataVendas) ? dataVendas : [])
-                .filter(v => statusValidos.includes(v.status?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
-                .map(v => ({ ...v, total: Number(v.total) || 0 }));
+            const vendas = (Array.isArray(dataVendas)? dataVendas : [])
+               .filter(v => statusValidos.includes(v.status?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
+               .map(v => ({...v, total: Number(v.total) || 0 }));
 
             const vendasHoje = vendas.filter(v => v.data_venda && v.data_venda.startsWith(hojeStr));
             const vendasMes = vendas.filter(v => v.data_venda && v.data_venda.split('T')[0] >= inicioMesStr);
@@ -127,7 +127,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             console.log("VENDAS HOJE:", vendasHoje.length, vendasHoje);
             console.log("PRIMEIRA VENDA:", vendasHoje[0]);
 
+            // 1. FATURAMENTO E QTD VEM SEMPRE DAS VENDAS
             const totalVendasHoje = vendasHoje.reduce((acc, v) => acc + v.total, 0);
+            const qtdVendasHoje = vendasHoje.length;
 
             const movsHoje = dataMov.movimentacoes || [];
             const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
@@ -135,46 +137,43 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
             console.log("TIPOS ENCONTRADOS:", movsHoje.map(m => ({ tipo: m.tipo, forma: m.forma_pagamento, valor: m.valor })));
 
-            let cashHoje = 0;
-            let tpaHoje = 0;
+            // 2. CAIXA FISICO VEM DAS MOVIMENTACOES
+            let cashHoje = movsHoje
+               .filter(m => tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+               .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-            // CORREÇÃO: Calcula primeiro pelo caixa
-            cashHoje = movsHoje
-                .filter(m => tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+            let tpaHoje = movsHoje
+               .filter(m => tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia', 'pix'].includes(String(m.forma_pagamento || '').toLowerCase()))
+               .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-            tpaHoje = movsHoje
-                .filter(m => tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
-                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
-
-            // Se não achou entrada no caixa, usa as vendas como fallback
-            if (cashHoje === 0 && tpaHoje === 0) {
-                console.log("USANDO FALLBACK: Vendas de Hoje - Caixa sem entradas");
+            // FALLBACK: Se não tem mov no caixa ainda, usa as vendas pra não zerar
+            if (cashHoje === 0 && tpaHoje === 0 && movsHoje.length === 0) {
+                console.log("USANDO FALLBACK: Vendas de Hoje - Caixa sem movimentacoes");
                 cashHoje = vendasHoje
-                    .filter(v => String(v.forma_pagamento || '').toLowerCase() === 'dinheiro')
-                    .reduce((acc, v) => acc + Number(v.total || 0), 0);
+                   .filter(v => String(v.forma_pagamento || '').toLowerCase() === 'dinheiro')
+                   .reduce((acc, v) => acc + Number(v.total || 0), 0);
 
                 tpaHoje = vendasHoje
-                    .filter(v => ['tpa', 'transferencia'].includes(String(v.forma_pagamento || '').toLowerCase()))
-                    .reduce((acc, v) => acc + Number(v.total || 0), 0);
+                   .filter(v => ['tpa', 'transferencia', 'pix'].includes(String(v.forma_pagamento || '').toLowerCase()))
+                   .reduce((acc, v) => acc + Number(v.total || 0), 0);
             } else {
                 console.log("USANDO: Movimentacoes do Caixa");
             }
 
             const saidasCaixa = movsHoje
-                .filter(m => tiposSaida.includes(m.tipo))
-                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+               .filter(m => tiposSaida.includes(m.tipo))
+               .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-            console.log("RESULTADO CALCULO:", { cashHoje, tpaHoje, saidasCaixa, saidasHoje });
+            console.log("RESULTADO CALCULO:", { totalVendasHoje, cashHoje, tpaHoje, saidasCaixa, saidasHoje });
             console.log("=== DEBUG DADOS TAB FIM ===");
 
             setKpis({
-                vendaDiaria: cashHoje + tpaHoje,
-                saidaDiaria: saidasHoje,
+                vendaDiaria: totalVendasHoje, // <- AGORA É DAS VENDAS
+                saidaDiaria: saidasCaixa || saidasHoje, // <- Prioridade pro caixa
                 totalVendasMes: resumoMesData.entradas_mes || 0,
                 totalSaidasMes: resumoMesData.saidas_mes || 0,
                 estoqueZerado: 0,
-                qtdVendasHoje: vendasHoje.length
+                qtdVendasHoje: qtdVendasHoje // <- AGORA É DAS VENDAS
             })
         } catch (error) {
             console.error("ERRO GERAL:", error);
