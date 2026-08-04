@@ -129,6 +129,8 @@ async def upload_produto_local(file: UploadFile = File(...)):
     logger.info(f"[LOCAL] Arquivo salvo: {url}")
     return {"url": url, "filename": file_name, "storage": "local"}
 
+
+
 # ROTA 2: SALVAR CLOUDINARY - pra produção
 @api_v1_router.post("/upload/produto/cloudinary", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
 async def upload_produto_cloudinary(file: UploadFile = File(...)):
@@ -150,7 +152,7 @@ async def _upload_to_cloudinary(file: UploadFile):
         return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
 
     try:
-        logger.info(f"[CLOUDINARY] Enviando arquivo: {filename} - Tamanho: {len(contents)} bytes") # <- troquei file.filename por filename
+        logger.info(f"[CLOUDINARY] Enviando arquivo: {filename} - Tamanho: {len(contents)} bytes")
 
         upload_result = cloudinary.uploader.upload(
             contents,
@@ -180,7 +182,14 @@ async def _upload_to_cloudinary(file: UploadFile):
         logger.error(f"[CLOUDINARY] ERRO: {e}\n{traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"detail": f"Erro ao enviar para Cloudinary: {str(e)}"})
 
-    
+
+
+
+
+
+
+
+
 @api_v1_router.get("/health", tags=["health"])
 async def health_check():
     return {"status": "ok"}
