@@ -137,8 +137,9 @@ async def criar_produto(produto: ProdutoCreateWithAuth, db: AsyncSession = Depen
         estoque=payload.get("estoque", 0), estoque_minimo=payload.get("estoque_minimo", 5),
         estoque_maximo=payload.get("estoque_maximo"), unidade=payload.get("unidade"),
         fornecedor_id=payload.get("fornecedor_id"), localizacao=payload.get("localizacao"),
+        controla_estoque=payload.get("controla_estoque", True), # <- ADICIONA ESSA LINHA
         preco_venda=preco_venda, preco_compra=preco_compra,
-        margem_lucro = Decimal('0') if preco_compra == 0 else ((preco_venda - preco_compra) / preco_compra) * 100, # CORRIGIDO: Decimal
+        margem_lucro = Decimal('0') if preco_compra == 0 else ((preco_venda - preco_compra) / preco_compra) * 100,
         codigo_qr=None
     )
     db.add(novo)
@@ -204,6 +205,9 @@ async def atualizar_produto(produto_id: UUID, produto_update: ProdutoUpdateWithA
     if 'preco_custo' in update_data: produto_db.preco_compra = Decimal(str(update_data.pop('preco_custo')))
 
     for key, value in update_data.items():
+        if key == "controla_estoque": # <- ADICIONA ESSAS 2 LINHAS
+            produto_db.controla_estoque = value
+            continue
         setattr(produto_db, key, value)
 
     if 'nome' in update_data or 'sku' in update_data:

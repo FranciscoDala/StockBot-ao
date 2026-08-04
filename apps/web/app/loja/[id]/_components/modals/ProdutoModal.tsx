@@ -145,7 +145,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     body: formDataUpload
                 });
                 const dataCloud = await resCloud.json();
-                if (!resCloud.ok) throw new Error(dataCloud.detail || "Falha no upload");
+                if (!resCloud.ok) throw new Error(dataCloud.detail || `Falha no upload: ${resCloud.status}`);
                 imagemUrlFinal = dataCloud.original_url || dataCloud.optimized_url;
                 toast.success("Imagem enviada com sucesso");
             } catch (err: any) {

@@ -150,15 +150,12 @@ async def _upload_to_cloudinary(file: UploadFile):
         return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
 
     try:
-        logger.info(f"[CLOUDINARY] Enviando arquivo: {filename} - Tamanho: {len(contents)} bytes")
+        logger.info(f"[CLOUDINARY] Enviando arquivo: {filename} - Tamanho: {len(contents)} bytes") # <- troquei file.filename por filename
 
         upload_result = cloudinary.uploader.upload(
             contents,
             folder="stockbot/apps/uploads/produtos",
-            resource_type="image",
-            upload_preset="stockbot_produtos", # <- ADICIONADO: cria preset unsigned no cloudinary
-            overwrite=True,
-            invalidate=True
+            resource_type="image"
         )
 
         logger.info(f"[CLOUDINARY] SUCESSO! URL: {upload_result['secure_url']}")
@@ -183,6 +180,7 @@ async def _upload_to_cloudinary(file: UploadFile):
         logger.error(f"[CLOUDINARY] ERRO: {e}\n{traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"detail": f"Erro ao enviar para Cloudinary: {str(e)}"})
 
+    
 @api_v1_router.get("/health", tags=["health"])
 async def health_check():
     return {"status": "ok"}
