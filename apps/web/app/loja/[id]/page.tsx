@@ -225,17 +225,45 @@ export default function LojaPage() {
         } catch (err) { handleSair(); }
     }, [router, lojaId, fetchProdutos, fetchLoja, fetchVendas]);
 
+
     useEffect(() => {
-        if (!token || !lojaId) return; const WS_URL = process.env.NEXT_PUBLIC_WS_URL; const socket = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`); socket.onopen = () => setWs(socket);
+        if (!token || !lojaId) return;
+
+        const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "wss://stockbot-ao.onrender.com";
+        const socket = new WebSocket(`${WS_URL}/ws/lojas/${lojaId}?token=${token}`);
+
+        socket.onopen = () => {
+            setWs(socket);
+            console.log("[WS] Conectado em:", `${WS_URL}/ws/lojas/${lojaId}`)
+        };
+
         socket.onmessage = (event) => {
-            const data = JSON.parse(event.data); if (data.tipo === "stock.updated") {
+            const data = JSON.parse(event.data);
+            console.log("[WS] Recebido:", data) // <- pra debuggar
+            if (data.tipo === "stock.updated") {
                 setProdutos(prev => prev.map(p => String(p.id) === String(data.produto_id) ? { ...p, estoque: data.novo_estoque } : p));
-                setCarrinho(prev => { const novo = prev.map(item => String(item.id) === String(data.produto_id) ? { ...item, estoque: data.novo_estoque } : item); return novo.map(item => item.quantidade > item.estoque ? { ...item, quantidade: item.estoque } : item).filter(item => item.quantidade > 0); });
+                setCarrinho(prev => {
+                    const novo = prev.map(item => String(item.id) === String(data.produto_id) ? { ...item, estoque: data.novo_estoque } : item);
+                    return novo.map(item => item.quantidade > item.estoque ? { ...item, quantidade: item.estoque } : item).filter(item => item.quantidade > 0);
+                });
                 toast.info(`Estoque: ${data.nome_produto} -> ${data.novo_estoque}`);
             }
         };
-        socket.onclose = () => { setWs(null); }; return () => socket.close();
+
+        socket.onerror = (error) => {
+            console.error("[WS] Erro:", error)
+        }
+
+        socket.onclose = () => {
+            setWs(null);
+            console.log("[WS] Desconectado. Recarregando em 3s...")
+            setTimeout(() => { window.location.reload() }, 3000) // <- reconecta sozinho
+        };
+
+        return () => socket.close();
     }, [token, lojaId]);
+
+
 
     const adicionarAoCarrinho = (produto: ProdutoType) => { if ((produto.estoque ?? 0) <= 0) { toast.error("Sem estoque"); return; } setCarrinho(prev => { const item = prev.find(i => String(i.id) === String(produto.id)); if (item) { if (item.quantidade + 1 > (produto.estoque ?? 0)) { toast.warning("Estoque max"); return prev; } return prev.map(i => String(i.id) === String(produto.id) ? { ...i, quantidade: i.quantidade + 1 } : i); } return [...prev, { ...produto, quantidade: 1 }]; }); };
     const confirmarRemoverItem = (item: CarrinhoItem) => { setItemParaRemover(item); setShowConfirmarModal(true); };
