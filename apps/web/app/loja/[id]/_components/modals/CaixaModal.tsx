@@ -44,7 +44,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
     const [resumoMes, setResumoMes] = useState<number>(0);
 
     const carregarResumoMes = async () => {
-        if (!API_URL ||!lojaId ||!token) return;
+        if (!API_URL || !lojaId || !token) return;
         try {
             const res = await fetch(`${API_URL}/caixas/resumo-mes?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao buscar resumo mes");
@@ -56,6 +56,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         }
     }
 
+
     const [loading, setLoading] = useState(false);
 
     const [showSangriaModal, setShowSangriaModal] = useState(false);
@@ -63,7 +64,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
 
     // 1. Carrega resumo + movimentacoes + controla scroll
     useEffect(() => {
-        if (open && lojaId && token &&!showSangriaModal &&!showAberturaModal) {
+        if (open && lojaId && token && !showSangriaModal && !showAberturaModal) {
             setLoading(true);
 
             Promise.all([
@@ -77,6 +78,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         return () => { document.body.style.overflow = 'unset'; }
     }, [open, lojaId, token, showSangriaModal, showAberturaModal]);
 
+
     // 2. Carrega movimentacoes quando trocar de aba
     useEffect(() => {
         if (open && abaAtiva === 'movimentacoes' && lojaId && token) {
@@ -85,23 +87,14 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         }
     }, [open, abaAtiva, lojaId, token]);
 
+
     const carregarResumoCaixa = async () => {
-        if (!API_URL ||!lojaId ||!token) return;
+        if (!API_URL || !lojaId || !token) return;
         try { // <- tira o setLoading(true) daqui
             const res = await fetch(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
-
-            // AJUSTE 1: O backend retorna {caixas, movimentacoes, resumo}. Pega do resumo
-            const resumoData = data.resumo || data;
-            setResumo(resumoData);
-
-            // AJUSTE 2: Se vier movimentacoes junto já seta aqui também
-            if (Array.isArray(data.movimentacoes)) {
-                const ordenadas = data.movimentacoes.sort((a: Movimentacao, b: Movimentacao) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-                setMovimentacoes(ordenadas);
-            }
-
+            setResumo(data);
         } catch (error) {
             console.error(error);
             setResumo(null);
@@ -109,7 +102,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
     }
 
     const carregarMovimentacoes = async () => {
-        if (!API_URL ||!lojaId ||!token) return;
+        if (!API_URL || !lojaId || !token) return;
         try { // <- tira o setLoading(true) daqui também
             const hoje = new Date().toISOString().split('T')[0];
             const res = await fetch(`${API_URL}/caixas/historico?loja_id=${lojaId}&data=${hoje}`, {
@@ -117,8 +110,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
             });
             if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
             const data = await res.json();
-            // AJUSTE 3: Aceita data.movimentacoes ou data direto
-            const movs: Movimentacao[] = Array.isArray(data.movimentacoes)? data.movimentacoes : Array.isArray(data)? data : [];
+            const movs: Movimentacao[] = Array.isArray(data.movimentacoes) ? data.movimentacoes : [];
             const ordenadas = movs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             setMovimentacoes(ordenadas);
         } catch (error) {
@@ -126,6 +118,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
             setMovimentacoes([]);
         }
     }
+
 
     const handleAcaoConcluida = () => {
         setShowSangriaModal(false);
@@ -142,10 +135,10 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
 
     return (
         <>
-            <Dialog open={open} onOpenChange={(v) => { if (!showSangriaModal &&!showAberturaModal) onOpenChange(v) }}>
+            <Dialog open={open} onOpenChange={(v) => { if (!showSangriaModal && !showAberturaModal) onOpenChange(v) }}>
                 <DialogContent
 
-                    className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden"
+                    className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
                     style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
                     onInteractOutside={(e) => { if (showSangriaModal || showAberturaModal) e.preventDefault() }}
                     onEscapeKeyDown={(e) => { if (showSangriaModal || showAberturaModal) e.preventDefault() }}
@@ -177,7 +170,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
                     </div>
 
                     <div className="flex-1 overflow-y-auto px-4 sm:p-6 min-h-0 pb-8">
-                        {loading? (
+                        {loading ? (
                             <div className="flex flex-col items-center justify-center h-full gap-2">
                                 <Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} />
                             </div>
@@ -214,8 +207,8 @@ function TabButton({ label, icon, active, onClick }: any) {
             onClick={onClick}
             className="relative flex flex-1 items-center justify-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition rounded-t-lg sm:flex-initial"
             style={{
-                color: active? 'var(--cor-primaria)' : 'var(--cor-texto-sec)',
-                backgroundColor: active? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent'
+                color: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)',
+                backgroundColor: active ? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent'
             }}
             onMouseEnter={(e) => {
                 if (!active) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)'
@@ -230,6 +223,7 @@ function TabButton({ label, icon, active, onClick }: any) {
     )
 }
 
+
 function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, resumoMes: number, movimentacoes: Movimentacao[], isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
 
     const hoje = new Date().toISOString().split('T')[0];
@@ -239,20 +233,20 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
 
     // NOVOS CÁLCULOS SEPARADOS POR FORMA DE PAGAMENTO
     const cashHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-       .reduce((acc, m) => acc + Number(m.valor), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+        .reduce((acc, m) => acc + Number(m.valor), 0);
 
     const tpaHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
-       .reduce((acc, m) => acc + Number(m.valor), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
+        .reduce((acc, m) => acc + Number(m.valor), 0);
 
     const saidasHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
-       .reduce((acc, m) => acc + Number(m.valor), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
+        .reduce((acc, m) => acc + Number(m.valor), 0);
 
     const faturamentoHoje = cashHoje + tpaHoje;
 
-    const statusConfig = isCaixaAberto? {
+    const statusConfig = isCaixaAberto ? {
         cor: 'var(--cor-sucesso)',
         bg: 'color-mix(in srgb, var(--cor-sucesso) 8%, transparent)',
         border: 'color-mix(in srgb, var(--cor-sucesso) 25%, transparent)',
@@ -301,8 +295,8 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button onClick={onAbrir} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs" style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}>
-                            {isCaixaAberto? <Lock size={16} /> : <Unlock size={16} />}
-                            {isCaixaAberto? 'Fechar Caixa' : 'Abrir Caixa'}
+                            {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />}
+                            {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
                         </Button>
                         <Button onClick={onSangria} disabled={!isCaixaAberto} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40" style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             <Minus size={16} /> Sangria
@@ -355,6 +349,7 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     )
 }
 
+
 function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) {
     const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().split('T')[0]);
 
@@ -387,7 +382,7 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                     </div>
                 </div>
                 {/* AJUSTE 2: Centralizado */}
-                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border-dashed p-6 text-center"
+                <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 text-center"
                     style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                     <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
                     <h3 className="font-semibold">Nenhuma movimentação nesta data</h3>
@@ -424,9 +419,9 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                                                 style={{
                                                     background: String(mov.forma_pagamento || '').toLowerCase() === 'dinheiro'
-                                                       ? 'color-mix(in srgb, var(--cor-sucesso) 15%, transparent)'
+                                                        ? 'color-mix(in srgb, var(--cor-sucesso) 15%, transparent)'
                                                         : 'color-mix(in srgb, var(--cor-primaria) 15%, transparent)',
-                                                    color: String(mov.forma_pagamento || '').toLowerCase() === 'dinheiro'? 'var(--cor-sucesso)' : 'var(--cor-primaria)'
+                                                    color: String(mov.forma_pagamento || '').toLowerCase() === 'dinheiro' ? 'var(--cor-sucesso)' : 'var(--cor-primaria)'
                                                 }}>
                                                 {mov.forma_pagamento}
                                             </span>
@@ -435,8 +430,8 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
                                 </div>
                             </div>
-                            <p className={`font-bold text-sm ${isEntrada(mov.tipo)? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
-                                {isEntrada(mov.tipo)? '+' : '-'} {formatCurrency(mov.valor)}
+                            <p className={`font-bold text-sm ${isEntrada(mov.tipo) ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
+                                {isEntrada(mov.tipo) ? '+' : '-'} {formatCurrency(mov.valor)}
                             </p>
                         </div>
 
