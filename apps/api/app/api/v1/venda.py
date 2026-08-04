@@ -45,11 +45,14 @@ async def criar_venda_endpoint(
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
     if venda and venda.itens:
+        await db.commit() # 1. SALVA PRIMEIRO PRA GARANTIR DADOS NO BANCO
+
         for item in venda.itens:
             produto_id = item.produto_id
             nome_produto = item.nome_produto
             produto_db = await db.get(Produto, produto_id)
             if produto_db and produto_db.controla_estoque:
+                await db.refresh(produto_db) # 2. PEGA ESTOQUE ATUALIZADO DO BANCO
                 await manager.broadcast_to_loja(
                     str(loja_id),
                     {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
@@ -95,12 +98,9 @@ async def criar_venda_endpoint(
         except Exception as e:
             logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}", exc_info=True)
 
-    await db.commit()
-
     if venda:
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
     return venda
-
 
 
 
