@@ -90,20 +90,11 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
 
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
-        try {
+        try { // <- tira o setLoading(true) daqui
             const res = await fetch(`${API_URL}/caixas/resumo-dia?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
-
-            // CORREÇÃO: Pega do data.resumo e não direto do data
-            setResumo(data.resumo || data);
-
-            // BONUS: Se já vier movimentacoes aqui, já seta pra não depender só do outro fetch
-            if (Array.isArray(data.movimentacoes)) {
-                const ordenadas = data.movimentacoes.sort((a: Movimentacao, b: Movimentacao) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-                setMovimentacoes(ordenadas);
-            }
-
+            setResumo(data);
         } catch (error) {
             console.error(error);
             setResumo(null);

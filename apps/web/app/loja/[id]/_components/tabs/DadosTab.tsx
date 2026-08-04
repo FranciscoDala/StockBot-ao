@@ -166,7 +166,7 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
             setKpis({
                 vendaDiaria: cashHoje + tpaHoje,
-                saidaDiaria: saidasHoje + saidasCaixa,
+                saidaDiaria: saidasHoje,
                 totalVendasMes: resumoMesData.entradas_mes || 0,
                 totalSaidasMes: resumoMesData.saidas_mes || 0,
                 estoqueZerado: 0,
