@@ -22,6 +22,8 @@ type CaixaResumo = {
     id: string;
     saldo_abertura: number;
     entradas_hoje: number;
+    cash_hoje: number; // <- ADICIONA
+    tpa_hoje: number; // <- ADICIONA
     saidas_hoje: number;
     saldo_atual: number;
     status: 'aberto' | 'fechado'
@@ -242,6 +244,8 @@ function TabButton({ label, icon, active, onClick }: any) {
 }
 
 
+
+
 function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, resumoMes: number, movimentacoes: Movimentacao[], isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
 
     const hoje = new Date().toISOString().split('T')[0];
@@ -249,18 +253,25 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
     const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
-    // CORREÇÃO: Usa let para poder fazer fallback depois
-    let cashHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+    // 1. TENTA PEGAR DO BACKEND PRIMEIRO
+    let cashHoje = resumo?.cash_hoje ?? 0;
+    let tpaHoje = resumo?.tpa_hoje ?? 0;
+    let saidasHoje = resumo?.saidas_hoje ?? 0;
 
-    let tpaHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
-        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+    // 2. FALLBACK: SE BACKEND VEIO 0, CALCULA PELAS MOVIMENTACOES
+    if (cashHoje === 0 && tpaHoje === 0) {
+        cashHoje = movimentacoes
+            .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-    const saidasHoje = movimentacoes
-        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
-        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+        tpaHoje = movimentacoes
+            .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia', 'pix', 'cartao'].includes(String(m.forma_pagamento || '').toLowerCase()))
+            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+
+        saidasHoje = movimentacoes
+            .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
+            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+    }
 
     const faturamentoHoje = cashHoje + tpaHoje;
 
@@ -334,8 +345,6 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
 
             {/* GRID COM OS 2 CARDS PRINCIPAIS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                {/* CARD FATURAMENTO TOTAL - COR ALERT/INFO */}
                 <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
                     style={{
                         background: 'color-mix(in srgb, var(--cor-aviso) 8%, transparent)',
@@ -348,7 +357,6 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Cash + TPA/Transferência</p>
                 </div>
 
-                {/* CARD SALDO ATUAL - COR SUCESSO */}
                 <div className="p-5 rounded-xl flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
                     style={{
                         background: 'color-mix(in srgb, var(--cor-sucesso) 4%, transparent)',
@@ -360,9 +368,7 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     </div>
                     <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Valor esperado no fechamento</p>
                 </div>
-
             </div>
-
         </div>
     )
 }

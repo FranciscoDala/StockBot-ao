@@ -119,32 +119,49 @@ async def registrar_movimento_caixa(
 
 
 
-# ROTA NOVA: RESUMO DO DIA SOMANDO TODOS OS CAIXAS
 @router.get("/resumo-dia", response_model=CaixaResumoOut)
 async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
     hoje = date.today()
 
-    stmt_saldo = select(func.coalesce(func.sum(Caixa.saldo_abertura), 0)).where( # type: ignore
-        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje) # type: ignore
+    # 1. SALDO ABERTURA
+    stmt_saldo = select(func.coalesce(func.sum(Caixa.saldo_abertura), 0)).where(
+        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje)
     )
     saldo_abertura = (await db.execute(stmt_saldo)).scalar_one()
 
-    stmt_entradas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where( # type: ignore
+    # 2. ENTRADAS SEPARADAS POR FORMA
+    stmt_entradas = select(
+        MovimentacaoCaixa.valor,
+        MovimentacaoCaixa.forma_pagamento
+    ).where(
         and_(
-            MovimentacaoCaixa.loja_id == loja_id, # type: ignore
-            func.date(MovimentacaoCaixa.created_at) == hoje, # type: ignore
-            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value # type: ignore
+            MovimentacaoCaixa.loja_id == loja_id,
+            func.date(MovimentacaoCaixa.created_at) == hoje,
+            MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value
         )
     )
-    entradas = (await db.execute(stmt_entradas)).scalar_one()
+    entradas = (await db.execute(stmt_entradas)).all()
 
-    # CORRIGIDO: agora soma SAIDA + SANGRIA + FECHAMENTO + ESTORNO
-    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where( # type: ignore
+    cash_hoje = Decimal('0')
+    tpa_hoje = Decimal('0')
+
+    for valor, forma in entradas:
+        val = to_decimal(valor)
+        forma_lower = str(forma or "").lower()
+        if forma_lower in ['dinheiro', 'cash']:
+            cash_hoje += val
+        elif forma_lower in ['tpa', 'transferencia', 'pix', 'cartao']:
+            tpa_hoje += val
+        else: # suprimento/abertura sem forma
+            cash_hoje += val
+
+    # 3. SAIDAS
+    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
         and_(
-            MovimentacaoCaixa.loja_id == loja_id, # type: ignore
-            func.date(MovimentacaoCaixa.created_at) == hoje, # type: ignore
-            MovimentacaoCaixa.tipo.in_([ # type: ignore
+            MovimentacaoCaixa.loja_id == loja_id,
+            func.date(MovimentacaoCaixa.created_at) == hoje,
+            MovimentacaoCaixa.tipo.in_([
                 TipoMovimentacao.SAIDA.value,
                 TipoMovimentacao.SANGRIA.value,
                 TipoMovimentacao.FECHAMENTO.value,
@@ -156,18 +173,21 @@ async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
 
     caixa_loja_aberto = await get_caixa_aberto_loja(db, loja_id)
     tem_caixa_aberto = caixa_loja_aberto is not None
-    saldo_atual = to_decimal(saldo_abertura) + to_decimal(entradas) - to_decimal(saidas)
+    saldo_atual = to_decimal(saldo_abertura) + cash_hoje + tpa_hoje - to_decimal(saidas)
 
-    return CaixaResumoOut(
-        id=caixa_loja_aberto.id if caixa_loja_aberto else None, # type: ignore
-        saldo_abertura=to_decimal(saldo_abertura),
-        entradas_hoje=to_decimal(entradas),
-        saidas_hoje=to_decimal(saidas),
-        saldo_atual=saldo_atual,
-        status=(StatusCaixa.ABERTO.value if tem_caixa_aberto else StatusCaixa.FECHADO.value) # type: ignore
-    )
+    # 4. RETORNA TUDO SEPARADO
+    return {
+        "id": str(caixa_loja_aberto.id) if caixa_loja_aberto else None,
+        "saldo_abertura": float(saldo_abertura),
+        "entradas_hoje": float(cash_hoje + tpa_hoje), # mantem pra compatibilidade
+        "cash_hoje": float(cash_hoje), # <- NOVO
+        "tpa_hoje": float(tpa_hoje), # <- NOVO
+        "saidas_hoje": float(saidas),
+        "saldo_atual": float(saldo_atual),
+        "status": StatusCaixa.ABERTO.value if tem_caixa_aberto else StatusCaixa.FECHADO.value
+    }
 
-from datetime import datetime, date
+
 
 @router.get("/resumo-mes")
 async def get_resumo_mes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
