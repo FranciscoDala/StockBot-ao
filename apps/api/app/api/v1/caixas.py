@@ -119,74 +119,68 @@ async def registrar_movimento_caixa(
 
 
 
-@router.get("/resumo-dia", response_model=CaixaResumoOut)
+@router.get("/resumo-dia")
 async def get_resumo_dia(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
     hoje = date.today()
+    logger.info(f"[RESUMO-DIA] Iniciando para loja={loja_id} data={hoje}")
 
-    # 1. SALDO ABERTURA
-    stmt_saldo = select(func.coalesce(func.sum(Caixa.saldo_abertura), 0)).where(
-        and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje)
-    )
-    saldo_abertura = (await db.execute(stmt_saldo)).scalar_one()
+    saldo_abertura = (await db.execute(
+        select(func.coalesce(func.sum(Caixa.saldo_abertura), 0)).where(
+            and_(Caixa.loja_id == loja_id, func.date(Caixa.data_caixa) == hoje)
+        )
+    )).scalar_one()
+    logger.info(f"[RESUMO-DIA] saldo_abertura={saldo_abertura}")
 
-    # 2. ENTRADAS SEPARADAS POR FORMA
-    stmt_entradas = select(
-        MovimentacaoCaixa.valor,
-        MovimentacaoCaixa.forma_pagamento
-    ).where(
+    # BUSCA TODAS ENTRADAS DE HOJE
+    entradas_query = await db.execute(select(MovimentacaoCaixa).where(
         and_(
             MovimentacaoCaixa.loja_id == loja_id,
             func.date(MovimentacaoCaixa.created_at) == hoje,
             MovimentacaoCaixa.tipo == TipoMovimentacao.ENTRADA.value
         )
-    )
-    entradas = (await db.execute(stmt_entradas)).all()
+    ))
+    entradas_list = entradas_query.scalars().all()
+    logger.info(f"[RESUMO-DIA] Qtd entradas encontradas: {len(entradas_list)}")
 
     cash_hoje = Decimal('0')
     tpa_hoje = Decimal('0')
-
-    for valor, forma in entradas:
-        val = to_decimal(valor)
-        forma_lower = str(forma or "").lower()
-        if forma_lower in ['dinheiro', 'cash']:
+    for mov in entradas_list:
+        val = to_decimal(mov.valor)
+        forma = str(mov.forma_pagamento or "").lower()
+        logger.info(f"[RESUMO-DIA] Mov: id={mov.id} valor={val} forma={forma}") # <- LOG CADA MOV
+        if forma in ['dinheiro', 'cash']:
             cash_hoje += val
-        elif forma_lower in ['tpa', 'transferencia', 'pix', 'cartao']:
+        else:
             tpa_hoje += val
-        else: # suprimento/abertura sem forma
-            cash_hoje += val
 
-    # 3. SAIDAS
-    stmt_saidas = select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
+    logger.info(f"[RESUMO-DIA] TOTAL cash={cash_hoje} tpa={tpa_hoje}")
+
+    saidas = (await db.execute(select(func.coalesce(func.sum(MovimentacaoCaixa.valor), 0)).where(
         and_(
             MovimentacaoCaixa.loja_id == loja_id,
             func.date(MovimentacaoCaixa.created_at) == hoje,
-            MovimentacaoCaixa.tipo.in_([
-                TipoMovimentacao.SAIDA.value,
-                TipoMovimentacao.SANGRIA.value,
-                TipoMovimentacao.FECHAMENTO.value,
-                TipoMovimentacao.ESTORNO.value
-            ])
+            MovimentacaoCaixa.tipo.in_([TipoMovimentacao.SAIDA.value, TipoMovimentacao.SANGRIA.value, TipoMovimentacao.FECHAMENTO.value, TipoMovimentacao.ESTORNO.value])
         )
-    )
-    saidas = (await db.execute(stmt_saidas)).scalar_one()
+    ))).scalar_one()
+    logger.info(f"[RESUMO-DIA] saidas={saidas}")
 
     caixa_loja_aberto = await get_caixa_aberto_loja(db, loja_id)
-    tem_caixa_aberto = caixa_loja_aberto is not None
     saldo_atual = to_decimal(saldo_abertura) + cash_hoje + tpa_hoje - to_decimal(saidas)
+    logger.info(f"[RESUMO-DIA] saldo_atual_calculado={saldo_atual}")
 
-    # 4. RETORNA TUDO SEPARADO
-    return {
+    retorno = {
         "id": str(caixa_loja_aberto.id) if caixa_loja_aberto else None,
         "saldo_abertura": float(saldo_abertura),
-        "entradas_hoje": float(cash_hoje + tpa_hoje), # mantem pra compatibilidade
-        "cash_hoje": float(cash_hoje), # <- NOVO
-        "tpa_hoje": float(tpa_hoje), # <- NOVO
+        "entradas_hoje": float(cash_hoje + tpa_hoje),
+        "cash_hoje": float(cash_hoje),
+        "tpa_hoje": float(tpa_hoje),
         "saidas_hoje": float(saidas),
         "saldo_atual": float(saldo_atual),
-        "status": StatusCaixa.ABERTO.value if tem_caixa_aberto else StatusCaixa.FECHADO.value
+        "status": StatusCaixa.ABERTO.value if caixa_loja_aberto else StatusCaixa.FECHADO.value
     }
-
+    logger.info(f"[RESUMO-DIA] RETORNO FINAL: {retorno}") # <- LOG FINAL
+    return retorno
 
 
 @router.get("/resumo-mes")

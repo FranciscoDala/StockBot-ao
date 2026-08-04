@@ -89,6 +89,9 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         }
     }, [open, abaAtiva, lojaId, token, dataSelecionada]); // <- adiciona dataSelecionada aqui
 
+
+
+
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
         try {
@@ -96,16 +99,20 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
             if (!res.ok) throw new Error("Erro ao buscar caixa");
             const data = await res.json();
 
-            // CORREÇÃO 1: Pega do data.resumo
+            console.log("=== RESPOSTA /resumo-dia ===", data); // <- LOG 1
+            console.log("resumo que vai setar:", data.resumo || data); // <- LOG 2
+
             setResumo(data.resumo || data);
 
-            // CORREÇÃO 2: Já seta as movimentacoes que vêm junto pra não depender do outro fetch
             if (Array.isArray(data.movimentacoes)) {
+                console.log("MOVIMENTACOES QUE VIERAM:", data.movimentacoes); // <- LOG 3
                 const ordenadas = data.movimentacoes.sort((a: Movimentacao, b: Movimentacao) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
                 setMovimentacoes(ordenadas);
+            } else {
+                console.log("SEM MOVIMENTACOES NO RETORNO"); // <- LOG 4
             }
         } catch (error) {
-            console.error(error);
+            console.error("ERRO AO CARREGAR RESUMO:", error);
             setResumo(null);
             setMovimentacoes([]);
         }
@@ -250,6 +257,12 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
 
     const hoje = new Date().toISOString().split('T')[0];
 
+    console.log("=== ABA RESUMO RENDER ==="); // LOG 1
+    console.log("1. RESUMO DO BACKEND:", resumo); // LOG 2
+    console.log("2. QTD MOVIMENTACOES:", movimentacoes.length); // LOG 3
+    console.log("3. MOVIMENTACOES RAW:", movimentacoes); // LOG 4
+    console.log("4. DATA HOJE:", hoje); // LOG 5
+
     const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
     const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
@@ -258,22 +271,32 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     let tpaHoje = resumo?.tpa_hoje ?? 0;
     let saidasHoje = resumo?.saidas_hoje ?? 0;
 
+    console.log("5. VALORES DO BACKEND:", { cashHoje, tpaHoje, saidasHoje }); // LOG 6
+
     // 2. FALLBACK: SE BACKEND VEIO 0, CALCULA PELAS MOVIMENTACOES
     if (cashHoje === 0 && tpaHoje === 0) {
-        cashHoje = movimentacoes
-            .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+        console.log("6. ENTRANDO NO FALLBACK - CALCULANDO PELAS MOV"); // LOG 7
+
+        const movsHoje = movimentacoes.filter(m => m.created_at.startsWith(hoje));
+        console.log("7. MOVS DE HOJE:", movsHoje); // LOG 8
+
+        cashHoje = movsHoje
+            .filter(m => tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
             .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-        tpaHoje = movimentacoes
-            .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia', 'pix', 'cartao'].includes(String(m.forma_pagamento || '').toLowerCase()))
+        tpaHoje = movsHoje
+            .filter(m => tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia', 'pix', 'cartao'].includes(String(m.forma_pagamento || '').toLowerCase()))
             .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-        saidasHoje = movimentacoes
-            .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
+        saidasHoje = movsHoje
+            .filter(m => tiposSaida.includes(m.tipo))
             .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+
+        console.log("8. VALORES CALCULADOS NO FRONT:", { cashHoje, tpaHoje, saidasHoje }); // LOG 9
     }
 
     const faturamentoHoje = cashHoje + tpaHoje;
+    console.log("9. FATURAMENTO FINAL:", faturamentoHoje); // LOG 10
 
     const statusConfig = isCaixaAberto ? {
         cor: 'var(--cor-sucesso)',
