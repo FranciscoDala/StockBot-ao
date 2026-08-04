@@ -41,11 +41,8 @@ async def criar_venda_endpoint(
 ):
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
-    # 1. SALVA A VENDA PRIMEIRO PRA PODER FAZER O JOIN DEPOIS
-    await db.commit()
-
     if venda and venda.itens:
-        # 2. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
+        # 1. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
         for item in venda.itens:
             produto_id = item.produto_id
             nome_produto = item.nome_produto
@@ -58,7 +55,7 @@ async def criar_venda_endpoint(
                     {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
                 )
 
-        # 3. ATUALIZA ESTATISTICAS EM TEMPO REAL
+        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
         await manager.broadcast_to_loja(
             str(loja_id),
             {
@@ -69,8 +66,7 @@ async def criar_venda_endpoint(
             }
         )
 
-
-        # 4. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
+        # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
         try:
             stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
@@ -83,27 +79,30 @@ async def criar_venda_endpoint(
                     loja_id=loja_id, # type: ignore
                     tipo=TipoMovimentacao.ENTRADA,
                     valor=Decimal(str(venda.total)),
-                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}", # <- JÁ TEM AQUI
+                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
                     usuario_id=current_user.id, # type: ignore
                     referencia_id=venda.id,
-                    referencia_tipo='venda'
-                    # <- SEM forma_pagamento aqui pra não quebrar
+                    referencia_tipo='venda',
+                    forma_pagamento=venda.forma_pagamento # <- JÁ ESTAVA CERTO
                 )
-                await db.commit() # commit só do movimento
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             else:
-                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto para venda {venda.id}") # <- TROQUEI print por logger
+                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto para venda {venda.id}")
 
         except Exception as e:
-            await db.rollback()
-            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}") # <- TROQUEI print por logger
+            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}")
 
-
-
+    # 4. COMMIT UNICO NO FINAL
+    await db.commit()
 
     if venda:
-        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id) # <- MUDEI: passa id
+        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
     return venda
+
+
+
+
+
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def get_vendas(
