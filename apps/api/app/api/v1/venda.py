@@ -1,4 +1,5 @@
 import logging # <- ADICIONADO
+import traceback # <- ADICIONADO
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +32,12 @@ from app.api.v1.caixas import registrar_movimento_caixa
 
 router = APIRouter()
 
+
+
+
+
+
+
 @router.post("/", response_model=VendaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def criar_venda_endpoint(
     venda_in: VendaCreate,
@@ -39,34 +46,28 @@ async def criar_venda_endpoint(
     current_user: Usuario = Depends(get_current_user),
     loja_id: UUID = Depends(get_current_loja_id)
 ):
-    venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
+    try:
+        venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
-    if venda and venda.itens:
-        # 1. ATUALIZA ESTOQUE - SÓ BROADCAST, BAIXA JÁ FOI FEITA NO SERVICE
-        for item in venda.itens:
-            produto_id = item.produto_id
-            nome_produto = item.nome_produto
+        if venda and venda.itens:
+            # 1. ATUALIZA ESTOQUE
+            for item in venda.itens:
+                produto_id = item.produto_id
+                nome_produto = item.nome_produto
+                produto_db = await db.get(Produto, produto_id)
+                if produto_db and produto_db.controla_estoque:
+                    await manager.broadcast_to_loja(
+                        str(loja_id),
+                        {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
+                    )
 
-            produto_db = await db.get(Produto, produto_id)
-            if produto_db and produto_db.controla_estoque:
-                await manager.broadcast_to_loja(
-                    str(loja_id),
-                    {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
-                )
+            # 2. ATUALIZA ESTATISTICAS
+            await manager.broadcast_to_loja(
+                str(loja_id),
+                {"tipo": "stats.updated", "valor_venda": float(venda.total), "total_itens": venda.total_itens, "acao": "add"}
+            )
 
-        # 2. ATUALIZA ESTATISTICAS EM TEMPO REAL
-        await manager.broadcast_to_loja(
-            str(loja_id),
-            {
-                "tipo": "stats.updated",
-                "valor_venda": float(venda.total),
-                "total_itens": venda.total_itens,
-                "acao": "add"
-            }
-        )
-
-        # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
-        try:
+            # 3. LANÇA NO CAIXA
             stmt_caixa = select(Caixa).where(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO)
             result_caixa = await db.execute(stmt_caixa)
             caixa_aberto = result_caixa.scalar_one_or_none()
@@ -82,24 +83,30 @@ async def criar_venda_endpoint(
                     usuario_id=UUID(str(current_user.id)),
                     referencia_id=UUID(str(venda.id)),
                     referencia_tipo='venda',
-                    forma_pagamento=venda.forma_pagamento # <- já salva na tabela
+                    forma_pagamento=venda.forma_pagamento
                 )
                 await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
             else:
-                logger.warning("AVISO CAIXA: Nenhum caixa aberto para registrar a venda")
+                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto para venda {venda.id}")
 
-        except Exception as e:
-            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}") # <- NÃO DA ROLLBACK. Só loga
+        # 4. COMMIT UNICO AQUI. O service nao deve dar commit
+        await db.commit()
+        await db.refresh(venda)
 
-    # 4. COMMIT UNICO NO FINAL. Salva venda + movimento junto
-    await db.commit()
+        if venda:
+            background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
+        return venda
 
-    if venda:
-        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
+    except Exception as e:
+        await db.rollback() # <- ROLLBACK SE DER ERRO
+        logger.error(f"ERRO AO CRIAR VENDA: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar venda: {str(e)}")
 
-    # Precisa fazer refresh pra retornar com os relacionamentos
-    await db.refresh(venda)
-    return venda
+
+
+
+
+
 
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
 async def get_vendas(
