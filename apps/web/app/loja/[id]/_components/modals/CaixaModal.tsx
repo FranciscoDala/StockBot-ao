@@ -36,12 +36,13 @@ type Movimentacao = {
     forma_pagamento: string | null; // <- MUDA AQUI. Aceita qualquer string
 }
 
-export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props) { // <- ADICIONADO onSave
+export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props) {
     const [abaAtiva, setAbaAtiva] = useState<'resumo' | 'movimentacoes'>('resumo');
     const [resumo, setResumo] = useState<CaixaResumo | null>(null);
     const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([]);
-
+    const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().split('T')[0]); // <- ADICIONA AQUI
     const [resumoMes, setResumoMes] = useState<number>(0);
+
 
     const carregarResumoMes = async () => {
         if (!API_URL || !lojaId || !token) return;
@@ -82,10 +83,9 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
     useEffect(() => {
         if (open && abaAtiva === 'movimentacoes' && lojaId && token) {
             setLoading(true);
-            carregarMovimentacoes().finally(() => setLoading(false));
+            carregarMovimentacoes(dataSelecionada).finally(() => setLoading(false)); // <- passa a data
         }
-    }, [open, abaAtiva, lojaId, token]);
-
+    }, [open, abaAtiva, lojaId, token, dataSelecionada]); // <- adiciona dataSelecionada aqui
 
     const carregarResumoCaixa = async () => {
         if (!API_URL || !lojaId || !token) return;
@@ -110,12 +110,11 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
     }
 
 
-
-    const carregarMovimentacoes = async () => {
+    const carregarMovimentacoes = async (dataBusca: string) => {
         if (!API_URL || !lojaId || !token) return;
-        try { // <- tira o setLoading(true) daqui também
-            const hoje = new Date().toISOString().split('T')[0];
-            const res = await fetch(`${API_URL}/caixas/historico?loja_id=${lojaId}&data=${hoje}`, {
+        try {
+            // setLoading(true); <- REMOVE DAQUI
+            const res = await fetch(`${API_URL}/caixas/historico?loja_id=${lojaId}&data=${dataBusca}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
             if (!res.ok) throw new Error("Erro ao buscar movimentacoes");
@@ -127,6 +126,7 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
             console.error(error);
             setMovimentacoes([]);
         }
+        // finally { setLoading(false); } <- REMOVE DAQUI TAMBÉM
     }
 
 
@@ -134,9 +134,10 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
         setShowSangriaModal(false);
         setShowAberturaModal(false);
         setLoading(true);
+        const hoje = new Date().toISOString().split('T')[0];
         Promise.all([
-            carregarResumoCaixa(),
-            carregarMovimentacoes()
+            carregarResumoCaixa(), // esse já busca hoje
+            carregarMovimentacoes(hoje) // <- força buscar hoje
         ]).finally(() => setLoading(false));
         onSave();
     }
@@ -188,7 +189,14 @@ export function CaixaModal({ open, onOpenChange, onSave, lojaId, token }: Props)
                             <>
                                 {abaAtiva === 'resumo' && <AbaResumo resumo={resumo} resumoMes={resumoMes} movimentacoes={movimentacoes} isCaixaAberto={isCaixaAberto} onAbrir={() => setShowAberturaModal(true)} onSangria={() => setShowSangriaModal(true)} />}
 
-                                {abaAtiva === 'movimentacoes' && <AbaMovimentacoes movimentacoes={movimentacoes} />}
+                                {abaAtiva === 'movimentacoes' &&
+                                    <AbaMovimentacoes
+                                        movimentacoes={movimentacoes}
+                                        dataSelecionada={dataSelecionada} // <- TROCA
+                                        setDataSelecionada={setDataSelecionada} // <- TROCA
+                                        loading={loading}
+                                    />
+                                }
                             </>
                         )}
                     </div>
@@ -243,20 +251,20 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
 
     // CORREÇÃO: Usa let para poder fazer fallback depois
     let cashHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-       .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
     let tpaHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
-       .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia'].includes(String(m.forma_pagamento || '').toLowerCase()))
+        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
     const saidasHoje = movimentacoes
-       .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
-       .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+        .filter(m => m.created_at.startsWith(hoje) && tiposSaida.includes(m.tipo))
+        .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
     const faturamentoHoje = cashHoje + tpaHoje;
 
-    const statusConfig = isCaixaAberto? {
+    const statusConfig = isCaixaAberto ? {
         cor: 'var(--cor-sucesso)',
         bg: 'color-mix(in srgb, var(--cor-sucesso) 8%, transparent)',
         border: 'color-mix(in srgb, var(--cor-sucesso) 25%, transparent)',
@@ -305,8 +313,8 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button onClick={onAbrir} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs" style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}>
-                            {isCaixaAberto? <Lock size={16} /> : <Unlock size={16} />}
-                            {isCaixaAberto? 'Fechar Caixa' : 'Abrir Caixa'}
+                            {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />}
+                            {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
                         </Button>
                         <Button onClick={onSangria} disabled={!isCaixaAberto} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40" style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             <Minus size={16} /> Sangria
@@ -360,23 +368,46 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
 }
 
 
-function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) {
-    const [dataSelecionada, setDataSelecionada] = useState(new Date().toISOString().split('T')[0]);
 
-    const tiposEntrada = ['entrada', 'abertura', 'suprimento']; // <- ADICIONA
-    const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno']; // <- ADICIONA
+function AbaMovimentacoes({
+    movimentacoes,
+    dataSelecionada, // <- TROCA
+    setDataSelecionada, // <- TROCA
+    loading
+}: {
+    movimentacoes: Movimentacao[],
+    dataSelecionada: string, // <- TROCA
+    setDataSelecionada: (data: string) => void, // <- TROCA
+    loading: boolean
+}) {
+
+    const tiposEntrada = ['entrada', 'abertura', 'suprimento'];
+    const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
     const getIcon = (tipo: string) => {
         if (tiposEntrada.includes(tipo)) return <ArrowUpRight size={16} className="text-[var(--cor-sucesso)]" />;
         return <ArrowDownRight size={16} className="text-[var(--cor-erro)]" />;
     }
 
-    const isEntrada = (tipo: string) => tiposEntrada.includes(tipo); // <- HELPER
+    const isEntrada = (tipo: string) => tiposEntrada.includes(tipo);
+
+    // Busca no backend quando a data mudar
+    const handleMudarData = (novaData: string) => {
+        setDataSelecionada(novaData); // só atualiza o state do pai. O useEffect do pai já vai buscar
+    }
 
     const movimentacoesFiltradas = movimentacoes.filter(mov => {
         const dataMov = new Date(mov.created_at).toISOString().split('T')[0];
         return dataMov === dataSelecionada;
     });
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+                <Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} />
+            </div>
+        )
+    }
 
     if (movimentacoesFiltradas.length === 0) {
         return (
@@ -388,10 +419,9 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                             <Calendar size={18} style={{ color: 'var(--cor-primaria)' }} />
                             <label className="text-sm font-semibold whitespace-nowrap">Ver histórico de:</label>
                         </div>
-                        <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-full sm:w-auto h-9" />
+                        <Input type="date" value={dataSelecionada} onChange={(e) => handleMudarData(e.target.value)} className="w-full sm:w-auto h-9" />
                     </div>
                 </div>
-                {/* AJUSTE 2: Centralizado */}
                 <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 text-center"
                     style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                     <Inbox size={32} style={{ color: 'var(--cor-texto-sec)' }} />
@@ -411,14 +441,12 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                         <Calendar size={18} style={{ color: 'var(--cor-primaria)' }} />
                         <label className="text-sm font-semibold whitespace-nowrap">Ver histórico de:</label>
                     </div>
-                    <Input type="date" value={dataSelecionada} onChange={(e) => setDataSelecionada(e.target.value)} className="w-full sm:w-auto h-9" />
+                    <Input type="date" value={dataSelecionada} onChange={(e) => handleMudarData(e.target.value)} className="w-full sm:w-auto h-9" />
                 </div>
             </div>
-            {/* AJUSTE 1: Scroll Y invisível */}
             <div className="flex-1 overflow-y-auto pr-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <div className="space-y-2 pb-8">
                     {movimentacoesFiltradas.map(mov => (
-
                         <div key={mov.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--cor-card)', border: '1px solid color-mix(in srgb, var(--cor-borda) 20%, transparent)' }}>
                             <div className="flex items-center gap-3">
                                 {getIcon(mov.tipo)}
@@ -444,7 +472,6 @@ function AbaMovimentacoes({ movimentacoes }: { movimentacoes: Movimentacao[] }) 
                                 {isEntrada(mov.tipo) ? '+' : '-'} {formatCurrency(mov.valor)}
                             </p>
                         </div>
-
                     ))}
                 </div>
             </div>
