@@ -3,10 +3,13 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, Wallet, ArrowUpRight, ArrowDownRight, FileText, CheckCircle, Lock, Unlock, Loader2, Inbox, Minus, Calendar, Banknote, TrendingUp, TrendingDown } from "lucide-react";
-import { formatCurrency, formatDateTime } from "../utils";
+import { formatCurrency, formatDateTime, formatDataRelativa} from "../utils";
 import { SangriaModal } from "./SangriaModal";
 import { AberturaFechamentoModal } from "./AberturaFechamentoModal";
 import { Input } from "@/components/ui/input";
+
+
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -251,8 +254,6 @@ function TabButton({ label, icon, active, onClick }: any) {
 }
 
 
-
-
 function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, onSangria }: { resumo: CaixaResumo | null, resumoMes: number, movimentacoes: Movimentacao[], isCaixaAberto: boolean, onAbrir: () => void, onSangria: () => void }) {
 
     const hoje = new Date().toISOString().split('T')[0];
@@ -266,9 +267,9 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
 
     // 1. TENTA PEGAR DO BACKEND PRIMEIRO
-    let cashHoje = resumo?.cash_hoje?? 0;
-    let tpaHoje = resumo?.tpa_hoje?? 0;
-    let saidasHoje = resumo?.saidas_hoje?? 0;
+    let cashHoje = resumo?.cash_hoje ?? 0;
+    let tpaHoje = resumo?.tpa_hoje ?? 0;
+    let saidasHoje = resumo?.saidas_hoje ?? 0;
 
     console.log("5. VALORES DO BACKEND:", { cashHoje, tpaHoje, saidasHoje }); // LOG 6
 
@@ -281,16 +282,16 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
         console.log("7. MOVS DE HOJE:", movsHoje); // LOG 8
 
         cashHoje = movsHoje
-           .filter(m => m.tipo === 'entrada' && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-           .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+            .filter(m => m.tipo === 'entrada' && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
         tpaHoje = movsHoje
-           .filter(m => m.tipo === 'entrada' && ['tpa', 'transferencia', 'pix', 'cartao'].includes(String(m.forma_pagamento || '').toLowerCase()))
-           .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+            .filter(m => m.tipo === 'entrada' && ['tpa', 'transferencia', 'pix', 'cartao'].includes(String(m.forma_pagamento || '').toLowerCase()))
+            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
         saidasHoje = movsHoje
-           .filter(m => tiposSaida.includes(m.tipo))
-           .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+            .filter(m => tiposSaida.includes(m.tipo))
+            .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
         console.log("8. VALORES CALCULADOS NO FRONT:", { cashHoje, tpaHoje, saidasHoje }); // LOG 9
     }
@@ -298,7 +299,7 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
     const faturamentoHoje = cashHoje + tpaHoje;
     console.log("9. FATURAMENTO FINAL:", faturamentoHoje); // LOG 10
 
-    const statusConfig = isCaixaAberto? {
+    const statusConfig = isCaixaAberto ? {
         cor: 'var(--cor-sucesso)',
         bg: 'color-mix(in srgb, var(--cor-sucesso) 8%, transparent)',
         border: 'color-mix(in srgb, var(--cor-sucesso) 25%, transparent)',
@@ -347,8 +348,8 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                         <Button onClick={onAbrir} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs" style={{ background: statusConfig.cor, color: '#fff', borderRadius: 'var(--radius-sm)' }}>
-                            {isCaixaAberto? <Lock size={16} /> : <Unlock size={16} />}
-                            {isCaixaAberto? 'Fechar Caixa' : 'Abrir Caixa'}
+                            {isCaixaAberto ? <Lock size={16} /> : <Unlock size={16} />}
+                            {isCaixaAberto ? 'Fechar Caixa' : 'Abrir Caixa'}
                         </Button>
                         <Button onClick={onSangria} disabled={!isCaixaAberto} className="w-full sm:w-auto h-10 px-4 flex items-center justify-center gap-2 font-bold text-xs disabled:opacity-40" style={{ background: 'var(--cor-aviso)', color: '#fff', borderRadius: 'var(--radius-sm)' }}>
                             <Minus size={16} /> Sangria
@@ -397,7 +398,6 @@ function AbaResumo({ resumo, resumoMes, movimentacoes, isCaixaAberto, onAbrir, o
 }
 
 
-
 function AbaMovimentacoes({
     movimentacoes,
     dataSelecionada, // <- TROCA
@@ -409,7 +409,6 @@ function AbaMovimentacoes({
     setDataSelecionada: (data: string) => void, // <- TROCA
     loading: boolean
 }) {
-
 
     const tiposEntrada = ['entrada']; // <- SÓ ENTRADA
     const tiposSaida = ['saida', 'sangria', 'fechamento', 'estorno'];
@@ -495,7 +494,8 @@ function AbaMovimentacoes({
                                             </span>
                                         )}
                                     </p>
-                                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDateTime(mov.created_at)}</p>
+                                    {/* <- MUDANCA AQUI */}
+                                    <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatDataRelativa(mov.created_at)}</p>
                                 </div>
                             </div>
                             <p className={`font-bold text-sm ${isEntrada(mov.tipo) ? 'text-[var(--cor-sucesso)]' : 'text-[var(--cor-erro)]'}`}>
