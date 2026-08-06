@@ -2,7 +2,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 
-import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Settings, Palette, Sun, Moon } from "lucide-react";
+import { LogOut, FileText, BarChart3, ShieldAlert, Store, Users, Package, Truck, ShoppingCart, Settings, Palette, Sun, Moon, UserRound } from "lucide-react";
 
 
 
@@ -19,6 +19,7 @@ import { VendaTab } from "./_components/tabs/VendaTab";
 import { EstatisticasTab } from "./_components/tabs/EstatisticasTab";
 import { RiscoTab } from "./_components/tabs/RiscoTab";
 import { FornecedoresTab } from "./_components/tabs/FornecedoresTab";
+import { ClientesTab } from "./_components/tabs/ClientesTab"; // <- nova aba
 import { DocumentosTab } from "./_components/tabs/DocumentosTab";
 import { DefinicoesTab } from "./_components/tabs/DefinicoesTab";
 import { PermissaoModal } from "./_components/modals/PermissaoModal";
@@ -96,6 +97,7 @@ export default function LojaPage() {
         { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
         { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo && (modo === "completo" || modo === "venda") },
         { id: "definicoes", label: "Definições", icon: Settings, show: (modo === "completo" || modo === "cliente") }, // <- tirei o podeVerTudo // <- AJUSTADO
+        { id: "clientes", label: "Clientes", icon: UserRound, show: modo === "completo" || modo === "cliente" },
     ];
 
     const initialTabs = useMemo(() =>
@@ -622,6 +624,16 @@ export default function LojaPage() {
                         {activeTab === "risco" && <RiscoTab vendas={vendasParaRisco as any} produtos={produtos} theme={theme} cardStyle={cardStyle} cardSize={cardSize} formatCurrency={formatCurrency} />}
                         {activeTab === "fornecedores" && <FornecedoresTab theme={theme} cardStyle={cardStyle} cardSize={cardSize} />}
 
+                        {activeTab === "clientes" &&
+                            <ClientesTab
+                                lojaId={lojaId}
+                                token={token}
+                                theme={theme}
+                                cardStyle={cardStyle}
+                                cardSize={cardSize}
+                                formatCurrency={formatCurrency}
+                            />
+                        }
 
                         {activeTab === "documentos" && (
                             <DocumentosTab

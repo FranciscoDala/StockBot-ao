@@ -1,107 +1,127 @@
 "use client";
-import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Loader2, User } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Loader2 } from "lucide-react";
 
-export type Cliente = {
-    id?: string;
+const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.3)' }
+
+export type ClienteForm = {
     nome: string;
-    telefone?: string;
-    email?: string;
-    nif?: string;
-    endereco?: string;
-    observacao?: string;
+    nome_empresa: string;
+    bi: string;
+    telefone: string;
+    email: string;
+    endereco: string;
+    cidade: string;
+    provincia: string;
+    observacoes: string;
+    is_active: boolean;
 }
 
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
-    editingCliente: Cliente | null;
-    formData: Cliente;
-    setFormData: (d: Cliente) => void;
-    onSave: () => void;
+    editingCliente: ClienteForm | null;
+    formData: ClienteForm;
+    setFormData: (d: ClienteForm) => void;
+    onSave: (e: React.FormEvent) => void;
     saving: boolean;
-    errorMsg: string;
+    handleChange: (field: keyof ClienteForm, value: string | boolean) => void;
 }
 
-export function ClienteModal({ open, onOpenChange, editingCliente, formData, setFormData, onSave, saving, errorMsg }: Props) {
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
-    const inputStyle = {
-        backgroundColor: 'var(--cor-fundo)',
-        color: 'var(--cor-texto)',
-        border: '1.5px solid var(--cor-primaria)',
-        borderRadius: 'var(--radius-sm)',
-    }
-
+export function ClienteModal({ open, onOpenChange, editingCliente, formData, setFormData, onSave, saving, handleChange }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="sm:max-w-[500px] p-0 flex-col border shadow-2xl [&>button]:hidden"
+                className="w-full max-w-full sm:max-w-[600px] p-0 flex-col border shadow-2xl"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
                     borderColor: 'var(--cor-borda)',
                     borderRadius: 'var(--radius)',
                     height: '80vh',
-                    maxHeight: '80vh'
+                    maxHeight: '80vh',
+                    backdropFilter: 'blur(10px)'
                 }}
+                onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
             >
-                <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-6 pb-2 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <User size={24} style={{color: 'var(--cor-primaria)'}} />
-                            <DialogTitle className="text-lg font-bold">{editingCliente? "Editar" : "Adicionar"} Cliente</DialogTitle>
-                        </div>
-                        <DialogDescription className="text-sm pt-2" style={{color: 'var(--cor-texto-sec)'}}>
-                            Preencha os dados do cliente
+                <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
+                    <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
+                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>
+                            {editingCliente? "Editar Cliente" : "Cadastrar Cliente"}
+                        </DialogTitle>
+                        <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
+                            {editingCliente? "Altere os dados do cliente." : "Preencha os dados do cliente"}
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
-                        {errorMsg && (
-                            <div className="border text-xs p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
-                                {errorMsg}
-                            </div>
-                        )}
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Nome *</Label>
-                            <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} required />
+                    <div className="grid gap-3 sm:gap-4 py-4 px-4 sm:px-6 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
+                        <p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados Pessoais</p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="nome" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome Completo *</Label>
+                            <Input id="nome" value={formData.nome} onChange={e => handleChange('nome', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label style={{color: 'var(--cor-texto-sec)'}}>Telefone</Label>
-                                <Input value={formData.telefone || ''} onChange={e => setFormData({...formData, telefone: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label style={{color: 'var(--cor-texto-sec)'}}>NIF</Label>
-                                <Input value={formData.nif || ''} onChange={e => setFormData({...formData, nif: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
-                            </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="bi" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>BI / Passaporte</Label>
+                            <Input id="bi" value={formData.bi} onChange={e => handleChange('bi', e.target.value)} placeholder="000000000LA000" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Email</Label>
-                            <Input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="telefone" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Telefone *</Label>
+                            <Input id="telefone" value={formData.telefone} onChange={e => handleChange('telefone', e.target.value)} placeholder="923 456 789" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
                         </div>
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Endereço</Label>
-                            <Input value={formData.endereco || ''} onChange={e => setFormData({...formData, endereco: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="email" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label>
+                            <Input id="email" type="email" value={formData.email} onChange={e => handleChange('email', e.target.value)} placeholder="cliente@email.com" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Observação</Label>
-                            <Textarea value={formData.observacao || ''} onChange={e => setFormData({...formData, observacao: e.target.value})} className="min-h-20" style={{...inputStyle,...focusStyle}} />
+
+                        <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados Comerciais e Endereço</p></div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="nome_empresa" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome Empresa</Label>
+                            <Input id="nome_empresa" value={formData.nome_empresa} onChange={e => handleChange('nome_empresa', e.target.value)} placeholder="Empresa LDA" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="endereco" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Endereço</Label>
+                            <Input id="endereco" value={formData.endereco} onChange={e => handleChange('endereco', e.target.value)} placeholder="Rua, Bairro" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="cidade" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Cidade</Label>
+                            <Input id="cidade" value={formData.cidade} onChange={e => handleChange('cidade', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="provincia" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Província</Label>
+                            <Input id="provincia" value={formData.provincia} onChange={e => handleChange('provincia', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
+                            <Label htmlFor="observacoes" className="text-xs sm:text-right pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Observações</Label>
+                            <textarea id="observacoes" value={formData.observacoes} onChange={e => handleChange('observacoes', e.target.value)} rows={3} className="sm:col-span-3 w-full rounded-md px-3 py-2 text-xs" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} placeholder="Notas sobre o cliente" />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="active" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Ativo</Label>
+                            <Switch id="active" checked={formData.is_active} onCheckedChange={v => handleChange('is_active', v)} className="sm:col-span-3 w-fit data-[state=checked]:bg-[var(--cor-primaria)]" />
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex-row justify-end gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
                         <DialogClose asChild>
-                            <Button type="button" className="font-semibold" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}>Cancelar</Button>
+                            <Button type="button" className="text-xs flex-1 sm:flex-initial font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>
                         </DialogClose>
-                        <Button type="submit" disabled={saving} className="gap-2 font-bold" style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}>
+                        <Button type="submit" disabled={saving} className="gap-2 text-xs flex-1 sm:flex-initial font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {editingCliente? "Salvar" : "Criar"}
+                            {editingCliente? "Salvar Alterações" : "Cadastrar"}
                         </Button>
                     </DialogFooter>
                 </form>
