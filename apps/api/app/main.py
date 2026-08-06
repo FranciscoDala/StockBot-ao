@@ -13,7 +13,6 @@ from app.core.deps import get_current_user, require_role
 from app.core.config import settings
 from app.models.usuario import Usuario
 from app.schemas.usuario import userread, Role
-from app.websocket.manager import manager # <- ADICIONADO
 
 # Cloudinary
 import cloudinary
@@ -44,9 +43,9 @@ def import_all_models():
     from app.models.categoria import Categoria
     from app.models.fornecedor import Fornecedor
     from app.models.saidas import Saida
-    from app.models.caixa import Caixa # <- NOVO
-    from app.models.movimentacao_caixa import MovimentacaoCaixa # <- NOVO
-    from app.models.cliente import Cliente # <- ADICIONADO
+    from app.models.caixa import Caixa
+    from app.models.movimentacao_caixa import MovimentacaoCaixa
+    from app.models.cliente import Cliente
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
@@ -55,13 +54,6 @@ def import_all_models():
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("stockbot ao api a iniciar...")
     import_all_models()
-
-    # <- INICIA REDIS AQUI - AJUSTE: NAO DERRUBA O APP SE FALHAR
-    try:
-        await manager.connect_redis()
-        logger.info("Redis PubSub conectado")
-    except Exception as e:
-        logger.error(f"AVISO: Redis nao conectou. Websocket so funciona em 1 instancia. Erro: {e}")
 
     try:
         async with engine.begin() as conn:
@@ -76,9 +68,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         raise e
     yield
 
-    # <- FECHA REDIS AQUI
-    await manager.close()
-    logger.info("Redis PubSub fechado")
     logger.info("api a desligar...")
 
 app = FastAPI(
@@ -96,11 +85,14 @@ app.add_middleware(
     allowed_hosts=["*"]
 )
 
-# AJUSTE CRITICO: Adicionado allow_origin_regex pra liberar websocket e subdominios
+# CORS CORRIGIDO: lista fixa + regex pra pegar o front
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS_LIST,
-    allow_origin_regex=r"https://.*\.onrender\.com", # <- ADICIONADO
+    allow_origins=[
+        "https://stockbot-czku.onrender.com",
+        "http://localhost:3000"
+    ] + settings.ALLOWED_ORIGINS_LIST,
+    allow_origin_regex=r"https://.*\.onrender\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -125,8 +117,8 @@ async def upload_produto_local(file: UploadFile = File(...)):
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     MAX_FILE_SIZE = 5 * 1024 * 1024
 
-    filename = file.filename or f"arquivo_{uuid.uuid4()}" # <- CORRIGIDO
-    extension = filename.split(".")[-1].lower() if "." in filename else "jpg" # <- CORRIGIDO
+    filename = file.filename or f"arquivo_{uuid.uuid4()}"
+    extension = filename.split(".")[-1].lower() if "." in filename else "jpg"
 
     if extension not in ALLOWED_EXTENSIONS:
         return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
@@ -155,8 +147,8 @@ async def _upload_to_cloudinary(file: UploadFile):
     ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
     MAX_FILE_SIZE = 5 * 1024 * 1024
 
-    filename = file.filename or f"arquivo_{uuid.uuid4()}" # <- CORRIGIDO
-    extension = filename.split(".")[-1].lower() if "." in filename else "jpg" # <- CORRIGIDO
+    filename = file.filename or f"arquivo_{uuid.uuid4()}"
+    extension = filename.split(".")[-1].lower() if "." in filename else "jpg"
 
     if extension not in ALLOWED_EXTENSIONS:
         return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
@@ -217,11 +209,10 @@ from app.api.v1 import produto as produto_router
 from app.api.v1 import venda as venda_router
 from app.api.v1 import webhook as webhook_router
 from app.api.v1 import documentos as documentos_router
-from app.api.v1 import websocket as websocket_router
 from app.api.v1 import saidas as saidas_router
-from app.api.v1 import caixas as caixas_router # <- NOVO
-from app.api.v1 import movimentos_caixas as movimentos_caixas_router # <- NOVO
-from app.api.v1 import cliente as cliente_router # <- ADICIONADO
+from app.api.v1 import caixas as caixas_router
+from app.api.v1 import movimentos_caixas as movimentos_caixas_router
+from app.api.v1 import cliente as cliente_router
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="")
@@ -232,15 +223,13 @@ api_v1_router.include_router(produto_router.router, prefix="/produtos", tags=["p
 api_v1_router.include_router(venda_router.router, prefix="/vendas", tags=["vendas"])
 api_v1_router.include_router(webhook_router.router, prefix="/webhook", tags=["whatsapp"])
 api_v1_router.include_router(documentos_router.router, prefix="/kyc", tags=["kyc"])
-api_v1_router.include_router(websocket_router.router)
 api_v1_router.include_router(saidas_router.router)
 
 # COMPATIBILIDADE: registra com s e sem s pra nao quebrar o front
 api_v1_router.include_router(caixas_router.router, prefix="/caixas", tags=["caixas"])
-api_v1_router.include_router(caixas_router.router, prefix="/caixa", tags=["caixas"]) # <- ACEITA OS 2 AGORA
+api_v1_router.include_router(caixas_router.router, prefix="/caixa", tags=["caixas"])
 
 api_v1_router.include_router(movimentos_caixas_router.router, prefix="/movimentos-caixas", tags=["movimentos-caixas"])
-
-api_v1_router.include_router(cliente_router.router, prefix="/lojas/id", tags=["clientes"]) # <- ADICIONADO
+api_v1_router.include_router(cliente_router.router, prefix="/lojas/id", tags=["clientes"])
 
 app.include_router(api_v1_router)
