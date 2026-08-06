@@ -4,23 +4,23 @@ from sqlalchemy import ForeignKey, Numeric, DateTime, func, String, Integer
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
-from..db.base import BaseModel # <- tinha 2 pontos
+from..db.base import BaseModel
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
     from app.models.loja import Loja
     from app.models.usuario import Usuario
     from app.models.itens_venda import ItemVenda
-    from app.models.cliente import Cliente
+    from app.models.cliente import Cliente # <- adiciona aqui
 
 class Venda(BaseModel):
     __tablename__ = "vendas"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False)
-    usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True) # <- era obrigatorio, mas ondelete SET NULL
+    usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True)
 
-    cliente_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="SET NULL"), nullable=True, index=True)
+    cliente_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="SET NULL"), nullable=True, index=True) # <- NOVO
 
     total: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     total_itens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -31,8 +31,8 @@ class Venda(BaseModel):
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-    # 1. PASSA O NOME DA CLASSE EM STRING
+    # 1. PASSA O NOME DA CLASSE EM STRING EM TODOS
     loja: Mapped["Loja"] = relationship("Loja", back_populates="vendas")
     usuario: Mapped["Usuario | None"] = relationship("Usuario", back_populates="vendas")
-    cliente: Mapped["Cliente | None"] = relationship("Cliente", back_populates="vendas")
+    cliente: Mapped["Cliente | None"] = relationship("Cliente", back_populates="vendas") # <- NOVO
     itens: Mapped[List["ItemVenda"]] = relationship("ItemVenda", back_populates="venda", cascade="all, delete-orphan")
