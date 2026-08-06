@@ -26,6 +26,8 @@ import api.app.models.saidas
 import api.app.models.caixa           # <- ADICIONA
 import api.app.models.movimentacao_caixa  # <- ADICIONA
 
+from api.app.models.cliente import Cliente # <- ADICIONA ESSA LINHA
+
 # this is the Alembic Config object
 config = context.config
 

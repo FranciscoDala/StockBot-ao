@@ -90,14 +90,14 @@ export default function LojaPage() {
     const allTabs = [
         { id: "dados", label: "Dados", icon: FileText, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
         { id: "venda", label: "Venda", icon: ShoppingCart, show: podeVerVendas && (modo === "completo" || modo === "venda") },
-        { id: "produtos", label: "Produtos", icon: Package, show: (podeVerVendas || podeVerEstoque) && (modo === "completo" || modo === "venda") },
+        { id: "produtos", label: "Produtos", icon: Package, show: (podeVerVendas || podeVerEstoque) && (modo === "completo" || modo === "venda" || modo === "cliente") },
+        { id: "clientes", label: "Clientes", icon: UserRound, show: modo === "completo" || modo === "cliente" },
         { id: "equipa", label: "Equipa", icon: Users, show: modo === "completo" || modo === "cliente" }, // <- AJUSTADO
         { id: "fornecedores", label: "Fornecedores", icon: Truck, show: podeVerTudo && (modo === "completo" || modo === "venda") },
         { id: "documentos", label: "Relatórios", icon: FileText, show: podeVerTudo && (modo === "completo" || modo === "venda") }, // <- AJUSTADO
         { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
         { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo && (modo === "completo" || modo === "venda") },
         { id: "definicoes", label: "Definições", icon: Settings, show: (modo === "completo" || modo === "cliente") }, // <- tirei o podeVerTudo // <- AJUSTADO
-        { id: "clientes", label: "Clientes", icon: UserRound, show: modo === "completo" || modo === "cliente" },
     ];
 
     const initialTabs = useMemo(() =>
