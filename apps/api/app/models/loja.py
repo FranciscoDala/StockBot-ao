@@ -1,9 +1,12 @@
 ﻿from __future__ import annotations
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Boolean, Integer, DateTime
+from sqlalchemy import String, Boolean, Integer, DateTime, Enum as SAEnum # ADICIONA Enum
 from datetime import datetime
 from..db.base import BaseModel
 from typing import TYPE_CHECKING, List, Optional
+from enum import Enum # ADICIONA Enum
+
+
 
 if TYPE_CHECKING:
     from app.models.produto import Produto
@@ -13,6 +16,13 @@ if TYPE_CHECKING:
     from app.models.categoria import Categoria
     from app.models.fornecedor import Fornecedor
     from app.models.saidas import Saida # <- LINHA 1: ADICIONA ISSO
+
+
+class ModoLoja(str, Enum): # ADICIONA ESSA CLASSE
+    venda = "venda"
+    cliente = "cliente"
+    completo = "completo"
+
 
 class Loja(BaseModel):
     """
@@ -32,6 +42,10 @@ class Loja(BaseModel):
     telefone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     logo_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     ano_fundacao: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    # NOVO CAMPO
+    modo: Mapped[ModoLoja] = mapped_column(SAEnum(ModoLoja), nullable=False, default=ModoLoja.completo, server_default="completo") # <- LINHA NOVA
+
 
     # CAMPOS DE TEMA - COM DEFAULT PRA CRIAR JUNTO
     theme: Mapped[str] = mapped_column(String(20), nullable=False, default="dark", server_default="dark")

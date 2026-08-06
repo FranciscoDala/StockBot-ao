@@ -5,6 +5,7 @@ from typing import Optional, List, Union
 
 from app.schemas.documento import DocumentoOut
 from app.schemas.usuario import UserRead, Role
+from app.models.loja import ModoLoja # <- ADICIONA ESSA LINHA. Remove o Enum daqui
 
 class DonoOut(UserRead):
     telefone: Optional[str] = None
@@ -28,12 +29,13 @@ class LojaBase(BaseModel):
     nif: Optional[str] = None
     telefone: Optional[str] = None
     is_active: bool = True
+    modo: ModoLoja = ModoLoja.completo # agora usa o mesmo tipo do model
     theme: str = "dark"
     card_style: str = "padrao"
     card_size: str = "medio"
     font_size: str = "medio"
-    cor_primaria: str = "#10b981" # ADICIONADO
-    cor_fundo: str = "#000000" # ADICIONADO
+    cor_primaria: str = "#10b981"
+    cor_fundo: str = "#000"
 
 class LojaCreateIn(LojaBase):
     dono_existente_id: Optional[UUID] = None
@@ -55,6 +57,7 @@ class LojaUpdateIn(BaseModel):
     nome: Optional[str] = None
     slug: Optional[str] = None
     is_active: Optional[bool] = None
+    modo: Optional[ModoLoja] = None # agora usa o mesmo tipo do model
     endereco: Optional[str] = None
     nif: Optional[str] = None
     telefone: Optional[str] = None
@@ -63,13 +66,14 @@ class LojaUpdateIn(BaseModel):
     card_style: Optional[str] = None
     card_size: Optional[str] = None
     font_size: Optional[str] = None
-    cor_primaria: Optional[str] = None # ADICIONADO
-    cor_fundo: Optional[str] = None # ADICIONADO
+    cor_primaria: Optional[str] = None
+    cor_fundo: Optional[str] = None
 
 class LojaSelectOut(BaseModel):
     id: UUID
     nome: str
     slug: str
+    modo: ModoLoja # agora usa o mesmo tipo do model
     model_config = ConfigDict(from_attributes=True)
 
 class LojaDetailOut(BaseModel):
@@ -77,6 +81,7 @@ class LojaDetailOut(BaseModel):
     nome: str
     slug: str
     is_active: bool
+    modo: ModoLoja # agora usa o mesmo tipo do model
     created_at: Union[datetime, str]
     endereco: Optional[str] = None
     nif: Optional[str] = None
@@ -88,8 +93,8 @@ class LojaDetailOut(BaseModel):
     card_style: str
     card_size: str
     font_size: str
-    cor_primaria: str # ADICIONADO
-    cor_fundo: str # ADICIONADO
+    cor_primaria: str
+    cor_fundo: str
     model_config = ConfigDict(from_attributes=True)
 
 class LojaDetailFull(BaseModel):
@@ -97,6 +102,7 @@ class LojaDetailFull(BaseModel):
     nome: str
     slug: str
     is_active: bool
+    modo: ModoLoja # agora usa o mesmo tipo do model
     created_at: datetime
     endereco: Optional[str] = None
     nif: Optional[str] = None
@@ -113,8 +119,8 @@ class LojaDetailFull(BaseModel):
     card_style: str
     card_size: str
     font_size: str
-    cor_primaria: str # ADICIONADO
-    cor_fundo: str # ADICIONADO
+    cor_primaria: str
+    cor_fundo: str
 
     @model_validator(mode='after')
     def set_aliases(self):

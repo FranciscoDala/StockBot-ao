@@ -27,7 +27,7 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
     return (
         <Dialog
             open={open}
-            onOpenChange={onOpenChange} // usa o que vem do pai
+            onOpenChange={onOpenChange}
         >
             <DialogContent
                 className="w-full max-w-full sm:max-w-[600px] p-0 flex-col border shadow-2xl"
@@ -70,6 +70,22 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="active" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Ativa</Label>
                             <Switch id="active" checked={formData.is_active} onCheckedChange={v => handleChange('is_active', v)} className="sm:col-span-3 w-fit data-[state=checked]:bg-[var(--cor-primaria)]" />
+                        </div>
+
+                        {/* NOVO: SELECT DO MODO */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="modo" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Modo</Label>
+                            <select
+                                id="modo"
+                                value={formData.modo}
+                                onChange={e => handleChange('modo', e.target.value)}
+                                className="sm:col-span-3 flex h-9 w-full rounded-md px-3 py-2 text-xs"
+                                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
+                            >
+                                <option value="completo">Completo - Vendas + Clientes</option>
+                                <option value="venda">Apenas Vendas</option>
+                                <option value="cliente">Apenas Clientes</option>
+                            </select>
                         </div>
 
                         {editingLoja && formData.dono && (

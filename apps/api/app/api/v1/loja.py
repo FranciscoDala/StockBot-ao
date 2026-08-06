@@ -10,11 +10,11 @@ import unicodedata
 from datetime import datetime
 
 from app.db.session import get_db
-from app.models.loja import Loja
+from app.models.loja import Loja, ModoLoja # ADICIONADO ModoLoja
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
-from app.schemas.loja import LojaDetailOut, LojaCreateIn, LojaUpdateIn, DonoOut, DonoUpdateIn, GerenteOut
+from app.schemas.loja import LojaDetailOut, LojaCreateIn, LojaUpdateIn, DonoOut, DonoUpdateIn, GerenteOut # GerenteOut = DonoOut
 from app.schemas.usuario_loja import UsuarioLojaCreateIn, UsuarioLojaUpdateIn, UsuarioLojaOut
 from app.core.deps import get_current_admin, get_current_user, get_current_user_temp, verificar_acesso_loja
 from app.core.security import verify_password, get_password_hash
@@ -34,7 +34,6 @@ class LojaUpdateInWithAuth(LojaUpdateIn, AdminAuth):
 class DonoUpdateInWithAuth(DonoUpdateIn, AdminAuth):
     pass
 
-# NOVO: Schema para salvar só aparência
 class LojaDefinicoesUpdate(BaseModel):
     theme: Optional[str] = None
     card_style: Optional[str] = None
@@ -48,7 +47,6 @@ class LojaDefinicoesUpdate(BaseModel):
     def normalize_hex(cls, v: Optional[str]) -> Optional[str]:
         if v is None: return v
         v = v.strip()
-        # Aceita #000 e converte pra #000
         if re.match(r'^#[0-9a-fA-F]{3}$', v):
             v = '#' + ''.join([c*2 for c in v[1:]])
         if not re.match(r'^#[0-9a-fA-F]{6}$', v):
@@ -90,9 +88,9 @@ async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
 
-def map_usuario_to_gerente_out(usuario: Usuario | None, membro: UsuarioLoja | None) -> GerenteOut | None:
+def map_usuario_to_gerente_out(usuario: Usuario | None, membro: UsuarioLoja | None) -> GerenteOut | None: # GerenteOut = DonoOut
     if not usuario: return None
-    return GerenteOut(id=usuario.id, nome=usuario.nome, email=usuario.email, is_active=usuario.is_active, is_superuser=usuario.is_superuser, criado_em=usuario.created_at, telefone=usuario.telefone)
+    return GerenteOut.model_validate(usuario) # Usa from_attributes=True
 
 def map_usuario_loja_out(usuario: Usuario, membro: UsuarioLoja) -> UsuarioLojaOut:
     return UsuarioLojaOut(id=usuario.id, nome=usuario.nome, email=usuario.email, telefone=usuario.telefone, role=membro.role, is_active=membro.is_active, loja_id=membro.loja_id)
@@ -107,6 +105,7 @@ async def listar_lojas(db: AsyncSession = Depends(get_db), admin=Depends(get_cur
         total = (await db.execute(count_stmt)).scalar_one()
         out.append(LojaDetailOut(
             id=l.id, nome=l.nome, slug=l.slug, is_active=l.is_active, created_at=l.created_at,
+            modo=l.modo, # agora é Enum ModoLoja, schema aceita
             endereco=l.endereco, nif=l.nif, telefone=l.telefone, logo_url=l.logo_url,
             theme=l.theme, card_style=l.card_style, card_size=l.card_size, font_size=l.font_size,
             cor_primaria=l.cor_primaria, cor_fundo=l.cor_fundo,
@@ -127,7 +126,7 @@ async def listar_minhas_lojas(db: AsyncSession = Depends(get_db), current_user: 
     stmt = select(Loja).join(UsuarioLoja).where(UsuarioLoja.usuario_id == current_user.id, UsuarioLoja.is_active == True, Loja.is_active == True).order_by(Loja.nome)
     result = await db.execute(stmt)
     lojas = result.scalars().all()
-    return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at} for l in lojas]
+    return [{"id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "modo": l.modo, "created_at": l.created_at} for l in lojas] # retorna Enum direto
 
 @router.get("/minhas-temp")
 async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user_temp)):
@@ -141,7 +140,7 @@ async def listar_minhas_lojas_temp(db: AsyncSession = Depends(get_db), current_u
     for l in lojas:
         membro = (await db.execute(select(UsuarioLoja).where(UsuarioLoja.loja_id == l.id, UsuarioLoja.usuario_id == current_user.id))).scalar_one_or_none()
         lojas_out.append({
-            "id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "created_at": l.created_at,
+            "id": str(l.id), "nome": l.nome, "slug": l.slug, "is_active": l.is_active, "modo": l.modo, "created_at": l.created_at, # retorna Enum direto
             "endereco": l.endereco, "role": membro.role.value if membro else "dono"
         })
     return lojas_out
@@ -156,6 +155,7 @@ async def get_loja_by_id(loja_id: UUID, db: AsyncSession = Depends(get_db), curr
     total = (await db.execute(count_stmt)).scalar_one()
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        modo=loja.modo,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
         cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
@@ -172,6 +172,7 @@ async def get_loja_by_slug(slug: str, db: AsyncSession = Depends(get_db), curren
     total = (await db.execute(count_stmt)).scalar_one()
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        modo=loja.modo,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
         cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
@@ -191,12 +192,13 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
             raise HTTPException(status_code=400, detail=f"Email '{body.dono_novo.email}' já cadastrado")
     try:
         body.slug = slug_clean
-        if not body.cor_primaria: body.cor_primaria = "#057418"
-        if not body.cor_fundo: body.cor_fundo = "#000000"
+        if not body.cor_primaria: body.cor_primaria = "#10b981" # Bate com default do schema
+        if not body.cor_fundo: body.cor_fundo = "#000"
         if not body.theme: body.theme = "dark"
         if not body.card_style: body.card_style = "padrao"
         if not body.card_size: body.card_size = "medio"
         if not body.font_size: body.font_size = "medio"
+        if not body.modo: body.modo = ModoLoja.completo # Bate com default do schema
 
         loja = await crud_loja.create_loja(db=db, loja_in=body)
     except IntegrityError as e:
@@ -219,6 +221,7 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
     total = (await db.execute(count_stmt)).scalar_one()
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        modo=loja.modo,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
         cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
@@ -229,17 +232,20 @@ async def criar_loja(body: LojaCreateIn, db: AsyncSession = Depends(get_db), adm
 async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
     if not current_user.is_superuser:
-        body.senha_admin = None
         body.dono = None
     else:
         await verify_admin_password(db, current_user, body.senha_admin)
+
     loja = await db.get(Loja, loja_id)
     if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
+
+    dono_atualizado = None # <- ADICIONA ISSO
     try:
         loja_data = body.model_dump(exclude_unset=True, exclude={"senha_admin", "dono"})
         if "slug" in loja_data and loja_data["slug"]!= loja.slug:
             if (await db.execute(select(Loja).where(Loja.slug == loja_data["slug"]))).scalar_one_or_none(): raise HTTPException(status_code=400, detail="Slug já existe")
         for field, value in loja_data.items(): setattr(loja, field, value)
+
         if body.dono and current_user.is_superuser:
             dono, membro = await get_dono_loja(db, loja_id)
             if not dono or not membro: raise HTTPException(status_code=404, detail="Dono da loja não encontrado para atualizar")
@@ -251,28 +257,35 @@ async def atualizar_loja(loja_id: UUID, body: LojaUpdateInWithAuth, db: AsyncSes
             if "nome" in dono_data: dono.nome = dono_data["nome"]
             if "telefone" in dono_data: dono.telefone = dono_data["telefone"]
             db.add(dono)
+            dono_atualizado = dono # <- SALVA AQUI
+
         db.add(loja)
         await db.commit()
         await db.refresh(loja)
-        if body.dono and current_user.is_superuser: await db.refresh(dono)
+        if dono_atualizado: await db.refresh(dono_atualizado) # <- USA A VARIAVEL
+
     except HTTPException:
         await db.rollback()
         raise
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Erro ao atualizar: {e}")
-    dono, membro = await get_dono_loja(db, loja_id)
+
+    dono, membro = await get_dono_loja(db, loja_id) # <- JÁ PEGA DE NOVO AQUI
     count_stmt = select(func.count()).select_from(UsuarioLoja).where(UsuarioLoja.loja_id == loja.id, UsuarioLoja.is_active == True)
     total = (await db.execute(count_stmt)).scalar_one()
+    
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        modo=loja.modo,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
         cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
         gerente=map_usuario_to_gerente_out(dono, membro), total_funcionarios=total
     )
 
-# NOVO: ROTA PARA SALVAR APARÊNCIA
+
+
 @router.patch("/{loja_id}/definicoes", response_model=LojaDetailOut)
 async def atualizar_definicoes_loja(
     loja_id: UUID,
@@ -300,6 +313,7 @@ async def atualizar_definicoes_loja(
     total = (await db.execute(count_stmt)).scalar_one()
     return LojaDetailOut(
         id=loja.id, nome=loja.nome, slug=loja.slug, is_active=loja.is_active, created_at=loja.created_at,
+        modo=loja.modo,
         endereco=loja.endereco, nif=loja.nif, telefone=loja.telefone, logo_url=loja.logo_url,
         theme=loja.theme, card_style=loja.card_style, card_size=loja.card_size, font_size=loja.font_size,
         cor_primaria=loja.cor_primaria, cor_fundo=loja.cor_fundo,
@@ -321,11 +335,11 @@ async def atualizar_dono_loja(loja_id: UUID, body: DonoUpdateInWithAuth, db: Asy
     db.add(dono)
     await db.commit()
     await db.refresh(dono)
-    return map_usuario_to_gerente_out(dono, membro)
+    return GerenteOut.model_validate(dono) # Bate com schema
 
 @router.delete("/{loja_id}", status_code=204)
 async def apagar_loja(loja_id: UUID, body: AdminAuth, db: AsyncSession = Depends(get_db), admin=Depends(get_current_admin)):
-    await verify_admin_password(db, admin, body.senha_admin) # 👈 tu esqueceu o 'admin' aqui
+    await verify_admin_password(db, admin, body.senha_admin)
     loja = await db.get(Loja, loja_id)
     if not loja: raise HTTPException(status_code=404, detail="Loja não encontrada")
 
@@ -348,5 +362,5 @@ async def apagar_loja(loja_id: UUID, body: AdminAuth, db: AsyncSession = Depends
         await db.commit()
     except Exception as e:
         await db.rollback()
-        print(f"ERRO DELETE LOJA: {e}") # 👈 log pra ver no railway
+        print(f"ERRO DELETE LOJA: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao apagar loja: {e}")
