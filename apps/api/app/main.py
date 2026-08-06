@@ -46,6 +46,7 @@ def import_all_models():
     from app.models.saidas import Saida
     from app.models.caixa import Caixa # <- NOVO
     from app.models.movimentacao_caixa import MovimentacaoCaixa # <- NOVO
+    from app.models.cliente import Cliente # <- ADICIONADO
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
@@ -218,6 +219,7 @@ from app.api.v1 import websocket as websocket_router
 from app.api.v1 import saidas as saidas_router
 from app.api.v1 import caixas as caixas_router # <- NOVO
 from app.api.v1 import movimentos_caixas as movimentos_caixas_router # <- NOVO
+from app.api.v1 import cliente as cliente_router # <- ADICIONADO
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="")
@@ -236,5 +238,7 @@ api_v1_router.include_router(caixas_router.router, prefix="/caixas", tags=["caix
 api_v1_router.include_router(caixas_router.router, prefix="/caixa", tags=["caixas"]) # <- ACEITA OS 2 AGORA
 
 api_v1_router.include_router(movimentos_caixas_router.router, prefix="/movimentos-caixas", tags=["movimentos-caixas"])
+
+api_v1_router.include_router(cliente_router.router, prefix="/lojas/id", tags=["clientes"]) # <- ADICIONADO
 
 app.include_router(api_v1_router)
