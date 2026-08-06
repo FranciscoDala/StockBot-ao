@@ -44,7 +44,12 @@ export type UsuarioLojaPage = { id: string; nome: string; email: string; telefon
 export type UsuarioLoja = UsuarioLojaPage // <- usa o mesmo tipo da lista
 
 export type userread = { id: string; nome: string; email: string; nivel: UserRole; loja?: Loja | null; loja_id?: string | null; }
-export type Loja = { id: string; nome: string; slug: string; is_active: boolean; created_at: string; endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null; theme?: string; card_style?: string; card_size?: string; font_size?: string; cor_primaria?: string; cor_fundo?: string; }
+
+export type ModoLoja = "venda" | "cliente" | "completo" // <- NOVO
+
+export type Loja = { id: string; nome: string; slug: string; is_active: boolean; created_at: string; endereco?: string | null; logo_url?: string | null; nif?: string | null; telefone?: string | null; ano_fundacao?: number | null; theme?: string; card_style?: string; card_size?: string; font_size?: string; cor_primaria?: string; cor_fundo?: string; modo?: ModoLoja; } // <- ADICIONEI modo
+
+
 
 const getCookie = (name: string): string | undefined => { if (typeof window === "undefined") return undefined; return document.cookie.split('; ').reduce((r, v) => { const parts = v.split('='); return parts[0] === name ? decodeURIComponent(parts[1]) : r; }, ''); };
 const deleteCookie = (name: string) => { if (typeof window === "undefined") return; document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; Secure; SameSite=None`; };
@@ -72,28 +77,33 @@ export default function LojaPage() {
         return await fetchComAuth(`${API_URL}/lojas/${lojaId}/definicoes`, token, { method: 'PATCH', body: JSON.stringify(themeData) });
     }
 
+
+
     const podeEditarApagar = ["DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerTudo = ["ADMIN", "DONO", "GERENTE"].includes(user?.nivel!);
     const podeVerVendas = ["DONO", "GERENTE", "VENDEDOR", "CAIXA"].includes(user?.nivel!);
     const podeVerEstoque = ["DONO", "GERENTE", "ESTOQUISTA"].includes(user?.nivel!);
 
+    const modo = loja?.modo || "completo"; // <- pega o modo da loja
+
     const allTabs = [
-        { id: "dados", label: "Dados", icon: FileText, show: true },
-        { id: "venda", label: "Venda", icon: ShoppingCart, show: podeVerVendas },
-        { id: "produtos", label: "Produtos", icon: Package, show: podeVerVendas || podeVerEstoque },
-        { id: "equipa", label: "Equipa", icon: Users, show: true },
-        { id: "fornecedores", label: "Fornecedores", icon: Truck, show: podeVerTudo },
-        { id: "documentos", label: "Relatórios", icon: FileText, show: podeVerTudo },
-        { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: true },
-        { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo },
-        { id: "definicoes", label: "Definições", icon: Settings, show: podeVerTudo },
+        { id: "dados", label: "Dados", icon: FileText, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
+        { id: "venda", label: "Venda", icon: ShoppingCart, show: podeVerVendas && (modo === "completo" || modo === "venda") },
+        { id: "produtos", label: "Produtos", icon: Package, show: (podeVerVendas || podeVerEstoque) && (modo === "completo" || modo === "venda") },
+        { id: "equipa", label: "Equipa", icon: Users, show: modo === "completo" || modo === "cliente" }, // <- AJUSTADO
+        { id: "fornecedores", label: "Fornecedores", icon: Truck, show: podeVerTudo && (modo === "completo" || modo === "venda") },
+        { id: "documentos", label: "Relatórios", icon: FileText, show: podeVerTudo && (modo === "completo" || modo === "venda") }, // <- AJUSTADO
+        { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
+        { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo && (modo === "completo" || modo === "venda") },
+        { id: "definicoes", label: "Definições", icon: Settings, show: (modo === "completo" || modo === "cliente") }, // <- tirei o podeVerTudo // <- AJUSTADO
     ];
 
     const initialTabs = useMemo(() =>
         allTabs.filter(t => t.show && (t.id !== "venda" || isCaixaAberto)),
-        [isCaixaAberto, podeVerVendas] // <- recalcula quando caixa abre ou permissão muda
+        [isCaixaAberto, podeVerVendas, modo] // <- ADICIONA modo aqui
     );
     const [activeTab, setActiveTab] = useState(initialTabs[0]?.id || "dados");
+
 
     useEffect(() => {
         const tabExiste = initialTabs.find(t => t.id === activeTab);
