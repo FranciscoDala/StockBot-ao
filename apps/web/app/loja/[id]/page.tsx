@@ -90,7 +90,7 @@ export default function LojaPage() {
     const allTabs = [
         { id: "dados", label: "Dados", icon: FileText, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
         { id: "venda", label: "Venda", icon: ShoppingCart, show: podeVerVendas && (modo === "completo" || modo === "venda") },
-        { id: "produtos", label: "Produtos", icon: Package, show: (podeVerVendas || podeVerEstoque) && (modo === "completo" || modo === "venda" || modo === "cliente") },
+        { id: "produtos", label: "Produtos", icon: Package, show: (podeVerVendas || podeVerEstoque) && (modo === "completo" || modo === "venda") },
         { id: "clientes", label: "Clientes", icon: UserRound, show: modo === "completo" || modo === "cliente" },
         { id: "equipa", label: "Equipa", icon: Users, show: modo === "completo" || modo === "cliente" }, // <- AJUSTADO
         { id: "fornecedores", label: "Fornecedores", icon: Truck, show: podeVerTudo && (modo === "completo" || modo === "venda") },
