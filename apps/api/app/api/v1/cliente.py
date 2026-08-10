@@ -123,12 +123,8 @@ async def receber_parcela(
     cliente_id: UUID,
     pagamento: PagamentoCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user) # <- CORRIGIDO: estava sem tipo
+    current_user: Usuario = Depends(get_current_user)
 ):
-    """
-    Recebe pagamento por parcela. Abate das dívidas mais antigas primeiro FIFO
-    Cria registro em movimentos_vendas
-    """
     if pagamento.valor <= 0:
         raise HTTPException(400, "Valor do pagamento deve ser maior que zero")
 
@@ -136,20 +132,20 @@ async def receber_parcela(
         Venda.loja_id == loja_id,
         Venda.cliente_id == cliente_id,
         Venda.status.in_(["divida", "parcial"])
-    ).order_by(Venda.created_at) # FIFO: paga a mais antiga primeiro
+    ).order_by(Venda.created_at)
     result = await db.execute(stmt)
     dividas = result.scalars().all()
 
     if not dividas:
         raise HTTPException(status_code=404, detail="Cliente não possui dívidas")
 
-    valor_restante = Decimal(str(pagamento.valor)) # <- USA DECIMAL PRA NAO DAR ERRO DE FLOAT
-    total_pago = Decimal(0)
+    valor_restante = float(pagamento.valor) # <- FORÇA TUDO PRA FLOAT
+    total_pago = 0.0
 
     for venda in dividas:
         if valor_restante <= 0: break
 
-        divida_atual = venda.total - venda.valor_recebido # <- USA DECIMAL DIRETO DO DB
+        divida_atual = float(venda.total) - float(venda.valor_recebido) # <- FORÇA TUDO PRA FLOAT
         if divida_atual <= 0: continue
 
         valor_a_pagar = min(valor_restante, divida_atual)
@@ -167,15 +163,15 @@ async def receber_parcela(
         db.add(movimento)
 
         # 2. Atualiza venda
-        venda.valor_recebido = venda.valor_recebido + valor_a_pagar
+        venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar # <- FLOAT + FLOAT
 
-        if venda.valor_recebido >= venda.total:
+        if float(venda.valor_recebido) >= float(venda.total): # <- COMPARA FLOAT COM FLOAT
             venda.status = "concluida"
         else:
             venda.status = "parcial"
 
-        valor_restante -= valor_a_pagar
-        total_pago += valor_a_pagar
+        valor_restante -= valor_a_pagar # <- FLOAT - FLOAT
+        total_pago += valor_a_pagar # <- FLOAT + FLOAT
 
     await db.commit()
-    return {"detail": f"Pagamento de {float(total_pago)} KZ registrado com sucesso"}
+    return {"detail": f"Pagamento de {total_pago:.2f} KZ registrado com sucesso"}

@@ -47,6 +47,9 @@ def import_all_models():
     from app.models.caixa import Caixa
     from app.models.movimentacao_caixa import MovimentacaoCaixa
     from app.models.cliente import Cliente # <- ADICIONADO
+    from app.models.movimentacao_venda import MovimentoVenda # <- ADICIONA ESSA LINHA
+
+
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
     logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
