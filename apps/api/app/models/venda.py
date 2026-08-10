@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from app.models.usuario import Usuario
     from app.models.itens_venda import ItemVenda
     from app.models.cliente import Cliente
-    from app.models.movimento_venda import MovimentoVenda
+    from app.models.movimentacao_venda import MovimentoVenda # <- ADICIONA "acao"
 
 class Venda(BaseModel):
     __tablename__ = "vendas"

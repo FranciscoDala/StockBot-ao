@@ -25,6 +25,7 @@ import api.app.models.documento
 import api.app.models.saidas
 import api.app.models.caixa           # <- ADICIONA
 import api.app.models.movimentacao_caixa  # <- ADICIONA
+import api.app.models.movimentacao_venda  # <- ADICIONA
 
 from api.app.models.cliente import Cliente # <- ADICIONA ESSA LINHA
 

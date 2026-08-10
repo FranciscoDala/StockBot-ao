@@ -1,19 +1,21 @@
-from sqlalchemy import Column, String, Numeric, TIMESTAMP, ForeignKey, Text
+from __future__ import annotations
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey, String, Numeric, Text
 from sqlalchemy.dialects.postgresql import UUID
-from..db.base import Base
+from..db.base import BaseModel # <- Usa BaseModel pra pegar id, created_at, updated_at
 import uuid
-from datetime import datetime
 
-class MovimentoVenda(Base):
+class MovimentoVenda(BaseModel): # <- Herdar do BaseModel
     __tablename__ = "movimentos_vendas"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    venda_id = Column(UUID(as_uuid=True), ForeignKey("vendas.id", ondelete="CASCADE"), nullable=False)
-    loja_id = Column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False)
-    cliente_id = Column(UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False)
-    usuario_id = Column(UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True)
+    venda_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("vendas.id", ondelete="CASCADE"), nullable=False, index=True)
+    loja_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False)
+    cliente_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="SET NULL")) # <- SET NULL igual migration
+    usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"))
 
-    valor_pago = Column(Numeric(14, 2), nullable=False)
-    forma_pagamento = Column(String(50), nullable=False) # Dinheiro, Transferencia, TPA
-    observacao = Column(Text, nullable=True)
-    created_at = Column(TIMESTAMP(timezone=True), default=datetime.utcnow)
+    valor_pago: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False)
+    forma_pagamento: Mapped[str] = mapped_column(String(50), nullable=False) # Dinheiro, Transferencia, TPA, Multicaixa
+    observacao: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Relacionamentos opcionais
+    venda: Mapped["Venda"] = relationship("Venda", back_populates="movimentos")

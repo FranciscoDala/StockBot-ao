@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from app.db.session import get_db
 from app.models.cliente import Cliente
 from app.models.venda import Venda
-from app.models.movimento_venda import MovimentoVenda # <- NOVO
+from app.models.movimentacao_venda import MovimentoVenda # <- NOVO
 from app.schemas.cliente import ClienteCreate, ClienteOut
 from app.core.deps import get_current_user
 
