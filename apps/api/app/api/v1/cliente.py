@@ -5,27 +5,23 @@ from typing import List, cast
 from uuid import UUID
 from datetime import datetime
 
-from db.session import get_db
-from models.cliente import Cliente
-from models.venda import Venda
-from schemas.cliente import ClienteCreate, ClienteOut
+from app.db.session import get_db # <- CORRIGIDO: app.db.session
+from app.models.cliente import Cliente # <- CORRIGIDO: app.models.cliente
+from app.models.venda import Venda # <- CORRIGIDO
+from app.schemas.cliente import ClienteCreate, ClienteOut # <- CORRIGIDO
 from app.core.deps import get_current_user
 
 router = APIRouter()
 
 def _cliente_to_out(db: Session, cliente: Cliente) -> ClienteOut:
-    """Função pra calcular divida e ultima compra"""
     total_divida = db.query(func.coalesce(func.sum(Venda.total), 0)).filter(
         Venda.cliente_id == cliente.id,
         Venda.status == "pendente"
     ).scalar() or 0.0
 
     ultima_venda = db.query(Venda).filter(Venda.cliente_id == cliente.id).order_by(Venda.created_at.desc()).first()
-
-    # Força o cast pra datetime pra Pylance parar de chorar
     ultima_compra: datetime = cast(datetime, ultima_venda.created_at) if ultima_venda else cast(datetime, cliente.created_at)
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
-
 
     return ClienteOut(
         id=getattr(cliente, "id"),
@@ -46,7 +42,7 @@ def _cliente_to_out(db: Session, cliente: Cliente) -> ClienteOut:
         status=status_cliente
     )
 
-@router.get("/lojas/id/{loja_id}/clientes", response_model=List[ClienteOut])
+@router.get("/{loja_id}/clientes", response_model=List[ClienteOut]) # <- CORRIGIDO: tirou /lojas/id
 def listar_clientes(
     loja_id: UUID,
     db: Session = Depends(get_db),
@@ -55,7 +51,7 @@ def listar_clientes(
     clientes = db.query(Cliente).filter(Cliente.loja_id == loja_id, Cliente.is_active == True).all()
     return [_cliente_to_out(db, c) for c in clientes]
 
-@router.post("/lojas/id/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
+@router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED) # <- CORRIGIDO
 def criar_cliente(
     loja_id: UUID,
     cliente_in: ClienteCreate,
@@ -66,7 +62,6 @@ def criar_cliente(
         existe = db.query(Cliente).filter(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi).first()
         if existe: raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
-    # Passa loja_id direto no construtor em vez de setar depois
     data = cliente_in.model_dump()
     data["loja_id"] = loja_id
     db_cliente = Cliente(**data)
@@ -76,7 +71,7 @@ def criar_cliente(
     db.refresh(db_cliente)
     return _cliente_to_out(db, db_cliente)
 
-@router.get("/lojas/id/{loja_id}/clientes/{cliente_id}/pendentes")
+@router.get("/{loja_id}/clientes/{cliente_id}/pendentes") # <- CORRIGIDO
 def listar_pendencias_cliente(
     loja_id: UUID,
     cliente_id: UUID,
@@ -96,7 +91,7 @@ def listar_pendencias_cliente(
         "total_itens": v.total_itens
     } for v in vendas]
 
-@router.post("/lojas/id/{loja_id}/clientes/{cliente_id}/receber")
+@router.post("/{loja_id}/clientes/{cliente_id}/receber") # <- CORRIGIDO
 def receber_pagamento_cliente(
     loja_id: UUID,
     cliente_id: UUID,
