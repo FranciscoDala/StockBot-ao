@@ -78,7 +78,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (!token) return;
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/lojas/id/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
+            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
             const data = await res.json();
             const clientesFormatados = (Array.isArray(data) ? data : []).map((c: any) => ({ ...c, total_divida: c.total_divida ?? 0 }));
             setClientes(clientesFormatados);
@@ -92,7 +92,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         setShowDetalhes(true);
         setAbaDetalhes('extrato');
         try {
-            const res = await fetch(`${API_URL}/lojas/id/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
+            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
             const data = await res.json();
             setVendasPendentes(Array.isArray(data) ? data : []);
         } catch { setVendasPendentes([]) }
@@ -124,7 +124,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (!token || !clienteSelecionado) return;
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/lojas/id/${lojaId}/clientes/${clienteSelecionado.id}/receber`, { method: 'POST', headers: { "Authorization": `Bearer ${token}` } });
+            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${clienteSelecionado.id}/receber`, { method: 'POST', headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error("Erro ao receber");
             toast.success("Pagamento recebido! Conta zerada.");
             setShowDetalhes(false);
@@ -154,7 +154,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (payload.provincia === "") payload.provincia = null;
             if (payload.observacoes === "") payload.observacoes = null;
 
-            const res = await fetch(`${API_URL}/lojas/id/${lojaId}/clientes`, {
+            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
                 method: 'POST',
                 headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
