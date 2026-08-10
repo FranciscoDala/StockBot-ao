@@ -5,13 +5,12 @@ from typing import List, cast
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
-from decimal import Decimal # <- ADICIONADO PRA USAR DECIMAL
 
 from app.db.session import get_db
 from app.models.cliente import Cliente
 from app.models.venda import Venda
 from app.models.movimentacao_venda import MovimentoVenda
-from app.models.usuario import Usuario # <- ADICIONADO
+from app.models.usuario import Usuario
 from app.schemas.cliente import ClienteCreate, ClienteOut
 from app.core.deps import get_current_user
 
@@ -62,7 +61,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
 async def listar_clientes(
     loja_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user) # <- TIPADO
+    current_user: Usuario = Depends(get_current_user)
 ):
     stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.is_active == True)
     result = await db.execute(stmt)
@@ -74,13 +73,14 @@ async def criar_cliente(
     loja_id: UUID,
     cliente_in: ClienteCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user) # <- TIPADO
+    current_user: Usuario = Depends(get_current_user)
 ):
     if cliente_in.bi:
         stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi)
         result = await db.execute(stmt)
         existe = result.scalars().first()
-        if existe: raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
+        if existe:
+            raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
     data = cliente_in.model_dump()
     data["loja_id"] = loja_id
@@ -96,7 +96,7 @@ async def listar_pendencias_cliente(
     loja_id: UUID,
     cliente_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user) # <- TIPADO
+    current_user: Usuario = Depends(get_current_user)
 ):
     # Pega todas vendas em aberto: divida ou parcial
     stmt = select(Venda).where(
@@ -139,14 +139,16 @@ async def receber_parcela(
     if not dividas:
         raise HTTPException(status_code=404, detail="Cliente não possui dívidas")
 
-    valor_restante = float(pagamento.valor) # <- FORÇA TUDO PRA FLOAT
+    valor_restante = float(pagamento.valor)
     total_pago = 0.0
 
     for venda in dividas:
-        if valor_restante <= 0: break
+        if valor_restante <= 0:
+            break
 
-        divida_atual = float(venda.total) - float(venda.valor_recebido) # <- FORÇA TUDO PRA FLOAT
-        if divida_atual <= 0: continue
+        divida_atual = float(venda.total) - float(venda.valor_recebido)
+        if divida_atual <= 0:
+            continue
 
         valor_a_pagar = min(valor_restante, divida_atual)
 
@@ -163,15 +165,15 @@ async def receber_parcela(
         db.add(movimento)
 
         # 2. Atualiza venda
-        venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar # <- FLOAT + FLOAT
+        venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar
 
-        if float(venda.valor_recebido) >= float(venda.total): # <- COMPARA FLOAT COM FLOAT
+        if float(venda.valor_recebido) >= float(venda.total):
             venda.status = "concluida"
         else:
             venda.status = "parcial"
 
-        valor_restante -= valor_a_pagar # <- FLOAT - FLOAT
-        total_pago += valor_a_pagar # <- FLOAT + FLOAT
+        valor_restante -= valor_a_pagar
+        total_pago += valor_a_pagar
 
     await db.commit()
     return {"detail": f"Pagamento de {total_pago:.2f} KZ registrado com sucesso"}
