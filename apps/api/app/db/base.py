@@ -26,7 +26,7 @@ def import_all_models():
     from app.models.produto import Produto
     from app.models.venda import Venda
     from app.models.itens_venda import ItemVenda
-    from app.models.documento import Documento
+    from app.models.documento import DocumentoKYC
     from app.models.saidas import Saida
     from app.models.caixa import Caixa
     from app.models.movimentacao_caixa import MovimentacaoCaixa
