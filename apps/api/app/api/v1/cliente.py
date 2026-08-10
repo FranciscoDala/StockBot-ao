@@ -5,17 +5,19 @@ from typing import List, cast
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
+from decimal import Decimal # <- ADICIONADO PRA USAR DECIMAL
 
 from app.db.session import get_db
 from app.models.cliente import Cliente
 from app.models.venda import Venda
-from app.models.movimentacao_venda import MovimentoVenda # <- NOVO
+from app.models.movimentacao_venda import MovimentoVenda
+from app.models.usuario import Usuario # <- ADICIONADO
 from app.schemas.cliente import ClienteCreate, ClienteOut
 from app.core.deps import get_current_user
 
 router = APIRouter()
 
-class PagamentoCreate(BaseModel): # <- SCHEMA NOVO PARA PARCELA
+class PagamentoCreate(BaseModel):
     valor: float
     forma_pagamento: str
     observacao: str | None = None
@@ -24,7 +26,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
     # total_divida = Soma do que falta pagar de todas vendas em aberto
     stmt = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
         Venda.cliente_id == cliente.id,
-        Venda.status.in_(["divida", "parcial"]) # <- MUDOU: era "pendente"
+        Venda.status.in_(["divida", "parcial"])
     )
     result = await db.execute(stmt)
     total_divida = result.scalar() or 0.0
@@ -60,7 +62,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
 async def listar_clientes(
     loja_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_user) # <- TIPADO
 ):
     stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.is_active == True)
     result = await db.execute(stmt)
@@ -72,7 +74,7 @@ async def criar_cliente(
     loja_id: UUID,
     cliente_in: ClienteCreate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_user) # <- TIPADO
 ):
     if cliente_in.bi:
         stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi)
@@ -94,13 +96,13 @@ async def listar_pendencias_cliente(
     loja_id: UUID,
     cliente_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_user) # <- TIPADO
 ):
     # Pega todas vendas em aberto: divida ou parcial
     stmt = select(Venda).where(
         Venda.loja_id == loja_id,
         Venda.cliente_id == cliente_id,
-        Venda.status.in_(["divida", "parcial"]) # <- MUDOU
+        Venda.status.in_(["divida", "parcial"])
     ).order_by(Venda.created_at.desc())
     result = await db.execute(stmt)
     vendas = result.scalars().all()
@@ -109,19 +111,19 @@ async def listar_pendencias_cliente(
         "id": str(v.id),
         "data_venda": v.created_at,
         "total": float(v.total),
-        "valor_recebido": float(v.valor_recebido), # <- NOVO
-        "saldo_devedor": float(v.total - v.valor_recebido), # <- NOVO
-        "status": v.status, # <- NOVO
+        "valor_recebido": float(v.valor_recebido),
+        "saldo_devedor": float(v.total - v.valor_recebido),
+        "status": v.status,
         "total_itens": v.total_itens
     } for v in vendas]
 
-@router.post("/{loja_id}/clientes/{cliente_id}/receber-parcela") # <- ROTA NOVA
+@router.post("/{loja_id}/clientes/{cliente_id}/receber-parcela")
 async def receber_parcela(
     loja_id: UUID,
     cliente_id: UUID,
     pagamento: PagamentoCreate,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user: Usuario = Depends(get_current_user) # <- CORRIGIDO: estava sem tipo
 ):
     """
     Recebe pagamento por parcela. Abate das dívidas mais antigas primeiro FIFO
@@ -141,13 +143,13 @@ async def receber_parcela(
     if not dividas:
         raise HTTPException(status_code=404, detail="Cliente não possui dívidas")
 
-    valor_restante = pagamento.valor
-    total_pago = 0.0
+    valor_restante = Decimal(str(pagamento.valor)) # <- USA DECIMAL PRA NAO DAR ERRO DE FLOAT
+    total_pago = Decimal(0)
 
     for venda in dividas:
         if valor_restante <= 0: break
 
-        divida_atual = float(venda.total) - float(venda.valor_recebido)
+        divida_atual = venda.total - venda.valor_recebido # <- USA DECIMAL DIRETO DO DB
         if divida_atual <= 0: continue
 
         valor_a_pagar = min(valor_restante, divida_atual)
@@ -165,10 +167,10 @@ async def receber_parcela(
         db.add(movimento)
 
         # 2. Atualiza venda
-        venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar
+        venda.valor_recebido = venda.valor_recebido + valor_a_pagar
 
-        if float(venda.valor_recebido) >= float(venda.total):
-            venda.status = "concluida" # <- CORRIGIDO: era concluido
+        if venda.valor_recebido >= venda.total:
+            venda.status = "concluida"
         else:
             venda.status = "parcial"
 
@@ -176,4 +178,4 @@ async def receber_parcela(
         total_pago += valor_a_pagar
 
     await db.commit()
-    return {"detail": f"Pagamento de {total_pago} registrado com sucesso"}
+    return {"detail": f"Pagamento de {float(total_pago)} KZ registrado com sucesso"}

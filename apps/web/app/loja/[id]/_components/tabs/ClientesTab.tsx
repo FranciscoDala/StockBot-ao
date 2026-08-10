@@ -39,7 +39,7 @@ type Props = {
     formatCurrency: (v: number) => string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app";
 type FiltroCliente = 'todos' | 'com_divida' | 'em_dia';
 type ProdutoCarrinho = Omit<Produto, 'unidade'> & { qtd: number };
 
