@@ -39,7 +39,9 @@ type Props = {
     formatCurrency: (v: number) => string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gentle-playfulness-production-d333.up.railway.app";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://stockbot-ao.onrender.com/api/v1";
+
+
 type FiltroCliente = 'todos' | 'com_divida' | 'em_dia';
 type ProdutoCarrinho = Omit<Produto, 'unidade'> & { qtd: number };
 
