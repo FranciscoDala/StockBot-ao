@@ -168,7 +168,7 @@ async def receber_parcela(
         venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar
 
         if float(venda.valor_recebido) >= float(venda.total):
-            venda.status = "concluido"
+            venda.status = "concluida" # <- CORRIGIDO: era concluido
         else:
             venda.status = "parcial"
 

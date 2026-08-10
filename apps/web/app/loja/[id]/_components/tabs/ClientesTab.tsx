@@ -114,16 +114,31 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try {
             const itens = carrinhoFiado.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco }));
             const total = itens.reduce((acc, i) => acc + i.preco_unitario * i.quantidade, 0);
-            const payload = { cliente_id: clienteSelecionado.id, loja_id: lojaId, itens, total, forma_pagamento: "Fiado", status: "divida" }; // <- MUDOU
+            const total_itens = carrinhoFiado.reduce((acc, i) => acc + i.qtd, 0); // <- ADICIONADO
+            const payload = {
+                cliente_id: clienteSelecionado.id,
+                // loja_id: lojaId, <- REMOVIDO
+                itens,
+                total,
+                total_itens, // <- ADICIONADO
+                forma_pagamento: "Fiado",
+                status: "divida",
+                valor_recebido: 0, // <- ADICIONADO
+                troco: 0 // <- ADICIONADO
+            };
             const res = await fetch(`${API_URL}/vendas/`, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             if (!res.ok) throw new Error((await res.json()).detail || "Erro ao lançar");
             toast.success("Compra lançada na conta do cliente!");
             setCarrinhoFiado([]);
             fetchDetalhesCliente(clienteSelecionado);
             fetchClientes();
-        } catch (err: any) { toast.error(err.message) }
+        } catch (err: any) {
+            const mensagem = err?.detail || err?.message || "Erro ao lançar" // <- CORRIGIDO
+            toast.error(mensagem)
+        }
         finally { setSaving(false) }
     }
+
 
     const handleAbrirPagar = () => { // <- NOVO
         setValorPagamento(String(clienteSelecionado?.total_divida || 0))
@@ -143,9 +158,12 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (!res.ok) throw new Error((await res.json()).detail);
             toast.success("Pagamento registrado!");
             setShowPagarModal(false);
-            setShowDetalhes(false);
-            fetchClientes();
-        } catch (err: any) { toast.error(err.message) }
+            await fetchClientes(); // <- ADICIONADO
+            await fetchDetalhesCliente(clienteSelecionado); // <- ADICIONADO
+        } catch (err: any) {
+            const mensagem = err?.detail || err?.message || "Erro ao pagar" // <- CORRIGIDO
+            toast.error(mensagem)
+        }
         finally { setSaving(false) }
     }
 

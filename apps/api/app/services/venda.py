@@ -16,16 +16,28 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
     itens_para_broadcast = [] # <- 1. GUARDA OS DADOS PRA DEVOLVER
 
     try:
+        # LÓGICA DE STATUS AUTOMÁTICO
+        status = venda_in.status
+        valor_recebido = venda_in.valor_recebido
+
+        if venda_in.forma_pagamento == "Fiado":
+            status = "divida" if valor_recebido == 0 else "parcial"
+        elif valor_recebido >= venda_in.total:
+            status = "concluida"
+        elif valor_recebido > 0:
+            status = "parcial"
+
         # 1. Criar a venda
         nova_venda = Venda(
             loja_id=loja_id,
             usuario_id=usuario.id,
+            cliente_id=venda_in.cliente_id, # <- ADICIONADO
             total=venda_in.total,
             total_itens=venda_in.total_itens,
             forma_pagamento=venda_in.forma_pagamento,
-            valor_recebido=venda_in.valor_recebido,
+            valor_recebido=valor_recebido,
             troco=venda_in.troco,
-            status='concluida' # <- MINUSCULO
+            status=status # <- ALTERADO
         )
         db.add(nova_venda)
         await db.flush() # pra pegar o id
