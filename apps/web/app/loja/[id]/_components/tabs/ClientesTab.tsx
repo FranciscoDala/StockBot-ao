@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Users, UserCheck, AlertCircle, DollarSign, ChevronLeft, ChevronRight, Eye, Plus, ShoppingCart, Receipt, Banknote } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ClienteModal, ClienteForm } from "../modals/clientemodal";
+import { ClienteModal, ClienteForm } from "../modals/ClienteModal";
 import { Produto } from "../modals/ProdutoModal"; // <- reaproveita
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
