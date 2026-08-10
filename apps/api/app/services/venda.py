@@ -13,7 +13,7 @@ from app.schemas.venda import VendaCreate, VendaRead, ItemVendaRead
 from app.models.usuario import Usuario
 
 async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario, loja_id: UUID):
-    itens_para_broadcast = [] # <- 1. GUARDA OS DADOS PRA DEVOLVER
+    itens_para_broadcast = []
 
     try:
         # LÓGICA DE STATUS AUTOMÁTICO
@@ -31,13 +31,13 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
         nova_venda = Venda(
             loja_id=loja_id,
             usuario_id=usuario.id,
-            cliente_id=venda_in.cliente_id, # <- ADICIONADO
+            cliente_id=venda_in.cliente_id,
             total=venda_in.total,
             total_itens=venda_in.total_itens,
             forma_pagamento=venda_in.forma_pagamento,
             valor_recebido=valor_recebido,
             troco=venda_in.troco,
-            status=status # <- ALTERADO
+            status=status
         )
         db.add(nova_venda)
         await db.flush() # pra pegar o id
@@ -66,8 +66,8 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
                 "produto_id": produto.id,
                 "nome": produto.nome,
                 "novo_estoque": novo_estoque,
-                "subtotal": item_in.subtotal, # <- ADICIONADO
-                "quantidade": item_in.quantidade # <- ADICIONADO
+                "subtotal": item_in.subtotal,
+                "quantidade": item_in.quantidade
             })
 
             # Criar item da venda
@@ -81,16 +81,14 @@ async def criar_venda(db: AsyncSession, venda_in: VendaCreate, usuario: Usuario,
             )
             db.add(novo_item)
 
-        await db.commit() # <- COMMIT AQUI
+        await db.commit()
         await db.refresh(nova_venda)
 
         venda_read = await listar_venda_por_id(db, nova_venda.id, loja_id)
-
-        # REMOVIDO: Não pode atribuir estoque_atual no VendaRead
-        return venda_read # <- ALTERADO
+        return venda_read
 
     except Exception:
-        await db.rollback() # <- ROLLBACK SE DER ERRO
+        await db.rollback()
         raise
 
 async def listar_venda_por_id(db: AsyncSession, venda_id: UUID, loja_id: UUID):
@@ -122,7 +120,7 @@ async def listar_vendas(
     data_fim: date | None,
     vendedor_id: UUID | None,
     limit: int = 5000,
-    offset: int = 0 # <- NOVO
+    offset: int = 0
 ):
     stmt = select(Venda).options(
         selectinload(Venda.itens).selectinload(ItemVenda.produto),
@@ -130,19 +128,17 @@ async def listar_vendas(
     ).where(Venda.loja_id == loja_id)
 
     if data_inicio:
-        # converte date pra datetime inicio do dia
         inicio_dt = datetime.combine(data_inicio, datetime.min.time())
         stmt = stmt.where(Venda.created_at >= inicio_dt)
 
     if data_fim:
-        # converte date pra datetime fim do dia
         fim_dt = datetime.combine(data_fim, datetime.max.time())
         stmt = stmt.where(Venda.created_at <= fim_dt)
 
     if vendedor_id:
         stmt = stmt.where(Venda.usuario_id == vendedor_id)
 
-    stmt = stmt.order_by(Venda.created_at.desc()).limit(limit).offset(offset) # <- ADICIONADO OFFSET
+    stmt = stmt.order_by(Venda.created_at.desc()).limit(limit).offset(offset)
 
     result = await db.execute(stmt)
     vendas = result.scalars().all()
@@ -162,16 +158,16 @@ async def listar_vendas(
             ]
         }))
 
-    return list(vendas_read) # <- ALTERADO: cast para list
+    return list(vendas_read)
 
 async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID):
-    itens_para_broadcast = [] # <- 3. GUARDA OS DADOS PRA DEVOLVER
+    itens_para_broadcast = []
 
     stmt_venda = select(Venda).options(selectinload(Venda.itens)).where(Venda.id == venda_id, Venda.loja_id == loja_id)
     venda = (await db.execute(stmt_venda)).scalar_one_or_none()
     if not venda:
         raise HTTPException(status_code=404, detail="Venda não encontrada")
-    if venda.status == 'estornada': # <- MINUSCULO
+    if venda.status == 'estornada':
         raise HTTPException(status_code=400, detail="Venda já estornada")
 
     # 4. DEVOLVE ESTOQUE APENAS SE CONTROLAR
@@ -180,7 +176,7 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
         produto = (await db.execute(stmt_prod)).scalar_one_or_none()
         if produto:
             novo_estoque = None
-            if produto.controla_estoque: # REGRA 3
+            if produto.controla_estoque:
                 produto.estoque += item.quantidade
                 db.add(produto)
                 novo_estoque = produto.estoque
@@ -189,12 +185,12 @@ async def estornar_venda_service(db: AsyncSession, venda_id: UUID, loja_id: UUID
                 "produto_id": produto.id,
                 "nome": produto.nome,
                 "novo_estoque": novo_estoque,
-                "subtotal": item.subtotal, # <- ADICIONADO
-                "quantidade": item.quantidade # <- ADICIONADO
+                "subtotal": item.subtotal,
+                "quantidade": item.quantidade
             })
 
-    venda.status = 'estornada' # <- MINUSCULO
+    venda.status = 'estornada'
     db.add(venda)
     await db.commit()
 
-    return itens_para_broadcast # <- 5. RETORNA PRA ROTA FAZER O BROADCAST
+    return itens_para_broadcast

@@ -12,11 +12,11 @@ class ItemVendaCreate(BaseModel):
     model_config = ConfigDict(json_encoders={Decimal: float})
 
 class VendaCreate(BaseModel):
-    cliente_id: UUID | None = None # <- ADICIONADO
+    cliente_id: UUID | None = None
     total: Decimal
     total_itens: int
     forma_pagamento: str
-    status: str = "concluida" # <- ADICIONADO
+    status: str = "concluida"
     valor_recebido: Decimal = Decimal(0)
     troco: Decimal = Decimal(0)
     itens: List[ItemVendaCreate] = Field(min_length=1)

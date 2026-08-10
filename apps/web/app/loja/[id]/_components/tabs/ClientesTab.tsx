@@ -112,29 +112,43 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (!token || !clienteSelecionado || carrinhoFiado.length === 0) return;
         setSaving(true);
         try {
-            const itens = carrinhoFiado.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco }));
+            const itens = carrinhoFiado.map(i => ({
+                produto_id: i.id,
+                quantidade: i.qtd,
+                preco_unitario: Number(i.preco), // <- FORÇA VIRAR NUMERO
+                subtotal: Number(i.preco) * i.qtd // <- ADICIONADO
+            }));
             const total = itens.reduce((acc, i) => acc + i.preco_unitario * i.quantidade, 0);
-            const total_itens = carrinhoFiado.reduce((acc, i) => acc + i.qtd, 0); // <- ADICIONADO
+            const total_itens = carrinhoFiado.reduce((acc, i) => acc + i.qtd, 0);
+
             const payload = {
                 cliente_id: clienteSelecionado.id,
-                // loja_id: lojaId, <- REMOVIDO
                 itens,
-                total,
-                total_itens, // <- ADICIONADO
+                total: Number(total), // <- FORÇA NUMERO
+                total_itens,
                 forma_pagamento: "Fiado",
                 status: "divida",
-                valor_recebido: 0, // <- ADICIONADO
-                troco: 0 // <- ADICIONADO
+                valor_recebido: 0,
+                troco: 0
             };
-            const res = await fetch(`${API_URL}/vendas/`, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            if (!res.ok) throw new Error((await res.json()).detail || "Erro ao lançar");
+
+            const res = await fetch(`${API_URL}/vendas/`, {
+                method: 'POST',
+                headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json(); // <- PEGA O ERRO REAL
+                throw new Error(errorData.detail || "Erro ao lançar");
+            }
+
             toast.success("Compra lançada na conta do cliente!");
             setCarrinhoFiado([]);
-            fetchDetalhesCliente(clienteSelecionado);
-            fetchClientes();
+            await fetchDetalhesCliente(clienteSelecionado);
+            await fetchClientes();
         } catch (err: any) {
-            const mensagem = err?.detail || err?.message || "Erro ao lançar" // <- CORRIGIDO
-            toast.error(mensagem)
+            toast.error(err.message || "Erro ao lançar")
         }
         finally { setSaving(false) }
     }
