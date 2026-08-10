@@ -125,6 +125,7 @@ async def receber_parcela(
     db: AsyncSession = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
+    """ROTA ANTIGA: Abate na dívida mais antiga. Mantida pra compatibilidade"""
     if pagamento.valor <= 0:
         raise HTTPException(400, "Valor do pagamento deve ser maior que zero")
 
@@ -152,7 +153,6 @@ async def receber_parcela(
 
         valor_a_pagar = min(valor_restante, divida_atual)
 
-        # 1. Cria movimento/histórico
         movimento = MovimentoVenda(
             venda_id=venda.id,
             loja_id=loja_id,
@@ -164,7 +164,6 @@ async def receber_parcela(
         )
         db.add(movimento)
 
-        # 2. Atualiza venda
         venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar
 
         if float(venda.valor_recebido) >= float(venda.total):
@@ -177,3 +176,58 @@ async def receber_parcela(
 
     await db.commit()
     return {"detail": f"Pagamento de {total_pago:.2f} KZ registrado com sucesso"}
+
+@router.post("/{loja_id}/clientes/{cliente_id}/vendas/{venda_id}/pagar")
+async def pagar_venda_especifica(
+    loja_id: UUID,
+    cliente_id: UUID,
+    venda_id: UUID,
+    pagamento: PagamentoCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """ROTA NOVA: Paga 1 dívida específica selecionada pelo usuário"""
+    if pagamento.valor <= 0:
+        raise HTTPException(400, "Valor do pagamento deve ser maior que zero")
+
+    # Busca a venda específica
+    stmt = select(Venda).where(
+        Venda.id == venda_id,
+        Venda.loja_id == loja_id,
+        Venda.cliente_id == cliente_id,
+        Venda.status.in_(["divida", "parcial"])
+    )
+    result = await db.execute(stmt)
+    venda = result.scalar_one_or_none()
+
+    if not venda:
+        raise HTTPException(status_code=404, detail="Venda não encontrada ou já paga")
+
+    divida_atual = float(venda.total) - float(venda.valor_recebido)
+    if divida_atual <= 0:
+        raise HTTPException(status_code=400, detail="Esta venda já está paga")
+
+    valor_a_pagar = min(float(pagamento.valor), divida_atual)
+
+    # 1. Cria movimento/histórico
+    movimento = MovimentoVenda(
+        venda_id=venda.id,
+        loja_id=loja_id,
+        cliente_id=cliente_id,
+        usuario_id=current_user.id,
+        valor_pago=valor_a_pagar,
+        forma_pagamento=pagamento.forma_pagamento,
+        observacao=pagamento.observacao
+    )
+    db.add(movimento)
+
+    # 2. Atualiza venda
+    venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar
+
+    if float(venda.valor_recebido) >= float(venda.total):
+        venda.status = "concluida"
+    else:
+        venda.status = "parcial"
+
+    await db.commit()
+    return {"detail": f"Pagamento de {valor_a_pagar:.2f} KZ registrado para a venda {str(venda_id)[:8]}"}
