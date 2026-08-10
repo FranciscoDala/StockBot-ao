@@ -1,25 +1,32 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession # <- MUDA AQUI
+from sqlalchemy import func, select # <- adiciona select
 from typing import List, cast
 from uuid import UUID
 from datetime import datetime
 
-from app.db.session import get_db # <- CORRIGIDO: app.db.session
-from app.models.cliente import Cliente # <- CORRIGIDO: app.models.cliente
-from app.models.venda import Venda # <- CORRIGIDO
-from app.schemas.cliente import ClienteCreate, ClienteOut # <- CORRIGIDO
+from app.db.session import get_db
+from app.models.cliente import Cliente
+from app.models.venda import Venda
+from app.schemas.cliente import ClienteCreate, ClienteOut
 from app.core.deps import get_current_user
 
 router = APIRouter()
 
-def _cliente_to_out(db: Session, cliente: Cliente) -> ClienteOut:
-    total_divida = db.query(func.coalesce(func.sum(Venda.total), 0)).filter(
+async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut: # <- async
+    # total_divida
+    stmt = select(func.coalesce(func.sum(Venda.total), 0)).where(
         Venda.cliente_id == cliente.id,
         Venda.status == "pendente"
-    ).scalar() or 0.0
+    )
+    result = await db.execute(stmt) # <- await
+    total_divida = result.scalar() or 0.0
 
-    ultima_venda = db.query(Venda).filter(Venda.cliente_id == cliente.id).order_by(Venda.created_at.desc()).first()
+    # ultima_venda
+    stmt = select(Venda).where(Venda.cliente_id == cliente.id).order_by(Venda.created_at.desc())
+    result = await db.execute(stmt) # <- await
+    ultima_venda = result.scalars().first()
+
     ultima_compra: datetime = cast(datetime, ultima_venda.created_at) if ultima_venda else cast(datetime, cliente.created_at)
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
@@ -42,24 +49,28 @@ def _cliente_to_out(db: Session, cliente: Cliente) -> ClienteOut:
         status=status_cliente
     )
 
-@router.get("/{loja_id}/clientes", response_model=List[ClienteOut]) # <- CORRIGIDO: tirou /lojas/id
-def listar_clientes(
+@router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
+async def listar_clientes( # <- async
     loja_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db), # <- AsyncSession
     current_user = Depends(get_current_user)
 ):
-    clientes = db.query(Cliente).filter(Cliente.loja_id == loja_id, Cliente.is_active == True).all()
-    return [_cliente_to_out(db, c) for c in clientes]
+    stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.is_active == True) # <- select
+    result = await db.execute(stmt) # <- await
+    clientes = result.scalars().all()
+    return [await _cliente_to_out(db, c) for c in clientes] # <- await
 
-@router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED) # <- CORRIGIDO
-def criar_cliente(
+@router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
+async def criar_cliente( # <- async
     loja_id: UUID,
     cliente_in: ClienteCreate,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db), # <- AsyncSession
     current_user = Depends(get_current_user)
 ):
     if cliente_in.bi:
-        existe = db.query(Cliente).filter(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi).first()
+        stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi) # <- select
+        result = await db.execute(stmt) # <- await
+        existe = result.scalars().first()
         if existe: raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
     data = cliente_in.model_dump()
@@ -67,22 +78,24 @@ def criar_cliente(
     db_cliente = Cliente(**data)
 
     db.add(db_cliente)
-    db.commit()
-    db.refresh(db_cliente)
-    return _cliente_to_out(db, db_cliente)
+    await db.commit() # <- await
+    await db.refresh(db_cliente) # <- await
+    return await _cliente_to_out(db, db_cliente) # <- await
 
-@router.get("/{loja_id}/clientes/{cliente_id}/pendentes") # <- CORRIGIDO
-def listar_pendencias_cliente(
+@router.get("/{loja_id}/clientes/{cliente_id}/pendentes")
+async def listar_pendencias_cliente( # <- async
     loja_id: UUID,
     cliente_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db), # <- AsyncSession
     current_user = Depends(get_current_user)
 ):
-    vendas = db.query(Venda).filter(
+    stmt = select(Venda).where(
         Venda.loja_id == loja_id,
         Venda.cliente_id == cliente_id,
         Venda.status == "pendente"
-    ).order_by(Venda.created_at.desc()).all()
+    ).order_by(Venda.created_at.desc())
+    result = await db.execute(stmt) # <- await
+    vendas = result.scalars().all()
 
     return [{
         "id": str(v.id),
@@ -91,18 +104,20 @@ def listar_pendencias_cliente(
         "total_itens": v.total_itens
     } for v in vendas]
 
-@router.post("/{loja_id}/clientes/{cliente_id}/receber") # <- CORRIGIDO
-def receber_pagamento_cliente(
+@router.post("/{loja_id}/clientes/{cliente_id}/receber")
+async def receber_pagamento_cliente( # <- async
     loja_id: UUID,
     cliente_id: UUID,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db), # <- AsyncSession
     current_user = Depends(get_current_user)
 ):
-    vendas_pendentes = db.query(Venda).filter(
+    stmt = select(Venda).where(
         Venda.loja_id == loja_id,
         Venda.cliente_id == cliente_id,
         Venda.status == "pendente"
-    ).all()
+    )
+    result = await db.execute(stmt) # <- await
+    vendas_pendentes = result.scalars().all()
 
     if not vendas_pendentes:
         raise HTTPException(status_code=404, detail="Cliente não possui dívidas")
@@ -112,5 +127,5 @@ def receber_pagamento_cliente(
         venda.valor_recebido = venda.total
         venda.forma_pagamento = "Dinheiro"
 
-    db.commit()
+    await db.commit() # <- await
     return {"detail": f"{len(vendas_pendentes)} vendas quitadas com sucesso"}
