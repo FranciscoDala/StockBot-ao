@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.usuario import Usuario
     from app.models.itens_venda import ItemVenda
     from app.models.cliente import Cliente
+    from app.models.movimento_venda import MovimentoVenda
 
 class Venda(BaseModel):
     __tablename__ = "vendas"
@@ -20,14 +21,19 @@ class Venda(BaseModel):
     usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True)
     cliente_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="SET NULL"), nullable=True, index=True)
 
-    total: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    total: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False) # aumentei pra 14,2
     total_itens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     forma_pagamento: Mapped[str] = mapped_column(String(50), nullable=False, default='Dinheiro')
-    valor_recebido: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
-    troco: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False, default=0)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default='concluida')
 
+    # NOVOS CAMPOS PARA FIADO
+    valor_recebido: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default='divida') # trocou: concluida -> divida
+
+    troco: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0) # só usado pra venda a vista
+
+    # RELATIONSHIPS
     loja: Mapped["Loja"] = relationship("Loja", back_populates="vendas")
     usuario: Mapped["Usuario | None"] = relationship("Usuario", back_populates="vendas")
     cliente: Mapped["Cliente | None"] = relationship("Cliente", back_populates="vendas")
     itens: Mapped[List["ItemVenda"]] = relationship("ItemVenda", back_populates="venda", cascade="all, delete-orphan")
+    movimentos: Mapped[List["MovimentoVenda"]] = relationship("MovimentoVenda", back_populates="venda", cascade="all, delete-orphan") # <- NOVO

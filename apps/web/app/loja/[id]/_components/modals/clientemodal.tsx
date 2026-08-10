@@ -10,7 +10,7 @@ const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.
 
 export type ClienteForm = {
     nome: string;
-    nome_empresa: string | null;  // <- adiciona | null
+    nome_empresa: string | null;
     bi: string | null;
     telefone: string | null;
     email: string | null;
