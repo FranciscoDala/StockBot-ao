@@ -74,17 +74,29 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const [carrinhoFiado, setCarrinhoFiado] = useState<ProdutoCarrinho[]>([]);
     const [produtosLoja, setProdutosLoja] = useState<Produto[]>([]);
 
+
     const fetchClientes = async () => {
         if (!token) return;
         setLoading(true);
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
+
+            if (!res.ok) { // <- ADICIONA ISSO
+                throw new Error(`Erro ${res.status}`)
+            }
+
             const data = await res.json();
             const clientesFormatados = (Array.isArray(data) ? data : []).map((c: any) => ({ ...c, total_divida: c.total_divida ?? 0 }));
             setClientes(clientesFormatados);
-        } catch (e) { setClientes([]) }
+        } catch (e) {
+            console.error(e) // <- pra ver o erro real no console
+            toast.error("Erro ao carregar clientes") // <- pra aparecer pro usuário
+            setClientes([])
+        }
         finally { setLoading(false) }
     }
+
+
 
     const fetchDetalhesCliente = async (cliente: Cliente) => {
         if (!token) return;
