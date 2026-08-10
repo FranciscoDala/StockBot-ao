@@ -46,9 +46,8 @@ def import_all_models():
     from app.models.saidas import Saida
     from app.models.caixa import Caixa
     from app.models.movimentacao_caixa import MovimentacaoCaixa
-    from app.models.cliente import Cliente # <- ADICIONADO
-    from app.models.movimentacao_venda import MovimentoVenda # <- ADICIONA ESSA LINHA
-
+    from app.models.cliente import Cliente
+    from app.models.movimentacao_venda import MovimentoVenda
 
     tabelas = sorted(list(Base.metadata.tables.keys()))
     logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
@@ -90,21 +89,26 @@ app = FastAPI(
     root_path="/api/v1"
 )
 
-logger.info(f"CORS liberado para: {settings.ALLOWED_ORIGINS_LIST}")
+# CORS CORRIGIDO - ADICIONA O DOMINIO DO FRONT
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://stockbot-czku.onrender.com", # <- SEU FRONT
+        "http://localhost:3000",
+        *settings.ALLOWED_ORIGINS_LIST
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"]
+)
 
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["*"]
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS_LIST,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
+logger.info(f"CORS liberado para: https://stockbot-czku.onrender.com + {settings.ALLOWED_ORIGINS_LIST}")
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
@@ -136,7 +140,7 @@ async def upload_produto_local(file: UploadFile = File(...)):
 
     file_name = f"{uuid.uuid4()}.{extension}"
     file_path = UPLOAD_DIR / file_name
-    with open(file_path, "wb") as buffer:  # <- era 'so', agora 'as'
+    with open(file_path, "wb") as buffer:
         buffer.write(contents)
 
     base_url = settings.BASE_URL
@@ -220,7 +224,7 @@ from app.api.v1 import websocket as websocket_router
 from app.api.v1 import saidas as saidas_router
 from app.api.v1 import caixas as caixas_router
 from app.api.v1 import movimentos_caixas as movimentos_caixas_router
-from app.api.v1 import cliente as cliente_router # <- ADICIONADO
+from app.api.v1 import cliente as cliente_router
 
 api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
 api_v1_router.include_router(usuario_router.router, prefix="")
@@ -233,12 +237,9 @@ api_v1_router.include_router(webhook_router.router, prefix="/webhook", tags=["wh
 api_v1_router.include_router(documentos_router.router, prefix="/kyc", tags=["kyc"])
 api_v1_router.include_router(websocket_router.router)
 api_v1_router.include_router(saidas_router.router)
-
-# COMPATIBILIDADE: registra com s e sem s pra nao quebrar o front
 api_v1_router.include_router(caixas_router.router, prefix="/caixas", tags=["caixas"])
 api_v1_router.include_router(caixas_router.router, prefix="/caixa", tags=["caixas"])
-
 api_v1_router.include_router(movimentos_caixas_router.router, prefix="/movimentos-caixas", tags=["movimentos-caixas"])
-api_v1_router.include_router(cliente_router.router, prefix="/lojas", tags=["clientes"]) # <- CORRIGIDO: só /lojas
+api_v1_router.include_router(cliente_router.router, prefix="/lojas", tags=["clientes"])
 
 app.include_router(api_v1_router)

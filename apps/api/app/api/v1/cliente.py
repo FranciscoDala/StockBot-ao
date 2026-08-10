@@ -5,6 +5,7 @@ from typing import List, cast
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
+from decimal import Decimal
 
 from app.db.session import get_db
 from app.models.cliente import Cliente
@@ -112,7 +113,7 @@ async def listar_pendencias_cliente(
         "data_venda": v.created_at,
         "total": float(v.total),
         "valor_recebido": float(v.valor_recebido),
-        "saldo_devedor": float(v.total - v.valor_recebido),
+        "saldo_devedor": float(float(v.total) - float(v.valor_recebido)),
         "status": v.status,
         "total_itens": v.total_itens
     } for v in vendas]
@@ -140,14 +141,15 @@ async def receber_parcela(
     if not dividas:
         raise HTTPException(status_code=404, detail="Cliente não possui dívidas")
 
-    valor_restante = float(pagamento.valor)
-    total_pago = 0.0
+    # CALCULA COM DECIMAL PRA EVITAR ERRO DE PONTO FLUTUANTE
+    valor_restante = Decimal(str(pagamento.valor))
+    total_pago = Decimal(0)
 
     for venda in dividas:
         if valor_restante <= 0:
             break
 
-        divida_atual = float(venda.total) - float(venda.valor_recebido)
+        divida_atual = Decimal(str(venda.total)) - Decimal(str(venda.valor_recebido))
         if divida_atual <= 0:
             continue
 
@@ -158,13 +160,14 @@ async def receber_parcela(
             loja_id=loja_id,
             cliente_id=cliente_id,
             usuario_id=current_user.id,
-            valor_pago=valor_a_pagar,
+            valor_pago=float(valor_a_pagar), # SALVA COMO FLOAT
             forma_pagamento=pagamento.forma_pagamento,
             observacao=pagamento.observacao
         )
         db.add(movimento)
 
-        venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar
+        # ATUALIZA COMO FLOAT
+        venda.valor_recebido = float(Decimal(str(venda.valor_recebido)) + valor_a_pagar)
 
         if float(venda.valor_recebido) >= float(venda.total):
             venda.status = "concluida"
@@ -203,11 +206,12 @@ async def pagar_venda_especifica(
     if not venda:
         raise HTTPException(status_code=404, detail="Venda não encontrada ou já paga")
 
-    divida_atual = float(venda.total) - float(venda.valor_recebido)
+    # CALCULA COM DECIMAL
+    divida_atual = Decimal(str(venda.total)) - Decimal(str(venda.valor_recebido))
     if divida_atual <= 0:
         raise HTTPException(status_code=400, detail="Esta venda já está paga")
 
-    valor_a_pagar = min(float(pagamento.valor), divida_atual)
+    valor_a_pagar = min(Decimal(str(pagamento.valor)), divida_atual)
 
     # 1. Cria movimento/histórico
     movimento = MovimentoVenda(
@@ -215,14 +219,14 @@ async def pagar_venda_especifica(
         loja_id=loja_id,
         cliente_id=cliente_id,
         usuario_id=current_user.id,
-        valor_pago=valor_a_pagar,
+        valor_pago=float(valor_a_pagar), # SALVA COMO FLOAT
         forma_pagamento=pagamento.forma_pagamento,
         observacao=pagamento.observacao
     )
     db.add(movimento)
 
-    # 2. Atualiza venda
-    venda.valor_recebido = float(venda.valor_recebido) + valor_a_pagar
+    # 2. Atualiza venda COMO FLOAT
+    venda.valor_recebido = float(Decimal(str(venda.valor_recebido)) + valor_a_pagar)
 
     if float(venda.valor_recebido) >= float(venda.total):
         venda.status = "concluida"
@@ -230,4 +234,4 @@ async def pagar_venda_especifica(
         venda.status = "parcial"
 
     await db.commit()
-    return {"detail": f"Pagamento de {valor_a_pagar:.2f} KZ registrado para a venda {str(venda_id)[:8]}"}
+    return {"detail": f"Pagamento de {float(valor_a_pagar):.2f} KZ registrado para a venda {str(venda_id)[:8]}"}
