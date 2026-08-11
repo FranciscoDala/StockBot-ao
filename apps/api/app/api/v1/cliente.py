@@ -56,9 +56,9 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
         Venda.status.in_(["divida", "parcial"])
     )
     result = await db.execute(stmt)
-    total_divida = result.scalar() or 0.0
+    total_divida = float(result.scalar() or 0.0)
 
-    # 2. Pega ultima venda
+    # 2. CORRIGIDO: Pega ultima venda que teve movimento, não só criada
     stmt = select(Venda).where(Venda.cliente_id == cliente_id).order_by(Venda.created_at.desc())
     result = await db.execute(stmt)
     ultima_venda = result.scalars().first()
@@ -67,9 +67,10 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
     # 3. Atualiza cliente
     await db.execute(
         update(Cliente)
-       .where(Cliente.id == cliente_id)
-       .values(total_divida=float(total_divida), ultima_compra=ultima_compra)
+      .where(Cliente.id == cliente_id)
+      .values(total_divida=total_divida, ultima_compra=ultima_compra)
     )
+    await db.commit() # <- IMPORTANTE: faltava commit aqui
 
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
 async def listar_clientes(
