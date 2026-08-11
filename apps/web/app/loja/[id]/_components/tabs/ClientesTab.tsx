@@ -17,7 +17,7 @@ type Cliente = {
     telefone?: string | null;
     email?: string | null;
     total_divida: number;
-    ultima_compra: string | null;
+    ultima_compra: string | null; // <- CORRIGIDO
     status: 'com_divida' | 'em_dia';
 }
 
@@ -82,9 +82,9 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (!res.ok) throw new Error(`Erro ${res.status}`)
             const data = await res.json();
             setClientes((Array.isArray(data)? data : []).map((c: any) => ({
-              ...c,
+               ...c,
                 total_divida: c.total_divida?? 0,
-                ultima_compra: c.ultima_compra?? null
+                ultima_compra: c.ultima_compra && c.ultima_compra!== ""? c.ultima_compra : null // <- CORRIGIDO: converte "" para null
             })));
         } catch (e) {
             toast.error("Erro ao carregar clientes")
@@ -113,10 +113,10 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const dataCliente = await resCliente.json();
             const clienteAtualizado = (Array.isArray(dataCliente)? dataCliente : []).find((c: any) => c.id === cliente.id);
             if (clienteAtualizado) setClienteSelecionado(prev => ({
-              ...prev!,
-              ...clienteAtualizado,
+               ...prev!,
+               ...clienteAtualizado,
                 total_divida: clienteAtualizado.total_divida?? 0,
-                ultima_compra: clienteAtualizado.ultima_compra?? null
+                ultima_compra: clienteAtualizado.ultima_compra && clienteAtualizado.ultima_compra!== ""? clienteAtualizado.ultima_compra : null // <- CORRIGIDO
             }));
         } catch { }
 
@@ -242,17 +242,18 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const clientesFiltrados = useMemo(() => {
         let lista = [...clientes];
         if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0);
-        if (filtro === 'pagos') lista = lista.filter(c => (c.total_divida?? 0) === 0);
+        if (filtro === 'pagos') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!!c.ultima_compra); // <- CORRIGIDO: só quem já comprou
+
         if (busca) lista = lista.filter(c =>
             c.nome.toLowerCase().includes(busca.toLowerCase()) ||
             c.telefone?.includes(busca) ||
             c.email?.toLowerCase().includes(busca.toLowerCase())
         );
 
-        // AJUSTE CRÍTICO: Ordenar DESC. Mais recente primeiro. Novos sem data vão pro final
+        // Ordenar DESC: Mais recente primeiro. null vai pro final
         lista.sort((a, b) => {
             const getTime = (d: string | null) => d? new Date(d).getTime() : 0;
-            return getTime(b.ultima_compra) - getTime(a.ultima_compra); // DESC
+            return getTime(b.ultima_compra) - getTime(a.ultima_compra);
         });
 
         return lista;
@@ -322,7 +323,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                             bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)';
                             buttonColor = "#3b82f6";
                         } else if (isPago) {
-                            badgeText = "Pago"; // Verde para quem já comprou e pagou
+                            badgeText = "Pago";
                             badgeColor = "#22c55e";
                             borderColor = "#22c55e";
                             bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)';
@@ -370,7 +371,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             <ClienteModal open={showModal} onOpenChange={setShowModal} editingCliente={null} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} />
 
             <Dialog open={showDetalhes} onOpenChange={setShowDetalhes}>
-                <DialogContent className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
                     <DialogHeader className="p-4 sm:p-6 border-b shrink-0 flex-row items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <div>
                             <DialogTitle className="text-lg sm:text-xl font-bold" style={{ color: 'var(--cor-texto)' }}>
