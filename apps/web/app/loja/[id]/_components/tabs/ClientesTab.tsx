@@ -17,7 +17,7 @@ type Cliente = {
     telefone?: string | null;
     email?: string | null;
     total_divida: number;
-    ultima_compra: string;
+    ultima_compra: string | null; // <- AJUSTE 1: agora pode ser null
     status: 'com_divida' | 'em_dia';
 }
 
@@ -81,7 +81,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error(`Erro ${res.status}`)
             const data = await res.json();
-            setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0 })));
+            setClientes((Array.isArray(data)? data : []).map((c: any) => ({
+               ...c,
+                total_divida: c.total_divida?? 0,
+                ultima_compra: c.ultima_compra?? null // <- AJUSTE 2: garante null
+            })));
         } catch (e) {
             toast.error("Erro ao carregar clientes")
             setClientes([])
@@ -108,7 +112,12 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const resCliente = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
             const dataCliente = await resCliente.json();
             const clienteAtualizado = (Array.isArray(dataCliente)? dataCliente : []).find((c: any) => c.id === cliente.id);
-            if (clienteAtualizado) setClienteSelecionado(prev => ({...prev!,...clienteAtualizado, total_divida: clienteAtualizado.total_divida?? 0 }));
+            if (clienteAtualizado) setClienteSelecionado(prev => ({
+               ...prev!,
+               ...clienteAtualizado,
+                total_divida: clienteAtualizado.total_divida?? 0,
+                ultima_compra: clienteAtualizado.ultima_compra?? null // <- AJUSTE 2
+            }));
         } catch { }
 
         const resProd = await fetch(`${API_URL}/produtos?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
@@ -205,7 +214,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (!res.ok) throw new Error((await res.json()).detail || "Erro ao salvar");
             toast.success("Cliente cadastrado com sucesso!");
             setShowModal(false);
-            setFiltro('todos'); // ALTERADO: pra já mostrar o novo cliente
+            setFiltro('todos'); // pra já mostrar o novo cliente
             setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
             fetchClientes();
         } catch (err: any) {
@@ -240,9 +249,9 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             c.email?.toLowerCase().includes(busca.toLowerCase())
         );
 
-        // ALTERADO: Ordenar. Novos e mais recentes primeiro
+        // AJUSTE 3: Ordenar. Novos null primeiro, depois os mais recentes
         lista.sort((a, b) => {
-            const getTime = (d: string) => d? new Date(d).getTime() : 0;
+            const getTime = (d: string | null) => d? new Date(d).getTime() : 0;
             return getTime(b.ultima_compra) - getTime(a.ultima_compra);
         });
 
@@ -291,7 +300,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
                     {clientesPaginados.map(c => {
                         const temDivida = (c.total_divida?? 0) > 0;
-                        const isNovo = (c.total_divida?? 0) === 0 &&!c.ultima_compra; // ALTERADO: agora pega string vazia
+                        const isNovo = (c.total_divida?? 0) === 0 &&!c.ultima_compra; // <- AJUSTE 4
 
                         let badgeText = "Pago";
                         let badgeColor = "#22c55e";
@@ -306,7 +315,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                             bgColor = 'color-mix(in srgb, #ef4444 5%, transparent)';
                             buttonColor = "#ef4444";
                         } else if (isNovo) {
-                            badgeText = "Novo Cliente"; // ALTERADO
+                            badgeText = "Novo Cliente"; // <- AZUL
                             badgeColor = "#3b82f6";
                             borderColor = "#3b82f6";
                             bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)';
@@ -354,7 +363,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             <ClienteModal open={showModal} onOpenChange={setShowModal} editingCliente={null} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} />
 
             <Dialog open={showDetalhes} onOpenChange={setShowDetalhes}>
-                <DialogContent className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
                     <DialogHeader className="p-4 sm:p-6 border-b shrink-0 flex-row items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <div>
                             <DialogTitle className="text-lg sm:text-xl font-bold" style={{ color: 'var(--cor-texto)' }}>

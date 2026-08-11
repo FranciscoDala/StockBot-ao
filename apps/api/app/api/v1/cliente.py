@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select
-from typing import List, cast
+from sqlalchemy import func, select, update
+from typing import List, Optional
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
@@ -23,20 +23,9 @@ class PagamentoCreate(BaseModel):
     observacao: str | None = None
 
 async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
-    # total_divida = Soma do que falta pagar de todas vendas em aberto
-    stmt = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
-        Venda.cliente_id == cliente.id,
-        Venda.status.in_(["divida", "parcial"])
-    )
-    result = await db.execute(stmt)
-    total_divida = result.scalar() or 0.0
-
-    # ultima_venda
-    stmt = select(Venda).where(Venda.cliente_id == cliente.id).order_by(Venda.created_at.desc())
-    result = await db.execute(stmt)
-    ultima_venda = result.scalars().first()
-
-    ultima_compra: datetime = cast(datetime, ultima_venda.created_at) if ultima_venda else cast(datetime, cliente.created_at)
+    # CORRIGIDO: Usa getattr pra Pylance não reclamar do tipo Column
+    total_divida = float(getattr(cliente, "total_divida", 0.0) or 0.0)
+    ultima_compra: Optional[datetime] = getattr(cliente, "ultima_compra", None) # <- PODE VIR NULL AGORA
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
     return ClienteOut(
@@ -53,9 +42,33 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
         observacoes=getattr(cliente, "observacoes"),
         is_active=getattr(cliente, "is_active"),
         created_at=getattr(cliente, "created_at"),
-        total_divida=float(total_divida),
+        total_divida=total_divida,
         ultima_compra=ultima_compra,
         status=status_cliente
+    )
+
+
+async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
+    """Recalcula total_divida e ultima_compra do cliente"""
+    # 1. Recalcula total_divida
+    stmt = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
+        Venda.cliente_id == cliente_id,
+        Venda.status.in_(["divida", "parcial"])
+    )
+    result = await db.execute(stmt)
+    total_divida = result.scalar() or 0.0
+
+    # 2. Pega ultima venda
+    stmt = select(Venda).where(Venda.cliente_id == cliente_id).order_by(Venda.created_at.desc())
+    result = await db.execute(stmt)
+    ultima_venda = result.scalars().first()
+    ultima_compra = ultima_venda.created_at if ultima_venda else None
+
+    # 3. Atualiza cliente
+    await db.execute(
+        update(Cliente)
+       .where(Cliente.id == cliente_id)
+       .values(total_divida=float(total_divida), ultima_compra=ultima_compra)
     )
 
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
@@ -85,6 +98,8 @@ async def criar_cliente(
 
     data = cliente_in.model_dump()
     data["loja_id"] = loja_id
+    data["total_divida"] = 0.0 # <- GARANTE 0
+    data["ultima_compra"] = None # <- GARANTE NULL
     db_cliente = Cliente(**data)
 
     db.add(db_cliente)
@@ -160,13 +175,12 @@ async def receber_parcela(
             loja_id=loja_id,
             cliente_id=cliente_id,
             usuario_id=current_user.id,
-            valor_pago=float(valor_a_pagar), # SALVA COMO FLOAT
+            valor_pago=float(valor_a_pagar),
             forma_pagamento=pagamento.forma_pagamento,
             observacao=pagamento.observacao
         )
         db.add(movimento)
 
-        # ATUALIZA COMO FLOAT
         venda.valor_recebido = float(Decimal(str(venda.valor_recebido)) + valor_a_pagar)
 
         if float(venda.valor_recebido) >= float(venda.total):
@@ -177,6 +191,8 @@ async def receber_parcela(
         valor_restante -= valor_a_pagar
         total_pago += valor_a_pagar
 
+    # ALTERADO: Atualiza totais do cliente no final
+    await _atualizar_totais_cliente(db, cliente_id)
     await db.commit()
     return {"detail": f"Pagamento de {total_pago:.2f} KZ registrado com sucesso"}
 
@@ -237,5 +253,7 @@ async def pagar_venda_especifica(
     else:
         venda.status = "parcial"
 
+    # ALTERADO: Atualiza totais do cliente no final
+    await _atualizar_totais_cliente(db, cliente_id)
     await db.commit()
     return {"detail": f"Pagamento de {float(valor_a_pagar):.2f} KZ registrado para a venda {str(venda_id)[:8]}"}

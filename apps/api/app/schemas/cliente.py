@@ -34,7 +34,7 @@ class ClienteOut(ClienteBase):
     id: UUID # <- troquei pra UUID
     loja_id: UUID # <- troquei pra UUID
     total_divida: float = 0.0
-    ultima_compra: datetime
+    ultima_compra: Optional[datetime] = None # <- MUDOU: agora pode ser null
     status: str = "em_dia" # 'com_divida' | 'em_dia'
     created_at: datetime
 

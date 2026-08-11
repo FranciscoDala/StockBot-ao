@@ -1,8 +1,8 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from..db.base import BaseModel # <- MUDA PRA BaseModel
+from ..db.base import BaseModel # <- MUDA PRA BaseModel
 import uuid
 
 class Cliente(BaseModel): # <- MUDA PRA BaseModel
@@ -19,5 +19,9 @@ class Cliente(BaseModel): # <- MUDA PRA BaseModel
     provincia = Column(String(100), nullable=True)
     observacoes = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
+
+    # ADICIONADO: Campo pra guardar a ultima compra fiada
+    total_divida = Column(Float, default=0.0, nullable=False) # <- Bom ter cacheado tbm
+    ultima_compra = Column(DateTime(timezone=True), nullable=True) # <- IMPORTANTE: pode ser NULL
 
     vendas = relationship("Venda", back_populates="cliente", cascade="all, delete-orphan")
