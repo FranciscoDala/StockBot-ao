@@ -284,13 +284,36 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             <div style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
                 <div className="space-y-3">
                     {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>{filtro === 'com_divida' ? "Nenhum cliente com dívida" : filtro === 'pagos' ? "Nenhum cliente com dívida paga" : "Nenhum cliente cadastrado"}</p></div>}
+
                     {clientesPaginados.map(c => {
                         const temDivida = (c.total_divida ?? 0) > 0;
+                        const isNovo = (c.total_divida ?? 0) === 0 && !c.ultima_compra; // <- NOVA REGRA
+
+                        let badgeText = "Pago";
+                        let badgeColor = "#22c55e";
+                        let borderColor = "#22c55e";
+                        let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)';
+                        let buttonColor = "#22c55e";
+
+                        if (temDivida) {
+                            badgeText = "Devendo";
+                            badgeColor = "#ef4444";
+                            borderColor = "#ef4444";
+                            bgColor = 'color-mix(in srgb, #ef4444 5%, transparent)';
+                            buttonColor = "#ef4444";
+                        } else if (isNovo) {
+                            badgeText = "Novo Cliente"; // <- TEXTO NOVO
+                            badgeColor = "#3b82f6"; // azul
+                            borderColor = "#3b82f6";
+                            bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)';
+                            buttonColor = "#3b82f6";
+                        }
+
                         return (
                             <div key={c.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition hover:bg-[var(--cor-primaria)5]"
                                 style={{
-                                    border: `1px solid ${temDivida ? '#ef4444' : '#22c55e'}`,
-                                    background: temDivida ? 'color-mix(in srgb, #ef4444 5%, transparent)' : 'color-mix(in srgb, #22c55e 5%, transparent)',
+                                    border: `1px solid ${borderColor}`, // <- USA VARIAVEL
+                                    background: bgColor, // <- USA VARIAVEL
                                     borderRadius: radius,
                                     padding
                                 }}>
@@ -299,22 +322,25 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                         <p className="font-semibold truncate">{c.nome}</p>
                                         <Badge
                                             style={{
-                                                background: temDivida ? '#ef4444' : '#22c55e',
+                                                background: badgeColor,
                                                 color: '#fff'
                                             }}
                                         >
-                                            {temDivida ? "Devendo" : "Pago"}
+                                            {badgeText}
                                         </Badge>
                                     </div>
                                     <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
-                                    <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última compra: {new Date(c.ultima_compra).toLocaleDateString('pt-AO')}</p>
+                                    <p className="text-xs mt-1 flex items-center gap-1">
+                                        <Calendar size={12} />
+                                        Última compra: {c.ultima_compra ? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}
+                                    </p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {temDivida && <div className="text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida ?? 0)}</p></div>}
                                     <Button
                                         size="sm"
                                         style={{
-                                            background: temDivida ? '#ef4444' : '#22c55e',
+                                            background: buttonColor, // <- USA VARIAVEL
                                             color: '#fff',
                                             fontSize: '12px',
                                             height: '32px'
@@ -327,6 +353,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                             </div>
                         )
                     })}
+
+
                 </div>
                 {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
             </div>
@@ -335,8 +363,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
             <Dialog open={showDetalhes} onOpenChange={setShowDetalhes}>
                 <DialogContent
-                className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
-                style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                    className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
+                    style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
 
                     <DialogHeader className="p-4 sm:p-6 border-b shrink-0 flex-row items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <div>
