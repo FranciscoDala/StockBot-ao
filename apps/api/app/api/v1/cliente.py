@@ -206,8 +206,11 @@ async def pagar_venda_especifica(
     if not venda:
         raise HTTPException(status_code=404, detail="Venda não encontrada ou já paga")
 
-    # CALCULA COM DECIMAL
-    divida_atual = Decimal(str(venda.total)) - Decimal(str(venda.valor_recebido))
+    # CORREÇÃO: Tratar None e usar Decimal
+    total_venda = Decimal(str(venda.total or 0))
+    valor_recebido_atual = Decimal(str(venda.valor_recebido or 0))
+    divida_atual = total_venda - valor_recebido_atual
+
     if divida_atual <= 0:
         raise HTTPException(status_code=400, detail="Esta venda já está paga")
 
@@ -219,16 +222,17 @@ async def pagar_venda_especifica(
         loja_id=loja_id,
         cliente_id=cliente_id,
         usuario_id=current_user.id,
-        valor_pago=float(valor_a_pagar), # SALVA COMO FLOAT
+        valor_pago=float(valor_a_pagar),
         forma_pagamento=pagamento.forma_pagamento,
         observacao=pagamento.observacao
     )
     db.add(movimento)
 
-    # 2. Atualiza venda COMO FLOAT
-    venda.valor_recebido = float(Decimal(str(venda.valor_recebido)) + valor_a_pagar)
+    # 2. Atualiza venda
+    novo_valor_recebido = valor_recebido_atual + valor_a_pagar
+    venda.valor_recebido = float(novo_valor_recebido)
 
-    if float(venda.valor_recebido) >= float(venda.total):
+    if novo_valor_recebido >= total_venda:
         venda.status = "concluida"
     else:
         venda.status = "parcial"
