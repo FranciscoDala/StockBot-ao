@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { Users, UserCheck, AlertCircle, DollarSign, ChevronLeft, ChevronRight, Eye, Plus, ShoppingCart, Receipt, Banknote, Search, Filter, Wallet, X, Calendar, Package, Loader2 } from "lucide-react"; // 1. ADICIONADO Loader2
+import { Users, UserCheck, AlertCircle, DollarSign, ChevronLeft, ChevronRight, Eye, Plus, ShoppingCart, Receipt, Banknote, Search, Filter, Wallet, X, Calendar, Package, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,7 +55,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
     const [showModal, setShowModal] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [savingPagamento, setSavingPagamento] = useState(false); // 2. ADICIONADO: loading só do pagamento
+    const [savingPagamento, setSavingPagamento] = useState(false);
     const [formDataCliente, setFormDataCliente] = useState<ClienteForm>({
         nome: "", nome_empresa: null, bi: null, telefone: null, email: null,
         endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true
@@ -81,35 +81,34 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error(`Erro ${res.status}`)
             const data = await res.json();
-            setClientes((Array.isArray(data) ? data : []).map((c: any) => ({ ...c, total_divida: c.total_divida ?? 0 })));
+            setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0 })));
         } catch (e) {
             toast.error("Erro ao carregar clientes")
             setClientes([])
         } finally { setLoading(false) }
     }
 
-    const fetchDetalhesCliente = async (cliente: Cliente, abrirModal = true) => { // <- ADICIONADO PARAM
+    const fetchDetalhesCliente = async (cliente: Cliente, abrirModal = true) => {
         if (!token) return;
-        if (abrirModal) { // <- só abre se pedir
+        if (abrirModal) {
             setClienteSelecionado(cliente);
             setShowDetalhes(true);
             setAbaDetalhes('extrato');
         } else {
-            setClienteSelecionado(cliente); // <- só atualiza os dados
+            setClienteSelecionado(cliente);
         }
 
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
             const data = await res.json();
-            setVendasPendentes(Array.isArray(data) ? data : []);
+            setVendasPendentes(Array.isArray(data)? data : []);
         } catch { setVendasPendentes([]) }
 
-        // ATUALIZAR TAMBEM OS DADOS DO CLIENTE PRA MUDAR A DIVIDA TOTAL DO HEADER
         try {
             const resCliente = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
             const dataCliente = await resCliente.json();
-            const clienteAtualizado = (Array.isArray(dataCliente) ? dataCliente : []).find((c: any) => c.id === cliente.id);
-            if (clienteAtualizado) setClienteSelecionado(prev => ({ ...prev!, ...clienteAtualizado, total_divida: clienteAtualizado.total_divida ?? 0 }));
+            const clienteAtualizado = (Array.isArray(dataCliente)? dataCliente : []).find((c: any) => c.id === cliente.id);
+            if (clienteAtualizado) setClienteSelecionado(prev => ({...prev!,...clienteAtualizado, total_divida: clienteAtualizado.total_divida?? 0 }));
         } catch { }
 
         const resProd = await fetch(`${API_URL}/produtos?loja_id=${lojaId}`, { headers: { "Authorization": `Bearer ${token}` } });
@@ -117,7 +116,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     }
 
     const handleLancarFiado = async () => {
-        if (!token || !clienteSelecionado || carrinhoFiado.length === 0) return;
+        if (!token ||!clienteSelecionado || carrinhoFiado.length === 0) return;
         setSaving(true);
         try {
             const itens = carrinhoFiado.map(i => ({
@@ -154,9 +153,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         setShowPagarModal(true);
     }
 
-
     const handleConfirmarPagamento = async () => {
-        if (!token || !clienteSelecionado || !vendaSelecionada || !valorPagamento || parseFloat(valorPagamento) <= 0) {
+        if (!token ||!clienteSelecionado ||!vendaSelecionada ||!valorPagamento || parseFloat(valorPagamento) <= 0) {
             return toast.error("Valor inválido");
         }
         setSavingPagamento(true);
@@ -183,7 +181,6 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setShowPagarModal(false);
             setVendaSelecionada(null);
 
-            // <- MUDOU AQUI: passa false pra não reabrir a modal
             await Promise.all([
                 fetchClientes(),
                 fetchDetalhesCliente(clienteSelecionado, false)
@@ -196,10 +193,10 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
     const handleSaveCliente = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!token || !lojaId) return toast.error("Erro: Loja não encontrada");
+        if (!token ||!lojaId) return toast.error("Erro: Loja não encontrada");
         setSaving(true);
         try {
-            const payload: Record<string, any> = { ...formDataCliente, loja_id: lojaId };
+            const payload: Record<string, any> = {...formDataCliente, loja_id: lojaId };
             for (const key in payload) { if (payload[key] === "") payload[key] = null; }
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
                 method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
@@ -208,7 +205,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (!res.ok) throw new Error((await res.json()).detail || "Erro ao salvar");
             toast.success("Cliente cadastrado com sucesso!");
             setShowModal(false);
-            setFiltro('com_divida');
+            setFiltro('todos'); // ALTERADO: pra já mostrar o novo cliente
             setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
             fetchClientes();
         } catch (err: any) {
@@ -219,29 +216,36 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const adicionarAoCarrinhoFiado = (p: Produto) => {
         setCarrinhoFiado(prev => {
             const item = prev.find(i => i.id === p.id);
-            if (item) return prev.map(i => i.id === p.id ? { ...i, qtd: i.qtd + 1 } : i);
-            const { unidade, ...restoDoProduto } = p;
-            return [...prev, { ...restoDoProduto, qtd: 1 }];
+            if (item) return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
+            const { unidade,...restoDoProduto } = p;
+            return [...prev, {...restoDoProduto, qtd: 1 }];
         })
     }
 
-    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id !== id));
+    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id!== id));
     const totalCarrinhoFiado = carrinhoFiado.reduce((acc, i) => acc + i.preco * i.qtd, 0);
     useEffect(() => { fetchClientes() }, [lojaId, token]);
 
-    const totalComDivida = clientes.filter(c => (c.total_divida ?? 0) > 0).length;
-    const totalEmDia = clientes.filter(c => (c.total_divida ?? 0) === 0).length;
-    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida ?? 0), 0);
+    const totalComDivida = clientes.filter(c => (c.total_divida?? 0) > 0).length;
+    const totalEmDia = clientes.filter(c => (c.total_divida?? 0) === 0).length;
+    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida?? 0), 0);
 
     const clientesFiltrados = useMemo(() => {
         let lista = [...clientes];
-        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida ?? 0) > 0);
-        if (filtro === 'pagos') lista = lista.filter(c => (c.total_divida ?? 0) === 0);
+        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0);
+        if (filtro === 'pagos') lista = lista.filter(c => (c.total_divida?? 0) === 0);
         if (busca) lista = lista.filter(c =>
             c.nome.toLowerCase().includes(busca.toLowerCase()) ||
             c.telefone?.includes(busca) ||
             c.email?.toLowerCase().includes(busca.toLowerCase())
         );
+
+        // ALTERADO: Ordenar. Novos e mais recentes primeiro
+        lista.sort((a, b) => {
+            const getTime = (d: string) => d? new Date(d).getTime() : 0;
+            return getTime(b.ultima_compra) - getTime(a.ultima_compra);
+        });
+
         return lista;
     }, [clientes, filtro, busca]);
 
@@ -249,8 +253,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const clientesPaginados = clientesFiltrados.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA);
     useEffect(() => { setPagina(1) }, [filtro, busca]);
 
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
-    const padding = cardSize === 'grande' ? '20px' : '16px';
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const padding = cardSize === 'grande'? '20px' : '16px';
 
     if (loading) return <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>
 
@@ -283,11 +287,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
             <div style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
                 <div className="space-y-3">
-                    {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>{filtro === 'com_divida' ? "Nenhum cliente com dívida" : filtro === 'pagos' ? "Nenhum cliente com dívida paga" : "Nenhum cliente cadastrado"}</p></div>}
+                    {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>{filtro === 'com_divida'? "Nenhum cliente com dívida" : filtro === 'pagos'? "Nenhum cliente com dívida paga" : "Nenhum cliente cadastrado"}</p></div>}
 
                     {clientesPaginados.map(c => {
-                        const temDivida = (c.total_divida ?? 0) > 0;
-                        const isNovo = (c.total_divida ?? 0) === 0 && !c.ultima_compra; // <- NOVA REGRA
+                        const temDivida = (c.total_divida?? 0) > 0;
+                        const isNovo = (c.total_divida?? 0) === 0 &&!c.ultima_compra; // ALTERADO: agora pega string vazia
 
                         let badgeText = "Pago";
                         let badgeColor = "#22c55e";
@@ -302,8 +306,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                             bgColor = 'color-mix(in srgb, #ef4444 5%, transparent)';
                             buttonColor = "#ef4444";
                         } else if (isNovo) {
-                            badgeText = "Novo Cliente"; // <- TEXTO NOVO
-                            badgeColor = "#3b82f6"; // azul
+                            badgeText = "Novo Cliente"; // ALTERADO
+                            badgeColor = "#3b82f6";
                             borderColor = "#3b82f6";
                             bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)';
                             buttonColor = "#3b82f6";
@@ -312,39 +316,29 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                         return (
                             <div key={c.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition hover:bg-[var(--cor-primaria)5]"
                                 style={{
-                                    border: `1px solid ${borderColor}`, // <- USA VARIAVEL
-                                    background: bgColor, // <- USA VARIAVEL
+                                    border: `1px solid ${borderColor}`,
+                                    background: bgColor,
                                     borderRadius: radius,
                                     padding
                                 }}>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
                                         <p className="font-semibold truncate">{c.nome}</p>
-                                        <Badge
-                                            style={{
-                                                background: badgeColor,
-                                                color: '#fff'
-                                            }}
-                                        >
+                                        <Badge style={{ background: badgeColor, color: '#fff' }}>
                                             {badgeText}
                                         </Badge>
                                     </div>
                                     <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
                                     <p className="text-xs mt-1 flex items-center gap-1">
                                         <Calendar size={12} />
-                                        Última compra: {c.ultima_compra ? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}
+                                        Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    {temDivida && <div className="text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida ?? 0)}</p></div>}
+                                    {temDivida && <div className="text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
                                     <Button
                                         size="sm"
-                                        style={{
-                                            background: buttonColor, // <- USA VARIAVEL
-                                            color: '#fff',
-                                            fontSize: '12px',
-                                            height: '32px'
-                                        }}
+                                        style={{ background: buttonColor, color: '#fff', fontSize: '12px', height: '32px' }}
                                         onClick={() => fetchDetalhesCliente(c)}
                                     >
                                         <Eye size={14} /> Detalhes
@@ -353,19 +347,14 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                             </div>
                         )
                     })}
-
-
                 </div>
                 {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
             </div>
 
-            <ClienteModal open={showModal} onOpenChange={setShowModal} editingCliente={null} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({ ...prev, [field]: value }))} />
+            <ClienteModal open={showModal} onOpenChange={setShowModal} editingCliente={null} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} />
 
             <Dialog open={showDetalhes} onOpenChange={setShowDetalhes}>
-                <DialogContent
-                    className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
-                    style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
-
+                <DialogContent className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
                     <DialogHeader className="p-4 sm:p-6 border-b shrink-0 flex-row items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <div>
                             <DialogTitle className="text-lg sm:text-xl font-bold" style={{ color: 'var(--cor-texto)' }}>
@@ -376,10 +365,10 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                             </DialogDescription>
                         </div>
                         <div className="flex items-center gap-3">
-                            {(clienteSelecionado?.total_divida ?? 0) > 0 && (
+                            {(clienteSelecionado?.total_divida?? 0) > 0 && (
                                 <div className="text-right">
                                     <p className="text-xs opacity-70">Dívida Total</p>
-                                    <p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{formatCurrency(clienteSelecionado?.total_divida ?? 0)}</p>
+                                    <p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{formatCurrency(clienteSelecionado?.total_divida?? 0)}</p>
                                 </div>
                             )}
                             <button onClick={() => setShowDetalhes(false)} className="h-10 w-10 flex items-center justify-center rounded-lg transition hover:opacity-90 shrink-0" style={{ background: 'var(--cor-erro)', color: '#fff' }} aria-label="Fechar">
@@ -388,11 +377,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                         </div>
                     </DialogHeader>
                     <div className="flex gap-1 px-4 sm:px-6 border-b shrink-0 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'transparent' }}>
-                        <button onClick={() => setAbaDetalhes('extrato')} className="relative flex items-center justify-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition" style={{ color: abaDetalhes === 'extrato' ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)', backgroundColor: abaDetalhes === 'extrato' ? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent' }}>
+                        <button onClick={() => setAbaDetalhes('extrato')} className="relative flex items-center justify-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition" style={{ color: abaDetalhes === 'extrato'? 'var(--cor-primaria)' : 'var(--cor-texto-sec)', backgroundColor: abaDetalhes === 'extrato'? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent' }}>
                             <Receipt size={16} /> Extrato de Dívidas
                             {abaDetalhes === 'extrato' && <div className="absolute -bottom-px left-0 right-0 h-0.5" style={{ background: 'var(--cor-primaria)' }} />}
                         </button>
-                        <button onClick={() => setAbaDetalhes('nova_compra')} className="relative flex items-center justify-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition" style={{ color: abaDetalhes === 'nova_compra' ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)', backgroundColor: abaDetalhes === 'nova_compra' ? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent' }}>
+                        <button onClick={() => setAbaDetalhes('nova_compra')} className="relative flex items-center justify-center gap-2 px-3 sm:px-4 py-3 font-semibold text-sm transition" style={{ color: abaDetalhes === 'nova_compra'? 'var(--cor-primaria)' : 'var(--cor-texto-sec)', backgroundColor: abaDetalhes === 'nova_compra'? 'color-mix(in srgb, var(--cor-primaria) 8%, transparent)' : 'transparent' }}>
                             <ShoppingCart size={16} /> Nova Compra Fiado
                             {abaDetalhes === 'nova_compra' && <div className="absolute -bottom-px left-0 right-0 h-0.5" style={{ background: 'var(--cor-primaria)' }} />}
                         </button>
@@ -400,7 +389,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                     <div className="flex-1 overflow-y-auto px-4 sm:p-6 min-h-0 pb-8">
                         {abaDetalhes === 'extrato' && (
                             <div className="space-y-3">
-                                {vendasPendentes.length === 0 ?
+                                {vendasPendentes.length === 0?
                                     <div className="text-center py-16 opacity-70"><UserCheck size={32} className="mx-auto mb-2" /><p>Cliente em dia. Nenhuma dívida em aberto.</p></div> :
                                     vendasPendentes.map(v => (
                                         <div key={v.id} className="p-4 transition hover:bg-[var(--cor-primaria)5]" style={{ border: '2px solid var(--cor-primaria)', borderRadius: radius, background: 'color-mix(in srgb, var(--cor-primaria) 4%, transparent)' }}>
@@ -408,7 +397,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <p className="font-semibold">Venda #{v.id.slice(0, 8)}</p>
-                                                        <Badge variant={v.status === 'parcial' ? 'secondary' : 'destructive'}>{v.status.toUpperCase()}</Badge>
+                                                        <Badge variant={v.status === 'parcial'? 'secondary' : 'destructive'}>{v.status.toUpperCase()}</Badge>
                                                     </div>
                                                     <p className="text-xs flex items-center gap-1"><Calendar size={12} /> {new Date(v.data_venda).toLocaleDateString('pt-AO')}</p>
                                                     <p className="text-xs flex items-center gap-1"><Package size={12} /> {v.total_itens} itens</p>
@@ -442,7 +431,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                 <div>
                                     <p className="font-semibold mb-2">Carrinho Fiado</p>
                                     <div className="space-y-2 max-h-[40vh] overflow-y-auto pr-2 mb-3">
-                                        {carrinhoFiado.length === 0 ? <p className="text-xs opacity-70">Clique em um produto para adicionar</p> : carrinhoFiado.map(i => <div key={i.id} className="flex justify-between items-center text-sm p-2 rounded bg-[var(--cor-primaria)10]"><div><p>{i.nome}</p><p className="text-xs">{i.qtd} x {formatCurrency(i.preco)}</p></div><div className="flex items-center gap-2"><p className="font-semibold">{formatCurrency(i.preco * i.qtd)}</p><Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removerDoCarrinho(i.id)}><X size={14} /></Button></div></div>)}
+                                        {carrinhoFiado.length === 0? <p className="text-xs opacity-70">Clique em um produto para adicionar</p> : carrinhoFiado.map(i => <div key={i.id} className="flex justify-between items-center text-sm p-2 rounded bg-[var(--cor-primaria)10]"><div><p>{i.nome}</p><p className="text-xs">{i.qtd} x {formatCurrency(i.preco)}</p></div><div className="flex items-center gap-2"><p className="font-semibold">{formatCurrency(i.preco * i.qtd)}</p><Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removerDoCarrinho(i.id)}><X size={14} /></Button></div></div>)}
                                     </div>
                                     <div className="h-px bg-[var(--cor-primaria)30] my-2" />
                                     <p className="font-bold text-right text-lg mt-2">Total: {formatCurrency(totalCarrinhoFiado)}</p>
@@ -466,11 +455,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                     <div className="space-y-4 py-4">
                         <div className="p-3 rounded" style={{ background: 'var(--cor-primaria)10' }}>
                             <Label>Valor da Dívida</Label>
-                            <p className="font-bold text-2xl" style={{ color: '#ef4444' }}>{formatCurrency(vendaSelecionada?.saldo_devedor ?? 0)}</p>
+                            <p className="font-bold text-2xl" style={{ color: '#ef4444' }}>{formatCurrency(vendaSelecionada?.saldo_devedor?? 0)}</p>
                         </div>
-                        <div><Label>Valor a Receber</Label><Input type="number" value={valorPagamento} onChange={e => setValorPagamento(e.target.value)} placeholder="Ex: 5000" disabled={savingPagamento} /></div> {/* 4. disabled */}
+                        <div><Label>Valor a Receber</Label><Input type="number" value={valorPagamento} onChange={e => setValorPagamento(e.target.value)} placeholder="Ex: 5000" disabled={savingPagamento} /></div>
                         <div><Label>Forma de Pagamento</Label>
-                            <Select value={formaPagamento} onValueChange={setFormaPagamento} disabled={savingPagamento}> {/* 5. disabled */}
+                            <Select value={formaPagamento} onValueChange={setFormaPagamento} disabled={savingPagamento}>
                                 <SelectTrigger><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="Dinheiro">Dinheiro</SelectItem>
@@ -481,10 +470,10 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowPagarModal(false)} disabled={savingPagamento}>Cancelar</Button> {/* 6. disabled */}
-                        <Button onClick={handleConfirmarPagamento} disabled={savingPagamento} style={{ background: '#22c55e', color: '#fff' }}> {/* 7. BOTÃO COM SPINNER */}
-                            {savingPagamento ? <Loader2 size={16} className="mr-2 animate-spin" /> : null}
-                            {savingPagamento ? "Processando..." : "Confirmar Pagamento"}
+                        <Button variant="outline" onClick={() => setShowPagarModal(false)} disabled={savingPagamento}>Cancelar</Button>
+                        <Button onClick={handleConfirmarPagamento} disabled={savingPagamento} style={{ background: '#22c55e', color: '#fff' }}>
+                            {savingPagamento? <Loader2 size={16} className="mr-2 animate-spin" /> : null}
+                            {savingPagamento? "Processando..." : "Confirmar Pagamento"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
