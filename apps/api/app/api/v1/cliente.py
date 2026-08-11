@@ -94,10 +94,48 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
 async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
-    stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.is_active == True)
+
+    # Faz o JOIN pra já vir com total_divida e ultima_compra calculados
+    stmt = (
+        select(
+            Cliente,
+            func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0).label("total_divida_calc"),
+            func.max(Venda.created_at).label("ultima_compra_calc")
+        )
+       .outerjoin(Venda, Venda.cliente_id == Cliente.id)
+       .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
+       .group_by(Cliente.id)
+       .order_by(func.max(Venda.created_at).desc()) # já ordena DESC
+    )
     result = await db.execute(stmt)
-    clientes = result.scalars().all()
-    return [await _cliente_to_out(db, c) for c in clientes]
+
+    clientes_out = []
+    for cliente, total_divida_calc, ultima_compra_calc in result.all():
+        total_divida = float(total_divida_calc or 0.0)
+        status_cliente = "com_divida" if total_divida > 0 else "em_dia"
+
+        clientes_out.append(ClienteOut(
+            id=cliente.id,
+            loja_id=cliente.loja_id,
+            nome=cliente.nome,
+            nome_empresa=cliente.nome_empresa,
+            bi=cliente.bi,
+            telefone=cliente.telefone,
+            email=cliente.email,
+            endereco=cliente.endereco,
+            cidade=cliente.cidade,
+            provincia=cliente.provincia,
+            observacoes=cliente.observacoes,
+            is_active=cliente.is_active,
+            created_at=cliente.created_at,
+            total_divida=total_divida,
+            ultima_compra=ultima_compra_calc, # <- agora vem do JOIN
+            status=status_cliente
+        ))
+    return clientes_out
+
+
+
 
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
