@@ -42,13 +42,13 @@ type Props = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://stockbot-ao.onrender.com/api/v1";
 
-type FiltroCliente = 'todos' | 'com_divida' | 'em_dia' | 'pagos'; // <- 1. ADICIONADO 'pagos'
+type FiltroCliente = 'todos' | 'com_divida' | 'pagos'; // <- 1. SÓ 3 FILTROS
 type ProdutoCarrinho = Omit<Produto, 'unidade'> & { qtd: number };
 
 export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatCurrency }: Props) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filtro, setFiltro] = useState<FiltroCliente>('com_divida'); // <- 2. MUDOU: padrão agora é com_divida
+    const [filtro, setFiltro] = useState<FiltroCliente>('com_divida');
     const [busca, setBusca] = useState("");
     const [pagina, setPagina] = useState(1);
     const ITENS_POR_PAGINA = 8;
@@ -187,7 +187,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (!res.ok) throw new Error((await res.json()).detail || "Erro ao salvar");
             toast.success("Cliente cadastrado com sucesso!");
             setShowModal(false);
-            setFiltro('com_divida'); // <- 3. MUDOU: volta pro filtro padrão
+            setFiltro('com_divida');
             setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
             fetchClientes();
         } catch (err: any) {
@@ -214,10 +214,9 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
     const clientesFiltrados = useMemo(() => {
         let lista = [...clientes];
-        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0);
-        if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida?? 0) === 0);
-        if (filtro === 'pagos') lista = lista.filter(c => (c.total_divida?? 0) === 0); // <- 4. NOVO FILTRO
-        if (filtro === 'todos') lista = lista.filter(c => (c.total_divida?? 0) > 0); // <- 5. MUDOU: 'todos' agora = só quem deve ou deveu
+        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0); // <- 2. SÓ DEVEDORES
+        if (filtro === 'pagos') lista = lista.filter(c => (c.total_divida?? 0) === 0); // <- 3. SÓ PAGOS
+        // 'todos' agora traz todos mesmo
         if (busca) lista = lista.filter(c =>
             c.nome.toLowerCase().includes(busca.toLowerCase()) ||
             c.telefone?.includes(busca) ||
@@ -245,48 +244,46 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 <Button onClick={() => setShowModal(true)} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Plus size={16} /> Novo Cliente</Button>
             </div>
 
-            {/* 6. REMOVIDO: Card "Total Clientes" */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #ef444430', borderRadius: radius, padding }}><p className="text-xs">Com Dívida</p><p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{totalComDivida}</p><p className="text-xs">{formatCurrency(valorTotalEmDivida)}</p></div>
-                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid var(--cor-primaria)40', borderRadius: radius, padding }}><p className="text-xs">Em Dia</p><p className="text-2xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{totalEmDia}</p></div>
+                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #22c55e40', borderRadius: radius, padding }}><p className="text-xs">Em Dia</p><p className="text-2xl font-bold" style={{ color: '#22c55e' }}>{totalEmDia}</p></div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3" style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
                 <div className="relative flex-1"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" /><Input placeholder="Buscar cliente..." value={busca} onChange={e => setBusca(e.target.value)} className="pl-9 h-9" /></div>
                 <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroCliente)}>
                     <SelectTrigger className="w-full sm:w-[240px] h-9"><Filter size={14} className="mr-2" /> <SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="todos">Todos clientes ({clientes.length})</SelectItem> {/* <- 7. MUDOU O TEXTO */}
-                        <SelectItem value="com_divida">Com Dívida ({totalComDivida})</SelectItem>
-                        <SelectItem value="em_dia">Em Dia ({totalEmDia})</SelectItem>
-                        <SelectItem value="pagos">Clientes com dívidas pagas</SelectItem> {/* <- 8. NOVO ITEM */}
+                    <SelectContent> {/* <- 4. SÓ 3 OPÇÕES */}
+                        <SelectItem value="todos">Todos clientes ({clientes.length})</SelectItem>
+                        <SelectItem value="com_divida">Clientes com dívidas ({totalComDivida})</SelectItem>
+                        <SelectItem value="pagos">Clientes com dívidas pagas ({totalEmDia})</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
             <div style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
                 <div className="space-y-3">
-                    {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>{filtro === 'com_divida'? "Nenhum cliente com dívida" : filtro === 'em_dia'? "Nenhum cliente em dia" : "Nenhum cliente encontrado"}</p></div>}
+                    {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>{filtro === 'com_divida'? "Nenhum cliente com dívida" : filtro === 'pagos'? "Nenhum cliente com dívida paga" : "Nenhum cliente cadastrado"}</p></div>}
                     {clientesPaginados.map(c => {
                         const temDivida = (c.total_divida?? 0) > 0;
                         return (
                             <div key={c.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition hover:bg-[var(--cor-primaria)5]"
                                 style={{
-                                    border: `2px solid var(--cor-primaria)`, // <- 9. BORDA PRIMARY OBRIGATÓRIA
+                                    border: `1px solid ${temDivida? '#ef4444' : '#22c55e'}`, // <- 5. BORDA DO ESTILO ALERT
+                                    background: temDivida? 'color-mix(in srgb, #ef4444 5%, transparent)' : 'color-mix(in srgb, #22c55e 5%, transparent)',
                                     borderRadius: radius,
-                                    padding,
-                                    background: temDivida? 'color-mix(in srgb, #ef4444 5%, transparent)' : 'color-mix(in srgb, #22c55e 5%, transparent)' // <- 10. FUNDO ALERT
+                                    padding
                                 }}>
                                 <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
                                         <p className="font-semibold truncate">{c.nome}</p>
                                         <Badge
                                             style={{
-                                                background: temDivida? '#ef4444' : '#22c55e', // <- 11. BADGE COM COR
+                                                background: temDivida? '#ef4444' : '#22c55e',
                                                 color: '#fff'
                                             }}
                                         >
-                                            {temDivida? "Devendo" : "Pago"} {/* <- 12. MUDOU O TEXTO */}
+                                            {temDivida? "Devendo" : "Pago"}
                                         </Badge>
                                     </div>
                                     <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
@@ -294,7 +291,18 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {temDivida && <div className="text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
-                                    <Button size="sm" variant="outline" onClick={() => fetchDetalhesCliente(c)}><Eye size={14} /> Detalhes</Button>
+                                    <Button
+                                        size="sm"
+                                        style={{ // <- 6. BOTÃO COM BACKGROUND E FONTE MENOR
+                                            background: temDivida? '#ef4444' : '#22c55e',
+                                            color: '#fff',
+                                            fontSize: '12px',
+                                            height: '32px'
+                                        }}
+                                        onClick={() => fetchDetalhesCliente(c)}
+                                    >
+                                        <Eye size={14} /> Detalhes
+                                    </Button>
                                 </div>
                             </div>
                         )
