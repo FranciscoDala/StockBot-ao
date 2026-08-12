@@ -1,15 +1,14 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
-import { Users, DollarSign, ChevronLeft, ChevronRight, Eye, Plus, Search, Filter, X, Calendar, Loader2, Edit, Trash2 } from "lucide-react";
+import { Users, DollarSign, ChevronLeft, ChevronRight, Plus, Search, Filter, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClienteModal, ClienteForm } from "../modals/modal_cliente"; // <- C MAIUSCULO
-import { Produto } from "../modals/ProdutoModal";
-import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Produto } from "../modals/ProdutoModal";
+import { ClienteModal, ClienteForm } from "../modals/modal_cliente";
+import { ConfirmarModal } from "../modals/ConfirmacaoModal";
 
 type Cliente = {
     id: string;
@@ -75,9 +74,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const [valorPagamento, setValorPagamento] = useState("");
     const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
 
-    const [showPermissaoModal, setShowPermissaoModal] = useState(false);
+    const [showConfirmarModal, setShowConfirmarModal] = useState(false);
     const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar', data: Cliente | null } | null>(null);
-    const [senhaDono, setSenhaDono] = useState("");
 
     const fetchClientes = async () => {
         if (!token) {
@@ -94,7 +92,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try {
             const res = await fetch(url, {
                 headers: { "Authorization": `Bearer ${token}` },
-                mode: 'cors' // força cors pra ver erro
+                mode: 'cors'
             });
 
             console.log("[CLIENTES] Status:", res.status)
@@ -110,7 +108,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             console.log("[CLIENTES] Dados recebidos:", data.length, "clientes")
 
             setClientes((Array.isArray(data)? data : []).map((c: any) => ({
-               ...c,
+             ...c,
                 total_divida: c.total_divida?? 0,
                 ultima_compra: c.ultima_compra || null
             })));
@@ -226,20 +224,20 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             is_active: true
         });
         setAcaoPendente({ tipo: 'editar', data: c });
-        setShowPermissaoModal(true);
+        setShowModal(true); // Abre modal cliente primeiro
     }
 
     const handleDeleteClick = (c: Cliente) => {
         setAcaoPendente({ tipo: 'apagar', data: c });
-        setShowPermissaoModal(true);
+        setShowConfirmarModal(true); // Abre modal senha direto
     }
 
-    const executarAcaoComSenha = async () => {
-        if (!token ||!acaoPendente ||!senhaDono) return;
+    const executarAcaoComSenha = async (senha?: string) => {
+        if (!token ||!acaoPendente ||!senha) return toast.error("Senha obrigatória");
         setSaving(true);
         try {
             if (acaoPendente.tipo === 'editar' && editingClienteId) {
-                const payload = {...formDataCliente, senha_dono: senhaDono };
+                const payload = {...formDataCliente, senha_dono: senha };
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, {
                     method: 'PUT', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -251,14 +249,13 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (acaoPendente.tipo === 'apagar' && acaoPendente.data) {
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, {
                     method: 'DELETE', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ senha_dono: senhaDono })
+                    body: JSON.stringify({ senha_dono: senha })
                 });
                 if (!res.ok) throw new Error((await res.json()).detail || "Erro ao apagar");
                 toast.success("Cliente apagado!");
             }
 
-            setShowPermissaoModal(false);
-            setSenhaDono("");
+            setShowConfirmarModal(false);
             setAcaoPendente(null);
             setEditingClienteId(null);
             fetchClientes();
@@ -267,32 +264,36 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         } finally { setSaving(false); }
     }
 
-    const handleSaveCliente = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSaveCliente = async (e?: React.FormEvent) => {
+        e?.preventDefault();
         if (!token ||!lojaId) return toast.error("Erro: Loja não encontrada");
 
-        // VALIDACAO NOME
         if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) {
             return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
         }
 
-        setSaving(true);
-        try {
-            const payload: Record<string, any> = {...formDataCliente, loja_id: lojaId };
-            for (const key in payload) { if (payload[key] === "") payload[key] = null; }
-            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
-                method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-            if (!res.ok) throw new Error((await res.json()).detail || "Erro ao salvar");
-            toast.success("Cliente cadastrado com sucesso!");
+        if(editingClienteId){ // EDITAR
             setShowModal(false);
-            setFiltro('todos');
-            setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
-            fetchClientes();
-        } catch (err: any) {
-            toast.error(err.message || "Erro ao cadastrar cliente");
-        } finally { setSaving(false); }
+            setShowConfirmarModal(true);
+        } else { // CRIAR
+            setSaving(true);
+            try {
+                const payload: Record<string, any> = {...formDataCliente, loja_id: lojaId };
+                for (const key in payload) { if (payload[key] === "") payload[key] = null; }
+                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
+                    method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error((await res.json()).detail || "Erro ao salvar");
+                toast.success("Cliente cadastrado com sucesso!");
+                setShowModal(false);
+                setFiltro('todos');
+                setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
+                fetchClientes();
+            } catch (err: any) {
+                toast.error(err.message || "Erro ao cadastrar cliente");
+            } finally { setSaving(false); }
+        }
     }
 
     const adicionarAoCarrinhoFiado = (p: Produto) => {
@@ -324,7 +325,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             c.email?.toLowerCase().includes(busca.toLowerCase())
         );
 
-        return lista; // <- Backend já ordena DESC
+        return lista;
     }, [clientes, filtro, busca]);
 
     const totalPaginas = Math.ceil(clientesFiltrados.length / ITENS_POR_PAGINA);
@@ -413,32 +414,74 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                         }
 
                         return (
-                            <div key={c.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 transition hover:bg-[var(--cor-primaria)5]"
+                            <div key={c.id} className="flex flex-col gap-3 transition hover:bg-[var(--cor-primaria)5]"
                                 style={{
                                     border: `1px solid ${borderColor}`,
                                     background: bgColor,
                                     borderRadius: radius,
                                     padding
                                 }}>
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <p className="font-semibold truncate">{c.nome}</p>
-                                        <Badge style={{ background: badgeColor, color: '#fff' }}>
-                                            {badgeText}
-                                        </Badge>
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="font-semibold truncate">{c.nome}</p>
+                                            <Badge style={{ background: badgeColor, color: '#fff', fontSize: '11px', padding: '2px 10px', borderRadius: '999px' }}>
+                                                {badgeText}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
+                                        <p className="text-xs mt-1 flex items-center gap-1">
+                                            <Calendar size={12} />
+                                            Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}
+                                        </p>
                                     </div>
-                                    <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
-                                    <p className="text-xs mt-1 flex items-center gap-1">
-                                        <Calendar size={12} />
-                                        Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}
-                                    </p>
+                                    {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
                                 </div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    {temDivida && <div className="text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
-                                    {/* BOTÕES COM TEXTO */}
-                                    <Button size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '12px', height: '32px', padding: '0 12px' }} onClick={() => fetchDetalhesCliente(c)}>Detalhes</Button>
-                                    <Button size="sm" variant="outline" style={{ height: '32px', fontSize: '12px', padding: '0 12px' }} onClick={() => handleEditClick(c)}>Atualizar</Button>
-                                    <Button size="sm" variant="destructive" style={{ height: '32px', fontSize: '12px', padding: '0 12px' }} onClick={() => handleDeleteClick(c)}>Apagar</Button>
+
+                                <div className="flex items-center gap-2 w-full justify-start sm:justify-end">
+                                    <Button
+                                        size="sm"
+                                        style={{
+                                            background: buttonColor,
+                                            color: '#fff',
+                                            fontSize: '11px',
+                                            height: '28px',
+                                            padding: '0 10px',
+                                            borderRadius: '999px',
+                                            fontWeight: 600
+                                        }}
+                                        onClick={() => fetchDetalhesCliente(c)}
+                                    >
+                                        Detalhes
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        style={{
+                                            height: '28px',
+                                            fontSize: '11px',
+                                            padding: '0 10px',
+                                            borderRadius: '999px',
+                                            fontWeight: 600
+                                        }}
+                                        onClick={() => handleEditClick(c)}
+                                    >
+                                        Atualizar
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        style={{
+                                            height: '28px',
+                                            fontSize: '11px',
+                                            padding: '0 10px',
+                                            borderRadius: '999px',
+                                            fontWeight: 600
+                                        }}
+                                        onClick={() => handleDeleteClick(c)}
+                                    >
+                                        Apagar
+                                    </Button>
                                 </div>
                             </div>
                         )
@@ -457,21 +500,16 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))}
             />
 
-            <Dialog open={showPermissaoModal} onOpenChange={setShowPermissaoModal}>
-                <DialogContent style={{ backgroundColor: 'var(--cor-card)' }}>
-                    <DialogHeader>
-                        <DialogTitle>{acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"}</DialogTitle>
-                        <DialogDescription>Digite a senha do DONO para {acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente {acaoPendente?.data?.nome}</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div><Label>Senha do Dono</Label><Input type="password" value={senhaDono} onChange={e => setSenhaDono(e.target.value)} /></div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => { setShowPermissaoModal(false); setSenhaDono("") }}>Cancelar</Button>
-                        <Button onClick={executarAcaoComSenha} disabled={saving} style={{ background: 'var(--cor-primaria)', color: '#fff' }}>{saving? <Loader2 size={16} className="mr-2 animate-spin" /> : null}Confirmar</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmarModal
+                open={showConfirmarModal}
+                onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }}
+                onConfirm={executarAcaoComSenha}
+                titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"}
+                descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`}
+                loading={saving}
+                tipo={acaoPendente?.tipo === 'editar'? 'edit' : 'delete'}
+                textoConfirmar={acaoPendente?.tipo === 'editar'? "Salvar Alterações" : "Apagar Cliente"}
+            />
 
             {/*... resto dos modais igual... */}
         </div>
