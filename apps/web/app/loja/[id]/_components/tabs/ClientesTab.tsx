@@ -57,7 +57,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         } catch (e: any) { toast.error(e.message || "Erro ao carregar clientes"); setClientes([]) } finally { setLoading(false) }
     }
 
-    const fetchDetalhesCliente = async (cliente: Cliente) => {
+    const fetchDetalhesCliente = async (e: React.MouseEvent, cliente: Cliente) => {
+        e.preventDefault();
         if (!token) return;
         setClienteSelecionado(cliente);
         setShowDetalhes(true);
@@ -86,18 +87,20 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setShowPagarModal(false);
             setVendaSelecionada(null);
             await fetchClientes();
-            if(clienteSelecionado) await fetchDetalhesCliente(clienteSelecionado);
+            if(clienteSelecionado) await fetchDetalhesCliente({} as React.MouseEvent, clienteSelecionado);
         } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
     }
 
-    const handleEditClick = (c: Cliente) => {
+    const handleEditClick = (e: React.MouseEvent, c: Cliente) => {
+        e.preventDefault();
         setEditingClienteId(c.id);
         setFormDataCliente({ nome: c.nome, nome_empresa: null, bi: null, telefone: c.telefone || null, email: c.email || null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
         setAcaoPendente({ tipo: 'editar', data: c });
         setShowModal(true);
     }
 
-    const handleDeleteClick = (c: Cliente) => {
+    const handleDeleteClick = (e: React.MouseEvent, c: Cliente) => {
+        e.preventDefault();
         setAcaoPendente({ tipo: 'apagar', data: c });
         setShowConfirmarModal(true);
     }
@@ -182,7 +185,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Clientes <Users size={16} style={{ color: 'var(--cor-primaria)' }} /></h2>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Controle de dívidas e pagamentos</p>
                 </div>
-                <Button onClick={() => { setEditingClienteId(null); setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true }); setShowModal(true) }} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
+                <Button type="button" onClick={() => { setEditingClienteId(null); setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true }); setShowModal(true) }} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
                     <Plus size={16} /> Novo Cliente
                 </Button>
             </div>
@@ -230,16 +233,38 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                     {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
                                 </div>
 
-                                <div className="flex items-center gap-2 w-full flex-wrap justify-start sm:justify-end">
-                                    <Button size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '10px', height: '26px', padding: '0 9px', borderRadius: '999px', fontWeight: 600 }} onClick={() => fetchDetalhesCliente(c)}>Detalhes</Button>
-                                    <Button size="sm" variant="outline" style={{ height: '26px', fontSize: '10px', padding: '0 9px', borderRadius: '999px', fontWeight: 600, borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', color: 'var(--cor-texto)' }} onClick={() => handleEditClick(c)}>Atualizar</Button>
-                                    <Button size="sm" style={{ height: '26px', fontSize: '10px', padding: '0 9px', borderRadius: '999px', fontWeight: 600, background: '#ef4444', color: '#fff' }} onClick={() => handleDeleteClick(c)}>Apagar</Button>
+                                <div className="flex items-center gap-1.5 w-full flex-nowrap justify-start sm:justify-end overflow-x-auto">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        style={{ background: buttonColor, color: '#fff', fontSize: '9px', height: '24px', padding: '0 7px', borderRadius: '999px', fontWeight: 600, whiteSpace: 'nowrap' }}
+                                        onClick={(e) => fetchDetalhesCliente(e, c)}
+                                    >
+                                        Detalhes
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        style={{ height: '24px', fontSize: '9px', padding: '0 7px', borderRadius: '999px', fontWeight: 600, borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', color: 'var(--cor-texto)', whiteSpace: 'nowrap' }}
+                                        onClick={(e) => handleEditClick(e, c)}
+                                    >
+                                        Atualizar
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        style={{ height: '24px', fontSize: '9px', padding: '0 7px', borderRadius: '999px', fontWeight: 600, background: '#ef4444', color: '#fff', whiteSpace: 'nowrap' }}
+                                        onClick={(e) => handleDeleteClick(e, c)}
+                                    >
+                                        Apagar
+                                    </Button>
                                 </div>
                             </div>
                         )
                     })}
                 </div>
-                {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
+                {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button type="button" size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button type="button" size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
             </div>
 
             <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} />
