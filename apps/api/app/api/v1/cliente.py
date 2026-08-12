@@ -91,49 +91,68 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
     )
     await db.commit()
 
+
+
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
 async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    await verificar_acesso_loja(loja_id, db, current_user)
+    print(f"[LISTAR_CLIENTES] INICIO - loja_id: {loja_id} - user_id: {current_user.id} - email: {current_user.email}")
 
-    # Faz o JOIN pra já vir com total_divida e ultima_compra calculados
-    stmt = (
-        select(
-            Cliente,
-            func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0).label("total_divida_calc"),
-            func.max(Venda.created_at).label("ultima_compra_calc")
+    try:
+        print("[LISTAR_CLIENTES] 1. Verificando acesso a loja...")
+        await verificar_acesso_loja(loja_id, db, current_user)
+        print("[LISTAR_CLIENTES] 2. Acesso OK")
+
+        print("[LISTAR_CLIENTES] 3. Montando query com JOIN...")
+        stmt = (
+            select(
+                Cliente,
+                func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0).label("total_divida_calc"),
+                func.max(Venda.created_at).label("ultima_compra_calc")
+            )
+          .outerjoin(Venda, Venda.cliente_id == Cliente.id)
+          .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
+          .group_by(Cliente.id)
+          .order_by(func.max(Venda.created_at).desc())
         )
-       .outerjoin(Venda, Venda.cliente_id == Cliente.id)
-       .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
-       .group_by(Cliente.id)
-       .order_by(func.max(Venda.created_at).desc()) # já ordena DESC
-    )
-    result = await db.execute(stmt)
+        print("[LISTAR_CLIENTES] 4. Executando query no banco...")
+        result = await db.execute(stmt)
+        rows = result.all()
+        print(f"[LISTAR_CLIENTES] 5. Query OK - Retornou {len(rows)} linhas")
 
-    clientes_out = []
-    for cliente, total_divida_calc, ultima_compra_calc in result.all():
-        total_divida = float(total_divida_calc or 0.0)
-        status_cliente = "com_divida" if total_divida > 0 else "em_dia"
+        clientes_out = []
+        for i, (cliente, total_divida_calc, ultima_compra_calc) in enumerate(rows):
+            total_divida = float(total_divida_calc or 0.0)
+            status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
-        clientes_out.append(ClienteOut(
-            id=cliente.id,
-            loja_id=cliente.loja_id,
-            nome=cliente.nome,
-            nome_empresa=cliente.nome_empresa,
-            bi=cliente.bi,
-            telefone=cliente.telefone,
-            email=cliente.email,
-            endereco=cliente.endereco,
-            cidade=cliente.cidade,
-            provincia=cliente.provincia,
-            observacoes=cliente.observacoes,
-            is_active=cliente.is_active,
-            created_at=cliente.created_at,
-            total_divida=total_divida,
-            ultima_compra=ultima_compra_calc, # <- agora vem do JOIN
-            status=status_cliente
-        ))
-    return clientes_out
+            clientes_out.append(ClienteOut(
+                id=cliente.id,
+                loja_id=cliente.loja_id,
+                nome=cliente.nome,
+                nome_empresa=cliente.nome_empresa,
+                bi=cliente.bi,
+                telefone=cliente.telefone,
+                email=cliente.email,
+                endereco=cliente.endereco,
+                cidade=cliente.cidade,
+                provincia=cliente.provincia,
+                observacoes=cliente.observacoes,
+                is_active=cliente.is_active,
+                created_at=cliente.created_at,
+                total_divida=total_divida,
+                ultima_compra=ultima_compra_calc,
+                status=status_cliente
+            ))
+            if i < 3: # só loga os 3 primeiros pra não poluir
+                print(f"[LISTAR_CLIENTES] Cliente {i+1}: {cliente.nome} - Divida: {total_divida}")
 
+        print(f"[LISTAR_CLIENTES] 6. FIM - Retornando {len(clientes_out)} clientes")
+        return clientes_out
+
+    except Exception as e:
+        print(f"[LISTAR_CLIENTES] ERRO CRITICO: {type(e).__name__} - {e}")
+        import traceback
+        traceback.print_exc() # imprime stack trace completo no log do Render
+        raise HTTPException(status_code=500, detail=f"Erro interno ao listar clientes: {str(e)}")
 
 
 

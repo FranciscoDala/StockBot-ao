@@ -81,24 +81,47 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const [senhaDono, setSenhaDono] = useState("");
 
     const fetchClientes = async () => {
-        if (!token) return;
+        if (!token) {
+            console.log("[CLIENTES] Sem token, abortando")
+            return;
+        }
         setLoading(true);
+        const url = `${API_URL}/lojas/${lojaId}/clientes`;
+
+        console.log("[CLIENTES] URL:", url)
+        console.log("[CLIENTES] Token:", token ? "Tem token" : "Sem token")
+        console.log("[CLIENTES] LojaID:", lojaId)
+
         try {
-            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
+            const res = await fetch(url, {
+                headers: { "Authorization": `Bearer ${token}` },
+                mode: 'cors' // força cors pra ver erro
+            });
+
+            console.log("[CLIENTES] Status:", res.status)
+            console.log("[CLIENTES] OK:", res.ok)
+
             if (!res.ok) {
-                const errorData = await res.json().catch(() => ({})); // <- adiciona isso
-                throw new Error(errorData.detail || `Erro ${res.status}`) // <- e isso
+                const errorData = await res.json().catch(() => ({}));
+                console.error("[CLIENTES] Erro do backend:", errorData)
+                throw new Error(errorData.detail || `Erro ${res.status}`)
             }
+
             const data = await res.json();
+            console.log("[CLIENTES] Dados recebidos:", data.length, "clientes")
+
             setClientes((Array.isArray(data) ? data : []).map((c: any) => ({
                 ...c,
                 total_divida: c.total_divida ?? 0,
                 ultima_compra: c.ultima_compra || null
             })));
-        } catch (e: any) { // <- e isso
-            toast.error(e.message || "Erro ao carregar clientes") // <- e isso
+        } catch (e: any) {
+            console.error("[CLIENTES] CATCH ERROR:", e) // <- AQUI VAI APARECER O ERRO REAL
+            toast.error(e.message || "Erro ao carregar clientes")
             setClientes([])
-        } finally { setLoading(false) }
+        } finally {
+            setLoading(false)
+        }
     }
 
     const fetchDetalhesCliente = async (cliente: Cliente, abrirModal = true) => {
