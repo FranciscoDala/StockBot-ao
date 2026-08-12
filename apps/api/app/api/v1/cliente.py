@@ -28,14 +28,14 @@ class PagamentoCreate(BaseModel):
 class ClienteDeleteAuth(BaseModel):
     senha_dono: str = Field(..., min_length=1)
 
-class ClienteUpdateAuth(ClienteUpdate): # <- NOVO: herda do ClienteUpdate e adiciona senha
+class ClienteUpdateAuth(ClienteUpdate):
     senha_dono: str = Field(..., min_length=1)
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-        .where(UsuarioLoja.loja_id == loja_id)
-        .where(UsuarioLoja.role == UserRole.DONO)
-        .where(UsuarioLoja.is_active == True))
+         .where(UsuarioLoja.loja_id == loja_id)
+         .where(UsuarioLoja.role == UserRole.DONO)
+         .where(UsuarioLoja.is_active == True))
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
 
@@ -47,7 +47,6 @@ async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
         raise HTTPException(status_code=403, detail="Senha do DONO incorreta")
 
 async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
-    # Calcula na hora em vez de ler da coluna
     stmt_divida = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
         Venda.cliente_id == cliente.id, Venda.status.in_(["divida", "parcial"])
     )
@@ -58,30 +57,28 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
 
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
-    return ClienteOut.model_validate({ # <- usa model_validate
-        **cliente.__dict__,
-        "id": str(cliente.id),
-        "loja_id": str(cliente.loja_id),
-        "total_divida": total_divida,
-        "ultima_compra": ultima_compra,
-        "status": status_cliente
-    })
+    return ClienteOut(
+        id=str(cliente.id),
+        loja_id=str(cliente.loja_id),
+        nome=str(cliente.nome),
+        nome_empresa=str(cliente.nome_empresa) if cliente.nome_empresa is not None else None,
+        bi=str(cliente.bi) if cliente.bi is not None else None,
+        telefone=str(cliente.telefone) if cliente.telefone is not None else None,
+        email=str(cliente.email) if cliente.email is not None else None,
+        endereco=str(cliente.endereco) if cliente.endereco is not None else None,
+        cidade=str(cliente.cidade) if cliente.cidade is not None else None,
+        provincia=str(cliente.provincia) if cliente.provincia is not None else None,
+        observacoes=str(cliente.observacoes) if cliente.observacoes is not None else None,
+        is_active=bool(cliente.is_active),
+        created_at=cliente.created_at,
+        total_divida=total_divida,
+        ultima_compra=ultima_compra,
+        status=status_cliente
+    )
 
 async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
-    """Só calcula, não salva no banco pq a coluna pode não existir"""
-    stmt = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
-        Venda.cliente_id == cliente_id,
-        Venda.status.in_(["divida", "parcial"])
-    )
-    result = await db.execute(stmt)
-    total_divida = float(result.scalar() or 0.0)
-
-    stmt = select(Venda).where(Venda.cliente_id == cliente_id).order_by(Venda.created_at.desc())
-    result = await db.execute(stmt)
-    ultima_venda = result.scalars().first()
-    ultima_compra = ultima_venda.created_at if ultima_venda else None
-
-    return total_divida, ultima_compra # <- retorna em vez de salvar
+    # Só pra manter compatibilidade, não salva nada
+    pass
 
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
 async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -93,7 +90,7 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
 
     clientes_out = []
     for cliente in clientes_db:
-        clientes_out.append(await _cliente_to_out(db, cliente)) # <- usa a função
+        clientes_out.append(await _cliente_to_out(db, cliente))
     return clientes_out
 
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
@@ -105,8 +102,8 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
-    data = cliente_in.model_dump(exclude_unset=True) # <- loja_id já vem como UUID do validator
-    db_cliente = Cliente(**data) # <- agora sim
+    data = cliente_in.model_dump(exclude_unset=True)
+    db_cliente = Cliente(**data)
 
     db.add(db_cliente)
     await db.commit()
@@ -115,17 +112,16 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
 
 @router.put("/{loja_id}/clientes/{cliente_id}", response_model=ClienteOut)
 async def atualizar_cliente(
-    loja_id: UUID, cliente_id: UUID, body: ClienteUpdateAuth, # <- AGORA PEDE SENHA
+    loja_id: UUID, cliente_id: UUID, body: ClienteUpdateAuth,
     db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)
 ):
     await verificar_acesso_loja(loja_id, db, current_user)
-    await verify_dono_password(db, loja_id, body.senha_dono) # <- PADRONIZADO COM EQUIPA
+    await verify_dono_password(db, loja_id, body.senha_dono)
 
     stmt = select(Cliente).where(Cliente.id == cliente_id, Cliente.loja_id == loja_id)
     db_cliente = (await db.execute(stmt)).scalar_one_or_none()
     if not db_cliente: raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    # tira a senha do dict pra não tentar salvar no banco
     dados_para_atualizar = body.model_dump(exclude_unset=True)
     dados_para_atualizar.pop("senha_dono", None)
 
@@ -148,7 +144,6 @@ async def deletar_cliente(
     db_cliente = (await db.execute(stmt)).scalar_one_or_none()
     if not db_cliente: raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    # calcula na hora em vez de ler da coluna
     stmt_divida = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
         Venda.cliente_id == cliente_id, Venda.status.in_(["divida", "parcial"])
     )
@@ -195,7 +190,7 @@ async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoC
         valor_restante -= valor_a_pagar
         total_pago += valor_a_pagar
 
-    await _atualizar_totais_cliente(db, cliente_id) # <- Mantido
+    await _atualizar_totais_cliente(db, cliente_id)
     await db.commit()
     return {"detail": f"Pagamento de {total_pago:.2f} KZ registrado com sucesso"}
 
@@ -219,6 +214,6 @@ async def pagar_venda_especifica(loja_id: UUID, cliente_id: UUID, venda_id: UUID
     venda.valor_recebido = float(novo_valor_recebido)
     venda.status = "concluida" if novo_valor_recebido >= total_venda else "parcial"
 
-    await _atualizar_totais_cliente(db, cliente_id) # <- Mantido
+    await _atualizar_totais_cliente(db, cliente_id)
     await db.commit()
     return {"detail": f"Pagamento de {float(valor_a_pagar):.2f} KZ registrado para a venda {str(venda_id)[:8]}"}

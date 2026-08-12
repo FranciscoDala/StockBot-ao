@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import Optional
+from typing import Optional, Literal # <- importa Literal
 from datetime import datetime
 from uuid import UUID
 
@@ -16,9 +16,9 @@ class ClienteBase(BaseModel):
     is_active: bool = True
 
 class ClienteCreate(ClienteBase):
-    loja_id: str # <- recebe string do frontend
+    loja_id: str
 
-    @field_validator('loja_id') # <- converte pra UUID pro SQLAlchemy
+    @field_validator('loja_id')
     @classmethod
     def validate_uuid(cls, v: str) -> UUID:
         return UUID(v)
@@ -40,9 +40,9 @@ class ClienteOut(ClienteBase):
     loja_id: str
     total_divida: float = 0.0
     ultima_compra: Optional[datetime] = None
-    status: str = "em_dia"
+    status: Literal['com_divida', 'em_dia'] = "em_dia" # <- aqui
     created_at: datetime
 
-    model_config = { # <- Pydantic v2
+    model_config = {
         "from_attributes": True
     }
