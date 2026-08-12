@@ -1,4 +1,6 @@
 "use client";
+
+import { Dispatch, SetStateAction } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,15 +26,15 @@ export type ClienteForm = {
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
-    editingCliente?: ClienteForm | null; // <-? opcional
+    editingCliente?: ClienteForm | null; // <- coloca ? aqui
     formData: ClienteForm;
-    setFormData: (d: ClienteForm) => void;
+    setFormData: Dispatch<SetStateAction<ClienteForm>>; // <- também corrige isso
     onSave: (e: React.FormEvent) => void;
     saving: boolean;
     handleChange: (field: keyof ClienteForm, value: string | boolean | null) => void;
 }
 
-export function ClienteModal({ open, onOpenChange, editingCliente, formData, setFormData, onSave, saving, handleChange }: Props) {
+export function ClienteModal({ open, onOpenChange, editingCliente = null, formData, setFormData, onSave, saving, handleChange }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent

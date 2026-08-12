@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClienteModal, ClienteForm } from "../modals/ClienteModal"; // <- C MAIUSCULO
+import { ClienteModal, ClienteForm } from "../modals/clientemodal"; // <- C MAIUSCULO
 import { Produto } from "../modals/ProdutoModal";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -423,7 +423,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 saving={saving}
                 handleChange={(field, value) => setFormDataCliente(prev => ({ ...prev, [field]: value }))}
             />
-            
+
             <Dialog open={showPermissaoModal} onOpenChange={setShowPermissaoModal}>
                 <DialogContent style={{ backgroundColor: 'var(--cor-card)' }}>
                     <DialogHeader>
