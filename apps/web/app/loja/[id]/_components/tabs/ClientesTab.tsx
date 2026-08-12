@@ -233,20 +233,21 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                     {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida ?? 0)}</p></div>}
                                 </div>
 
-                                <div className="flex items-center justify-center gap-2 w-full pt-2">
+
+                                <div className="flex items-center justify-start sm:justify-center gap-2 w-full pt-2">
                                     <Button
                                         type="button"
                                         size="sm"
                                         style={{
                                             background: buttonColor,
                                             color: '#fff',
-                                            fontSize: '8px',
+                                            fontSize: '6px',
                                             height: '28px',
                                             padding: '0 12px',
                                             borderRadius: '8px',
                                             fontWeight: 600,
-                                            flex: 1, // todos ocupam mesmo espaço
-                                            maxWidth: '110px' // limite pra não ficar gigante
+                                            flex: 1,
+                                            maxWidth: '110px'
                                         }}
                                         onClick={(e) => fetchDetalhesCliente(e, c)}
                                     >
@@ -258,7 +259,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                         variant="outline"
                                         style={{
                                             height: '28px',
-                                            fontSize: '8px',
+                                            fontSize: '6px',
                                             padding: '0 12px',
                                             borderRadius: '8px',
                                             fontWeight: 600,
@@ -277,7 +278,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                         size="sm"
                                         style={{
                                             height: '28px',
-                                            fontSize: '8px',
+                                            fontSize: '6px',
                                             padding: '0 12px',
                                             borderRadius: '8px',
                                             fontWeight: 600,
