@@ -112,8 +112,9 @@ logger.info(f"CORS liberado para: https://stockbot-czku.onrender.com + {settings
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}")
+    logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}") # <- já tem isso
     return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
+
 
 # VOLTOU: Pasta local pra dev
 UPLOAD_DIR = Path("apps/uploads/produtos")

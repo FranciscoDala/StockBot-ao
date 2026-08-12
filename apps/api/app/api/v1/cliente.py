@@ -96,6 +96,7 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
         clientes_out.append(await _cliente_to_out(db, cliente)) # <- AJUSTE 2: usa a função
     return clientes_out
 
+
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
@@ -106,15 +107,16 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
             raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
     data = cliente_in.model_dump(exclude_unset=True)
-    data["loja_id"] = loja_id
-    # data["total_divida"] = 0.0 <- AJUSTE 3: comentei
-    # data["ultima_compra"] = None <- AJUSTE 3: comentei
-    db_cliente = Cliente(**data)
+    # data.pop("loja_id", None) <- já vem convertido pelo validator
+    db_cliente = Cliente(**data) # <- agora sim
 
     db.add(db_cliente)
     await db.commit()
     await db.refresh(db_cliente)
     return await _cliente_to_out(db, db_cliente)
+
+
+
 
 @router.put("/{loja_id}/clientes/{cliente_id}", response_model=ClienteOut)
 async def atualizar_cliente(
