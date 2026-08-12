@@ -11,7 +11,6 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
-
 type Cliente = {
     id: string;
     nome: string;
@@ -89,7 +88,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         const url = `${API_URL}/lojas/${lojaId}/clientes`;
 
         console.log("[CLIENTES] URL:", url)
-        console.log("[CLIENTES] Token:", token ? "Tem token" : "Sem token")
+        console.log("[CLIENTES] Token:", token? "Tem token" : "Sem token")
         console.log("[CLIENTES] LojaID:", lojaId)
 
         try {
@@ -110,13 +109,13 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const data = await res.json();
             console.log("[CLIENTES] Dados recebidos:", data.length, "clientes")
 
-            setClientes((Array.isArray(data) ? data : []).map((c: any) => ({
-                ...c,
-                total_divida: c.total_divida ?? 0,
+            setClientes((Array.isArray(data)? data : []).map((c: any) => ({
+               ...c,
+                total_divida: c.total_divida?? 0,
                 ultima_compra: c.ultima_compra || null
             })));
         } catch (e: any) {
-            console.error("[CLIENTES] CATCH ERROR:", e) // <- AQUI VAI APARECER O ERRO REAL
+            console.error("[CLIENTES] CATCH ERROR:", e)
             toast.error(e.message || "Erro ao carregar clientes")
             setClientes([])
         } finally {
@@ -137,14 +136,14 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
             const data = await res.json();
-            setVendasPendentes(Array.isArray(data) ? data : []);
+            setVendasPendentes(Array.isArray(data)? data : []);
         } catch { setVendasPendentes([]) }
 
         await fetchClientes();
     }
 
     const handleLancarFiado = async () => {
-        if (!token || !clienteSelecionado || carrinhoFiado.length === 0) return;
+        if (!token ||!clienteSelecionado || carrinhoFiado.length === 0) return;
         setSaving(true);
         try {
             const itens = carrinhoFiado.map(i => ({
@@ -182,7 +181,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     }
 
     const handleConfirmarPagamento = async () => {
-        if (!token || !clienteSelecionado || !vendaSelecionada || !valorPagamento || parseFloat(valorPagamento) <= 0) {
+        if (!token ||!clienteSelecionado ||!vendaSelecionada ||!valorPagamento || parseFloat(valorPagamento) <= 0) {
             return toast.error("Valor inválido");
         }
         setSavingPagamento(true);
@@ -236,11 +235,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     }
 
     const executarAcaoComSenha = async () => {
-        if (!token || !acaoPendente || !senhaDono) return;
+        if (!token ||!acaoPendente ||!senhaDono) return;
         setSaving(true);
         try {
             if (acaoPendente.tipo === 'editar' && editingClienteId) {
-                const payload = { ...formDataCliente, senha_dono: senhaDono };
+                const payload = {...formDataCliente, senha_dono: senhaDono };
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, {
                     method: 'PUT', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -270,10 +269,16 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
     const handleSaveCliente = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!token || !lojaId) return toast.error("Erro: Loja não encontrada");
+        if (!token ||!lojaId) return toast.error("Erro: Loja não encontrada");
+
+        // VALIDACAO NOME
+        if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) {
+            return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
+        }
+
         setSaving(true);
         try {
-            const payload: Record<string, any> = { ...formDataCliente, loja_id: lojaId };
+            const payload: Record<string, any> = {...formDataCliente, loja_id: lojaId };
             for (const key in payload) { if (payload[key] === "") payload[key] = null; }
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
                 method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
@@ -293,25 +298,25 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const adicionarAoCarrinhoFiado = (p: Produto) => {
         setCarrinhoFiado(prev => {
             const item = prev.find(i => i.id === p.id);
-            if (item) return prev.map(i => i.id === p.id ? { ...i, qtd: i.qtd + 1 } : i);
-            const { unidade, ...restoDoProduto } = p;
-            return [...prev, { ...restoDoProduto, qtd: 1 }];
+            if (item) return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
+            const { unidade,...restoDoProduto } = p;
+            return [...prev, {...restoDoProduto, qtd: 1 }];
         })
     }
 
-    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id !== id));
+    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id!== id));
     const totalCarrinhoFiado = carrinhoFiado.reduce((acc, i) => acc + i.preco * i.qtd, 0);
     useEffect(() => { fetchClientes() }, [lojaId, token]);
 
-    const totalComDivida = clientes.filter(c => (c.total_divida ?? 0) > 0).length;
-    const totalEmDia = clientes.filter(c => (c.total_divida ?? 0) === 0).length;
-    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida ?? 0), 0);
+    const totalComDivida = clientes.filter(c => (c.total_divida?? 0) > 0).length;
+    const totalEmDia = clientes.filter(c => (c.total_divida?? 0) === 0).length;
+    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida?? 0), 0);
 
     const clientesFiltrados = useMemo(() => {
         let lista = [...clientes];
-        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida ?? 0) > 0);
-        if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida ?? 0) === 0 && !!c.ultima_compra);
-        if (filtro === 'novo') lista = lista.filter(c => (c.total_divida ?? 0) === 0 && !c.ultima_compra);
+        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0);
+        if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!!c.ultima_compra);
+        if (filtro === 'novo') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!c.ultima_compra);
 
         if (busca) lista = lista.filter(c =>
             c.nome.toLowerCase().includes(busca.toLowerCase()) ||
@@ -326,8 +331,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const clientesPaginados = clientesFiltrados.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA);
     useEffect(() => { setPagina(1) }, [filtro, busca]);
 
-    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
-    const padding = cardSize === 'grande' ? '20px' : '16px';
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const padding = cardSize === 'grande'? '20px' : '16px';
 
     if (loading) return <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>
 
@@ -384,8 +389,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                     {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>Nenhum cliente encontrado</p></div>}
 
                     {clientesPaginados.map(c => {
-                        const temDivida = (c.total_divida ?? 0) > 0;
-                        const isNovo = !temDivida && !c.ultima_compra;
+                        const temDivida = (c.total_divida?? 0) > 0;
+                        const isNovo =!temDivida &&!c.ultima_compra;
 
                         let badgeText = "Em Dia";
                         let badgeColor = "#22c55e";
@@ -425,14 +430,15 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                     <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
                                     <p className="text-xs mt-1 flex items-center gap-1">
                                         <Calendar size={12} />
-                                        Última compra: {c.ultima_compra ? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}
+                                        Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}
                                     </p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {temDivida && <div className="text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida ?? 0)}</p></div>}
-                                    <Button size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '12px', height: '32px' }} onClick={() => fetchDetalhesCliente(c)}><Eye size={14} /></Button>
-                                    <Button size="sm" variant="outline" style={{ height: '32px' }} onClick={() => handleEditClick(c)}><Edit size={14} /></Button>
-                                    <Button size="sm" variant="destructive" style={{ height: '32px' }} onClick={() => handleDeleteClick(c)}><Trash2 size={14} /></Button>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {temDivida && <div className="text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
+                                    {/* BOTÕES COM TEXTO */}
+                                    <Button size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '12px', height: '32px', padding: '0 12px' }} onClick={() => fetchDetalhesCliente(c)}>Detalhes</Button>
+                                    <Button size="sm" variant="outline" style={{ height: '32px', fontSize: '12px', padding: '0 12px' }} onClick={() => handleEditClick(c)}>Atualizar</Button>
+                                    <Button size="sm" variant="destructive" style={{ height: '32px', fontSize: '12px', padding: '0 12px' }} onClick={() => handleDeleteClick(c)}>Apagar</Button>
                                 </div>
                             </div>
                         )
@@ -448,21 +454,21 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 setFormData={setFormDataCliente}
                 onSave={handleSaveCliente}
                 saving={saving}
-                handleChange={(field, value) => setFormDataCliente(prev => ({ ...prev, [field]: value }))}
+                handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))}
             />
 
             <Dialog open={showPermissaoModal} onOpenChange={setShowPermissaoModal}>
                 <DialogContent style={{ backgroundColor: 'var(--cor-card)' }}>
                     <DialogHeader>
-                        <DialogTitle>{acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"}</DialogTitle>
-                        <DialogDescription>Digite a senha do DONO para {acaoPendente?.tipo === 'editar' ? "editar" : "apagar"} o cliente {acaoPendente?.data?.nome}</DialogDescription>
+                        <DialogTitle>{acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"}</DialogTitle>
+                        <DialogDescription>Digite a senha do DONO para {acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente {acaoPendente?.data?.nome}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div><Label>Senha do Dono</Label><Input type="password" value={senhaDono} onChange={e => setSenhaDono(e.target.value)} /></div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => { setShowPermissaoModal(false); setSenhaDono("") }}>Cancelar</Button>
-                        <Button onClick={executarAcaoComSenha} disabled={saving} style={{ background: 'var(--cor-primaria)', color: '#fff' }}>{saving ? <Loader2 size={16} className="mr-2 animate-spin" /> : null}Confirmar</Button>
+                        <Button onClick={executarAcaoComSenha} disabled={saving} style={{ background: 'var(--cor-primaria)', color: '#fff' }}>{saving? <Loader2 size={16} className="mr-2 animate-spin" /> : null}Confirmar</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
