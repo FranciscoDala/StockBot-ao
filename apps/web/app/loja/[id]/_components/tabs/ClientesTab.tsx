@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClienteModal, ClienteForm } from "../modals/clientemodal"; // <- C MAIUSCULO
+import { ClienteModal, ClienteForm } from "../modals/modal_cliente"; // <- C MAIUSCULO
 import { Produto } from "../modals/ProdutoModal";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+
 
 type Cliente = {
     id: string;
