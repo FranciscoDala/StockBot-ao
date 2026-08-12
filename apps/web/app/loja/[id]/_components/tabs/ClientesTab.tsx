@@ -208,7 +208,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 </Select>
             </div>
 
-            <div style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
+            <div style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: 0 }}>
                 <div className="space-y-3">
                     {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>Nenhum cliente encontrado</p></div>}
 
@@ -220,7 +220,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                         else if (isNovo) { badgeText = "Novo Cliente"; badgeColor = "#3b82f6"; borderColor = "#3b82f6"; bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)'; buttonColor = "#3b82f6"; }
 
                         return (
-                            <div key={c.id} className="flex flex-col gap-3 transition hover:bg-[var(--cor-primaria)5]" style={{ border: `1px solid ${borderColor}`, background: bgColor, borderRadius: radius, padding }}>
+                            <div key={c.id} className="flex flex-col gap-3 transition hover:bg-[var(--cor-primaria)5] w-full" style={{ border: `1px solid ${borderColor}`, background: bgColor, borderRadius: radius, padding }}>
                                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">
