@@ -24,12 +24,12 @@ export type ClienteForm = {
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
-    editingCliente: ClienteForm | null;
+    editingCliente?: ClienteForm | null; // <-? opcional
     formData: ClienteForm;
     setFormData: (d: ClienteForm) => void;
     onSave: (e: React.FormEvent) => void;
     saving: boolean;
-    handleChange: (field: keyof ClienteForm, value: string | boolean | null) => void; // <- adiciona | null
+    handleChange: (field: keyof ClienteForm, value: string | boolean | null) => void;
 }
 
 export function ClienteModal({ open, onOpenChange, editingCliente, formData, setFormData, onSave, saving, handleChange }: Props) {
