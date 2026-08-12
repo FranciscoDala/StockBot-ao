@@ -85,15 +85,18 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         setLoading(true);
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) throw new Error(`Erro ${res.status}`)
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({})); // <- adiciona isso
+                throw new Error(errorData.detail || `Erro ${res.status}`) // <- e isso
+            }
             const data = await res.json();
             setClientes((Array.isArray(data) ? data : []).map((c: any) => ({
                 ...c,
                 total_divida: c.total_divida ?? 0,
                 ultima_compra: c.ultima_compra || null
             })));
-        } catch (e) {
-            toast.error("Erro ao carregar clientes")
+        } catch (e: any) { // <- e isso
+            toast.error(e.message || "Erro ao carregar clientes") // <- e isso
             setClientes([])
         } finally { setLoading(false) }
     }

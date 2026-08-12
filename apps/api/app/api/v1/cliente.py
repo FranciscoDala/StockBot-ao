@@ -33,9 +33,9 @@ class ClienteUpdateAuth(ClienteUpdate): # <- NOVO: herda do ClienteUpdate e adic
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-          .where(UsuarioLoja.loja_id == loja_id)
-          .where(UsuarioLoja.role == UserRole.DONO)
-          .where(UsuarioLoja.is_active == True))
+         .where(UsuarioLoja.loja_id == loja_id)
+         .where(UsuarioLoja.role == UserRole.DONO)
+         .where(UsuarioLoja.is_active == True))
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
 
@@ -47,31 +47,28 @@ async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
         raise HTTPException(status_code=403, detail="Senha do DONO incorreta")
 
 async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
-    total_divida = float(getattr(cliente, "total_divida", 0.0) or 0.0)
-    ultima_compra: Optional[datetime] = getattr(cliente, "ultima_compra", None)
+    # Calcula na hora em vez de ler da coluna
+    stmt_divida = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
+        Venda.cliente_id == cliente.id, Venda.status.in_(["divida", "parcial"])
+    )
+    total_divida = float((await db.execute(stmt_divida)).scalar() or 0.0)
+
+    stmt_ultima = select(Venda.created_at).where(Venda.cliente_id == cliente.id).order_by(Venda.created_at.desc()).limit(1)
+    ultima_compra = (await db.execute(stmt_ultima)).scalar()
+
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
-    return ClienteOut(
-        id=getattr(cliente, "id"),
-        loja_id=getattr(cliente, "loja_id"),
-        nome=getattr(cliente, "nome"),
-        nome_empresa=getattr(cliente, "nome_empresa"),
-        bi=getattr(cliente, "bi"),
-        telefone=getattr(cliente, "telefone"),
-        email=getattr(cliente, "email"),
-        endereco=getattr(cliente, "endereco"),
-        cidade=getattr(cliente, "cidade"),
-        provincia=getattr(cliente, "provincia"),
-        observacoes=getattr(cliente, "observacoes"),
-        is_active=getattr(cliente, "is_active"),
-        created_at=getattr(cliente, "created_at"),
-        total_divida=total_divida,
-        ultima_compra=ultima_compra,
-        status=status_cliente
-    )
+    return ClienteOut.model_validate({ # <- AJUSTE 1: usa model_validate
+        **cliente.__dict__,
+        "id": str(cliente.id),
+        "loja_id": str(cliente.loja_id),
+        "total_divida": total_divida,
+        "ultima_compra": ultima_compra,
+        "status": status_cliente
+    })
 
 async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
-    """Recalcula total_divida e ultima_compra do cliente"""
+    """Só calcula, não salva no banco pq a coluna pode não existir"""
     stmt = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
         Venda.cliente_id == cliente_id,
         Venda.status.in_(["divida", "parcial"])
@@ -84,58 +81,20 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
     ultima_venda = result.scalars().first()
     ultima_compra = ultima_venda.created_at if ultima_venda else None
 
-    await db.execute(
-        update(Cliente)
-    .where(Cliente.id == cliente_id)
-    .values(total_divida=total_divida, ultima_compra=ultima_compra)
-    )
-    await db.commit()
+    return total_divida, ultima_compra # <- retorna em vez de salvar
 
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
 async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    # Faz o JOIN pra já vir com total_divida e ultima_compra calculados
-    stmt = (
-        select(
-            Cliente,
-            func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0).label("total_divida_calc"),
-            func.max(Venda.created_at).label("ultima_compra_calc")
-        )
-       .outerjoin(Venda, Venda.cliente_id == Cliente.id)
-       .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
-       .group_by(Cliente.id)
-       .order_by(func.max(Venda.created_at).desc()) # já ordena DESC
-    )
+    stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.is_active == True).order_by(Cliente.created_at.desc())
     result = await db.execute(stmt)
+    clientes_db = result.scalars().all()
 
     clientes_out = []
-    for cliente, total_divida_calc, ultima_compra_calc in result.all():
-        total_divida = float(total_divida_calc or 0.0)
-        status_cliente = "com_divida" if total_divida > 0 else "em_dia"
-
-        clientes_out.append(ClienteOut(
-            id=cliente.id,
-            loja_id=cliente.loja_id,
-            nome=cliente.nome,
-            nome_empresa=cliente.nome_empresa,
-            bi=cliente.bi,
-            telefone=cliente.telefone,
-            email=cliente.email,
-            endereco=cliente.endereco,
-            cidade=cliente.cidade,
-            provincia=cliente.provincia,
-            observacoes=cliente.observacoes,
-            is_active=cliente.is_active,
-            created_at=cliente.created_at,
-            total_divida=total_divida,
-            ultima_compra=ultima_compra_calc, # <- agora vem do JOIN
-            status=status_cliente
-        ))
+    for cliente in clientes_db:
+        clientes_out.append(await _cliente_to_out(db, cliente)) # <- AJUSTE 2: usa a função
     return clientes_out
-
-
-
 
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -148,8 +107,8 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
 
     data = cliente_in.model_dump(exclude_unset=True)
     data["loja_id"] = loja_id
-    data["total_divida"] = 0.0
-    data["ultima_compra"] = None
+    # data["total_divida"] = 0.0 <- AJUSTE 3: comentei
+    # data["ultima_compra"] = None <- AJUSTE 3: comentei
     db_cliente = Cliente(**data)
 
     db.add(db_cliente)
@@ -192,7 +151,11 @@ async def deletar_cliente(
     db_cliente = (await db.execute(stmt)).scalar_one_or_none()
     if not db_cliente: raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    total_divida_atual = float(getattr(db_cliente, "total_divida", 0.0) or 0.0)
+    # AJUSTE 4: calcula na hora em vez de ler da coluna
+    stmt_divida = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
+        Venda.cliente_id == cliente_id, Venda.status.in_(["divida", "parcial"])
+    )
+    total_divida_atual = float((await db.execute(stmt_divida)).scalar() or 0.0)
 
     if total_divida_atual > 0:
         raise HTTPException(status_code=400, detail="Não é possível apagar cliente com dívida em aberto")
@@ -235,7 +198,7 @@ async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoC
         valor_restante -= valor_a_pagar
         total_pago += valor_a_pagar
 
-    await _atualizar_totais_cliente(db, cliente_id)
+    await _atualizar_totais_cliente(db, cliente_id) # <- Mantido
     await db.commit()
     return {"detail": f"Pagamento de {total_pago:.2f} KZ registrado com sucesso"}
 
@@ -259,6 +222,6 @@ async def pagar_venda_especifica(loja_id: UUID, cliente_id: UUID, venda_id: UUID
     venda.valor_recebido = float(novo_valor_recebido)
     venda.status = "concluida" if novo_valor_recebido >= total_venda else "parcial"
 
-    await _atualizar_totais_cliente(db, cliente_id)
+    await _atualizar_totais_cliente(db, cliente_id) # <- Mantido
     await db.commit()
     return {"detail": f"Pagamento de {float(valor_a_pagar):.2f} KZ registrado para a venda {str(venda_id)[:8]}"}
