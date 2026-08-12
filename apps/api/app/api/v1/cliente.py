@@ -33,9 +33,9 @@ class ClienteUpdateAuth(ClienteUpdate): # <- NOVO: herda do ClienteUpdate e adic
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-         .where(UsuarioLoja.loja_id == loja_id)
-         .where(UsuarioLoja.role == UserRole.DONO)
-         .where(UsuarioLoja.is_active == True))
+        .where(UsuarioLoja.loja_id == loja_id)
+        .where(UsuarioLoja.role == UserRole.DONO)
+        .where(UsuarioLoja.is_active == True))
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
 
@@ -58,7 +58,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
 
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
-    return ClienteOut.model_validate({ # <- AJUSTE 1: usa model_validate
+    return ClienteOut.model_validate({ # <- usa model_validate
         **cliente.__dict__,
         "id": str(cliente.id),
         "loja_id": str(cliente.loja_id),
@@ -93,9 +93,8 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
 
     clientes_out = []
     for cliente in clientes_db:
-        clientes_out.append(await _cliente_to_out(db, cliente)) # <- AJUSTE 2: usa a função
+        clientes_out.append(await _cliente_to_out(db, cliente)) # <- usa a função
     return clientes_out
-
 
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -106,17 +105,13 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
-    data = cliente_in.model_dump(exclude_unset=True)
-    # data.pop("loja_id", None) <- já vem convertido pelo validator
+    data = cliente_in.model_dump(exclude_unset=True) # <- loja_id já vem como UUID do validator
     db_cliente = Cliente(**data) # <- agora sim
 
     db.add(db_cliente)
     await db.commit()
     await db.refresh(db_cliente)
     return await _cliente_to_out(db, db_cliente)
-
-
-
 
 @router.put("/{loja_id}/clientes/{cliente_id}", response_model=ClienteOut)
 async def atualizar_cliente(
@@ -153,7 +148,7 @@ async def deletar_cliente(
     db_cliente = (await db.execute(stmt)).scalar_one_or_none()
     if not db_cliente: raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    # AJUSTE 4: calcula na hora em vez de ler da coluna
+    # calcula na hora em vez de ler da coluna
     stmt_divida = select(func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0)).where(
         Venda.cliente_id == cliente_id, Venda.status.in_(["divida", "parcial"])
     )

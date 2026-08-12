@@ -16,11 +16,11 @@ class ClienteBase(BaseModel):
     is_active: bool = True
 
 class ClienteCreate(ClienteBase):
-    loja_id: str # <- deixa str pra bater com frontend
+    loja_id: str # <- recebe string do frontend
 
-    @field_validator('loja_id') # <- converte pra UUID internamente
+    @field_validator('loja_id') # <- converte pra UUID pro SQLAlchemy
     @classmethod
-    def validate_uuid(cls, v):
+    def validate_uuid(cls, v: str) -> UUID:
         return UUID(v)
 
 class ClienteUpdate(BaseModel):
