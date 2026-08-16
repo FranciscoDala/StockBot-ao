@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Dispatch, SetStateAction, FormEvent } from "react";
 import { Users, DollarSign, ChevronLeft, ChevronRight, Plus, Search, Filter, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,28 @@ import { toast } from "sonner";
 import { Produto } from "../modals/ProdutoModal";
 import { ClienteModal, ClienteForm } from "../modals/modal_cliente";
 import { ConfirmarModal } from "../modals/ConfirmacaoModal";
-import { DetalhesClienteModal, type Cliente, type VendaPendente } from "../modals/DetalhesClienteModal";
+import { DetalhesClienteModal, type VendaPendente } from "../modals/DetalhesClienteModal";
 import { PagarDividaModal } from "../modals/PagarDividaModal";
+
+// BATE 100% COM ClienteOut DO BACKEND
+export type Cliente = {
+  id: string;
+  loja_id: string;
+  nome: string;
+  nome_empresa: string | null;
+  bi: string | null;
+  telefone: string | null;
+  email: string | null;
+  endereco: string | null;
+  cidade: string | null;
+  provincia: string | null;
+  observacoes: string | null;
+  is_active: boolean;
+  created_at: string;
+  total_divida: number;
+  ultima_compra: string | null;
+  status: 'com_divida' | 'em_dia';
+};
 
 type Props = { lojaId: string; token: string | null; theme: string; cardStyle: string; cardSize: string; formatCurrency: (v: number) => string; }
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://stockbot-ao.onrender.com/api/v1";
@@ -46,7 +66,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (!token) return;
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` }, mode: 'cors' });
+            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error((await res.json()).detail || `Erro ${res.status}`)
             const data = await res.json();
             setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0, ultima_compra: c.ultima_compra || null })));
@@ -91,9 +111,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try {
             const url = `${API_URL}/lojas/${lojaId}/clientes/${clienteSelecionado.id}/vendas/${vendaSelecionada.id}/pagar`;
             const payload = { valor: parseFloat(valorPagamento), forma_pagamento: formaPagamento, observacao: `Pagamento venda ${vendaSelecionada.id.slice(0, 8)}` };
+            console.log("[DEBUG] PAGAR:", url, payload)
             const res = await fetch(url, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            if (!res.ok) throw new Error((await res.json()).detail || "Erro ao pagar");
-            toast.success("Pagamento registrado!");
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Erro ao pagar");
+            toast.success(data.detail);
             setShowPagarModal(false);
             setVendaSelecionada(null);
             await fetchClientes();
@@ -104,7 +126,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const handleEditClick = (e: React.MouseEvent, c: Cliente) => {
         e.preventDefault();
         setEditingClienteId(c.id);
-        setFormDataCliente({ nome: c.nome, nome_empresa: null, bi: null, telefone: c.telefone || null, email: c.email || null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
+        setFormDataCliente({
+            nome: c.nome, nome_empresa: c.nome_empresa || null, bi: c.bi || null,
+            telefone: c.telefone || null, email: c.email || null, endereco: c.endereco || null,
+            cidade: c.cidade || null, provincia: c.provincia || null, observacoes: c.observacoes || null, is_active: c.is_active
+        });
         setAcaoPendente({ tipo: 'editar', data: c });
         setShowModal(true);
     }
@@ -121,33 +147,41 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try {
             if (acaoPendente.tipo === 'editar' && editingClienteId) {
                 const payload = {...formDataCliente, senha_dono: senha };
+                console.log("[DEBUG] EDITAR:", `${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, payload)
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, { method: 'PUT', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                const data = await res.json().catch(() => ({})); // <- AJUSTE: evita crash se não tiver body
+                const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Erro ao editar");
                 toast.success("Cliente atualizado!");
             }
             if (acaoPendente.tipo === 'apagar' && acaoPendente.data) {
-                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ senha_dono: senha }) });
-                const data = await res.json().catch(() => ({})); // <- AJUSTE: backend agora retorna {"message": "..."}
+                const payload = { senha_dono: senha };
+                console.log("[DEBUG] APAGAR:", `${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, payload)
+                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Erro ao apagar");
-                toast.success(data.message || "Cliente apagado!"); // <- PEGA MENSAGEM DO BACK
+                toast.success(data.message);
             }
             setShowConfirmarModal(false); setAcaoPendente(null); setEditingClienteId(null); fetchClientes();
         } catch (err: any) { toast.error(err.message || "Senha incorreta"); } finally { setSaving(false); }
     }
 
-    const handleSaveCliente = async (e?: React.FormEvent) => {
+    const handleSaveCliente = async (e?: FormEvent) => {
         e?.preventDefault();
         if (!token ||!lojaId) return toast.error("Erro: Loja não encontrada");
         if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
+
         if (editingClienteId) { setShowModal(false); setShowConfirmarModal(true); }
         else {
             setSaving(true);
             try {
-                const payload: Record<string, any> = {...formDataCliente, loja_id: lojaId };
-                for (const key in payload) { if (payload[key] === "") payload[key] = null; }
+                const payload: Record<string, any> = {...formDataCliente };
+                Object.keys(payload).forEach(key => { if (payload[key] === "") payload[key] = null; });
+
+                console.log("[DEBUG] CADASTRAR:", `${API_URL}/lojas/${lojaId}/clientes`, payload)
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                if (!res.ok) throw new Error((await res.json()).detail || "Erro ao salvar");
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erro ao salvar");
+
                 toast.success("Cliente cadastrado com sucesso!");
                 setShowModal(false); setFiltro('todos');
                 setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
@@ -254,7 +288,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button type="button" size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button type="button" size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
             </div>
 
-            <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} />
+            <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} isEditing={!!editingClienteId} />
             <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`} loading={saving} tipo={acaoPendente?.tipo === 'editar'? 'edit' : 'delete'} textoConfirmar={acaoPendente?.tipo === 'editar'? "Salvar Alterações" : "Apagar Cliente"} />
             <DetalhesClienteModal open={showDetalhes} onClose={() => setShowDetalhes(false)} cliente={clienteSelecionado} vendas={vendasPendentes} produtos={produtosLoja} onPagar={handleAbrirPagar} onAdicionarFiado={(carrinho) => { toast.info("Função de salvar fiado ainda não conectada na API"); console.log("Carrinho fiado:", carrinho); }} formatCurrency={formatCurrency} loading={loadingDetalhes} />
             <PagarDividaModal open={showPagarModal} onClose={() => setShowPagarModal(false)} venda={vendaSelecionada} valor={valorPagamento} setValor={setValorPagamento} forma={formaPagamento} setForma={setFormaPagamento} onConfirmar={handleConfirmarPagamento} saving={savingPagamento} formatCurrency={formatCurrency} />

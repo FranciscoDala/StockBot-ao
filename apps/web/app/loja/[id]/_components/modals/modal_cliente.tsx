@@ -1,6 +1,6 @@
 "use client";
 
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, FormEvent } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,15 +26,15 @@ export type ClienteForm = {
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
-    editingCliente?: ClienteForm | null; // <- coloca ? aqui
+    isEditing?: boolean; // <- MUDEI AQUI: era editingCliente, agora é boolean
     formData: ClienteForm;
-    setFormData: Dispatch<SetStateAction<ClienteForm>>; // <- também corrige isso
-    onSave: (e: React.FormEvent) => void;
+    setFormData: Dispatch<SetStateAction<ClienteForm>>;
+    onSave: (e: FormEvent) => void;
     saving: boolean;
     handleChange: (field: keyof ClienteForm, value: string | boolean | null) => void;
 }
 
-export function ClienteModal({ open, onOpenChange, editingCliente = null, formData, setFormData, onSave, saving, handleChange }: Props) {
+export function ClienteModal({ open, onOpenChange, isEditing = false, formData, setFormData, onSave, saving, handleChange }: Props) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
@@ -54,10 +54,10 @@ export function ClienteModal({ open, onOpenChange, editingCliente = null, formDa
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
                         <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>
-                            {editingCliente? "Editar Cliente" : "Cadastrar Cliente"}
+                            {isEditing? "Editar Cliente" : "Cadastrar Cliente"} {/* <- MUDEI AQUI */}
                         </DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
-                            {editingCliente? "Altere os dados do cliente." : "Preencha os dados do cliente"}
+                            {isEditing? "Altere os dados do cliente." : "Preencha os dados do cliente"} {/* <- MUDEI AQUI */}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -71,7 +71,7 @@ export function ClienteModal({ open, onOpenChange, editingCliente = null, formDa
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="bi" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>BI / Passaporte</Label>
-                            <Input id="bi" value={formData.bi || ""} onChange={e => handleChange('bi', e.target.value)} placeholder="000000000LA000" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                            <Input id="bi" value={formData.bi || ""} onChange={e => handleChange('bi', e.target.value)} placeholder="000LA000" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
@@ -123,7 +123,7 @@ export function ClienteModal({ open, onOpenChange, editingCliente = null, formDa
                         </DialogClose>
                         <Button type="submit" disabled={saving} className="gap-2 text-xs flex-1 sm:flex-initial font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {editingCliente? "Salvar Alterações" : "Cadastrar"}
+                            {isEditing? "Salvar Alterações" : "Cadastrar Cliente"} {/* <- MUDEI AQUI */}
                         </Button>
                     </DialogFooter>
                 </form>

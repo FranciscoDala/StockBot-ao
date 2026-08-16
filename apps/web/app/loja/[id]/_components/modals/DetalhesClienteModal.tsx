@@ -4,13 +4,23 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { X, FileText, ShoppingCart, Calendar, Plus, Minus, Trash2, Loader2, Inbox } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import type { Produto } from "./ProdutoModal"; // <- USA O MESMO TIPO
+import type { Produto } from "./ProdutoModal";
 
+// BATE 100% COM ClienteOut DO BACKEND
 export type Cliente = {
   id: string;
+  loja_id: string;
   nome: string;
-  telefone?: string | null;
-  email?: string | null;
+  nome_empresa: string | null;
+  bi: string | null;
+  telefone: string | null;
+  email: string | null;
+  endereco: string | null;
+  cidade: string | null;
+  provincia: string | null;
+  observacoes: string | null;
+  is_active: boolean;
+  created_at: string;
   total_divida: number;
   ultima_compra: string | null;
   status: 'com_divida' | 'em_dia';
@@ -65,7 +75,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         if (open) {
             document.body.style.overflow = 'hidden';
             setAbaAtiva('dividas');
-            setCarrinho([]); // limpa carrinho ao abrir
+            setCarrinho([]);
         }
         else document.body.style.overflow = 'unset';
         return () => { document.body.style.overflow = 'unset'; }
@@ -75,7 +85,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         setCarrinho(prev => {
             const item = prev.find(i => i.id === p.id);
             if (item) return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
-            const { unidade,...resto } = p as any; // remove unidade se vier
+            const { unidade,...resto } = p as any;
             return [...prev, {...resto, qtd: 1 }];
         })
     }
@@ -97,7 +107,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden"
+                className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden"
                 style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
             >
                 <DialogHeader className="p-4 sm:p-6 border-b shrink-0 flex-row items-center justify-between" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
@@ -106,6 +116,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             {cliente?.nome}
                         </DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
+                            {cliente?.telefone || cliente?.email || "Sem contato"} |
                             Dívida total: <span style={{ color: '#ef4444', fontWeight: 600 }}>{formatCurrency(cliente?.total_divida?? 0)}</span>
                         </DialogDescription>
                     </div>
