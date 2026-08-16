@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import Optional, Literal # <- importa Literal
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, Literal
 from datetime import datetime
 from uuid import UUID
 
@@ -16,12 +16,7 @@ class ClienteBase(BaseModel):
     is_active: bool = True
 
 class ClienteCreate(ClienteBase):
-    loja_id: str
-
-    @field_validator('loja_id')
-    @classmethod
-    def validate_uuid(cls, v: str) -> UUID:
-        return UUID(v)
+    loja_id: UUID # <- MUDA AQUI: deixa como UUID direto
 
 class ClienteUpdate(BaseModel):
     nome: Optional[str] = None
@@ -36,11 +31,11 @@ class ClienteUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class ClienteOut(ClienteBase):
-    id: str
-    loja_id: str
+    id: UUID # <- Melhor deixar UUID aqui também
+    loja_id: UUID
     total_divida: float = 0.0
     ultima_compra: Optional[datetime] = None
-    status: Literal['com_divida', 'em_dia'] = "em_dia" # <- aqui
+    status: Literal['com_divida', 'em_dia'] = "em_dia"
     created_at: datetime
 
     model_config = {
