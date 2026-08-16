@@ -20,7 +20,7 @@ type ProdutoCarrinho = Omit<Produto, 'unidade'> & { qtd: number };
 export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatCurrency }: Props) {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [loading, setLoading] = useState(true);
-    const [loadingDetalhes, setLoadingDetalhes] = useState(false); // <- NOVO
+    const [loadingDetalhes, setLoadingDetalhes] = useState(false);
     const [filtro, setFiltro] = useState<FiltroCliente>('com_divida');
     const [busca, setBusca] = useState("");
     const [pagina, setPagina] = useState(1);
@@ -48,36 +48,49 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar', data: Cliente | null } | null>(null);
 
     const fetchClientes = async () => {
-        if (!token) return;
+        if (!token) { console.warn("DEBUG 1: Token ausente"); return; }
         setLoading(true);
+        const url = `${API_URL}/lojas/${lojaId}/clientes`;
+        console.log("DEBUG 1: URL =", url);
+        console.log("DEBUG 1: Token =", token?.slice(0, 20));
+        console.log("DEBUG 1: lojaId =", lojaId);
         try {
-            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` }, mode: 'cors' });
+            const res = await fetch(url, { headers: { "Authorization": `Bearer ${token}` }, mode: 'cors' });
+            console.log("DEBUG 1: Status =", res.status);
             if (!res.ok) throw new Error((await res.json()).detail || `Erro ${res.status}`)
             const data = await res.json();
             setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0, ultima_compra: c.ultima_compra || null })));
-        } catch (e: any) { toast.error(e.message || "Erro ao carregar clientes"); setClientes([]) } finally { setLoading(false) }
+        } catch (e: any) {
+            console.error("DEBUG 1 ERRO COMPLETO:", e);
+            toast.error(e.message || "Erro ao carregar clientes");
+            setClientes([])
+        } finally { setLoading(false) }
     }
 
     const fetchDetalhesCliente = async (e: React.MouseEvent, cliente: Cliente) => {
         e.preventDefault();
-        if (!token) return;
+        if (!token) { console.warn("DEBUG 2: Token ausente"); return; }
         setClienteSelecionado(cliente);
         setShowDetalhes(true);
-        setLoadingDetalhes(true); // <- USA O SEPARADO
+        setLoadingDetalhes(true);
+        console.log("DEBUG 2: Buscando detalhes clienteId =", cliente.id);
         try {
+            console.log("DEBUG 2: Chamando 2 APIs");
             const [resVendas, resProdutos] = await Promise.all([
                 fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } }),
                 fetch(`${API_URL}/lojas/${lojaId}/produtos`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
+            console.log("DEBUG 2: Status Vendas =", resVendas.status, "Status Produtos =", resProdutos.status);
             const dataVendas = await resVendas.json();
             const dataProdutos = await resProdutos.json();
             setVendasPendentes(Array.isArray(dataVendas)? dataVendas : []);
             setProdutosLoja(Array.isArray(dataProdutos)? dataProdutos : []);
-        } catch {
+        } catch (err) {
+            console.error("DEBUG 2 ERRO COMPLETO:", err);
             setVendasPendentes([]);
             setProdutosLoja([]);
         } finally {
-            setLoadingDetalhes(false); // <- USA O SEPARADO
+            setLoadingDetalhes(false);
         }
     }
 
@@ -92,6 +105,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         setSavingPagamento(true);
         try {
             const url = `${API_URL}/lojas/${lojaId}/clientes/${clienteSelecionado.id}/vendas/${vendaSelecionada.id}/pagar`;
+            console.log("DEBUG 3: POST PAGAMENTO", url);
             const payload = { valor: parseFloat(valorPagamento), forma_pagamento: formaPagamento, observacao: `Pagamento venda ${vendaSelecionada.id.slice(0, 8)}` };
             const res = await fetch(url, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             if (!res.ok) throw new Error((await res.json()).detail || "Erro ao pagar");
@@ -100,7 +114,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setVendaSelecionada(null);
             await fetchClientes();
             if (clienteSelecionado) await fetchDetalhesCliente({} as React.MouseEvent, clienteSelecionado);
-        } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
+        } catch (err: any) { console.error("DEBUG 3 ERRO:", err); toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
     }
 
     const handleEditClick = (e: React.MouseEvent, c: Cliente) => {
@@ -123,17 +137,19 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try {
             if (acaoPendente.tipo === 'editar' && editingClienteId) {
                 const payload = {...formDataCliente, senha_dono: senha };
+                console.log("DEBUG 4: PUT CLIENTE", `${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`);
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, { method: 'PUT', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                 if (!res.ok) throw new Error((await res.json()).detail || "Erro ao editar");
                 toast.success("Cliente atualizado!");
             }
             if (acaoPendente.tipo === 'apagar' && acaoPendente.data) {
+                console.log("DEBUG 4: DELETE CLIENTE", `${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`);
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ senha_dono: senha }) });
                 if (!res.ok) throw new Error((await res.json()).detail || "Erro ao apagar");
                 toast.success("Cliente apagado!");
             }
             setShowConfirmarModal(false); setAcaoPendente(null); setEditingClienteId(null); fetchClientes();
-        } catch (err: any) { toast.error(err.message || "Senha incorreta"); } finally { setSaving(false); }
+        } catch (err: any) { console.error("DEBUG 4 ERRO:", err); toast.error(err.message || "Senha incorreta"); } finally { setSaving(false); }
     }
 
     const handleSaveCliente = async (e?: React.FormEvent) => {
@@ -146,13 +162,15 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             try {
                 const payload: Record<string, any> = {...formDataCliente, loja_id: lojaId };
                 for (const key in payload) { if (payload[key] === "") payload[key] = null; }
-                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                const url = `${API_URL}/lojas/${lojaId}/clientes`;
+                console.log("DEBUG 5: POST CLIENTE", url, payload);
+                const res = await fetch(url, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                 if (!res.ok) throw new Error((await res.json()).detail || "Erro ao salvar");
                 toast.success("Cliente cadastrado com sucesso!");
                 setShowModal(false); setFiltro('todos');
                 setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
                 fetchClientes();
-            } catch (err: any) { toast.error(err.message || "Erro ao cadastrar cliente"); } finally { setSaving(false); }
+            } catch (err: any) { console.error("DEBUG 5 ERRO:", err); toast.error(err.message || "Erro ao cadastrar cliente"); } finally { setSaving(false); }
         }
     }
 
@@ -245,64 +263,10 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                     {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
                                 </div>
 
-
                                 <div className="flex items-center justify-center sm:justify-start gap-2 w-full pt-2">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        style={{
-                                            background: buttonColor,
-                                            color: '#fff',
-                                            fontSize: '10px',
-                                            height: '28px',
-                                            padding: '0 12px',
-                                            borderRadius: '8px',
-                                            fontWeight: 600,
-                                            flex: 1,
-                                            maxWidth: '110px'
-                                        }}
-                                        onClick={(e) => fetchDetalhesCliente(e, c)}
-                                    >
-                                        Detalhes
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        style={{
-                                            height: '28px',
-                                            fontSize: '10px',
-                                            padding: '0 12px',
-                                            borderRadius: '8px',
-                                            fontWeight: 600,
-                                            borderColor: 'var(--cor-borda)',
-                                            background: 'var(--cor-card)',
-                                            color: 'var(--cor-texto)',
-                                            flex: 1,
-                                            maxWidth: '110px'
-                                        }}
-                                        onClick={(e) => handleEditClick(e, c)}
-                                    >
-                                        Atualizar
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        style={{
-                                            height: '28px',
-                                            fontSize: '10px',
-                                            padding: '0 12px',
-                                            borderRadius: '8px',
-                                            fontWeight: 600,
-                                            background: '#ef4444',
-                                            color: '#fff',
-                                            flex: 1,
-                                            maxWidth: '110px'
-                                        }}
-                                        onClick={(e) => handleDeleteClick(e, c)}
-                                    >
-                                        Apagar
-                                    </Button>
+                                    <Button type="button" size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '10px', height: '28px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, flex: 1, maxWidth: '110px' }} onClick={(e) => fetchDetalhesCliente(e, c)}>Detalhes</Button>
+                                    <Button type="button" size="sm" variant="outline" style={{ height: '28px', fontSize: '10px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', color: 'var(--cor-texto)', flex: 1, maxWidth: '110px' }} onClick={(e) => handleEditClick(e, c)}>Atualizar</Button>
+                                    <Button type="button" size="sm" style={{ height: '28px', fontSize: '10px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, background: '#ef4444', color: '#fff', flex: 1, maxWidth: '110px' }} onClick={(e) => handleDeleteClick(e, c)}>Apagar</Button>
                                 </div>
                             </div>
                         )
@@ -313,20 +277,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
             <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} />
             <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`} loading={saving} tipo={acaoPendente?.tipo === 'editar'? 'edit' : 'delete'} textoConfirmar={acaoPendente?.tipo === 'editar'? "Salvar Alterações" : "Apagar Cliente"} />
-            <DetalhesClienteModal
-                open={showDetalhes}
-                onClose={() => setShowDetalhes(false)}
-                cliente={clienteSelecionado}
-                vendas={vendasPendentes}
-                produtos={produtosLoja}
-                onPagar={handleAbrirPagar}
-                onAdicionarFiado={(carrinho) => {
-                    toast.info("Função de salvar fiado ainda não conectada na API");
-                    console.log("Carrinho fiado:", carrinho);
-                }}
-                formatCurrency={formatCurrency}
-                loading={loadingDetalhes}
-            />
+            <DetalhesClienteModal open={showDetalhes} onClose={() => setShowDetalhes(false)} cliente={clienteSelecionado} vendas={vendasPendentes} produtos={produtosLoja} onPagar={handleAbrirPagar} onAdicionarFiado={(carrinho) => { toast.info("Função de salvar fiado ainda não conectada na API"); console.log("Carrinho fiado:", carrinho); }} formatCurrency={formatCurrency} loading={loadingDetalhes} />
             <PagarDividaModal open={showPagarModal} onClose={() => setShowPagarModal(false)} venda={vendaSelecionada} valor={valorPagamento} setValor={setValorPagamento} forma={formaPagamento} setForma={setFormaPagamento} onConfirmar={handleConfirmarPagamento} saving={savingPagamento} formatCurrency={formatCurrency} />
         </div>
     )
