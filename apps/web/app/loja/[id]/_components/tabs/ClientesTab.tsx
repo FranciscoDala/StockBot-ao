@@ -174,27 +174,24 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         else {
             setSaving(true);
             try {
-                const payload: Record<string, any> = { ...formDataCliente };
+                const payload: Record<string, any> = {
+                    ...formDataCliente,
+                    loja_id: lojaId // <- ADICIONA ISSO AQUI
+                };
                 Object.keys(payload).forEach(key => { if (payload[key] === "") payload[key] = null; });
 
                 console.log("[DEBUG] CADASTRAR:", `${API_URL}/lojas/${lojaId}/clientes`, payload)
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                 const data = await res.json();
 
-                if (!res.ok) throw new Error(JSON.stringify(data)); // <- PEGA O DETAIL DO BACK
+                if (!res.ok) throw new Error(data.detail || JSON.stringify(data.detail));
 
                 toast.success("Cliente cadastrado com sucesso!");
                 setShowModal(false); setFiltro('todos');
                 setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
                 fetchClientes();
             } catch (err: any) {
-                console.error("[DEBUG] ERRO CADASTRAR:", err)
-                try {
-                    const errorObj = JSON.parse(err.message);
-                    toast.error(errorObj.detail || "Erro ao cadastrar cliente"); // <- MOSTRA "BI já cadastrado"
-                } catch {
-                    toast.error("Erro ao cadastrar cliente");
-                }
+                toast.error(err.message);
             } finally { setSaving(false); }
         }
     }
