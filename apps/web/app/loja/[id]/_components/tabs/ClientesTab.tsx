@@ -245,8 +245,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (showModal || showDetalhes || showConfirmarModal || showPagarModal) {
             setBusca('')
         }
-    }, [showModal, showDetalhes, showConfirmarModal, showPagarModal])
-
+    }, [showModal, showDetalhes, showConfirmarModal, showPagarModal]);
 
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const padding = cardSize === 'grande' ? '20px' : '16px';
