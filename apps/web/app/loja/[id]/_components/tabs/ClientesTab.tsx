@@ -82,6 +82,40 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         setClienteSelecionado(cliente);
         setShowDetalhes(true);
         setLoadingDetalhes(true);
+        setVendasPendentes([]);
+        setProdutosLoja([]);
+
+        // 1. Busca produtos SEMPRE
+        try {
+            const resProdutos = await fetch(`${API_URL}/lojas/${lojaId}/produtos?apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } });
+            if (resProdutos.ok) {
+                const dataProdutos = await resProdutos.json();
+                setProdutosLoja(Array.isArray(dataProdutos) ? dataProdutos : []);
+            }
+        } catch {
+            setProdutosLoja([]);
+        }
+
+        // 2. Busca dívidas SEPARADO
+        try {
+            const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
+            if (resVendas.ok) {
+                const dataVendas = await resVendas.json();
+                setVendasPendentes(Array.isArray(dataVendas) ? dataVendas : []);
+            }
+        } catch {
+            setVendasPendentes([]);
+        } finally {
+            setLoadingDetalhes(false);
+        }
+    }
+
+    const recarregarDetalhesCliente = async (cliente: Cliente) => {
+        if (!token) return;
+        setLoadingDetalhes(true);
+        setVendasPendentes([]);
+        setProdutosLoja([]);
+
         try {
             const [resVendas, resProdutos] = await Promise.all([
                 fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } }),
@@ -98,6 +132,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setLoadingDetalhes(false);
         }
     }
+
 
     const handleAbrirPagar = (venda: VendaPendente) => {
         setVendaSelecionada(venda);
@@ -119,7 +154,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setShowPagarModal(false);
             setVendaSelecionada(null);
             await fetchClientes();
-            if (clienteSelecionado) await fetchDetalhesCliente({} as React.MouseEvent, clienteSelecionado);
+            if (clienteSelecionado) await recarregarDetalhesCliente(clienteSelecionado);
         } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
     }
     const handleSalvarFiado = async (carrinho: ProdutoCarrinho[]): Promise<void> => {
@@ -143,7 +178,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         toast.success("Dívida lançada com sucesso!");
         setCarrinhoFiado([]);
         await fetchClientes();
-        await fetchDetalhesCliente({} as React.MouseEvent, clienteSelecionado);
+        await recarregarDetalhesCliente(clienteSelecionado);
     }
 
 
