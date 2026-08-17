@@ -122,6 +122,30 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (clienteSelecionado) await fetchDetalhesCliente({} as React.MouseEvent, clienteSelecionado);
         } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
     }
+    const handleSalvarFiado = async (carrinho: ProdutoCarrinho[]): Promise<void> => {
+        if (!token || !clienteSelecionado || carrinho.length === 0) return;
+
+        const payload = {
+            cliente_id: clienteSelecionado.id,
+            itens: carrinho.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco })),
+            total: carrinho.reduce((acc, i) => acc + i.preco * i.qtd, 0)
+        };
+
+        const res = await fetch(`${API_URL}/lojas/${lojaId}/vendas/fiado`, {
+            method: 'POST',
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Erro ao lançar fiado");
+
+        toast.success("Dívida lançada com sucesso!");
+        setCarrinhoFiado([]);
+        await fetchClientes();
+        await fetchDetalhesCliente({} as React.MouseEvent, clienteSelecionado);
+    }
+
 
     const handleEditClick = (e: React.MouseEvent, c: Cliente) => {
         e.preventDefault();
@@ -331,7 +355,20 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
             <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({ ...prev, [field]: value }))} isEditing={!!editingClienteId} />
             <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar' ? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`} loading={saving} tipo={acaoPendente?.tipo === 'editar' ? 'edit' : 'delete'} textoConfirmar={acaoPendente?.tipo === 'editar' ? "Salvar Alterações" : "Apagar Cliente"} />
-            <DetalhesClienteModal open={showDetalhes} onClose={() => setShowDetalhes(false)} cliente={clienteSelecionado} vendas={vendasPendentes} produtos={produtosLoja} onPagar={handleAbrirPagar} onAdicionarFiado={(carrinho) => { toast.info("Função de salvar fiado ainda não conectada na API"); console.log("Carrinho fiado:", carrinho); }} formatCurrency={formatCurrency} loading={loadingDetalhes} />
+
+            <DetalhesClienteModal
+                open={showDetalhes}
+                onClose={() => setShowDetalhes(false)}
+                cliente={clienteSelecionado}
+                vendas={vendasPendentes}
+                produtos={produtosLoja}
+                onPagar={handleAbrirPagar}
+                onSalvarFiado={handleSalvarFiado} // <- cria essa função que chama a API
+                formatCurrency={formatCurrency}
+                loading={loadingDetalhes}
+            />
+
+
             <PagarDividaModal open={showPagarModal} onClose={() => setShowPagarModal(false)} venda={vendaSelecionada} valor={valorPagamento} setValor={setValorPagamento} forma={formaPagamento} setForma={setFormaPagamento} onConfirmar={handleConfirmarPagamento} saving={savingPagamento} formatCurrency={formatCurrency} />
         </div>
     )
