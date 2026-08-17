@@ -240,6 +240,14 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const clientesPaginados = clientesFiltrados.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA);
     useEffect(() => { setPagina(1) }, [filtro, busca]);
 
+    // Limpa a busca e força reset do input quando qualquer modal abre/fecha
+    useEffect(() => {
+        if (showModal || showDetalhes || showConfirmarModal || showPagarModal) {
+            setBusca('')
+        }
+    }, [showModal, showDetalhes, showConfirmarModal, showPagarModal])
+
+
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const padding = cardSize === 'grande' ? '20px' : '16px';
 
@@ -266,9 +274,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 <div className="relative flex-1">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
                     <Input
+                        key={`busca-${showModal}-${showDetalhes}-${showConfirmarModal}-${showPagarModal}`} // recria só quando modal muda
                         type="search"
-                        name="busca_clientes"
-                        autoComplete="off"
+                        name="busca_clientes" // nome fixo
+                        autoComplete="new-password" // chrome odeia isso = não preenche
+                        role="presentation"
                         placeholder="Buscar por nome, BI, telefone..."
                         value={busca}
                         onChange={e => setBusca(e.target.value)}
