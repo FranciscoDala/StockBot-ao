@@ -167,6 +167,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
     const handleSaveCliente = async (e?: FormEvent) => {
         e?.preventDefault();
+        console.log("[DEBUG 1] INICIO CADASTRO", { token: !!token, lojaId })
+
         if (!token || !lojaId) return toast.error("Erro: Loja não encontrada");
         if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
 
@@ -175,22 +177,35 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setSaving(true);
             try {
                 const payload: Record<string, any> = {
-                    ...formDataCliente,
-                    loja_id: lojaId // <- ADICIONA ISSO AQUI
+                    ...formDataCliente
+                    // REMOVI loja_id: lojaId - backend já pega da URL
                 };
                 Object.keys(payload).forEach(key => { if (payload[key] === "") payload[key] = null; });
 
-                console.log("[DEBUG] CADASTRAR:", `${API_URL}/lojas/${lojaId}/clientes`, payload)
-                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                const data = await res.json();
+                console.log("[DEBUG 2] PAYLOAD ENVIADO:", payload)
+                console.log("[DEBUG 3] URL:", `${API_URL}/lojas/${lojaId}/clientes`)
 
-                if (!res.ok) throw new Error(data.detail || JSON.stringify(data.detail));
+                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
+                    method: 'POST',
+                    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log("[DEBUG 4] STATUS RESPONSE:", res.status, res.statusText)
+                const text = await res.text(); // <- pega como texto primeiro
+                console.log("[DEBUG 5] CORPO BRUTO:", text)
+
+                let data;
+                try { data = JSON.parse(text) } catch { data = { detail: text } }
+
+                if (!res.ok) throw new Error(data.detail || `Erro ${res.status}`);
 
                 toast.success("Cliente cadastrado com sucesso!");
                 setShowModal(false); setFiltro('todos');
                 setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
                 fetchClientes();
             } catch (err: any) {
+                console.error("[DEBUG ERRO]", err)
                 toast.error(err.message);
             } finally { setSaving(false); }
         }

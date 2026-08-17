@@ -127,23 +127,46 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro interno ao listar clientes: {str(e)}")
 
+
+
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
-    await verificar_acesso_loja(loja_id, db, current_user)
-    if cliente_in.bi:
-        stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi)
-        result = await db.execute(stmt)
-        if result.scalars().first():
-            raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
-    data = cliente_in.model_dump(exclude_unset=True)
-    data["loja_id"] = loja_id
-    data["total_divida"] = 0.0
-    data["ultima_compra"] = None
-    db_cliente = Cliente(**data)
-    db.add(db_cliente)
-    await db.commit()
-    await db.refresh(db_cliente)
-    return await _cliente_to_out(db, db_cliente)
+    print(f"[DEBUG BACK 1] INICIO - loja_id: {loja_id}")
+    print(f"[DEBUG BACK 2] DADOS RECEBIDOS: {cliente_in.model_dump()}")
+
+    try:
+        await verificar_acesso_loja(loja_id, db, current_user)
+        print(f"[DEBUG BACK 3] ACESSO OK")
+
+        if cliente_in.bi:
+            stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi)
+            result = await db.execute(stmt)
+            if result.scalars().first():
+                print(f"[DEBUG BACK 4] BI DUPLICADO")
+                raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
+
+        data = cliente_in.model_dump(exclude={"loja_id"})
+        data["loja_id"] = loja_id
+        data["total_divida"] = 0.0
+        data["ultima_compra"] = None
+
+        print(f"[DEBUG BACK 5] DADOS PRA SALVAR: {data}")
+        db_cliente = Cliente(**data)
+        db.add(db_cliente)
+        await db.commit()
+        await db.refresh(db_cliente)
+        print(f"[DEBUG BACK 6] SALVO COM SUCESSO: {db_cliente.id}")
+        return await _cliente_to_out(db, db_cliente)
+
+    except Exception as e:
+        print(f"[DEBUG BACK ERRO] {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+
+
+
+
 
 @router.put("/{loja_id}/clientes/{cliente_id}", response_model=ClienteOut)
 async def atualizar_cliente(
