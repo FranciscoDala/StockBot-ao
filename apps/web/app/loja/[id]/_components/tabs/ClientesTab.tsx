@@ -87,7 +87,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
         // 1. Busca produtos SEMPRE
         try {
-            const resProdutos = await fetch(`${API_URL}/lojas/${lojaId}/produtos?apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } });
+            const resProdutos = await fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } });
             if (resProdutos.ok) {
                 const dataProdutos = await resProdutos.json();
                 setProdutosLoja(Array.isArray(dataProdutos) ? dataProdutos : []);
