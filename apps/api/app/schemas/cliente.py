@@ -16,7 +16,7 @@ class ClienteBase(BaseModel):
     is_active: bool = True
 
 class ClienteCreate(ClienteBase):
-    loja_id: UUID # <- MUDA AQUI: deixa como UUID direto
+    pass # <- FICA VAZIO. loja_id vem da URL
 
 class ClienteUpdate(BaseModel):
     nome: Optional[str] = None
@@ -31,8 +31,8 @@ class ClienteUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class ClienteOut(ClienteBase):
-    id: UUID # <- Melhor deixar UUID aqui também
-    loja_id: UUID
+    id: UUID
+    loja_id: UUID # <- Aqui pode ficar, porque é só na resposta
     total_divida: float = 0.0
     ultima_compra: Optional[datetime] = None
     status: Literal['com_divida', 'em_dia'] = "em_dia"
