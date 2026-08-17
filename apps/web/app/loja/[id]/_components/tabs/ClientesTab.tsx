@@ -263,7 +263,18 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3" style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
-                <div className="relative flex-1"><Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" /><Input placeholder="Buscar cliente..." value={busca} onChange={e => setBusca(e.target.value)} className="pl-9 h-9" /></div>
+                <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                        type="search"
+                        name="busca_clientes"
+                        autoComplete="off"
+                        placeholder="Buscar por nome, BI, telefone..."
+                        value={busca}
+                        onChange={e => setBusca(e.target.value)}
+                        className="pl-9 h-9"
+                    />
+                </div>
                 <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroCliente)}>
                     <SelectTrigger className="w-full sm:w-[240px] h-9"><Filter size={14} className="mr-2" /> <SelectValue /></SelectTrigger>
                     <SelectContent>
