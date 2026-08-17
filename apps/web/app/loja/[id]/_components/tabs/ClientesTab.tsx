@@ -85,7 +85,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try {
             const [resVendas, resProdutos] = await Promise.all([
                 fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`${API_URL}/lojas/${lojaId}/produtos`, { headers: { "Authorization": `Bearer ${token}` } })
+                fetch(`${API_URL}/lojas/${lojaId}/produtos?apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
             const dataVendas = await resVendas.json();
             const dataProdutos = await resProdutos.json();
