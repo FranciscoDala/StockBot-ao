@@ -39,8 +39,8 @@ function TabButton({ label, icon, active, onClick, count }: { label: string, ico
         <button onClick={onClick} className="relative flex-1 flex items-center justify-center gap-2 px-4 py-4 font-semibold text-sm transition">
             <div className="flex items-center gap-2">
                 {icon} {label}
-                {count !== undefined && count > 0 && (
-                    <Badge className="rounded-full h-5 min-w-5 flex items-center justify-center text-[10px]" style={{ background: active ? 'var(--cor-primaria)' : 'var(--cor-texto-sec)', color: '#fff' }}>{count}</Badge>
+                {count!== undefined && count > 0 && (
+                    <Badge className="rounded-full h-5 min-w-5 flex items-center justify-center text-[10px]" style={{ background: active? 'var(--cor-primaria)' : 'var(--cor-texto-sec)', color: '#fff' }}>{count}</Badge>
                 )}
             </div>
             {active && <div className="absolute bottom-0 left-0 right-0 h-[3px]" style={{ background: 'var(--cor-primaria)' }} />}
@@ -64,29 +64,29 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         return () => { document.body.style.overflow = 'unset'; }
     }, [open]);
 
-    const getPreco = (p: Produto | ProdutoCarrinho) => p.preco_venda ?? p.preco ?? 0;
+    const getPreco = (p: Produto | ProdutoCarrinho) => p.preco_venda?? p.preco?? 0;
 
     const adicionarAoCarrinho = (p: Produto) => {
-        if ((p.estoque ?? 0) <= 0) return toast.error("Sem estoque");
+        if ((p.estoque?? 0) <= 0) return toast.error("Sem estoque");
         setCarrinho(prev => {
             const item = prev.find(i => i.id === p.id);
             if (item) {
-                if (item.qtd >= (p.estoque ?? 0)) return toast.error("Estoque máximo atingido"), prev;
-                return prev.map(i => i.id === p.id ? { ...i, qtd: i.qtd + 1 } : i);
+                if (item.qtd >= (p.estoque?? 0)) return toast.error("Estoque máximo atingido"), prev;
+                return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
             }
-            const { unidade, ...resto } = p as any;
-            return [...prev, { ...resto, qtd: 1 }];
+            const { unidade,...resto } = p as any;
+            return [...prev, {...resto, qtd: 1 }];
         })
     }
-    const removerDoCarrinho = (id: string) => setCarrinho(prev => prev.filter(i => i.id !== id));
+    const removerDoCarrinho = (id: string) => setCarrinho(prev => prev.filter(i => i.id!== id));
 
     const alterarQtd = (id: string, delta: number) => {
         setCarrinho(prev => prev.map(i => {
             if (i.id === id) {
                 const produto = produtos.find(p => p.id === id);
                 const novaQtd = Math.max(1, i.qtd + delta);
-                if (produto && novaQtd > (produto.estoque ?? 0)) return toast.error("Estoque insuficiente"), i;
-                return { ...i, qtd: novaQtd };
+                if (produto && novaQtd > (produto.estoque?? 0)) return toast.error("Estoque insuficiente"), i;
+                return {...i, qtd: novaQtd };
             }
             return i;
         }));
@@ -128,8 +128,8 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                         <DialogTitle className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--cor-texto)' }}>{cliente?.nome}</DialogTitle>
                         <div className="flex items-center gap-4 mt-1 flex-wrap">
                             <DialogDescription className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{cliente?.telefone}</DialogDescription>
-                            <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida ?? 0)}</span></div>
-                            <div className="flex items-center gap-1 text-sm"><Calendar size={14} style={{ color: 'var(--cor-texto-sec)' }} /><span>Última: {cliente?.ultima_compra ? new Date(cliente.ultima_compra).toLocaleDateString('pt-AO') : 'Nunca'}</span></div>
+                            <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida?? 0)}</span></div>
+                            <div className="flex items-center gap-1 text-sm"><Calendar size={14} style={{ color: 'var(--cor-texto-sec)' }} /><span>Última: {cliente?.ultima_compra? new Date(cliente.ultima_compra).toLocaleDateString('pt-AO') : 'Nunca'}</span></div>
                         </div>
                     </div>
                     <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-lg transition shrink-0" style={{ background: '#fee2e2', color: '#ef4444' }}><X size={22} strokeWidth={2.5} /></button>
@@ -141,14 +141,14 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 </div>
 
                 <div className="flex-1 min-h-0">
-                    {loading ? (
+                    {loading? (
                         <div className="flex flex-col items-center justify-center h-full gap-3"><Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} /><p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Carregando...</p></div>
                     ) : (
                         <>
                             {abaAtiva === 'dividas' && (
                                 <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-4">
                                     <div className="flex items-center gap-2"><History size={18} /><h3 className="font-bold text-lg">Histórico de Vendas</h3></div>
-                                    {vendas.length === 0 ? (
+                                    {vendas.length === 0? (
                                         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center mt-4" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}><Inbox size={40} style={{ color: 'var(--cor-texto-sec)' }} /><p className="font-semibold">Nenhuma venda registrada</p></div>
                                     ) : (
                                         <div className="space-y-3">
@@ -157,9 +157,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                                 return (
                                                     <div key={v.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-xl" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
                                                         <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-bold flex items-center gap-1"><Calendar size={14} />{new Date(v.data_venda).toLocaleDateString('pt-AO')}</p><Badge style={{ background: estaPaga ? '#22c55e' : '#f59e0b', color: '#fff', fontSize: '10px', padding: '2px 8px' }}>{estaPaga ? 'QUITADA' : 'PENDENTE'}</Badge></div>
+                                                            <div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-bold flex items-center gap-1"><Calendar size={14} />{new Date(v.data_venda).toLocaleDateString('pt-AO')}</p><Badge style={{ background: estaPaga? '#22c55e' : '#f59e0b', color: '#fff', fontSize: '10px', padding: '2px 8px' }}>{estaPaga? 'QUITADA' : 'PENDENTE'}</Badge></div>
                                                             <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>ID: #{v.id.slice(0, 8)} | Itens: {v.total_itens}</p>
-                                                            <div className="flex items-center gap-4 mt-2"><p className="text-sm">Total: <span className="font-semibold">{formatCurrency(v.total)}</span></p><p className="text-sm">Saldo: <span className="font-bold" style={{ color: estaPaga ? '#22c55e' : '#ef4444' }}>{formatCurrency(v.saldo_devedor)}</span></p></div>
+                                                            <div className="flex items-center gap-4 mt-2"><p className="text-sm">Total: <span className="font-semibold">{formatCurrency(v.total)}</span></p><p className="text-sm">Saldo: <span className="font-bold" style={{ color: estaPaga? '#22c55e' : '#ef4444' }}>{formatCurrency(v.saldo_devedor)}</span></p></div>
                                                         </div>
                                                         {!estaPaga && (<Button size="sm" className="w-full sm:w-auto" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', fontWeight: 600 }} onClick={() => onPagar(v)}>Pagar</Button>)}
                                                     </div>
@@ -171,7 +171,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             )}
 
                             {abaAtiva === 'fiado' && (
-                                <div className="h-full grid grid-cols-1 lg:grid-cols-5 gap-0">
+                                <div className="h-full grid-cols-1 lg:grid-cols-5 gap-0">
                                     <div className="lg:col-span-3 p-4 sm:p-6 border-r flex flex-col" style={{ borderColor: 'var(--cor-borda)' }}>
                                         <div className="flex items-center gap-2 mb-4 shrink-0"><Package size={18} /><h3 className="font-bold text-lg">Selecionar Produtos</h3></div>
                                         <div className="relative mb-4 shrink-0">
@@ -184,12 +184,12 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                             {produtosFiltrados.map(p => {
                                                 const preco = getPreco(p);
                                                 return (
-                                                    <div key={`${p.id}-${p.estoque}`} className="flex items-center justify-between p-3 border rounded-lg transition hover:border-[var(--cor-primaria)]" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', opacity: (p.estoque ?? 0) <= 0 ? 0.5 : 1 }}>
+                                                    <div key={`${p.id}-${p.estoque}`} className="flex items-center justify-between p-3 border rounded-lg transition hover:border-[var(--cor-primaria)]" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', opacity: (p.estoque?? 0) <= 0? 0.5 : 1 }}>
                                                         <div className="min-w-0 flex-1">
                                                             <p className="text-sm font-semibold truncate">{p.nome}</p>
-                                                            <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatCurrency(preco)} | Estoque: {p.estoque ?? 0}</p>
+                                                            <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatCurrency(preco)} | Estoque: {p.estoque?? 0}</p>
                                                         </div>
-                                                        <Button size="sm" disabled={(p.estoque ?? 0) <= 0} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', minWidth: '36px' }} onClick={() => adicionarAoCarrinho(p)}>
+                                                        <Button size="sm" disabled={(p.estoque?? 0) <= 0} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', minWidth: '36px' }} onClick={() => adicionarAoCarrinho(p)}>
                                                             <Plus size={16} />
                                                         </Button>
                                                     </div>
@@ -198,7 +198,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                         </div>
                                     </div>
 
-                                    <div className="lg:col-span-2 p-4 sm:p-6 flex-col" style={{ backgroundColor: 'var(--cor-card)' }}>
+                                    <div className="lg:col-span-2 p-4 sm:p-6 flex flex-col" style={{ backgroundColor: 'var(--cor-card)' }}>
                                         <p className="font-bold text-lg mb-4 shrink-0">Carrinho Fiado</p>
                                         <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                                             {carrinho.length === 0 && <p className="text-sm opacity-70 text-center py-10">Adicione produtos ao carrinho</p>}
@@ -221,7 +221,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                         <div className="border-t pt-4 mt-4 shrink-0" style={{ borderColor: 'var(--cor-borda)' }}>
                                             <div className="flex justify-between items-center mb-4"><p className="font-semibold">Total da Dívida:</p><p className="font-bold text-2xl" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</p></div>
                                             <Button className="w-full h-11" disabled={carrinho.length === 0 || salvando} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', fontWeight: 600 }} onClick={handleSalvarFiado}>
-                                                {salvando ? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
+                                                {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
                                             </Button>
                                         </div>
                                     </div>
