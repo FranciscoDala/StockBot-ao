@@ -53,7 +53,7 @@ function TabButton({ label, icon, active, onClick, count }: { label: string, ico
 }
 
 export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos, onPagar, onSalvarFiado, formatCurrency, loading, cardStyle = 'arredondado' }: Props) {
-    const [modoFiado, setModoFiado] = useState(false); // <- NOVO: controla tela cheia
+    const [abaAtiva, setAbaAtiva] = useState<'dividas' | 'fiado'>('dividas'); // <- AGORA É ABA, NÃO MODO TELA CHEIA
     const [carrinho, setCarrinho] = useState<ProdutoCarrinho[]>([]);
     const [buscaProduto, setBuscaProduto] = useState("");
     const [salvando, setSalvando] = useState(false);
@@ -64,7 +64,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     useEffect(() => {
         if (open) {
             document.body.style.overflow = 'hidden';
-            setModoFiado(false); // sempre começa em dividas
+            setAbaAtiva('dividas'); // sempre começa em dividas
             setCarrinho([]);
             setBuscaProduto("");
         } else document.body.style.overflow = 'unset';
@@ -117,7 +117,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         try {
             await onSalvarFiado(carrinho);
             setCarrinho([]);
-            setModoFiado(false); // <- volta pra dividas
+            setAbaAtiva('dividas'); // <- volta pra dividas
             onClose();
         } catch (e: any) {
             toast.error(e.message)
@@ -140,14 +140,14 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (!modoFiado) return; // <- só funciona no modo fiado
-            if (e.key === 'Escape') setModoFiado(false);
+            if (abaAtiva!== 'fiado') return;
+            if (e.key === 'Escape') setAbaAtiva('dividas'); // <- ESC volta pra aba dividas
             if (e.key === 'Enter' && podeFinalizar) handleSalvarFiado();
             if (e.key === 'F2') document.getElementById('busca-fiado')?.focus();
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [modoFiado, podeFinalizar]);
+    }, [abaAtiva, podeFinalizar]);
 
     const dividasContent = (
         <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-4">
@@ -175,20 +175,20 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     );
 
     const fiadoContent = (
-        <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
-            {/* HEADER IGUAL VENDA */}
-            <div className="flex items-center justify-between p-3 border-b sticky top-0 z-20" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
-                <Button variant="ghost" onClick={() => setModoFiado(false)} className="gap-2 h-9">
+        <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+            {/* HEADER IGUAL VENDA MAS SEM STICKY */}
+            <div className="flex items-center justify-between p-3 border-b shrink-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                <Button variant="ghost" onClick={() => setAbaAtiva('dividas')} className="gap-2 h-9">
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
                 <h2 className="font-bold text-base truncate">Fiado para: {cliente?.nome}</h2>
-                <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Sair</div>
+                <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Voltar</div>
             </div>
 
-            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1">
+            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 min-h-0">
                 {/* COLUNA PRODUTOS */}
                 <div className="lg:col-span-2 p-3 flex flex-col overflow-hidden">
-                    <div className="relative mb-3 sticky top-0 z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                    <div className="relative mb-3 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
                         <Input id="busca-fiado" placeholder="Buscar produto... [F2]" className="pl-9 h-10 text-base sm:text-sm" style={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, fontSize: '16px' }} value={buscaProduto} onChange={(e) => setBuscaProduto(e.target.value)} />
                     </div>
@@ -232,15 +232,15 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     </div>
 
                     {/* MOBILE FOOTER FIXO */}
-                    <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                    <div className="lg:hidden py-3 space-y-2 border-t shrink-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                         <div className="flex justify-between items-center"><span className="text-xs opacity-70">Total da Dívida</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span></div>
                         <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-12 text-base font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>{salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}</Button>
                     </div>
                 </div>
 
                 {/* DESKTOP CARRINHO */}
-                <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
-                    <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b"><ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}</h3>
+                <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col flex-1 min-h-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                    <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b shrink-0"><ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}</h3>
                     <div className="flex-1 overflow-y-auto p-3 space-y-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {carrinho.length === 0 && <p className="text-center text-xs py-10 opacity-70">Vazio</p>}
                         {carrinho.map(i => { const preco = getPreco(i); return (
@@ -250,7 +250,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             </div>
                         )})}
                     </div>
-                    <div className="border-t p-3 space-y-2 mt-auto">
+                    <div className="border-t p-3 space-y-2 shrink-0">
                         <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span></div>
                         <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-11 text-base font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>{salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida [Enter]"}</Button>
                     </div>
@@ -261,34 +261,35 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
     return (
         <>
-            {/* MODO NORMAL: DIALOG */}
-            {!modoFiado && (
-                <Dialog open={open} onOpenChange={onClose}>
-                    <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
-                        <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
-                            <div className="min-w-0 flex-1 text-left">
-                                <DialogTitle className="text-xl sm:text-2xl font-bold text-left">{cliente?.nome}</DialogTitle>
-                                <div className="flex items-center gap-4 mt-1 flex-wrap justify-start">
-                                    <DialogDescription className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{cliente?.telefone}</DialogDescription>
-                                    <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida?? 0)}</span></div>
-                                    <div className="flex items-center gap-1 text-sm"><Calendar size={14} style={{ color: 'var(--cor-texto-sec)' }} /><span>Última: {cliente?.ultima_compra? new Date(cliente.ultima_compra).toLocaleDateString('pt-AO') : 'Nunca'}</span></div>
-                                </div>
+            <Dialog open={open} onOpenChange={onClose}>
+                <DialogContent className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                    <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
+                        <div className="min-w-0 flex-1 text-left">
+                            <DialogTitle className="text-xl sm:text-2xl font-bold text-left">{cliente?.nome}</DialogTitle>
+                            <div className="flex items-center gap-4 mt-1 flex-wrap justify-start">
+                                <DialogDescription className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{cliente?.telefone}</DialogDescription>
+                                <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida?? 0)}</span></div>
+                                <div className="flex items-center gap-1 text-sm"><Calendar size={14} style={{ color: 'var(--cor-texto-sec)' }} /><span>Última: {cliente?.ultima_compra? new Date(cliente.ultima_compra).toLocaleDateString('pt-AO') : 'Nunca'}</span></div>
                             </div>
-                            <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-lg transition shrink-0" style={{ background: '#fee2e2', color: '#ef4444' }}><X size={22} strokeWidth={2.5} /></button>
-                        </DialogHeader>
-
-                        <div className="flex gap-1 px-2 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
-                            <TabButton label="Dívidas" icon={<FileText size={16} />} active={true} onClick={() => {}} count={dividasPendentes.length} />
-                            <TabButton label="Lançar Fiado" icon={<ShoppingCart size={16} />} active={false} onClick={() => setModoFiado(true)} count={totalItens} /> {/* <- AQUI ABRE TELA CHEIA */}
                         </div>
+                        <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-lg transition shrink-0" style={{ background: '#fee2e2', color: '#ef4444' }}><X size={22} strokeWidth={2.5} /></button>
+                    </DialogHeader>
 
-                        <div className="flex-1 min-h-0">{loading? (<div className="flex flex-col items-center justify-center h-full gap-3"><Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} /><p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Carregando...</p></div>) : dividasContent}</div>
-                    </DialogContent>
-                </Dialog>
-            )}
+                    <div className="flex gap-1 px-2 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
+                        <TabButton label="Dívidas" icon={<FileText size={16} />} active={abaAtiva === 'dividas'} onClick={() => setAbaAtiva('dividas')} count={dividasPendentes.length} />
+                        <TabButton label="Lançar Fiado" icon={<ShoppingCart size={16} />} active={abaAtiva === 'fiado'} onClick={() => setAbaAtiva('fiado')} count={totalItens} />
+                    </div>
 
-            {/* MODO TELA CHEIA: IGUAL VENDA */}
-            {modoFiado && fiadoContent}
+                    <div className="flex-1 min-h-0">
+                        {loading? (<div className="flex flex-col items-center justify-center h-full gap-3"><Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} /><p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Carregando...</p></div>) : (
+                            <>
+                                {abaAtiva === 'dividas' && dividasContent}
+                                {abaAtiva === 'fiado' && fiadoContent}
+                            </>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <ConfirmarModal open={showConfirmFiado} onClose={() => setShowConfirmFiado(false)} onConfirm={executarSalvarFiado} titulo="Confirmar Lançamento Fiado" descricao={`Tem certeza que deseja lançar uma dívida de ${formatCurrency(totalCarrinho)} para ${cliente?.nome}?`} loading={salvando} tipo="venda" textoConfirmar="Sim, Lançar Dívida" />
         </>
