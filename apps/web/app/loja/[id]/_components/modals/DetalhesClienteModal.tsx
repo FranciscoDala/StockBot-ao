@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, FileText, ShoppingCart, Calendar, Plus, Minus, Trash2, Loader2, Inbox, History, Package, Wallet, Search } from "lucide-react";
@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import type { Produto } from "./ProdutoModal";
-import { ConfirmarModal } from "./ConfirmacaoModal"; // <- IMPORT ADICIONADO
+import { ConfirmarModal } from "./ConfirmacaoModal";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
 export type Cliente = {
     id: string; loja_id: string; nome: string; nome_empresa: string | null; bi: string | null;
@@ -33,6 +35,7 @@ interface Props {
     onSalvarFiado: (carrinho: ProdutoCarrinho[]) => Promise<void>;
     formatCurrency: (v: number) => string;
     loading: boolean;
+    cardStyle?: string;
 }
 
 function TabButton({ label, icon, active, onClick, count }: { label: string, icon: any, active: boolean, onClick: () => void, count?: number }) {
@@ -49,17 +52,19 @@ function TabButton({ label, icon, active, onClick, count }: { label: string, ico
     )
 }
 
-export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos, onPagar, onSalvarFiado, formatCurrency, loading }: Props) {
-    const [abaAtiva, setAbaAtiva] = useState<'dividas' | 'fiado'>('dividas'); // <- CORRIGIDO: agora começa em 'dividas'
+export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos, onPagar, onSalvarFiado, formatCurrency, loading, cardStyle = 'arredondado' }: Props) {
+    const [abaAtiva, setAbaAtiva] = useState<'dividas' | 'fiado'>('dividas');
     const [carrinho, setCarrinho] = useState<ProdutoCarrinho[]>([]);
     const [buscaProduto, setBuscaProduto] = useState("");
     const [salvando, setSalvando] = useState(false);
-    const [showConfirmFiado, setShowConfirmFiado] = useState(false); // <- NOVO: estado da modal de confirmação
+    const [showConfirmFiado, setShowConfirmFiado] = useState(false);
+
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
 
     useEffect(() => {
         if (open) {
             document.body.style.overflow = 'hidden';
-            setAbaAtiva('dividas'); // <- CORRIGIDO: abre em dividas
+            setAbaAtiva('dividas');
             setCarrinho([]);
             setBuscaProduto("");
         } else document.body.style.overflow = 'unset';
@@ -68,40 +73,45 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
     const getPreco = (p: Produto | ProdutoCarrinho) => p.preco_venda?? p.preco?? 0;
 
-    const adicionarAoCarrinho = (p: Produto) => {
-        if ((p.estoque?? 0) <= 0) return toast.error("Sem estoque");
+    const adicionarAoCarrinho = useCallback((p: Produto) => {
+        const estoqueAtual = p.estoque?? 0;
+        if (estoqueAtual <= 0) return toast.error("Sem estoque");
         setCarrinho(prev => {
             const item = prev.find(i => i.id === p.id);
             if (item) {
-                if (item.qtd >= (p.estoque?? 0)) return toast.error("Estoque máximo atingido"), prev;
+                if (item.qtd >= estoqueAtual) return toast.error("Estoque máximo atingido"), prev;
                 return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
             }
             const { unidade,...resto } = p as any;
             return [...prev, {...resto, qtd: 1 }];
         })
-    }
+    }, [produtos]);
+
     const removerDoCarrinho = (id: string) => setCarrinho(prev => prev.filter(i => i.id!== id));
 
     const alterarQtd = (id: string, delta: number) => {
         setCarrinho(prev => prev.map(i => {
             if (i.id === id) {
                 const produto = produtos.find(p => p.id === id);
+                const estoqueProduto = produto?.estoque?? 0;
                 const novaQtd = Math.max(1, i.qtd + delta);
-                if (produto && novaQtd > (produto.estoque?? 0)) return toast.error("Estoque insuficiente"), i;
+                if (produto && novaQtd > estoqueProduto) return toast.error("Estoque insuficiente"), i;
                 return {...i, qtd: novaQtd };
             }
             return i;
         }));
     }
 
+    const totalItens = useMemo(() => carrinho.reduce((acc, i) => acc + i.qtd, 0), [carrinho]);
     const totalCarrinho = useMemo(() => carrinho.reduce((acc, i) => acc + getPreco(i) * i.qtd, 0), [carrinho]);
+    const podeFinalizar = carrinho.length > 0 &&!salvando;
 
     const handleSalvarFiado = async () => {
         if (carrinho.length === 0) return toast.error("Adicione produtos ao carrinho");
-        setShowConfirmFiado(true); // <- NOVO: abre modal de confirmação em vez de salvar direto
+        setShowConfirmFiado(true);
     }
 
-    const executarSalvarFiado = async () => { // <- NOVO: só executa depois de confirmar
+    const executarSalvarFiado = async () => {
         setShowConfirmFiado(false);
         setSalvando(true);
         try {
@@ -127,13 +137,24 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
     const dividasPendentes = vendas.filter(v => v.saldo_devedor > 0);
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (abaAtiva!== 'fiado') return;
+            if (e.key === 'Escape') onClose();
+            if (e.key === 'Enter' && podeFinalizar) handleSalvarFiado();
+            if (e.key === 'F2') document.getElementById('busca-fiado')?.focus();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [abaAtiva, podeFinalizar, onClose]);
+
     return (
         <>
             <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                <DialogContent className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
                     <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <div className="min-w-0 flex-1 text-left">
-                            <DialogTitle className="text-xl sm:text-2xl font-bold text-left" style={{ color: 'var(--cor-texto)' }}>{cliente?.nome}</DialogTitle>
+                            <DialogTitle className="text-xl sm:text-2xl font-bold text-left">{cliente?.nome}</DialogTitle>
                             <div className="flex items-center gap-4 mt-1 flex-wrap justify-start">
                                 <DialogDescription className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{cliente?.telefone}</DialogDescription>
                                 <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida?? 0)}</span></div>
@@ -145,7 +166,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
                     <div className="flex gap-1 px-2 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <TabButton label="Dívidas" icon={<FileText size={16} />} active={abaAtiva === 'dividas'} onClick={() => setAbaAtiva('dividas')} count={dividasPendentes.length} />
-                        <TabButton label="Lançar Fiado" icon={<ShoppingCart size={16} />} active={abaAtiva === 'fiado'} onClick={() => setAbaAtiva('fiado')} count={carrinho.length} />
+                        <TabButton label="Lançar Fiado" icon={<ShoppingCart size={16} />} active={abaAtiva === 'fiado'} onClick={() => setAbaAtiva('fiado')} count={totalItens} />
                     </div>
 
                     <div className="flex-1 min-h-0">
@@ -163,13 +184,13 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                                 {vendas.map(v => {
                                                     const estaPaga = v.saldo_devedor <= 0;
                                                     return (
-                                                        <div key={v.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-xl" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}>
+                                                        <div key={v.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border rounded-xl" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', borderRadius: radius }}>
                                                             <div className="flex-1 min-w-0">
                                                                 <div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-bold flex items-center gap-1"><Calendar size={14} />{new Date(v.data_venda).toLocaleDateString('pt-AO')}</p><Badge style={{ background: estaPaga? '#22c55e' : '#f59e0b', color: '#fff', fontSize: '10px', padding: '2px 8px' }}>{estaPaga? 'Pago' : 'Pendente'}</Badge></div>
                                                                 <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>ID: #{v.id.slice(0, 8)} | Itens: {v.total_itens}</p>
                                                                 <div className="flex items-center gap-4 mt-2"><p className="text-sm">Total: <span className="font-semibold">{formatCurrency(v.total)}</span></p><p className="text-sm">Saldo: <span className="font-bold" style={{ color: estaPaga? '#22c55e' : '#ef4444' }}>{formatCurrency(v.saldo_devedor)}</span></p></div>
                                                             </div>
-                                                            {!estaPaga && (<Button size="sm" className="w-full sm:w-auto" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', fontWeight: 600 }} onClick={() => onPagar(v)}>Pagar</Button>)}
+                                                            {!estaPaga && (<Button size="sm" className="w-full sm:w-auto" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius, fontWeight: 600 }} onClick={() => onPagar(v)}>Pagar</Button>)}
                                                         </div>
                                                     )
                                                 })}
@@ -179,90 +200,122 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                 )}
 
                                 {abaAtiva === 'fiado' && (
-                                    <div className="h-full grid grid-cols-1 lg:grid-cols-5 gap-0 overflow-hidden">
-                                        {/* Coluna 1: Produtos - ESQUERDA */}
-                                        <div className="lg:col-span-3 p-4 sm:p-6 border-r flex flex-col overflow-hidden" style={{ borderColor: 'var(--cor-borda)' }}>
-                                            <div className="flex items-center gap-2 mb-4 shrink-0"><Package size={18} /><h3 className="font-bold text-lg">Selecionar Produtos</h3></div>
-                                            <div className="relative mb-4 shrink-0">
-                                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--cor-texto-sec)' }} />
-                                                <Input placeholder="Buscar produto por nome ou SKU..." value={buscaProduto} onChange={e => setBuscaProduto(e.target.value)} className="pl-9 h-10" />
+                                    <div className="h-full flex flex-col lg:grid lg:grid-cols-3">
+                                        {/* COLUNA PRODUTOS - IGUAL VENDA */}
+                                        <div className="lg:col-span-2 p-3 flex flex-col overflow-hidden">
+                                            <div className="relative mb-3 sticky top-0 z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
+                                                <Input
+                                                    id="busca-fiado"
+                                                    placeholder="Buscar produto... [F2]"
+                                                    className="pl-9 h-10 text-base sm:text-sm"
+                                                    style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, fontSize: '16px' }}
+                                                    value={buscaProduto}
+                                                    onChange={(e) => setBuscaProduto(e.target.value)}
+                                                />
                                             </div>
 
-                                            {/* GRID DE CARDS IGUAL VENDA */}
-                                            <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
-                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
-                                                    {produtos.length === 0 && <p className="text-sm text-center opacity-70 py-10 col-span-full">Carregando produtos...</p>}
-                                                    {produtosFiltrados.length === 0 && produtos.length > 0 && <p className="text-sm text-center opacity-70 py-10 col-span-full">Nenhum produto encontrado</p>}
-                                                    {produtosFiltrados.map(p => {
-                                                        const preco = getPreco(p);
-                                                        return (
-                                                            <button
-                                                                key={`${p.id}-${p.estoque}`}
-                                                                onClick={() => adicionarAoCarrinho(p)}
-                                                                disabled={(p.estoque?? 0) <= 0}
-                                                                className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group"
-                                                                style={{
-                                                                    backgroundColor: 'var(--cor-card)',
-                                                                    borderColor: 'var(--cor-borda)',
-                                                                    borderRadius: '12px'
-                                                                }}
-                                                                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
-                                                                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-borda)'}
-                                                            >
-                                                                <div className="relative w-full aspect-square" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                                    {p.imagem_url? (
-                                                                        <img src={p.imagem_url.startsWith('http')? p.imagem_url : `http://127.0.0.1:8000${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
-                                                                    ) : (
-                                                                        <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
-                                                                    )}
-                                                                    <Badge className="absolute top-1 right-1 text-[9px] px-1.5 text-white border-none" style={{ backgroundColor: (p.estoque?? 0) <= 0? '#ef4444' : 'var(--cor-primaria)' }}>
-                                                                        {p.estoque?? 0}
-                                                                    </Badge>
-                                                                </div>
-                                                                <div className="p-2">
-                                                                    <h4 className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
-                                                                    <div className="flex justify-between items-center mt-1">
-                                                                        <span className="font-bold text-xs" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
-                                                                        <div className="h-7 w-7 flex items-center justify-center rounded-md" style={{ background: 'var(--cor-primaria)' }}>
-                                                                            <Plus size={14} color="#fff" />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </button>
-                                                        )
-                                                    })}
+                                            {produtosFiltrados.length === 0 && (
+                                                <div className="flex flex-col items-center justify-center h-64" style={{ color: 'var(--cor-texto-sec)' }}>
+                                                    <Package size={40} />
+                                                    <p className="mt-2 text-sm">Nenhum produto encontrado</p>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            )}
 
-                                        {/* Coluna 2: Carrinho com footer fixo - DIREITA */}
-                                        <div className="lg:col-span-2 flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--cor-card)' }}>
-                                            <p className="font-bold text-lg p-4 sm:p-6 pb-2 shrink-0">Carrinho Fiado</p>
-
-                                            <div className="flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 space-y-2">
-                                                {carrinho.length === 0 && <p className="text-sm opacity-70 text-center py-10">Adicione produtos ao carrinho</p>}
-                                                {carrinho.map(i => {
-                                                    const preco = getPreco(i);
+                                            <div className="flex-1 overflow-y-auto flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
+                                                {produtosFiltrados.map(p => {
+                                                    const preco = getPreco(p);
+                                                    const estoqueAtual = p.estoque?? 0;
                                                     return (
-                                                        <div key={i.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 5%, transparent)' }}>
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="text-sm font-semibold truncate">{i.nome}</p>
-                                                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatCurrency(preco)} x {i.qtd} = {formatCurrency(preco * i.qtd)}</p>
+                                                        <button
+                                                            key={`${p.id}-${estoqueAtual}`}
+                                                            onClick={() => adicionarAoCarrinho(p)}
+                                                            disabled={estoqueAtual <= 0}
+                                                            className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group shrink-0 w-28 sm:w-32 lg:w-auto"
+                                                            style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)20', borderRadius: radius }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)20'}
+                                                        >
+                                                            <div className="relative w-full aspect-square" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                                                                {p.imagem_url? <img src={p.imagem_url.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
+                                                                    : <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>}
+                                                                <Badge className="absolute top-1 right-1 text-[9px] px-1.5 text-white border-none" style={{ backgroundColor: estoqueAtual <= 0? '#ef4444' : 'var(--cor-primaria)' }}>{estoqueAtual}</Badge>
                                                             </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => alterarQtd(i.id, -1)}><Minus size={14} /></Button>
-                                                                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => removerDoCarrinho(i.id)}><Trash2 size={14} /></Button>
+                                                            <div className="p-2">
+                                                                <h4 className="font-semibold text-xs truncate">{p.nome}</h4>
+                                                                <div className="flex justify-between items-center mt-1">
+                                                                    <span className="font-bold text-xs" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
+                                                                    <div className="h-7 w-7 flex items-center justify-center rounded-md" style={{ background: 'var(--cor-primaria)' }}><Plus size={14} color="#fff" /></div>
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        </button>
                                                     )
                                                 })}
                                             </div>
 
-                                            {/* FOOTER FIXO */}
-                                            <div className="border-t pt-4 p-4 sm:p-6 shrink-0 sticky bottom-0" style={{ borderColor: 'var(--cor-borda)', backgroundColor: 'var(--cor-card)' }}>
-                                                <div className="flex justify-between items-center mb-4"><p className="font-semibold">Total da Dívida:</p><p className="font-bold text-2xl" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</p></div>
-                                                <Button className="w-full h-11" disabled={carrinho.length === 0 || salvando} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', fontWeight: 600 }} onClick={handleSalvarFiado}>
+                                            {/* MOBILE CARRINHO */}
+                                            <div className="lg:hidden mt-4">
+                                                <h3 className="font-bold text-sm flex items-center gap-2 mb-2"><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
+                                                <div className="max-h-[180px] overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                                                    {carrinho.length === 0 && <p className="text-center text-xs py-6 opacity-70">Adicione produtos ao carrinho</p>}
+                                                    {carrinho.map(i => {
+                                                        const preco = getPreco(i);
+                                                        return (
+                                                            <div key={i.id} className="flex items-center justify-between p-2 rounded-md" style={{ background: 'var(--cor-fundo)', borderRadius: radius }}>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="text-xs font-semibold truncate">{i.nome}</p>
+                                                                    <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)} x {i.qtd}</p>
+                                                                </div>
+                                                                <div className="flex items-center gap-1">
+                                                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => alterarQtd(i.id, -1)}><Minus size={12} /></Button>
+                                                                    <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => removerDoCarrinho(i.id)}><Trash2 size={12} /></Button>
+                                                                </div>
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* MOBILE FOOTER FIXO */}
+                                            <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-xs opacity-70">Total da Dívida</span>
+                                                    <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span>
+                                                </div>
+                                                <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-12 text-base font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
                                                     {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
+                                                </Button>
+                                            </div>
+                                        </div>
+
+                                        {/* DESKTOP CARRINHO - DIREITA */}
+                                        <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-140px)] sticky top-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                                            <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b"><ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}</h3>
+                                            <div className="flex-1 overflow-y-auto p-3 space-y-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                                {carrinho.length === 0 && <p className="text-center text-xs py-10 opacity-70">Vazio</p>}
+                                                {carrinho.map(i => {
+                                                    const preco = getPreco(i);
+                                                    return (
+                                                        <div key={i.id} className="p-2.5 rounded-lg" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
+                                                            <div className="flex justify-between items-start gap-2">
+                                                                <div className="min-w-0">
+                                                                    <p className="font-semibold text-xs truncate">{i.nome}</p>
+                                                                    <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)} x {i.qtd}</p>
+                                                                </div>
+                                                                <div className="flex gap-1">
+                                                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => alterarQtd(i.id, -1)}><Minus size={10} /></Button>
+                                                                    <Button size="icon" variant="outline" className="h-6 w-6" onClick={() => removerDoCarrinho(i.id)}><Trash2 size={10} /></Button>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-end mt-1"><p className="font-bold text-sm" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco * i.qtd)}</p></div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                            <div className="border-t p-3 space-y-2 mt-auto">
+                                                <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span></div>
+                                                <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-11 text-base font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
+                                                    {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida [Enter]"}
                                                 </Button>
                                             </div>
                                         </div>
@@ -274,7 +327,6 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 </DialogContent>
             </Dialog>
 
-            {/* MODAL DE CONFIRMAÇÃO ANTES DE LANÇAR FIADO */}
             <ConfirmarModal
                 open={showConfirmFiado}
                 onClose={() => setShowConfirmFiado(false)}
