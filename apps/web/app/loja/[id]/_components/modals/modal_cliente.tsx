@@ -65,54 +65,54 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                         <p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados Pessoais</p>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="nome" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Nome Completo *</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="nome" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Nome Completo *</Label>
                             <Input id="nome" value={formData.nome} onChange={e => handleChange('nome', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="bi" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>BI / Passaporte</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="bi" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>BI / Passaporte</Label>
                             <Input id="bi" value={formData.bi || ""} onChange={e => handleChange('bi', e.target.value)} placeholder="000LA000" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="telefone" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Telefone *</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="telefone" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Telefone *</Label>
                             <Input id="telefone" value={formData.telefone || ""} onChange={e => handleChange('telefone', e.target.value)} placeholder="923 456 789" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="email" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="email" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label>
                             <Input id="email" type="email" value={formData.email || ""} onChange={e => handleChange('email', e.target.value)} placeholder="cliente@email.com" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados Comerciais e Endereço</p></div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="nome_empresa" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Nome Empresa</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="nome_empresa" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Nome Empresa</Label>
                             <Input id="nome_empresa" value={formData.nome_empresa || ""} onChange={e => handleChange('nome_empresa', e.target.value)} placeholder="Empresa LDA" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="endereco" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Endereço</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="endereco" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Endereço</Label>
                             <Input id="endereco" value={formData.endereco || ""} onChange={e => handleChange('endereco', e.target.value)} placeholder="Rua, Bairro" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="cidade" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Cidade</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="cidade" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Cidade</Label>
                             <Input id="cidade" value={formData.cidade || ""} onChange={e => handleChange('cidade', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="provincia" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Província</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="provincia" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Província</Label>
                             <Input id="provincia" value={formData.provincia || ""} onChange={e => handleChange('provincia', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
-                            <Label htmlFor="observacoes" className="text-xs sm:text-right text-left pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Observações</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="observacoes" className="text-xs sm:text-right sm:justify-self-end pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Observações</Label>
                             <textarea id="observacoes" value={formData.observacoes || ""} onChange={e => handleChange('observacoes', e.target.value)} rows={3} className="sm:col-span-3 w-full rounded-md px-3 py-2 text-xs" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} placeholder="Notas sobre o cliente" />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label htmlFor="active" className="text-xs sm:text-right text-left" style={{ color: 'var(--cor-texto-sec)' }}>Ativo</Label> {/* <- AJUSTADO */}
+                            <Label htmlFor="active" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Ativo</Label>
                             <Switch id="active" checked={formData.is_active} onCheckedChange={v => handleChange('is_active', v)} className="sm:col-span-3 w-fit data-[state=checked]:bg-[var(--cor-primaria)]" />
                         </div>
                     </div>
