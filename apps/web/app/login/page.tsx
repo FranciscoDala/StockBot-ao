@@ -230,6 +230,7 @@ export default function LoginPage() {
                         {loading? "Acessando..." : "Acessar"}
                     </button>
                 </form>
+                {/*
                 <div className="py-2">
                     <p className="text-sm text-zinc-400 text-center text-justify">
                         <b className="text-green-400">Gerência</b> e <b className="text-green-400">controla</b> melhor a sua loja apartir de qualquer lugar do mundo.
@@ -243,6 +244,7 @@ export default function LoginPage() {
                         </a>
                     </p>
                 </div>
+                 */}
             </div>
 
             {/* MODAL LOJA DESATIVADA */}
