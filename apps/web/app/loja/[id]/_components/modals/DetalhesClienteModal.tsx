@@ -143,7 +143,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                         <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-lg transition shrink-0" style={{ background: '#fee2e2', color: '#ef4444' }}><X size={22} strokeWidth={2.5} /></button>
                     </DialogHeader>
 
-                    
+
                     <div className="flex gap-1 px-2 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                         <TabButton label="Dívidas" icon={<FileText size={16} />} active={abaAtiva === 'dividas'} onClick={() => setAbaAtiva('dividas')} count={dividasPendentes.length} />
                         <TabButton label="Lançar Fiado" icon={<ShoppingCart size={16} />} active={abaAtiva === 'fiado'} onClick={() => setAbaAtiva('fiado')} count={carrinho.length} />
@@ -180,36 +180,67 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                 )}
 
                                 {abaAtiva === 'fiado' && (
-                                    <div className="h-full grid-cols-1 lg:grid-cols-5 gap-0">
-                                        <div className="lg:col-span-3 p-4 sm:p-6 border-r flex flex-col" style={{ borderColor: 'var(--cor-borda)' }}>
+                                    <div className="h-full grid-cols-1 lg:grid-cols-5 gap-0 overflow-hidden"> {/* <- ADD grid aqui */}
+                                        {/* Coluna 1: Produtos */}
+                                        <div className="lg:col-span-3 p-4 sm:p-6 border-r flex-col overflow-hidden" style={{ borderColor: 'var(--cor-borda)' }}>
                                             <div className="flex items-center gap-2 mb-4 shrink-0"><Package size={18} /><h3 className="font-bold text-lg">Selecionar Produtos</h3></div>
                                             <div className="relative mb-4 shrink-0">
                                                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--cor-texto-sec)' }} />
                                                 <Input placeholder="Buscar produto por nome ou SKU..." value={buscaProduto} onChange={e => setBuscaProduto(e.target.value)} className="pl-9 h-10" />
                                             </div>
-                                            <div className="flex-1 overflow-y-auto pr-2 space-y-2">
-                                                {produtos.length === 0 && <p className="text-sm text-center opacity-70 py-10">Carregando produtos...</p>}
-                                                {produtosFiltrados.length === 0 && produtos.length > 0 && <p className="text-sm text-center opacity-70 py-10">Nenhum produto encontrado</p>}
-                                                {produtosFiltrados.map(p => {
-                                                    const preco = getPreco(p);
-                                                    return (
-                                                        <div key={`${p.id}-${p.estoque}`} className="flex items-center justify-between p-3 border rounded-lg transition hover:border-[var(--cor-primaria)]" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', opacity: (p.estoque ?? 0) <= 0 ? 0.5 : 1 }}>
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="text-sm font-semibold truncate">{p.nome}</p>
-                                                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatCurrency(preco)} | Estoque: {p.estoque ?? 0}</p>
-                                                            </div>
-                                                            <Button size="sm" disabled={(p.estoque ?? 0) <= 0} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', minWidth: '36px' }} onClick={() => adicionarAoCarrinho(p)}>
-                                                                <Plus size={16} />
-                                                            </Button>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-                                        </div>
 
-                                        <div className="lg:col-span-2 p-4 sm:p-6 flex-col" style={{ backgroundColor: 'var(--cor-card)' }}>
-                                            <p className="font-bold text-lg mb-4 shrink-0">Carrinho Fiado</p>
-                                            <div className="flex-1 overflow-y-auto pr-2 space-y-2">
+                                            {/* GRID DE CARDS IGUAL VENDA */}
+                                            <div className="flex-1 overflow-y-auto scrollbar-hide pr-2">
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3">
+                                                    {produtos.length === 0 && <p className="text-sm text-center opacity-70 py-10 col-span-full">Carregando produtos...</p>}
+                                                    {produtosFiltrados.length === 0 && produtos.length > 0 && <p className="text-sm text-center opacity-70 py-10 col-span-full">Nenhum produto encontrado</p>}
+                                                    {produtosFiltrados.map(p => {
+                                                        const preco = getPreco(p);
+                                                        return (
+                                                            <button
+                                                                key={`${p.id}-${p.estoque}`}
+                                                                onClick={() => adicionarAoCarrinho(p)}
+                                                                disabled={(p.estoque ?? 0) <= 0}
+                                                                className="border overflow-hidden text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed group"
+                                                                style={{
+                                                                    backgroundColor: 'var(--cor-card)',
+                                                                    borderColor: 'var(--cor-borda)',
+                                                                    borderRadius: '12px'
+                                                                }}
+                                                                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
+                                                                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-borda)'}
+                                                            >
+                                                                <div className="relative w-full aspect-square" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                                                                    {p.imagem_url ? (
+                                                                        <img src={p.imagem_url.startsWith('http') ? p.imagem_url : `http://127.0.0.1:8000${p.imagem_url}`} alt={p.nome} className="w-full h-full object-cover" />
+                                                                    ) : (
+                                                                        <div className="w-full h-full flex items-center justify-center text-xs" style={{ color: 'var(--cor-primaria)', opacity: 0.3 }}>Sem Img</div>
+                                                                    )}
+                                                                    <Badge className="absolute top-1 right-1 text-[9px] px-1.5 text-white border-none" style={{ backgroundColor: (p.estoque ?? 0) <= 0 ? '#ef4444' : 'var(--cor-primaria)' }}>
+                                                                        {p.estoque ?? 0}
+                                                                    </Badge>
+                                                                </div>
+                                                                <div className="p-2">
+                                                                    <h4 className="font-semibold text-xs truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
+                                                                    <div className="flex justify-between items-center mt-1">
+                                                                        <span className="font-bold text-xs" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span>
+                                                                        <div className="h-7 w-7 flex items-center justify-center rounded-md" style={{ background: 'var(--cor-primaria)' }}>
+                                                                            <Plus size={14} color="#fff" />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div> {/* <- FECHA A COLUNA 1 AQUI */}
+
+                                        {/* Coluna 2: Carrinho com footer fixo */}
+                                        <div className="lg:col-span-2 flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--cor-card)' }}>
+                                            <p className="font-bold text-lg p-4 sm:p-6 pb-2 shrink-0">Carrinho Fiado</p>
+
+                                            <div className="flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 space-y-2">
                                                 {carrinho.length === 0 && <p className="text-sm opacity-70 text-center py-10">Adicione produtos ao carrinho</p>}
                                                 {carrinho.map(i => {
                                                     const preco = getPreco(i);
@@ -227,7 +258,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                                     )
                                                 })}
                                             </div>
-                                            <div className="border-t pt-4 mt-4 shrink-0" style={{ borderColor: 'var(--cor-borda)' }}>
+
+                                            {/* FOOTER FIXO */}
+                                            <div className="border-t pt-4 p-4 sm:p-6 shrink-0 sticky bottom-0" style={{ borderColor: 'var(--cor-borda)', backgroundColor: 'var(--cor-card)' }}>
                                                 <div className="flex justify-between items-center mb-4"><p className="font-semibold">Total da Dívida:</p><p className="font-bold text-2xl" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</p></div>
                                                 <Button className="w-full h-11" disabled={carrinho.length === 0 || salvando} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', fontWeight: 600 }} onClick={handleSalvarFiado}>
                                                     {salvando ? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
