@@ -118,15 +118,6 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                     </div>
 
                     <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
-                        <DialogClose asChild>
-                            <Button
-                              type="button"
-                              className="text-sm font-semibold w-full sm:flex-1 h-10"
-                              style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}
-                            >
-                              Cancelar
-                            </Button>
-                        </DialogClose>
                         <Button
                           type="submit"
                           disabled={saving}
@@ -136,6 +127,15 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                             {isEditing? "Salvar Alterações" : "Cadastrar Cliente"}
                         </Button>
+                        <DialogClose asChild>
+                            <Button
+                              type="button"
+                              className="text-sm font-semibold w-full sm:flex-1 h-10"
+                              style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}
+                            >
+                              Cancelar
+                            </Button>
+                        </DialogClose>
                     </DialogFooter>
                 </form>
             </DialogContent>
