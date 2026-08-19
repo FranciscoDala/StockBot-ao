@@ -14,6 +14,7 @@ from app.models.movimentacao_venda import MovimentoVenda
 from app.models.usuario import Usuario
 from app.models.usuario_loja import UsuarioLoja
 from app.models.role import UserRole
+from app.models.produto import Produto
 from app.schemas.cliente import ClienteCreate, ClienteUpdate, ClienteOut
 from app.core.deps import get_current_user, verificar_acesso_loja
 from app.core.security import verify_password
@@ -25,17 +26,26 @@ class PagamentoCreate(BaseModel):
     forma_pagamento: str
     observacao: str | None = None
 
-# TIREI as classes ClienteDeleteAuth e ClienteUpdateAuth. Vamos usar dict igual produto
+class ItemVendaCreate(BaseModel):
+    produto_id: UUID
+    quantidade: int
+    preco_unitario: float
+
+class VendaCreate(BaseModel):
+    cliente_id: UUID
+    itens: List[ItemVendaCreate]
+    observacao: str | None = None
+    tipo_pagamento: str = "fiado" # "dinheiro", "fiado", "transferencia"
 
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (select(Usuario, UsuarioLoja).join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-         .where(UsuarioLoja.loja_id == loja_id)
-         .where(UsuarioLoja.role == UserRole.DONO)
-         .where(UsuarioLoja.is_active == True))
+       .where(UsuarioLoja.loja_id == loja_id)
+       .where(UsuarioLoja.role == UserRole.DONO)
+       .where(UsuarioLoja.is_active == True))
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
 
-async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str):
+async def verify_dono_password(db: AsyncSession, loja_id: UUID, senha: str | None): # CORRIGIDO: aceita None
     if not senha: raise HTTPException(status_code=403, detail="Senha não informada")
     dono, _ = await get_dono_loja(db, loja_id)
     if not dono: raise HTTPException(status_code=404, detail="Dono da loja não encontrado")
@@ -48,8 +58,8 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
     return ClienteOut(
-        id=str(getattr(cliente, "id")),
-        loja_id=str(getattr(cliente, "loja_id")),
+        id=getattr(cliente, "id"), # CORRIGIDO: sem str()
+        loja_id=getattr(cliente, "loja_id"), # CORRIGIDO: sem str()
         nome=getattr(cliente, "nome"),
         nome_empresa=getattr(cliente, "nome_empresa"),
         bi=getattr(cliente, "bi"),
@@ -82,8 +92,8 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
 
     await db.execute(
         update(Cliente)
-   .where(Cliente.id == cliente_id)
-   .values(total_divida=total_divida, ultima_compra=ultima_compra)
+ .where(Cliente.id == cliente_id)
+ .values(total_divida=total_divida, ultima_compra=ultima_compra)
     )
     await db.commit()
 
@@ -98,10 +108,10 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
                 func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0).label("total_divida_calc"),
                 func.max(Venda.created_at).label("ultima_compra_calc")
             )
-        .outerjoin(Venda, Venda.cliente_id == Cliente.id)
-        .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
-        .group_by(Cliente.id)
-        .order_by(func.max(Venda.created_at).desc())
+      .outerjoin(Venda, Venda.cliente_id == Cliente.id)
+      .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
+      .group_by(Cliente.id)
+      .order_by(func.max(Venda.created_at).desc())
         )
         result = await db.execute(stmt)
         rows = result.all()
@@ -112,7 +122,9 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
             status_cliente = "com_divida" if total_divida > 0 else "em_dia"
             nome = cliente.nome if cliente.nome and len(cliente.nome.strip()) >= 2 else "Sem Nome"
             clientes_out.append(ClienteOut(
-                id=str(cliente.id), loja_id=str(cliente.loja_id), nome=nome,
+                id=cliente.id, # CORRIGIDO: sem str()
+                loja_id=cliente.loja_id, # CORRIGIDO: sem str()
+                nome=nome,
                 nome_empresa=cliente.nome_empresa, bi=cliente.bi, telefone=cliente.telefone,
                 email=cliente.email, endereco=cliente.endereco, cidade=cliente.cidade,
                 provincia=cliente.provincia, observacoes=cliente.observacoes, is_active=cliente.is_active,
@@ -127,8 +139,6 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro interno ao listar clientes: {str(e)}")
 
-
-
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     try:
@@ -138,14 +148,14 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
             stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi)
             result = await db.execute(stmt)
             if result.scalars().first():
-                raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja") # <- 400 em vez de 500
+                raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
         data = cliente_in.model_dump()
         data["loja_id"] = loja_id
         data["total_divida"] = 0.0
         data["ultima_compra"] = None
 
-        print(f"TENTANDO SALVAR: {data}") # <- DEBUG
+        print(f"TENTANDO SALVAR: {data}")
         db_cliente = Cliente(**data)
         db.add(db_cliente)
         await db.commit()
@@ -153,28 +163,25 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
         return await _cliente_to_out(db, db_cliente)
 
     except Exception as e:
-        await db.rollback() # <- IMPORTANTE
+        await db.rollback()
         print(f"ERRO REAL: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
-
-
-
 @router.put("/{loja_id}/clientes/{cliente_id}", response_model=ClienteOut)
 async def atualizar_cliente(
-    loja_id: UUID, cliente_id: UUID, payload: dict = Body(...), # <- IGUAL PRODUTO
+    loja_id: UUID, cliente_id: UUID, payload: dict = Body(...),
     db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)
 ):
     await verificar_acesso_loja(loja_id, db, current_user)
-    await verify_dono_password(db, loja_id, payload.get("senha_dono")) # <- PEGA DO DICT
+    await verify_dono_password(db, loja_id, payload.get("senha_dono"))
 
     stmt = select(Cliente).where(Cliente.id == cliente_id, Cliente.loja_id == loja_id)
     db_cliente = (await db.execute(stmt)).scalar_one_or_none()
     if not db_cliente: raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
-    dados_para_atualizar = {k:v for k,v in payload.items() if k!= "senha_dono"} # <- TIRA SENHA
+    dados_para_atualizar = {k:v for k,v in payload.items() if k!= "senha_dono"}
     for key, value in dados_para_atualizar.items():
         setattr(db_cliente, key, value)
 
@@ -182,9 +189,9 @@ async def atualizar_cliente(
     await db.refresh(db_cliente)
     return await _cliente_to_out(db, db_cliente)
 
-@router.delete("/{loja_id}/clientes/{cliente_id}", status_code=status.HTTP_200_OK) # <- MUDOU: 200 e retorna JSON
+@router.delete("/{loja_id}/clientes/{cliente_id}", status_code=status.HTTP_200_OK)
 async def deletar_cliente(
-    loja_id: UUID, cliente_id: UUID, payload: dict = Body(...), # <- IGUAL PRODUTO
+    loja_id: UUID, cliente_id: UUID, payload: dict = Body(...),
     db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)
 ):
     await verificar_acesso_loja(loja_id, db, current_user)
@@ -200,7 +207,7 @@ async def deletar_cliente(
 
     await db.delete(db_cliente)
     await db.commit()
-    return {"message": "Cliente apagado com sucesso"} # <- IGUAL PRODUTO
+    return {"message": "Cliente apagado com sucesso"}
 
 @router.get("/{loja_id}/clientes/{cliente_id}/pendentes")
 async def listar_pendencias_cliente(loja_id: UUID, cliente_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -213,6 +220,78 @@ async def listar_pendencias_cliente(loja_id: UUID, cliente_id: UUID, db: AsyncSe
         "valor_recebido": float(v.valor_recebido), "saldo_devedor": float(float(v.total) - float(v.valor_recebido)),
         "status": v.status, "total_itens": v.total_itens
     } for v in vendas]
+
+# NOVA ROTA 1: HISTORICO COMPLETO
+@router.get("/{loja_id}/clientes/{cliente_id}/historico")
+async def listar_historico_cliente(loja_id: UUID, cliente_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+    await verificar_acesso_loja(loja_id, db, current_user)
+    stmt = select(Venda).where(Venda.loja_id == loja_id, Venda.cliente_id == cliente_id).order_by(Venda.created_at.desc())
+    result = await db.execute(stmt)
+    vendas = result.scalars().all()
+    return [{
+        "id": str(v.id), "data_venda": v.created_at, "total": float(v.total),
+        "valor_recebido": float(v.valor_recebido), "saldo_devedor": float(float(v.total) - float(v.valor_recebido)),
+        "status": v.status, "total_itens": v.total_itens
+    } for v in vendas]
+
+# NOVA ROTA 2: CRIAR VENDA FIADO
+@router.post("/{loja_id}/vendas", status_code=status.HTTP_201_CREATED)
+async def criar_venda(
+    loja_id: UUID,
+    venda_in: VendaCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    await verificar_acesso_loja(loja_id, db, current_user)
+
+    # 1. Verificar se cliente existe
+    stmt = select(Cliente).where(Cliente.id == venda_in.cliente_id, Cliente.loja_id == loja_id)
+    cliente = (await db.execute(stmt)).scalar_one_or_none()
+    if not cliente: raise HTTPException(status_code=404, detail="Cliente não encontrado")
+
+    # 2. Calcular total e verificar estoque
+    total = Decimal(0)
+    total_itens = 0
+    for item in venda_in.itens:
+        stmt = select(Produto).where(Produto.id == item.produto_id, Produto.loja_id == loja_id)
+        produto = (await db.execute(stmt)).scalar_one_or_none()
+        if not produto: raise HTTPException(status_code=404, detail=f"Produto {item.produto_id} não encontrado")
+        if produto.estoque < item.quantidade: raise HTTPException(status_code=400, detail=f"Estoque insuficiente para {produto.nome}")
+        total += Decimal(str(item.preco_unitario)) * Decimal(item.quantidade)
+        total_itens += item.quantidade
+
+    # 3. Criar venda
+    is_fiado = venda_in.tipo_pagamento == "fiado"
+    nova_venda = Venda(
+        loja_id=loja_id,
+        cliente_id=venda_in.cliente_id,
+        usuario_id=current_user.id,
+        total=float(total),
+        valor_recebido=0.0 if is_fiado else float(total),
+        status="divida" if is_fiado else "concluida",
+        total_itens=total_itens,
+        observacao=venda_in.observacao
+    )
+    db.add(nova_venda)
+    await db.flush() # pra pegar o ID da venda
+
+    # 4. Baixar estoque
+    for item in venda_in.itens:
+        stmt = select(Produto).where(Produto.id == item.produto_id)
+        produto = (await db.execute(stmt)).scalar_one()
+        produto.estoque -= item.quantidade
+
+    # 5. Atualizar totais do cliente
+    await _atualizar_totais_cliente(db, venda_in.cliente_id)
+    await db.commit()
+    await db.refresh(nova_venda)
+
+    return {
+        "detail": "Venda fiado lançada com sucesso" if is_fiado else "Venda registrada com sucesso",
+        "venda_id": str(nova_venda.id),
+        "total": float(nova_venda.total),
+        "status": nova_venda.status
+    }
 
 @router.post("/{loja_id}/clientes/{cliente_id}/receber-parcela")
 async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):

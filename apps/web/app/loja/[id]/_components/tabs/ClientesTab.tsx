@@ -109,9 +109,9 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setProdutosLoja([]);
         }
 
-        // 2. CORREÇÃO: Buscar histórico via /vendas com filtro cliente_id
+        // 2. CORREÇÃO: Usar /historico que existe no backend
         try {
-            const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/vendas?cliente_id=${cliente.id}`, { headers: { "Authorization": `Bearer ${token}` } });
+            const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/historico`, { headers: { "Authorization": `Bearer ${token}` } });
             if (resVendas.ok) {
                 const dataVendas = await resVendas.json();
                 setVendasPendentes(Array.isArray(dataVendas)? dataVendas : []);
@@ -133,7 +133,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
         try {
             const [resVendas, resProdutos] = await Promise.all([
-                fetch(`${API_URL}/lojas/${lojaId}/vendas?cliente_id=${cliente.id}`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/historico`, { headers: { "Authorization": `Bearer ${token}` } }),
                 fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
             if(resVendas.ok) setVendasPendentes(await resVendas.json() || []);
@@ -156,7 +156,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (!token ||!clienteSelecionado ||!vendaSelecionada ||!valorPagamento || parseFloat(valorPagamento) <= 0) return toast.error("Valor inválido");
         setSavingPagamento(true);
         try {
-            const url = `${API_URL}/lojas/${lojaId}/vendas/${vendaSelecionada.id}/pagar`;
+            const url = `${API_URL}/lojas/${lojaId}/clientes/${clienteSelecionado.id}/vendas/${vendaSelecionada.id}/pagar`;
             const payload = { valor: parseFloat(valorPagamento), forma_pagamento: formaPagamento, observacao: `Pagamento venda ${vendaSelecionada.id.slice(0, 8)}` };
             const res = await fetch(url, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
             const data = await res.json();
@@ -173,10 +173,9 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const handleSalvarFiado = async (carrinho: ProdutoCarrinho[]): Promise<void> => {
         if (!token ||!clienteSelecionado || carrinho.length === 0) return;
 
-        // CORREÇÃO: Payload padrão de venda + status fiado
         const payload = {
             cliente_id: clienteSelecionado.id,
-            tipo_pagamento: 'fiado', // <- usa isso pra marcar como dívida
+            tipo_pagamento: 'fiado',
             itens: carrinho.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco_venda?? i.preco })),
             observacao: "Venda fiado"
         };
@@ -192,7 +191,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         try { data = JSON.parse(text) } catch { data = { detail: text } }
         if (!res.ok) throw new Error(data.detail || "Erro ao lançar fiado");
 
-        toast.success("Dívida lançada com sucesso!");
+        toast.success(data.detail);
         setCarrinhoFiado([]);
         await fetchClientes();
         await atualizarClienteSelecionado();

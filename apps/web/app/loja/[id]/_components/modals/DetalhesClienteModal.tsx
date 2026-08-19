@@ -171,7 +171,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             )}
 
                             {abaAtiva === 'fiado' && (
-                                <div className="h-full grid-cols-1 lg:grid-cols-5 gap-0">
+                                <div className="h-full grid grid-cols-1 lg:grid-cols-5 gap-0">
                                     <div className="lg:col-span-3 p-4 sm:p-6 border-r flex flex-col" style={{ borderColor: 'var(--cor-borda)' }}>
                                         <div className="flex items-center gap-2 mb-4 shrink-0"><Package size={18} /><h3 className="font-bold text-lg">Selecionar Produtos</h3></div>
                                         <div className="relative mb-4 shrink-0">
@@ -198,7 +198,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                         </div>
                                     </div>
 
-                                    <div className="lg:col-span-2 p-4 sm:p-6 flex flex-col" style={{ backgroundColor: 'var(--cor-card)' }}>
+                                    <div className="lg:col-span-2 p-4 sm:p-6 flex-col" style={{ backgroundColor: 'var(--cor-card)' }}>
                                         <p className="font-bold text-lg mb-4 shrink-0">Carrinho Fiado</p>
                                         <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                                             {carrinho.length === 0 && <p className="text-sm opacity-70 text-center py-10">Adicione produtos ao carrinho</p>}
