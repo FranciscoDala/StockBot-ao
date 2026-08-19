@@ -164,7 +164,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             toast.success(data.detail || "Pagamento realizado");
             setShowPagarModal(false);
             setVendaSelecionada(null);
-            await fetchClientes();
+            await fetchClientes(); // <- Isso já vai puxar a lista reordenada
             await atualizarClienteSelecionado();
             if (clienteSelecionado) await recarregarDetalhesCliente(clienteSelecionado);
         } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
@@ -193,7 +193,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
         toast.success(data.detail);
         setCarrinhoFiado([]);
-        await fetchClientes();
+        await fetchClientes(); // <- Isso já vai puxar a lista reordenada
         await atualizarClienteSelecionado();
         await recarregarDetalhesCliente(clienteSelecionado);
     }
@@ -290,12 +290,12 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (filtro === 'novo') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!c.ultima_compra);
         if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.telefone?.includes(busca) || c.email?.toLowerCase().includes(busca.toLowerCase()));
 
-        // ORDENAÇÃO: Última atividade primeiro. Quem tem dívida recente sobe
+        // ORDENAÇÃO POR HORA: Última atividade primeiro
         lista.sort((a, b) => {
-            const dataA = new Date(a.ultima_compra || a.created_at).getTime();
+            const dataA = new Date(a.ultima_compra || a.created_at).getTime(); // usa timestamp completo
             const dataB = new Date(b.ultima_compra || b.created_at).getTime();
 
-            // 1º Critério: Data mais recente
+            // 1º Critério: Hora mais recente
             if (dataB!== dataA) return dataB - dataA;
 
             // 2º Critério: Desempate por maior dívida
@@ -363,7 +363,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 flex-wrap"><p className="font-semibold truncate">{c.nome}</p><Badge style={{ background: badgeColor, color: '#fff', fontSize: '11px', padding: '2px 10px', borderRadius: '999px' }}>{badgeText}</Badge></div>
                                         <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
-                                        <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}</p>
+                                        <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleString('pt-AO') : "Nunca"}</p> {/* <- MUDOU: toLocaleString mostra hora */}
                                     </div>
                                     {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
                                 </div>
