@@ -53,7 +53,7 @@ function TabButton({ label, icon, active, onClick, count }: { label: string, ico
 }
 
 export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos, onPagar, onSalvarFiado, formatCurrency, loading, cardStyle = 'arredondado' }: Props) {
-    const [abaAtiva, setAbaAtiva] = useState<'dividas' | 'fiado'>('dividas'); // <- AGORA É ABA, NÃO MODO TELA CHEIA
+    const [abaAtiva, setAbaAtiva] = useState<'dividas' | 'fiado'>('dividas');
     const [carrinho, setCarrinho] = useState<ProdutoCarrinho[]>([]);
     const [buscaProduto, setBuscaProduto] = useState("");
     const [salvando, setSalvando] = useState(false);
@@ -64,7 +64,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     useEffect(() => {
         if (open) {
             document.body.style.overflow = 'hidden';
-            setAbaAtiva('dividas'); // sempre começa em dividas
+            setAbaAtiva('dividas');
             setCarrinho([]);
             setBuscaProduto("");
         } else document.body.style.overflow = 'unset';
@@ -117,7 +117,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         try {
             await onSalvarFiado(carrinho);
             setCarrinho([]);
-            setAbaAtiva('dividas'); // <- volta pra dividas
+            setAbaAtiva('dividas');
             onClose();
         } catch (e: any) {
             toast.error(e.message)
@@ -141,7 +141,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (abaAtiva!== 'fiado') return;
-            if (e.key === 'Escape') setAbaAtiva('dividas'); // <- ESC volta pra aba dividas
+            if (e.key === 'Escape') setAbaAtiva('dividas');
             if (e.key === 'Enter' && podeFinalizar) handleSalvarFiado();
             if (e.key === 'F2') document.getElementById('busca-fiado')?.focus();
         };
@@ -176,7 +176,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
     const fiadoContent = (
         <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
-            {/* HEADER IGUAL VENDA MAS SEM STICKY */}
+            {/* HEADER DA ABA FIADO - OCUPA O TOPO INTEIRO */}
             <div className="flex items-center justify-between p-3 border-b shrink-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                 <Button variant="ghost" onClick={() => setAbaAtiva('dividas')} className="gap-2 h-9">
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
@@ -262,29 +262,37 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     return (
         <>
             <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
-                    <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
-                        <div className="min-w-0 flex-1 text-left">
-                            <DialogTitle className="text-xl sm:text-2xl font-bold text-left">{cliente?.nome}</DialogTitle>
-                            <div className="flex items-center gap-4 mt-1 flex-wrap justify-start">
-                                <DialogDescription className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{cliente?.telefone}</DialogDescription>
-                                <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida?? 0)}</span></div>
-                                <div className="flex items-center gap-1 text-sm"><Calendar size={14} style={{ color: 'var(--cor-texto-sec)' }} /><span>Última: {cliente?.ultima_compra? new Date(cliente.ultima_compra).toLocaleDateString('pt-AO') : 'Nunca'}</span></div>
+                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+
+                    {/* HEADER DO CLIENTE - SÓ APARECE NA ABA DIVIDAS */}
+                    {abaAtiva === 'dividas' && (
+                        <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
+                            <div className="min-w-0 flex-1 text-left">
+                                <DialogTitle className="text-xl sm:text-2xl font-bold text-left">{cliente?.nome}</DialogTitle>
+                                <div className="flex items-center gap-4 mt-1 flex-wrap justify-start">
+                                    <DialogDescription className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{cliente?.telefone}</DialogDescription>
+                                    <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida?? 0)}</span></div>
+                                    <div className="flex items-center gap-1 text-sm"><Calendar size={14} style={{ color: 'var(--cor-texto-sec)' }} /><span>Última: {cliente?.ultima_compra? new Date(cliente.ultima_compra).toLocaleDateString('pt-AO') : 'Nunca'}</span></div>
+                                </div>
                             </div>
+                            <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-lg transition shrink-0" style={{ background: '#fee2e2', color: '#ef4444' }}><X size={22} strokeWidth={2.5} /></button>
+                        </DialogHeader>
+                    )}
+
+                    {/* TABS - SÓ APARECE NA ABA DIVIDAS */}
+                    {abaAtiva === 'dividas' && (
+                        <div className="flex gap-1 px-2 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
+                            <TabButton label="Dívidas" icon={<FileText size={16} />} active={true} onClick={() => {}} count={dividasPendentes.length} />
+                            <TabButton label="Lançar Fiado" icon={<ShoppingCart size={16} />} active={false} onClick={() => setAbaAtiva('fiado')} count={totalItens} />
                         </div>
-                        <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-lg transition shrink-0" style={{ background: '#fee2e2', color: '#ef4444' }}><X size={22} strokeWidth={2.5} /></button>
-                    </DialogHeader>
+                    )}
 
-                    <div className="flex gap-1 px-2 sm:px-6 border-b shrink-0" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
-                        <TabButton label="Dívidas" icon={<FileText size={16} />} active={abaAtiva === 'dividas'} onClick={() => setAbaAtiva('dividas')} count={dividasPendentes.length} />
-                        <TabButton label="Lançar Fiado" icon={<ShoppingCart size={16} />} active={abaAtiva === 'fiado'} onClick={() => setAbaAtiva('fiado')} count={totalItens} />
-                    </div>
-
+                    {/* CONTEUDO OCUPA 100% QUANDO FOR FIADO */}
                     <div className="flex-1 min-h-0">
                         {loading? (<div className="flex flex-col items-center justify-center h-full gap-3"><Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} /><p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Carregando...</p></div>) : (
                             <>
                                 {abaAtiva === 'dividas' && dividasContent}
-                                {abaAtiva === 'fiado' && fiadoContent}
+                                {abaAtiva === 'fiado' && fiadoContent} {/* <- AQUI OCUPA TUDO */}
                             </>
                         )}
                     </div>
