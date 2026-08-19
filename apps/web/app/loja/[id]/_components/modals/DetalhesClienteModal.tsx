@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { X, FileText, ShoppingCart, Calendar, Plus, Minus, Trash2, Loader2, Inbox, History, Package, Wallet, Search, ArrowLeft, PackageX } from "lucide-react";
+import { X, FileText, ShoppingCart, Calendar, Plus, Minus, Trash2, Loader2, Inbox, History, Package, Wallet, Search, ArrowLeft, PackageX, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ interface Props {
     produtos: Produto[];
     onPagar: (v: VendaPendente) => void;
     onSalvarFiado: (carrinho: ProdutoCarrinho[]) => Promise<void>;
+    onRefreshVendas?: () => Promise<void>; // <- NOVO: função pra recarregar
     formatCurrency: (v: number) => string;
     loading: boolean;
     cardStyle?: string;
@@ -52,12 +53,13 @@ function TabButton({ label, icon, active, onClick, count }: { label: string, ico
     )
 }
 
-export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos, onPagar, onSalvarFiado, formatCurrency, loading, cardStyle = 'arredondado' }: Props) {
+export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos, onPagar, onSalvarFiado, onRefreshVendas, formatCurrency, loading, cardStyle = 'arredondado' }: Props) {
     const [abaAtiva, setAbaAtiva] = useState<'dividas' | 'fiado'>('dividas');
     const [carrinho, setCarrinho] = useState<ProdutoCarrinho[]>([]);
     const [buscaProduto, setBuscaProduto] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [showConfirmFiado, setShowConfirmFiado] = useState(false);
+    const [refreshing, setRefreshing] = useState(false); // <- NOVO
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
 
@@ -115,11 +117,18 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         setShowConfirmFiado(false);
         setSalvando(true);
         try {
-            await onSalvarFiado(carrinho); // <- espera salvar primeiro
+            await onSalvarFiado(carrinho);
             toast.success("Fiado lançado com sucesso!");
             setCarrinho([]);
-            setAbaAtiva('dividas');
-            onClose(); // <- só depois fecha e o pai recarrega a lista
+            setAbaAtiva('dividas'); // volta pra aba dívidas
+
+            // REFRESH SEM FECHAR
+            setRefreshing(true);
+            if (onRefreshVendas) {
+                await onRefreshVendas(); // chama função do pai pra buscar vendas novas
+            }
+            setRefreshing(false);
+
         } catch (e: any) {
             toast.error(e.message)
         } finally {
@@ -151,7 +160,15 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     }, [abaAtiva, podeFinalizar]);
 
     const dividasContent = (
-        <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-4">
+        <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-4 relative">
+            {refreshing && ( // <- SPINNER DE REFRESH
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10 rounded-xl">
+                    <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-4 py-2 rounded-lg">
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span className="text-sm">Atualizando...</span>
+                    </div>
+                </div>
+            )}
             <div className="flex items-center gap-2"><History size={18} /><h3 className="font-bold text-lg">Histórico de Vendas</h3></div>
             {vendas.length === 0? (
                 <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center mt-4" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}><Inbox size={40} style={{ color: 'var(--cor-texto-sec)' }} /><p className="font-semibold">Nenhuma venda registrada</p></div>
@@ -186,7 +203,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
             </div>
 
             <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 min-h-0">
-                <div className="lg:col-span-2 p-3 flex-col overflow-hidden pb-24"> {/* <- pb-24 pra não ficar por baixo do botão */}
+                <div className="lg:col-span-2 p-3 flex-col overflow-hidden pb-24">
                     <div className="relative mb-3 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
                         <Input
@@ -201,7 +218,6 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
                     {produtosFiltrados.length === 0 && (<div className="flex flex-col items-center justify-center h-64" style={{ color: 'var(--cor-texto-sec)' }}><PackageX size={40} /><p className="mt-2 text-sm">Nenhum produto encontrado</p></div>)}
 
-                    {/* GRID IGUAL VENDA TAB */}
                     <div className="flex-1 overflow-y-auto flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
                             const preco = getPreco(p);
@@ -232,7 +248,6 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                         })}
                     </div>
 
-                    {/* MOBILE CARRINHO IGUAL VENDA */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
                         <div className="max-h-[180px] overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
@@ -257,7 +272,6 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     </div>
                 </div>
 
-                {/* DESKTOP CARRINHO IGUAL VENDA */}
                 <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-140px)] sticky top-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                     <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b shrink-0" style={{ color: 'var(--cor-texto)', borderColor: 'var(--cor-primaria)30' }}><ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}</h3>
                     <div className="flex-1 overflow-y-auto p-3 space-y-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -287,7 +301,6 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 </div>
             </div>
 
-            {/* MOBILE FOOTER FIXO IGUAL VENDA */}
             <div className="lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                 <div className="flex justify-between items-center px-3">
                     <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total da Dívida</span>
