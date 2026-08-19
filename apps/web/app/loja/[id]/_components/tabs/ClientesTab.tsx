@@ -289,6 +289,19 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!!c.ultima_compra);
         if (filtro === 'novo') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!c.ultima_compra);
         if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.telefone?.includes(busca) || c.email?.toLowerCase().includes(busca.toLowerCase()));
+
+        // ORDENAÇÃO: Última atividade primeiro. Quem tem dívida recente sobe
+        lista.sort((a, b) => {
+            const dataA = new Date(a.ultima_compra || a.created_at).getTime();
+            const dataB = new Date(b.ultima_compra || b.created_at).getTime();
+
+            // 1º Critério: Data mais recente
+            if (dataB!== dataA) return dataB - dataA;
+
+            // 2º Critério: Desempate por maior dívida
+            return (b.total_divida?? 0) - (a.total_divida?? 0);
+        });
+
         return lista;
     }, [clientes, filtro, busca]);
 
