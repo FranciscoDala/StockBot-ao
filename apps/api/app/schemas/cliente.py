@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, Literal
 from datetime import datetime
-from uuid import UUID
+from uuid import UUID # <- Pode deixar o import, usamos no model
 
 class ClienteBase(BaseModel):
     nome: str = Field(..., min_length=2)
@@ -31,8 +31,8 @@ class ClienteUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class ClienteOut(ClienteBase):
-    id: UUID
-    loja_id: UUID # <- Aqui pode ficar, porque é só na resposta
+    id: str # <- CORRIGIDO: UUID -> str
+    loja_id: str # <- CORRIGIDO: UUID -> str
     total_divida: float = 0.0
     ultima_compra: Optional[datetime] = None
     status: Literal['com_divida', 'em_dia'] = "em_dia"
