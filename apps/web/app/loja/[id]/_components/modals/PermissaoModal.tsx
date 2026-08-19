@@ -26,18 +26,18 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
         onConfirm(senha);
     }
 
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' } // 1. ajustado
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
-                className="sm:max-w-[425px] p-0 shadow-2xl border [&>button]:hidden"
+                className="sm:max-w-md w-full mx-4 p-0 shadow-2xl border overflow-hidden [&>button]:hidden" // <- AJUSTADO: max-w-md, mx-4, overflow-hidden
                 style={{
-                    backgroundColor: 'var(--cor-card)', // 2. trocado
+                    backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
-                    borderColor: 'var(--cor-borda)', // 3. trocado
+                    borderColor: 'var(--cor-borda)',
                     borderRadius: 'var(--radius)'
                 }}
             >
@@ -62,13 +62,13 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                             value={senha}
                             onChange={(e) => setSenha(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                            className="h-10"
+                            className="h-10 w-full" // <- AJUSTADO: w-full
                             style={{
-                                backgroundColor: 'var(--cor-fundo)', // 4. trocado
+                                backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
-                                border: '1.5px solid var(--cor-primaria)', // 5. borda primary obrigatoria
-                                borderRadius: 'var(--radius-sm)', // 6. trocado
-                              ...focusStyle
+                                border: '1.5px solid var(--cor-primaria)',
+                                borderRadius: 'var(--radius-sm)',
+                             ...focusStyle
                             }}
                             autoFocus
                             disabled={loading}
@@ -76,21 +76,21 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                     </div>
                 </div>
                 <DialogFooter
-                    className="p-4 border-t flex-row justify-end gap-2"
+                    className="p-4 border-t flex flex-col-reverse sm:flex-row justify-end gap-2" // <- AJUSTADO: responsivo
                     style={{
-                        backgroundColor: 'var(--cor-card)', // 7. trocado
-                        borderColor: 'var(--cor-borda)' // 8. trocado
+                        backgroundColor: 'var(--cor-card)',
+                        borderColor: 'var(--cor-borda)'
                     }}
                 >
                     <Button
                         variant="secondary"
                         onClick={onClose}
                         disabled={loading}
-                        className="font-semibold"
+                        className="font-semibold w-full sm:w-auto" // <- AJUSTADO: responsivo
                         style={{
-                            backgroundColor: 'var(--cor-card)', // 9. trocado
+                            backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
-                            border: '1px solid var(--cor-borda)', // 10. trocado
+                            border: '1px solid var(--cor-borda)',
                             borderRadius: 'var(--radius)'
                         }}
                     >
@@ -99,7 +99,7 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                     <Button
                         onClick={handleSubmit}
                         disabled={loading ||!senha}
-                        className="gap-2 font-bold"
+                        className="gap-2 font-bold w-full sm:w-auto whitespace-nowrap" // <- AJUSTADO: responsivo + nowrap
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',

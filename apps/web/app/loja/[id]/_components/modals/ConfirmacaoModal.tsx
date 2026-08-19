@@ -55,11 +55,11 @@ export function ConfirmarModal({
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
-                className="sm:max-w-[425px] p-0 shadow-2xl border"
+                className="sm:max-w-md w-full mx-4 p-0 shadow-2xl border overflow-hidden" // <- AJUSTADO: max-w-md, mx-4, overflow-hidden
                 style={{
-                    backgroundColor: 'var(--cor-card)', // 1. trocado
+                    backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
-                    borderColor: 'var(--cor-borda)', // 2. trocado
+                    borderColor: 'var(--cor-borda)',
                     borderRadius: 'var(--radius)'
                 }}
                 onPointerDownOutside={(e) => e.preventDefault()}
@@ -85,13 +85,13 @@ export function ConfirmarModal({
                                 type="password"
                                 value={senha}
                                 onChange={(e) => setSenha(e.target.value)}
-                                className="h-9"
+                                className="h-9 w-full" // <- AJUSTADO: w-full
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)', // 3. trocado
+                                    backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
-                                    border: '1.5px solid var(--cor-primaria)', // 4. borda primary obrigatoria
+                                    border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                  ...focusStyle
+                                   ...focusStyle
                                 }}
                                 placeholder="******"
                                 disabled={loading}
@@ -102,21 +102,21 @@ export function ConfirmarModal({
                 )}
 
                 <DialogFooter
-                    className="p-4 border-t flex-row justify-end gap-3"
+                    className="p-4 border-t flex flex-col-reverse sm:flex-row justify-end gap-2" // <- AJUSTADO: responsivo
                     style={{
-                        backgroundColor: 'var(--cor-card)', // 5. trocado
-                        borderColor: 'var(--cor-borda)' // 6. trocado
+                        backgroundColor: 'var(--cor-card)',
+                        borderColor: 'var(--cor-borda)'
                     }}
                 >
                     <Button
                         variant="secondary"
                         onClick={handleClose}
                         disabled={loading}
-                        className="h-9"
+                        className="h-9 w-full sm:w-auto" // <- AJUSTADO: responsivo
                         style={{
-                            backgroundColor: 'var(--cor-card)', // 7. trocado
+                            backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
-                            border: '1px solid var(--cor-borda)', // 8. trocado
+                            border: '1px solid var(--cor-borda)',
                             borderRadius: 'var(--radius)'
                         }}
                     >
@@ -125,7 +125,7 @@ export function ConfirmarModal({
                     <Button
                         onClick={handleConfirm}
                         disabled={loading || (precisaDeSenha && senha.length < 4)}
-                        className="gap-2 font-bold h-9"
+                        className="gap-2 font-bold h-9 w-full sm:w-auto whitespace-nowrap" // <- AJUSTADO: responsivo + nowrap
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',

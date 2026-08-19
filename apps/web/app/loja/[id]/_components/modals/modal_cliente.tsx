@@ -26,7 +26,7 @@ export type ClienteForm = {
 interface Props {
     open: boolean;
     onOpenChange: (v: boolean) => void;
-    isEditing?: boolean; // <- MUDEI AQUI: era editingCliente, agora é boolean
+    isEditing?: boolean;
     formData: ClienteForm;
     setFormData: Dispatch<SetStateAction<ClienteForm>>;
     onSave: (e: FormEvent) => void;
@@ -38,7 +38,7 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-full max-w-full sm:max-w-[600px] p-0 flex-col border shadow-2xl"
+                className="w-full max-w-md mx-4 p-0 flex-col border shadow-2xl overflow-hidden" // <- AJUSTADO: max-w-md, mx-4, overflow-hidden
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -54,10 +54,10 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
                         <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>
-                            {isEditing? "Editar Cliente" : "Cadastrar Cliente"} {/* <- MUDEI AQUI */}
+                            {isEditing? "Editar Cliente" : "Cadastrar Cliente"}
                         </DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
-                            {isEditing? "Altere os dados do cliente." : "Preencha os dados do cliente"} {/* <- MUDEI AQUI */}
+                            {isEditing? "Altere os dados do cliente." : "Preencha os dados do cliente"}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -66,44 +66,44 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="nome" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome Completo *</Label>
-                            <Input id="nome" value={formData.nome} onChange={e => handleChange('nome', e.target.value)} className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
+                            <Input id="nome" value={formData.nome} onChange={e => handleChange('nome', e.target.value)} className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="bi" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>BI / Passaporte</Label>
-                            <Input id="bi" value={formData.bi || ""} onChange={e => handleChange('bi', e.target.value)} placeholder="000LA000" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                            <Input id="bi" value={formData.bi || ""} onChange={e => handleChange('bi', e.target.value)} placeholder="000LA000" className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="telefone" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Telefone *</Label>
-                            <Input id="telefone" value={formData.telefone || ""} onChange={e => handleChange('telefone', e.target.value)} placeholder="923 456 789" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
+                            <Input id="telefone" value={formData.telefone || ""} onChange={e => handleChange('telefone', e.target.value)} placeholder="923 456 789" className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} required />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="email" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label>
-                            <Input id="email" type="email" value={formData.email || ""} onChange={e => handleChange('email', e.target.value)} placeholder="cliente@email.com" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                            <Input id="email" type="email" value={formData.email || ""} onChange={e => handleChange('email', e.target.value)} placeholder="cliente@email.com" className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="border-t pt-4 mt-2"><p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados Comerciais e Endereço</p></div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="nome_empresa" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome Empresa</Label>
-                            <Input id="nome_empresa" value={formData.nome_empresa || ""} onChange={e => handleChange('nome_empresa', e.target.value)} placeholder="Empresa LDA" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                            <Input id="nome_empresa" value={formData.nome_empresa || ""} onChange={e => handleChange('nome_empresa', e.target.value)} placeholder="Empresa LDA" className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="endereco" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Endereço</Label>
-                            <Input id="endereco" value={formData.endereco || ""} onChange={e => handleChange('endereco', e.target.value)} placeholder="Rua, Bairro" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                            <Input id="endereco" value={formData.endereco || ""} onChange={e => handleChange('endereco', e.target.value)} placeholder="Rua, Bairro" className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="cidade" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Cidade</Label>
-                            <Input id="cidade" value={formData.cidade || ""} onChange={e => handleChange('cidade', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                            <Input id="cidade" value={formData.cidade || ""} onChange={e => handleChange('cidade', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="provincia" className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Província</Label>
-                            <Input id="provincia" value={formData.provincia || ""} onChange={e => handleChange('provincia', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                            <Input id="provincia" value={formData.provincia || ""} onChange={e => handleChange('provincia', e.target.value)} placeholder="Luanda" className="sm:col-span-3 text-xs h-9 w-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
@@ -117,13 +117,13 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex flex-col-reverse sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- AJUSTADO: responsivo */}
                         <DialogClose asChild>
-                            <Button type="button" className="text-xs flex-1 sm:flex-initial font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>
+                            <Button type="button" className="text-xs w-full sm:w-auto font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>
                         </DialogClose>
-                        <Button type="submit" disabled={saving} className="gap-2 text-xs flex-1 sm:flex-initial font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
+                        <Button type="submit" disabled={saving} className="gap-2 text-xs w-full sm:w-auto font-bold whitespace-nowrap" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {isEditing? "Salvar Alterações" : "Cadastrar Cliente"} {/* <- MUDEI AQUI */}
+                            {isEditing? "Salvar Alterações" : "Cadastrar Cliente"}
                         </Button>
                     </DialogFooter>
                 </form>

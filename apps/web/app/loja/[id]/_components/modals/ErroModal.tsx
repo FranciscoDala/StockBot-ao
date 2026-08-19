@@ -14,27 +14,27 @@ interface Props {
 export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Props) {
     const config = {
         erro: {
-            icon: <XCircle size={24} style={{color: 'var(--cor-erro)'}} />, // 1. trocado
+            icon: <XCircle size={24} style={{color: 'var(--cor-erro)'}} />,
             title: titulo || "Ação não permitida",
-            color: 'var(--cor-erro)', // 2. trocado
-            btnColor: 'var(--cor-erro)' // 3. trocado
+            color: 'var(--cor-erro)',
+            btnColor: 'var(--cor-erro)'
         },
         sucesso: {
-            icon: <CheckCircle size={24} style={{color: 'var(--cor-sucesso)'}} />, // 4. trocado
+            icon: <CheckCircle size={24} style={{color: 'var(--cor-sucesso)'}} />,
             title: titulo || "Sucesso!",
-            color: 'var(--cor-sucesso)', // 5. trocado
-            btnColor: 'var(--cor-sucesso)' // 6. trocado
+            color: 'var(--cor-sucesso)',
+            btnColor: 'var(--cor-sucesso)'
         },
         alerta: {
-            icon: <AlertTriangle size={24} style={{color: 'var(--cor-aviso)'}} />, // 7. trocado
+            icon: <AlertTriangle size={24} style={{color: 'var(--cor-aviso)'}} />,
             title: titulo || "Atenção",
-            color: 'var(--cor-aviso)', // 8. trocado
-            btnColor: 'var(--cor-aviso)' // 9. trocado
+            color: 'var(--cor-aviso)',
+            btnColor: 'var(--cor-aviso)'
         },
         info: {
             icon: <Info size={24} style={{color: 'var(--cor-primaria)'}} />,
             title: titulo || "Informação",
-            color: 'var(--cor-primaria)', // 10. trocado
+            color: 'var(--cor-primaria)',
             btnColor: 'var(--cor-primaria)'
         }
     }
@@ -45,9 +45,9 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
-                className="sm:max-w-[425px] p-0 shadow-2xl border [&>button]:hidden"
+                className="sm:max-w-md w-full mx-4 p-0 shadow-2xl border overflow-hidden [&>button]:hidden" // <- AJUSTADO: max-w-md, mx-4, overflow-hidden
                 style={{
-                    backgroundColor: 'var(--cor-card)', // 11. trocado
+                    backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
                     borderColor: current.color,
                     borderRadius: 'var(--radius)'
@@ -63,15 +63,15 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                     </div>
                 </DialogHeader>
                 <DialogFooter
-                    className="p-4 border-t"
+                    className="p-4 border-t" // <- AJUSTADO: só p-4 pra ficar igual ao outro
                     style={{
-                        backgroundColor: 'var(--cor-card)', // 12. trocado
-                        borderColor: 'var(--cor-borda)' // 13. trocado
+                        backgroundColor: 'var(--cor-card)',
+                        borderColor: 'var(--cor-borda)'
                     }}
                 >
                     <Button
                         onClick={onClose}
-                        className="w-full font-semibold"
+                        className="w-full font-semibold" // <- já estava w-full, ficou bom no mobile
                         style={{
                             backgroundColor: current.btnColor,
                             color: '#fff',

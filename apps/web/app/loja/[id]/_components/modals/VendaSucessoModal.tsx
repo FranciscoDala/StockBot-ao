@@ -45,11 +45,11 @@ export function VendaSucessoModal({
         <>
             <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{backgroundColor: 'rgba(0,0,0,0.8)'}}>
                 <div
-                    className="border shadow-2xl max-w-md w-full mx-4"
+                    className="border shadow-2xl max-w-md w-full mx-4 overflow-hidden" // <- ADICIONADO: overflow-hidden + mx-4
                     style={{
-                        backgroundColor: 'var(--cor-card)', // 1. trocado
+                        backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
-                        borderColor: 'var(--cor-sucesso)', // 2. verde
+                        borderColor: 'var(--cor-sucesso)',
                         borderRadius: 'var(--radius)'
                     }}
                 >
@@ -57,7 +57,7 @@ export function VendaSucessoModal({
                         <div className="flex items-center justify-between mb-4">
                             <h2
                                 className="flex items-center gap-2 text-xl font-bold"
-                                style={{color: 'var(--cor-sucesso)'}} // 3. verde
+                                style={{color: 'var(--cor-sucesso)'}}
                             >
                                 <CheckCircle size={24} />
                                 Venda Concluída!
@@ -72,7 +72,7 @@ export function VendaSucessoModal({
                                 <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Total da Venda</p>
                                 <p
                                     className="text-3xl font-bold"
-                                    style={{color: 'var(--cor-sucesso)'}} // 4. verde
+                                    style={{color: 'var(--cor-sucesso)'}}
                                 >
                                     {formatCurrency(Number(venda.total) || 0)}
                                 </p>
@@ -81,8 +81,8 @@ export function VendaSucessoModal({
                             <div
                                 className="p-3 space-y-1 text-sm border"
                                 style={{
-                                    backgroundColor: 'var(--cor-fundo)', // 5. trocado
-                                    borderColor: 'var(--cor-sucesso)30', // 6. verde 30%
+                                    backgroundColor: 'var(--cor-fundo)',
+                                    borderColor: 'var(--cor-sucesso)30',
                                     borderRadius: 'var(--radius)'
                                 }}
                                 >
@@ -97,14 +97,14 @@ export function VendaSucessoModal({
                             </div>
                         </div>
 
-                        <div className="flex gap-2 pt-4">
+                        <div className="flex flex-col sm:flex-row gap-2 pt-4"> {/* <- AJUSTADO: responsivo */}
                             <Button
                                 onClick={onClose}
                                 className="flex-1 font-semibold"
                                 style={{
-                                    backgroundColor: 'var(--cor-card)', // 7. trocado
+                                    backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-borda)', // 8. trocado
+                                    border: '1px solid var(--cor-borda)',
                                     borderRadius: 'var(--radius)'
                                 }}
                             >
@@ -114,7 +114,7 @@ export function VendaSucessoModal({
                                 onClick={handleImprimir}
                                 className="flex-1 gap-2 font-bold"
                                 style={{
-                                    background: 'var(--cor-sucesso)', // 9. verde
+                                    background: 'var(--cor-sucesso)',
                                     color: '#fff',
                                     borderRadius: 'var(--radius)'
                                 }}
