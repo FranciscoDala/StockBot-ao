@@ -77,50 +77,53 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
+                // AJUSTE 1 e 2: já tinha respiro, garantir mx-auto
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)', maxHeight: '85vh' }}
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-5 pb-3 shrink-0">
-                        <DialogTitle className="text-lg font-bold text-center flex items-center justify-center gap-2" style={{ color: 'var(--cor-texto)' }}>
+                    {/* AJUSTE 4: text-left no header */}
+                    <DialogHeader className="p-5 pb-3 shrink-0 text-left">
+                        <DialogTitle className="text-lg font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
                             <Minus size={20} style={{ color: '#f97316' }} /> Fazer Sangria
                         </DialogTitle>
-                        <DialogDescription className="text-sm text-center mt-1" style={{ color: 'var(--cor-texto-sec)' }}>
+                        <DialogDescription className="text-sm mt-1" style={{ color: 'var(--cor-texto-sec)' }}>
                             Retire dinheiro do caixa. Essa ação será registrada.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="grid gap-4 py-4 px-5 overflow-y-auto flex-1 min-h-0">
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Valor *</Label>
+                        {/* AJUSTE 3: grid 4 colunas + label right no desktop */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Valor *</Label>
                             <Input
                                 {...numberInputProps}
                                 value={valor}
                                 onChange={e => handleNumberChange(e.target.value)}
-                                className="text-sm h-10 w-full"
+                                className="sm:col-span-3 text-sm h-10"
                                 style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
                                 placeholder="0,00" required autoFocus
                             />
                         </div>
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Motivo *</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Motivo *</Label>
                             <Textarea
                                 value={descricao}
                                 onChange={e => setDescricao(e.target.value)}
-                                className="text-sm w-full"
+                                className="sm:col-span-3 text-sm"
                                 style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }}
                                 placeholder="Ex: Pagamento fornecedor" rows={3} required
                             />
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- AJUSTADO */}
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
                         <Button
                           type="submit"
                           disabled={loading}
-                          className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold" // <- AJUSTADO
+                          className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold"
                           style={{ background: '#f97316', color: '#fff', borderRadius: 'var(--radius)' }}
                         >
                             {loading && <Loader2 className="w-4 h-4 animate-spin" />} Confirmar Sangria
@@ -128,7 +131,7 @@ export function SangriaModal({ open, onOpenChange, onSave, token, lojaId }: Prop
                         <DialogClose asChild>
                             <Button
                               type="button"
-                              className="text-sm w-full sm:flex-1 h-10 font-semibold" // <- AJUSTADO
+                              className="text-sm w-full sm:flex-1 h-10 font-semibold"
                               style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}
                             >
                                 Cancelar

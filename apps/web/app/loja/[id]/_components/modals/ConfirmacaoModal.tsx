@@ -55,7 +55,8 @@ export function ConfirmarModal({
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
+                // AJUSTE 1 e 2: já tinha respiro, só garantir overflow-hidden + mx-auto
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -67,26 +68,28 @@ export function ConfirmarModal({
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
 
-                <DialogHeader className="p-5 pb-3 shrink-0">
-                    <div className="flex items-center justify-center gap-3">
+                {/* AJUSTE 4: text-left no header */}
+                <DialogHeader className="p-5 pb-3 shrink-0 text-left">
+                    <div className="flex items-center gap-3">
                         <Shield size={24} style={{color: 'var(--cor-primaria)'}} />
                         <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>{titulo}</DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}>
+                    <DialogDescription className="text-sm mt-1" style={{color: 'var(--cor-texto-sec)'}}>
                         {descricao}
                     </DialogDescription>
                 </DialogHeader>
 
                 {precisaDeSenha && (
+                    // AJUSTE 3: grid 4 colunas pra senha
                     <div className="px-5 pb-2">
-                        <div className="grid gap-1.5">
-                            <Label htmlFor="senha-dono" className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Digite a senha do Dono para confirmar</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="senha-dono" className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Senha Dono *</Label>
                             <Input
                                 id="senha-dono"
                                 type="password"
                                 value={senha}
                                 onChange={(e) => setSenha(e.target.value)}
-                                className="h-10 w-full text-sm"
+                                className="sm:col-span-3 h-10 text-sm"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
@@ -103,7 +106,7 @@ export function ConfirmarModal({
                 )}
 
                 <DialogFooter
-                    className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" // <- AJUSTADO
+                    className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -112,7 +115,7 @@ export function ConfirmarModal({
                     <Button
                         onClick={handleConfirm}
                         disabled={loading || (precisaDeSenha && senha.length < 4)}
-                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm whitespace-nowrap" // <- AJUSTADO
+                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm"
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',
@@ -127,7 +130,7 @@ export function ConfirmarModal({
                             variant="secondary"
                             onClick={handleClose}
                             disabled={loading}
-                            className="h-10 w-full sm:flex-1 text-sm font-semibold" // <- AJUSTADO
+                            className="h-10 w-full sm:flex-1 text-sm font-semibold"
                             style={{
                                 backgroundColor: 'var(--cor-card)',
                                 color: 'var(--cor-texto)',

@@ -35,7 +35,8 @@ export function CategoriaModal({ open, onOpenChange, editingCategoria, formData,
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="sm:max-w-[450px] p-0 flex flex-col border shadow-2xl [&>button]:hidden"
+                // AJUSTE 1 e 2: respiro lateral + centralizada + overflow-hidden
+                className="w-[calc(100%-2rem)] max-w-[450px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -46,7 +47,8 @@ export function CategoriaModal({ open, onOpenChange, editingCategoria, formData,
                 }}
             >
                 <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-6 pb-2 shrink-0">
+                    {/* AJUSTE 4: text-left no header */}
+                    <DialogHeader className="p-6 pb-2 shrink-0 text-left">
                         <div className="flex items-center gap-3">
                             <Tag size={24} style={{color: 'var(--cor-primaria)'}} />
                             <DialogTitle className="text-lg font-bold">{editingCategoria? "Editar" : "Adicionar"} Categoria</DialogTitle>
@@ -62,21 +64,22 @@ export function CategoriaModal({ open, onOpenChange, editingCategoria, formData,
                                 {errorMsg}
                             </div>
                         )}
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Nome da Categoria *</Label>
-                            <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} required />
+                        {/* AJUSTE 3: grid 4 colunas + label right no desktop */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Nome *</Label>
+                            <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="sm:col-span-3 h-10" style={{...inputStyle,...focusStyle}} required />
                         </div>
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Descrição</Label>
-                            <Textarea value={formData.descricao || ''} onChange={e => setFormData({...formData, descricao: e.target.value})} className="min-h-24" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end pt-2" style={{color: 'var(--cor-texto-sec)'}}>Descrição</Label>
+                            <Textarea value={formData.descricao || ''} onChange={e => setFormData({...formData, descricao: e.target.value})} className="sm:col-span-3 min-h-24" style={{...inputStyle,...focusStyle}} />
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex-row justify-end gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
                         <DialogClose asChild>
-                            <Button type="button" className="font-semibold" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}>Cancelar</Button>
+                            <Button type="button" className="text-sm w-full sm:flex-1 h-10 font-semibold" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}>Cancelar</Button>
                         </DialogClose>
-                        <Button type="submit" disabled={saving} className="gap-2 font-bold" style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}>
+                        <Button type="submit" disabled={saving} className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold" style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                             {editingCategoria? "Salvar" : "Criar"}
                         </Button>

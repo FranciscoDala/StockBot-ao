@@ -21,10 +21,12 @@ export function AlertaEstoqueModal({ open, onClose, produtos }: Props) {
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
-                className="sm:max-w-[500px] p-0 border shadow-2xl [&>button]:hidden"
-                style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}
+                // AJUSTE 1 e 2: respiro + centralizado + overflow-hidden + max-h
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
+                style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-erro)', borderRadius: 'var(--radius)', maxHeight: '85vh' }}
             >
-                <DialogHeader className="p-6 pb-2">
+                {/* AJUSTE 4: text-left no header */}
+                <DialogHeader className="p-5 pb-3 shrink-0 text-left">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <AlertTriangle size={24} style={{color: 'var(--cor-erro)'}} />
@@ -32,12 +34,13 @@ export function AlertaEstoqueModal({ open, onClose, produtos }: Props) {
                         </div>
                         <button onClick={onClose} style={{color: 'var(--cor-texto-sec)'}}><X size={20} /></button>
                     </div>
-                    <DialogDescription className="text-sm pt-2" style={{color: 'var(--cor-texto-sec)'}}>
+                    <DialogDescription className="text-sm mt-1" style={{color: 'var(--cor-texto-sec)'}}>
                         {produtos.length} produto(s) estão abaixo do estoque mínimo
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="px-6 py-4 max-h-80 overflow-y-auto space-y-2">
+                {/* AJUSTE: body com flex-1 e overflow */}
+                <div className="px-5 py-4 flex-1 min-h-0 overflow-y-auto scrollbar-hide space-y-2">
                     {produtos.map(prod => (
                         <div key={prod.id} className="flex items-center justify-between p-3 border" style={{backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)'}}>
                             <div className="flex items-center gap-2">
@@ -52,8 +55,13 @@ export function AlertaEstoqueModal({ open, onClose, produtos }: Props) {
                     ))}
                 </div>
 
-                <DialogFooter className="p-4 border-t" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
-                    <Button onClick={onClose} className="w-full font-bold" style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}>
+                {/* AJUSTE: footer padrão */}
+                <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
+                    <Button
+                      onClick={onClose}
+                      className="w-full sm:flex-1 h-10 text-sm font-bold"
+                      style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}
+                    >
                         Entendi
                     </Button>
                 </DialogFooter>

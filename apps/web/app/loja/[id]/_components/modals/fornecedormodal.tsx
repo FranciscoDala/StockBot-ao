@@ -39,7 +39,8 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
+                // AJUSTE 1 e 2: já tinha respiro, só garantir mx-auto
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -49,12 +50,13 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
                 }}
             >
                 <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-5 pb-3 shrink-0">
-                        <div className="flex items-center justify-center gap-3">
+                    {/* AJUSTE 4: text-left no header */}
+                    <DialogHeader className="p-5 pb-3 shrink-0 text-left">
+                        <div className="flex items-center gap-3">
                             <Truck size={24} style={{color: 'var(--cor-primaria)'}} />
                             <DialogTitle className="text-lg font-bold">{editingFornecedor? "Editar" : "Adicionar"} Fornecedor</DialogTitle>
                         </div>
-                        <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}>
+                        <DialogDescription className="text-sm mt-1" style={{color: 'var(--cor-texto-sec)'}}>
                             Dados da empresa fornecedora
                         </DialogDescription>
                     </DialogHeader>
@@ -65,37 +67,38 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
                                 {errorMsg}
                             </div>
                         )}
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Nome da Empresa *</Label>
-                            <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} required />
+                        {/* AJUSTE 3: grid 4 colunas + label right no desktop */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Empresa *</Label>
+                            <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="sm:col-span-3 h-10 text-sm" style={{...inputStyle,...focusStyle}} required />
                         </div>
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>NIF</Label>
-                            <Input value={formData.nif || ''} onChange={e => setFormData({...formData, nif: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>NIF</Label>
+                            <Input value={formData.nif || ''} onChange={e => setFormData({...formData, nif: e.target.value})} className="sm:col-span-3 h-10 text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Telefone</Label>
-                            <Input value={formData.telefone || ''} onChange={e => setFormData({...formData, telefone: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Telefone</Label>
+                            <Input value={formData.telefone || ''} onChange={e => setFormData({...formData, telefone: e.target.value})} className="sm:col-span-3 h-10 text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Email</Label>
-                            <Input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Email</Label>
+                            <Input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="sm:col-span-3 h-10 text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Pessoa de Contato</Label>
-                            <Input value={formData.contato_nome || ''} onChange={e => setFormData({...formData, contato_nome: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Contato</Label>
+                            <Input value={formData.contato_nome || ''} onChange={e => setFormData({...formData, contato_nome: e.target.value})} className="sm:col-span-3 h-10 text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Endereço</Label>
-                            <Textarea value={formData.endereco || ''} onChange={e => setFormData({...formData, endereco: e.target.value})} className="min-h-20 w-full text-sm" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end pt-2" style={{color: 'var(--cor-texto-sec)'}}>Endereço</Label>
+                            <Textarea value={formData.endereco || ''} onChange={e => setFormData({...formData, endereco: e.target.value})} className="sm:col-span-3 min-h-20 text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}> {/* <- AJUSTADO */}
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
                         <Button
                           type="submit"
                           disabled={saving}
-                          className="gap-2 font-bold w-full sm:flex-1 h-10 text-sm" // <- AJUSTADO
+                          className="gap-2 font-bold w-full sm:flex-1 h-10 text-sm"
                           style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}
                         >
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -104,7 +107,7 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
                         <DialogClose asChild>
                             <Button
                               type="button"
-                              className="font-semibold w-full sm:flex-1 h-10 text-sm" // <- AJUSTADO
+                              className="font-semibold w-full sm:flex-1 h-10 text-sm"
                               style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}
                             >
                               Cancelar

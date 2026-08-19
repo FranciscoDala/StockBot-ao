@@ -37,26 +37,30 @@ export function VendaSucessoModal({
         onAfterPrint: () => onClose()
     });
 
-    if (!open || !venda) return null;
+    if (!open ||!venda) return null;
 
-    const totalItens = venda.total_itens ?? venda.itens?.reduce((acc: number, i: any) => acc + (i.quantidade || i.qtd), 0) ?? 0;
+    const totalItens = venda.total_itens?? venda.itens?.reduce((acc: number, i: any) => acc + (i.quantidade || i.qtd), 0)?? 0;
 
     return (
         <>
-            <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{backgroundColor: 'rgba(0,0,0,0.8)'}}>
+            {/* AJUSTE 1 e 2: padrão das outras modals com respiro + centralizado */}
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm" style={{backgroundColor: 'rgba(0,0,0,0.8)'}}>
                 <div
-                    className="border shadow-2xl max-w-md w-full mx-4 overflow-hidden"
+                    // overflow-hidden + max-w + mx-auto igual DialogContent
+                    className="border shadow-2xl max-w-[420px] w-[calc(100%-2rem)] mx-auto overflow-hidden flex flex-col"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
                         borderColor: 'var(--cor-sucesso)',
-                        borderRadius: 'var(--radius)'
+                        borderRadius: 'var(--radius)',
+                        maxHeight: '85vh'
                     }}
                 >
-                    <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
+                    {/* AJUSTE 4: text-left no header */}
+                    <div className="p-5 pb-3 shrink-0 text-left border-b" style={{borderColor: 'var(--cor-borda)'}}>
+                        <div className="flex items-center justify-between">
                             <h2
-                                className="flex items-center gap-2 text-xl font-bold"
+                                className="flex items-center gap-2 text-lg font-bold"
                                 style={{color: 'var(--cor-sucesso)'}}
                             >
                                 <CheckCircle size={24} />
@@ -66,62 +70,63 @@ export function VendaSucessoModal({
                                 <X size={20} />
                             </button>
                         </div>
+                    </div>
 
-                        <div className="space-y-3 py-4">
-                            <div className="text-center">
-                                <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Total da Venda</p>
-                                <p
-                                    className="text-3xl font-bold"
-                                    style={{color: 'var(--cor-sucesso)'}}
-                                >
-                                    {formatCurrency(Number(venda.total) || 0)}
-                                </p>
-                            </div>
-
-                            <div
-                                className="p-3 space-y-1 text-sm border"
-                                style={{
-                                    backgroundColor: 'var(--cor-fundo)',
-                                    borderColor: 'var(--cor-sucesso)30',
-                                    borderRadius: 'var(--radius)'
-                                }}
-                                >
-                                <div className="flex justify-between">
-                                    <span style={{color: 'var(--cor-texto-sec)'}}>Itens</span>
-                                    <span className="font-semibold">{totalItens}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span style={{color: 'var(--cor-texto-sec)'}}>Pagamento</span>
-                                    <span className="font-semibold">{venda.forma_pagamento}</span>
-                                </div>
-                            </div>
+                    <div className="p-5 overflow-y-auto flex-1 min-h-0 space-y-4">
+                        <div className="text-center">
+                            <p className="text-sm" style={{color: 'var(--cor-texto-sec)'}}>Total da Venda</p>
+                            <p
+                                className="text-3xl font-bold"
+                                style={{color: 'var(--cor-sucesso)'}}
+                            >
+                                {formatCurrency(Number(venda.total) || 0)}
+                            </p>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-2 pt-4"> {/* <- PADRAO */}
-                            <Button
-                                onClick={onClose}
-                                className="w-full sm:flex-1 font-semibold h-10 text-sm" // <- AJUSTADO
-                                style={{
-                                    backgroundColor: 'var(--cor-card)',
-                                    color: 'var(--cor-texto)',
-                                    border: '1px solid var(--cor-borda)',
-                                    borderRadius: 'var(--radius)'
-                                }}
+                        <div
+                            className="p-3 space-y-1 text-sm border"
+                            style={{
+                                backgroundColor: 'var(--cor-fundo)',
+                                borderColor: 'var(--cor-sucesso)30',
+                                borderRadius: 'var(--radius)'
+                            }}
                             >
-                                Nova Venda
-                            </Button>
-                            <Button
-                                onClick={handleImprimir}
-                                className="w-full sm:flex-1 gap-2 font-bold h-10 text-sm" // <- AJUSTADO
-                                style={{
-                                    background: 'var(--cor-sucesso)',
-                                    color: '#fff',
-                                    borderRadius: 'var(--radius)'
-                                }}
-                            >
-                                <Printer size={16} /> Imprimir
-                            </Button>
+                            <div className="flex justify-between">
+                                <span style={{color: 'var(--cor-texto-sec)'}}>Itens</span>
+                                <span className="font-semibold">{totalItens}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span style={{color: 'var(--cor-texto-sec)'}}>Pagamento</span>
+                                <span className="font-semibold">{venda.forma_pagamento}</span>
+                            </div>
                         </div>
+                    </div>
+
+                    {/* AJUSTE: footer padrão flex-col sm:flex-row */}
+                    <div className="p-4 border-t shrink-0 flex flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
+                        <Button
+                            onClick={onClose}
+                            className="w-full sm:flex-1 font-semibold h-10 text-sm"
+                            style={{
+                                backgroundColor: 'var(--cor-card)',
+                                color: 'var(--cor-texto)',
+                                border: '1px solid var(--cor-borda)',
+                                borderRadius: 'var(--radius)'
+                            }}
+                        >
+                            Nova Venda
+                        </Button>
+                        <Button
+                            onClick={handleImprimir}
+                            className="w-full sm:flex-1 gap-2 font-bold h-10 text-sm"
+                            style={{
+                                background: 'var(--cor-sucesso)',
+                                color: '#fff',
+                                borderRadius: 'var(--radius)'
+                            }}
+                        >
+                            <Printer size={16} /> Imprimir
+                        </Button>
                     </div>
                 </div>
             </div>

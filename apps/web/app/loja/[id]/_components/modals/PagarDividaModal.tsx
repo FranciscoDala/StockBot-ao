@@ -32,7 +32,8 @@ export function PagarDividaModal({ open, onClose, venda, valor, setValor, forma,
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
+                // AJUSTE 1 e 2: já tinha respiro, garantir mx-auto
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -41,33 +42,35 @@ export function PagarDividaModal({ open, onClose, venda, valor, setValor, forma,
                     maxHeight: '85vh'
                 }}
             >
-                <DialogHeader className="p-5 pb-3 shrink-0">
-                    <div className="flex items-center justify-center gap-3">
+                {/* AJUSTE 4: text-left no header */}
+                <DialogHeader className="p-5 pb-3 shrink-0 text-left">
+                    <div className="flex items-center gap-3">
                         <Wallet size={24} style={{color: 'var(--cor-primaria)'}} />
                         <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>Registrar Pagamento</DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}>
+                    <DialogDescription className="text-sm mt-1" style={{color: 'var(--cor-texto-sec)'}}>
                         Dívida da venda de {venda? new Date(venda.data_venda).toLocaleDateString('pt-AO') : ''}: {formatCurrency(venda?.saldo_devedor?? 0)}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="px-5 py-4 grid gap-4 overflow-y-auto flex-1 min-h-0">
-                    <div className="grid gap-1.5">
-                        <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Valor a pagar</Label>
+                    {/* AJUSTE 3: grid 4 colunas + label right no desktop */}
+                    <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                        <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Valor *</Label>
                         <Input
                             type="number"
                             value={valor}
                             onChange={e => setValor(e.target.value)}
-                            className="h-10 w-full text-sm"
+                            className="sm:col-span-3 h-10 text-sm"
                             style={{...inputStyle,...focusStyle}}
                             placeholder="0,00"
                         />
                     </div>
-                    <div className="grid gap-1.5">
-                        <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Forma de pagamento</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                        <Label className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Forma *</Label>
                         <Select value={forma} onValueChange={setForma}>
                             <SelectTrigger
-                                className="h-10 w-full text-sm"
+                                className="sm:col-span-3 h-10 text-sm"
                                 style={{...inputStyle,...focusStyle}}
                             >
                                 <SelectValue placeholder="Selecione" />
@@ -81,11 +84,11 @@ export function PagarDividaModal({ open, onClose, venda, valor, setValor, forma,
                     </div>
                 </div>
 
-                <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}> {/* <- AJUSTADO */}
+                <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
                     <Button
                         onClick={onConfirmar}
                         disabled={saving ||!valor ||!forma}
-                        className="gap-2 font-bold w-full sm:flex-1 h-10 text-sm" // <- AJUSTADO
+                        className="gap-2 font-bold w-full sm:flex-1 h-10 text-sm"
                         style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
                     >
                         {saving && <Loader2 size={16} className="animate-spin" />}
@@ -95,7 +98,7 @@ export function PagarDividaModal({ open, onClose, venda, valor, setValor, forma,
                         <Button
                             variant="outline"
                             onClick={onClose}
-                            className="font-semibold w-full sm:flex-1 h-10 text-sm" // <- AJUSTADO
+                            className="font-semibold w-full sm:flex-1 h-10 text-sm"
                             style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}
                         >
                             Cancelar
