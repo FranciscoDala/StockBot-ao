@@ -38,7 +38,7 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-full max-w-full sm:max-w-[600px] p-0 flex-col border shadow-2xl [&>button]:hidden"
+                className="w-[calc(100%-2rem)] max-w-[600px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto" // <- AJUSTADO: respiro + centralizado
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -53,10 +53,10 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
             >
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
-                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>
+                        <DialogTitle className="text-base sm:text-lg text-center" style={{ color: 'var(--cor-texto)' }}> {/* <- CENTRALIZADO */}
                             {isEditing? "Editar Cliente" : "Cadastrar Cliente"}
                         </DialogTitle>
-                        <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
+                        <DialogDescription className="text-xs sm:text-sm text-center" style={{ color: 'var(--cor-texto-sec)' }}> {/* <- CENTRALIZADO */}
                             {isEditing? "Altere os dados do cliente." : "Preencha os dados do cliente"}
                         </DialogDescription>
                     </DialogHeader>
@@ -117,11 +117,11 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- AJUSTADO */}
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
                         <DialogClose asChild>
                             <Button
                               type="button"
-                              className="text-sm font-semibold w-full sm:flex-1 h-10" // <- AJUSTADO
+                              className="text-sm font-semibold w-full sm:flex-1 h-10"
                               style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}
                             >
                               Cancelar
@@ -130,7 +130,7 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                         <Button
                           type="submit"
                           disabled={saving}
-                          className="gap-2 text-sm font-bold w-full sm:flex-1 h-10" // <- AJUSTADO
+                          className="gap-2 text-sm font-bold w-full sm:flex-1 h-10"
                           style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
                         >
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
