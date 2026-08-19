@@ -46,10 +46,10 @@ class VendaCreate(BaseModel):
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (
         select(Usuario, UsuarioLoja)
-       .join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-       .where(UsuarioLoja.loja_id == loja_id)
-       .where(UsuarioLoja.role == UserRole.DONO)
-       .where(UsuarioLoja.is_active == True)
+      .join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
+      .where(UsuarioLoja.loja_id == loja_id)
+      .where(UsuarioLoja.role == UserRole.DONO)
+      .where(UsuarioLoja.is_active == True)
     )
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
@@ -81,7 +81,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
 
     return ClienteOut(
-        id=str(getattr(cliente, "id")), # <- cliente minúsculo
+        id=str(getattr(cliente, "id")),
         loja_id=str(getattr(cliente, "loja_id")),
         nome=str(getattr(cliente, "nome") or ""),
         nome_empresa=getattr(cliente, "nome_empresa"),
@@ -92,7 +92,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
         cidade=getattr(cliente, "cidade"),
         provincia=getattr(cliente, "provincia"),
         observacoes=getattr(cliente, "observacoes"),
-        is_active=bool(getattr(cliente, "is_active")), # <- cliente minúsculo
+        is_active=bool(getattr(cliente, "is_active")),
         created_at=getattr(cliente, "created_at"),
         total_divida=total_divida,
         ultima_compra=ultima_compra,
@@ -115,51 +115,26 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
 
     await db.execute(
         update(Cliente)
-       .where(Cliente.id == cliente_id)
-       .values(total_divida=total_divida, ultima_compra=ultima_compra)
+      .where(Cliente.id == cliente_id)
+      .values(total_divida=total_divida, ultima_compra=ultima_compra)
     )
     await db.commit()
 
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
 async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
+    # ORDENAÇÃO POR HORA: ultima_compra primeiro, depois created_at
     stmt = (
-        select(
-            Cliente,
-            func.coalesce(func.sum(Venda.total - Venda.valor_recebido), 0).label("total_divida_calc"),
-            func.max(Venda.created_at).label("ultima_compra_calc")
-        )
-       .outerjoin(Venda, Venda.cliente_id == Cliente.id)
-       .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
-       .group_by(Cliente.id)
-       .order_by(func.max(Venda.created_at).desc())
+        select(Cliente)
+      .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
+      .order_by(Cliente.ultima_compra.desc().nulls_last(), Cliente.created_at.desc())
     )
     result = await db.execute(stmt)
-    rows = result.all()
+    clientes_db = result.scalars().all()
 
     clientes_out = []
-    for cliente, total_divida_calc, ultima_compra_calc in rows:
-        total_divida = float(total_divida_calc or 0.0)
-        status_cliente = "com_divida" if total_divida > 0 else "em_dia"
-        nome = cliente.nome if cliente.nome and len(cliente.nome.strip()) >= 2 else "Sem Nome"
-        clientes_out.append(ClienteOut(
-            id=str(getattr(cliente, "id")),
-            loja_id=str(getattr(cliente, "loja_id")),
-            nome=str(getattr(cliente, "nome") or "Sem Nome"),
-            nome_empresa=getattr(cliente, "nome_empresa"),
-            bi=getattr(cliente, "bi"),
-            telefone=getattr(cliente, "telefone"),
-            email=getattr(cliente, "email"),
-            endereco=getattr(cliente, "endereco"),
-            cidade=getattr(cliente, "cidade"),
-            provincia=getattr(cliente, "provincia"),
-            observacoes=getattr(cliente, "observacoes"),
-            is_active=bool(getattr(cliente, "is_active")),
-            created_at=getattr(cliente, "created_at"),
-            total_divida=total_divida,
-            ultima_compra=ultima_compra_calc,
-            status=status_cliente
-        ))
+    for cliente in clientes_db:
+        clientes_out.append(await _cliente_to_out(db, cliente))
     return clientes_out
 
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
@@ -345,6 +320,14 @@ async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoC
         total_pago += valor_a_pagar
 
     await _atualizar_totais_cliente(db, cliente_id)
+
+    # ATUALIZA A HORA DA ULTIMA ATIVIDADE NO PAGAMENTO
+    await db.execute(
+        update(Cliente)
+      .where(Cliente.id == cliente_id)
+      .values(ultima_compra=func.now())
+    )
+
     await db.commit()
 
     # REGISTRA NO CAIXA O RECEBIMENTO
@@ -390,6 +373,14 @@ async def pagar_venda_especifica(
     venda.status = "concluida" if novo_valor_recebido >= total_venda else "parcial"
 
     await _atualizar_totais_cliente(db, cliente_id)
+
+    # ATUALIZA A HORA DA ULTIMA ATIVIDADE NO PAGAMENTO
+    await db.execute(
+        update(Cliente)
+      .where(Cliente.id == cliente_id)
+      .values(ultima_compra=func.now())
+    )
+
     await db.commit()
 
     # REGISTRA NO CAIXA O PAGAMENTO

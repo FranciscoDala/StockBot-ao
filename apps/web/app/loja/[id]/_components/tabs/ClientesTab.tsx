@@ -69,6 +69,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
             if (!res.ok) throw new Error((await res.json()).detail || `Erro ${res.status}`)
             const data = await res.json();
+            // Backend já vem ordenado por ultima_compra DESC. Só normalizar
             setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0, ultima_compra: c.ultima_compra || null })));
         } catch (e: any) {
             toast.error(e.message || "Erro ao carregar clientes");
@@ -164,7 +165,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             toast.success(data.detail || "Pagamento realizado");
             setShowPagarModal(false);
             setVendaSelecionada(null);
-            await fetchClientes(); // <- Isso já vai puxar a lista reordenada
+            await fetchClientes(); // Backend já retorna ordenado
             await atualizarClienteSelecionado();
             if (clienteSelecionado) await recarregarDetalhesCliente(clienteSelecionado);
         } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
@@ -193,7 +194,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
         toast.success(data.detail);
         setCarrinhoFiado([]);
-        await fetchClientes(); // <- Isso já vai puxar a lista reordenada
+        await fetchClientes(); // Backend já retorna ordenado
         await atualizarClienteSelecionado();
         await recarregarDetalhesCliente(clienteSelecionado);
     }
@@ -290,18 +291,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (filtro === 'novo') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!c.ultima_compra);
         if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.telefone?.includes(busca) || c.email?.toLowerCase().includes(busca.toLowerCase()));
 
-        // ORDENAÇÃO POR HORA: Última atividade primeiro
-        lista.sort((a, b) => {
-            const dataA = new Date(a.ultima_compra || a.created_at).getTime(); // usa timestamp completo
-            const dataB = new Date(b.ultima_compra || b.created_at).getTime();
-
-            // 1º Critério: Hora mais recente
-            if (dataB!== dataA) return dataB - dataA;
-
-            // 2º Critério: Desempate por maior dívida
-            return (b.total_divida?? 0) - (a.total_divida?? 0);
-        });
-
+        // REMOVIDO O SORT DAQUI: Backend já retorna ordenado por ultima_compra DESC
         return lista;
     }, [clientes, filtro, busca]);
 
@@ -317,6 +307,17 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '20px' : '16px';
+
+    const formatarDataHora = (data: string | null) => {
+        if (!data) return "Nunca";
+        return new Date(data).toLocaleString('pt-AO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
 
     if (loading) return <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>
 
@@ -363,7 +364,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 flex-wrap"><p className="font-semibold truncate">{c.nome}</p><Badge style={{ background: badgeColor, color: '#fff', fontSize: '11px', padding: '2px 10px', borderRadius: '999px' }}>{badgeText}</Badge></div>
                                         <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
-                                        <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleString('pt-AO') : "Nunca"}</p> {/* <- MUDOU: toLocaleString mostra hora */}
+                                        <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última atividade: {formatarDataHora(c.ultima_compra)}</p>
                                     </div>
                                     {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
                                 </div>
