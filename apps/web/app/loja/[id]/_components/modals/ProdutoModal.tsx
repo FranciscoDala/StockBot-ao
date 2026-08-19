@@ -50,7 +50,7 @@ export type Produto = {
     data_validade?: string;
     ncm?: string;
     peso_kg?: number | null;
-    controla_estoque?: boolean; // <- AJUSTE 1: ADICIONADO
+    controla_estoque?: boolean;
 }
 
 interface Props {
@@ -73,11 +73,11 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
     const lucro = (formData.preco || 0) - (formData.preco_custo || 0);
     const qrLink = formData.sku? `${APP_URL}/p/${formData.sku}` : null;
-    const controlaEstoque = formData.controla_estoque?? true; // <- AJUSTE 2
+    const controlaEstoque = formData.controla_estoque?? true;
 
     useEffect(() => {
         if (open &&!editingProduto &&!formData.sku) {
-            setFormData((prev: any) => ({...prev, sku: gerarSkuAleatorio(), controla_estoque: true })); // <- default true
+            setFormData((prev: any) => ({...prev, sku: gerarSkuAleatorio(), controla_estoque: true }));
         }
 
         if (editingProduto?.imagem_url) {
@@ -157,7 +157,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         }
 
         let finalData = {
-           ...formData,
+          ...formData,
             imagem_url: imagemUrlFinal,
             public_id: formData.public_id || ""
         };
@@ -191,7 +191,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 <DialogContent
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
-                    className="w-full max-w-full sm:max-w-[800px] p-0 flex-col border shadow-2xl [&>button]:hidden"
+                    // AJUSTE 1 e 2: overflow-hidden + centralizado com respiro + max-width
+                    className="w-[calc(100%-2rem)] max-w-[800px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
@@ -201,7 +202,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                         maxHeight: '80vh'
                     }}
                 >
-                    <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0">
+                    {/* AJUSTE 4: text-left no header */}
+                    <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0 text-left">
                         <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
                     </DialogHeader>
@@ -220,17 +222,18 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                                 <TabsContent value="dados" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Nome *</Label>
+                                        {/* AJUSTE 3: sm:text-right sm:justify-self-end */}
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Nome *</Label>
                                         <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right pt-2" style={labelStyle}>Descrição</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end pt-2" style={labelStyle}>Descrição</Label>
                                         <Textarea placeholder="Descrição opcional..." value={formData.descricao || ''} onChange={(e) => handleInputChange("descricao", e.target.value)} className="sm:col-span-3 px-3 py-2 min-h-24 text-xs" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>SKU</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>SKU</Label>
                                         <div className="sm:col-span-3 flex gap-2">
                                             <Input placeholder="Gerado automaticamente" value={formData.sku || ''} disabled className="h-9 flex-1 text-xs" style={{...inputStyle, backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto-sec)', cursor: 'not-allowed' }} />
                                             {!editingProduto && (
@@ -242,13 +245,12 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Marca</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Marca</Label>
                                         <Input placeholder="Ex: Nivea" value={formData.marca || ''} onChange={(e) => handleInputChange("marca", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
-                                    {/* SWITCH CONTROLAR ESTOQUE */}
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Controlar Estoque</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Controlar Estoque</Label>
                                         <div className="sm:col-span-3 flex items-center gap-2">
                                             <Switch
                                                 checked={controlaEstoque}
@@ -264,7 +266,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                                 <TabsContent value="imagem" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right pt-2" style={labelStyle}>Imagem</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end pt-2" style={labelStyle}>Imagem</Label>
                                         <div className="sm:col-span-3">
                                             <div
                                                 onDragEnter={handleDrag}
@@ -297,7 +299,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                                     {qrLink && (
                                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
-                                            <Label className="text-xs sm:text-right pt-2 flex items-center gap-2" style={labelStyle}><QrCode size={14} /> QR Code</Label>
+                                            <Label className="text-xs sm:text-right sm:justify-self-end pt-2 flex items-center gap-2" style={labelStyle}><QrCode size={14} /> QR Code</Label>
                                             <div className="sm:col-span-3 p-4 border" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}>
                                                 <div className="flex justify-center bg-white p-3 rounded">
                                                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(qrLink)}`} alt="QR Code" className="w-40 h-40" />
@@ -312,17 +314,17 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
 
                                 <TabsContent value="preco" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Preço Custo</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Preço Custo</Label>
                                         <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Preço Venda *</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Preço Venda *</Label>
                                         <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Lucro</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Lucro</Label>
                                         <div className="sm:col-span-3 p-3 border" style={{ backgroundColor: 'var(--cor-fundo)', borderColor: 'var(--cor-borda)', borderRadius: 'var(--radius)' }}>
                                             <span className="font-bold text-sm" style={{ color: lucro >= 0? 'var(--cor-primaria)' : 'var(--cor-erro)' }}>
                                                 {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA' }).format(lucro)}
@@ -330,23 +332,22 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         </div>
                                     </div>
 
-                                    {/* AJUSTE 3: SÓ MOSTRA ESTOQUE SE CONTROLAR */}
                                     {controlaEstoque && (
                                         <>
                                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                                <Label className="text-xs sm:text-right" style={labelStyle}>Estoque</Label>
+                                                <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Estoque</Label>
                                                 <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                                <Label className="text-xs sm:text-right" style={labelStyle}>Estoque Mín</Label>
+                                                <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Estoque Mín</Label>
                                                 <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                             </div>
                                         </>
                                     )}
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        <Label className="text-xs sm:text-right" style={labelStyle}>Unidade</Label>
+                                        <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Unidade</Label>
                                         <Select value={formData.unidade || 'UN'} onValueChange={(val) => handleInputChange("unidade", val)}>
                                             <SelectTrigger className="sm:col-span-3 h-9 text-xs" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)' }}>
                                                 <SelectValue />
@@ -384,8 +385,8 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
             </Dialog>
 
             <Dialog open={!!erroModal} onOpenChange={() => { }}>
-                <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} className="max-w-md border [&>button]:hidden" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-erro)30', borderRadius: 'var(--radius)' }}>
-                    <DialogHeader>
+                <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} className="w-[calc(100%-2rem)] max-w-md border overflow-hidden [&>button]:hidden mx-auto" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', borderColor: 'var(--cor-erro)30', borderRadius: 'var(--radius)' }}>
+                    <DialogHeader className="text-left">
                         <DialogTitle className="flex items-center gap-2" style={{ color: 'var(--cor-erro)' }}><AlertCircle size={20} /> Erro ao Salvar</DialogTitle>
                         <DialogDescription style={{ color: 'var(--cor-texto-sec)' }}>Não foi possível concluir a operação</DialogDescription>
                     </DialogHeader>

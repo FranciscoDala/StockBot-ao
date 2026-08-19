@@ -34,7 +34,8 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
+                // AJUSTE 1 e 2: overflow-hidden + centralizado com respiro
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -47,9 +48,10 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
             >
 
                 <form onSubmit={(e) => onSave(formData, e)} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-5 pb-3 shrink-0">
-                        <DialogTitle className="text-lg font-bold text-center" style={{ color: 'var(--cor-texto)' }}>{editingUser? "Editar" : "Adicionar"} Membro</DialogTitle>
-                        <DialogDescription className="text-sm text-center mt-1" style={{ color: 'var(--cor-texto-sec)' }}>{`Preencha os dados. Loja: ${lojaNome || "-"}`}</DialogDescription>
+                    {/* AJUSTE 4: text-left no header */}
+                    <DialogHeader className="p-5 pb-3 shrink-0 text-left">
+                        <DialogTitle className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>{editingUser? "Editar" : "Adicionar"} Membro</DialogTitle>
+                        <DialogDescription className="text-sm mt-1" style={{ color: 'var(--cor-texto-sec)' }}>{`Preencha os dados. Loja: ${lojaNome || "-"}`}</DialogDescription>
                     </DialogHeader>
 
                     <div className="grid gap-4 py-4 px-5 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
@@ -61,58 +63,61 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
 
                         <p className="text-sm font-semibold" style={{ color: 'var(--cor-texto-sec)' }}>Dados do Membro</p>
 
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Nome *</Label>
+                        {/* AJUSTE 3: grid 4 colunas + label right no desktop */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Nome *</Label>
                             <Input
                                 value={formData.nome}
                                 onChange={e => setFormData({...formData, nome: e.target.value })}
-                                className="text-sm h-10 w-full"
+                                className="sm:col-span-3 text-sm h-10"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                                 required
                             />
                         </div>
 
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label>
-                            {editingUser? (
-                                <Input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={e => setFormData({...formData, email: e.target.value })}
-                                    className="text-sm h-10 w-full"
-                                    style={{
-                                        backgroundColor: 'var(--cor-fundo)',
-                                        color: 'var(--cor-texto)',
-                                        border: '1.5px solid var(--cor-primaria)',
-                                        borderRadius: 'var(--radius-sm)',
-                                      ...focusStyle
-                                    }}
-                                />
-                            ) : (
-                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Será gerado automaticamente: nome@loja.ao</p>
-                            )}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-start gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label>
+                            <div className="sm:col-span-3">
+                                {editingUser? (
+                                    <Input
+                                        type="email"
+                                        value={formData.email}
+                                        onChange={e => setFormData({...formData, email: e.target.value })}
+                                        className="text-sm h-10 w-full"
+                                        style={{
+                                            backgroundColor: 'var(--cor-fundo)',
+                                            color: 'var(--cor-texto)',
+                                            border: '1.5px solid var(--cor-primaria)',
+                                            borderRadius: 'var(--radius-sm)',
+                                         ...focusStyle
+                                        }}
+                                    />
+                                ) : (
+                                    <p className="text-xs pt-2" style={{ color: 'var(--cor-texto-sec)' }}>Será gerado automaticamente: nome@loja.ao</p>
+                                )}
+                            </div>
                         </div>
 
                         {!editingUser && (
-                            <div className="grid gap-1.5">
-                                <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Senha Temp *</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                <Label className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Senha Temp *</Label>
                                 <Input
                                     type="password"
                                     value={formData.senha || ""}
                                     onChange={e => setFormData({...formData, senha: e.target.value })}
-                                    className="text-sm h-10 w-full"
+                                    className="sm:col-span-3 text-sm h-10"
                                     style={{
                                         backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                      ...focusStyle
+                                     ...focusStyle
                                     }}
                                     required
                                     placeholder="mínimo 6 caracteres"
@@ -121,53 +126,53 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                         )}
 
                         {editingUser && (
-                            <div className="grid gap-1.5">
-                                <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Nova Senha</Label>
+                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                                <Label className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Nova Senha</Label>
                                 <Input
                                     type="password"
                                     value={formData.senha || ""}
                                     onChange={e => setFormData({...formData, senha: e.target.value })}
-                                    className="text-sm h-10 w-full"
+                                    className="sm:col-span-3 text-sm h-10"
                                     style={{
                                         backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                      ...focusStyle
+                                     ...focusStyle
                                     }}
                                     placeholder="deixe em branco para não alterar"
                                 />
                             </div>
                         )}
 
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Telefone</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Telefone</Label>
                             <Input
                                 value={formData.telefone || ""}
                                 onChange={e => setFormData({...formData, telefone: e.target.value })}
-                                className="text-sm h-10 w-full"
+                                className="sm:col-span-3 text-sm h-10"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                             />
                         </div>
 
-                        <div className="grid gap-1.5">
-                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Cargo</Label>
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Cargo</Label>
                             <select
                                 value={formData.role}
                                 onChange={e => setFormData({...formData, role: e.target.value as UserRole })}
-                                className="flex h-10 w-full rounded-md px-3 py-2 text-sm"
+                                className="sm:col-span-3 flex h-10 w-full rounded-md px-3 py-2 text-sm"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                             >
                                 <option value="GERENTE">Gerente</option>
@@ -179,13 +184,15 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             </select>
                         </div>
 
-                        <div className="flex items-center justify-between pt-2">
-                            <Label className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Ativo</Label>
-                            <Switch
-                                checked={formData.is_active}
-                                onCheckedChange={v => setFormData({...formData, is_active: v })}
-                                className="data-[state=checked]:bg-[var(--cor-primaria)]"
-                            />
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Ativo</Label>
+                            <div className="sm:col-span-3">
+                                <Switch
+                                    checked={formData.is_active}
+                                    onCheckedChange={v => setFormData({...formData, is_active: v })}
+                                    className="data-[state=checked]:bg-[var(--cor-primaria)]"
+                                />
+                            </div>
                         </div>
 
                     </div>
