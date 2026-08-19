@@ -52,11 +52,11 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
-                        <DialogTitle className="text-base sm:text-lg text-center" style={{ color: 'var(--cor-texto)' }}>
+                    <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0 text-left"> {/* <- AJUSTADO: text-left */}
+                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}> {/* <- REMOVI text-center */}
                             {isEditing? "Editar Cliente" : "Cadastrar Cliente"}
                         </DialogTitle>
-                        <DialogDescription className="text-xs sm:text-sm text-center" style={{ color: 'var(--cor-texto-sec)' }}>
+                        <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}> {/* <- REMOVI text-center */}
                             {isEditing? "Altere os dados do cliente." : "Preencha os dados do cliente"}
                         </DialogDescription>
                     </DialogHeader>
