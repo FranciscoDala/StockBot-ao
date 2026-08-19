@@ -45,25 +45,24 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
-                className="sm:max-w-md w-full mx-4 p-0 shadow-2xl border overflow-hidden [&>button]:hidden" // <- AJUSTADO: max-w-md, mx-4, overflow-hidden
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
                     borderColor: current.color,
-                    borderRadius: 'var(--radius)'
+                    borderRadius: 'var(--radius)',
+                    maxHeight: '85vh'
                 }}
             >
-                <DialogHeader className="p-6 pb-2">
-                    <div className="flex items-start gap-3">
-                        <div className="mt-1">{current.icon}</div>
-                        <div>
-                            <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>{current.title}</DialogTitle>
-                            <DialogDescription className="text-sm leading-relaxed mt-2" style={{color: 'var(--cor-texto-sec)'}}>{mensagem}</DialogDescription>
-                        </div>
+                <DialogHeader className="p-5 pb-3">
+                    <div className="flex flex-col items-center justify-center gap-3 text-center"> {/* <- CENTRALIZADO */}
+                        <div>{current.icon}</div>
+                        <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>{current.title}</DialogTitle>
                     </div>
+                    <DialogDescription className="text-sm leading-relaxed text-center mt-2" style={{color: 'var(--cor-texto-sec)'}}>{mensagem}</DialogDescription> {/* <- CENTRALIZADO */}
                 </DialogHeader>
                 <DialogFooter
-                    className="p-4 border-t" // <- AJUSTADO: só p-4 pra ficar igual ao outro
+                    className="p-4 border-t"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -71,7 +70,7 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                 >
                     <Button
                         onClick={onClose}
-                        className="w-full font-semibold" // <- já estava w-full, ficou bom no mobile
+                        className="w-full font-bold h-10 text-sm" // <- PADRAO
                         style={{
                             backgroundColor: current.btnColor,
                             color: '#fff',

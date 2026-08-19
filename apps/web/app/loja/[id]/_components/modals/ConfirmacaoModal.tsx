@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,48 +50,49 @@ export function ConfirmarModal({
         onClose();
     }
 
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 1px var(--cor-primaria)' }
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' } // <- PADRAO
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
-                className="sm:max-w-md w-full mx-4 p-0 shadow-2xl border overflow-hidden" // <- AJUSTADO: max-w-md, mx-4, overflow-hidden
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden" // <- PADRAO
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
                     borderColor: 'var(--cor-borda)',
-                    borderRadius: 'var(--radius)'
+                    borderRadius: 'var(--radius)',
+                    maxHeight: '85vh'
                 }}
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
 
-                <DialogHeader className="p-4 pb-2">
-                    <div className="flex items-center gap-3">
-                        <Shield size={20} style={{color: 'var(--cor-primaria)'}} />
-                        <DialogTitle className="text-base font-bold" style={{color: 'var(--cor-texto)'}}>{titulo}</DialogTitle>
+                <DialogHeader className="p-5 pb-3 shrink-0">
+                    <div className="flex items-center justify-center gap-3"> {/* <- CENTRALIZADO */}
+                        <Shield size={24} style={{color: 'var(--cor-primaria)'}} />
+                        <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>{titulo}</DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm pt-2 text-left" style={{color: 'var(--cor-texto-sec)'}}>
+                    <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}> {/* <- CENTRALIZADO */}
                         {descricao}
                     </DialogDescription>
                 </DialogHeader>
 
                 {precisaDeSenha && (
-                    <div className="px-4 pb-2">
-                        <div className="grid gap-2">
+                    <div className="px-5 pb-2">
+                        <div className="grid gap-1.5"> {/* <- PADRAO */}
                             <Label htmlFor="senha-dono" className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Digite a senha do Dono para confirmar</Label>
                             <Input
                                 id="senha-dono"
                                 type="password"
                                 value={senha}
                                 onChange={(e) => setSenha(e.target.value)}
-                                className="h-9 w-full" // <- AJUSTADO: w-full
+                                className="h-10 w-full text-sm" // <- PADRAO
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                   ...focusStyle
+                                 ...focusStyle
                                 }}
                                 placeholder="******"
                                 disabled={loading}
@@ -102,30 +103,16 @@ export function ConfirmarModal({
                 )}
 
                 <DialogFooter
-                    className="p-4 border-t flex flex-col-reverse sm:flex-row justify-end gap-2" // <- AJUSTADO: responsivo
+                    className="p-4 border-t shrink-0 flex-col gap-2" // <- BOTOES EMPILHADOS
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
                     }}
                 >
                     <Button
-                        variant="secondary"
-                        onClick={handleClose}
-                        disabled={loading}
-                        className="h-9 w-full sm:w-auto" // <- AJUSTADO: responsivo
-                        style={{
-                            backgroundColor: 'var(--cor-card)',
-                            color: 'var(--cor-texto)',
-                            border: '1px solid var(--cor-borda)',
-                            borderRadius: 'var(--radius)'
-                        }}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
                         onClick={handleConfirm}
                         disabled={loading || (precisaDeSenha && senha.length < 4)}
-                        className="gap-2 font-bold h-9 w-full sm:w-auto whitespace-nowrap" // <- AJUSTADO: responsivo + nowrap
+                        className="gap-2 font-bold h-10 w-full text-sm whitespace-nowrap" // <- PADRAO
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',
@@ -135,6 +122,22 @@ export function ConfirmarModal({
                         {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                         {textoConfirmar}
                     </Button>
+                    <DialogClose asChild>
+                        <Button
+                            variant="secondary"
+                            onClick={handleClose}
+                            disabled={loading}
+                            className="h-10 w-full text-sm font-semibold" // <- PADRAO
+                            style={{
+                                backgroundColor: 'var(--cor-card)',
+                                color: 'var(--cor-texto)',
+                                border: '1px solid var(--cor-borda)',
+                                borderRadius: 'var(--radius)'
+                            }}
+                        >
+                            Cancelar
+                        </Button>
+                    </DialogClose>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

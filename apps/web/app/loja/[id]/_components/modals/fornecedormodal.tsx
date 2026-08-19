@@ -39,69 +39,66 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="sm:max-w-[600px] p-0 flex flex-col border shadow-2xl [&>button]:hidden"
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
                     borderColor: 'var(--cor-borda)',
                     borderRadius: 'var(--radius)',
-                    height: '80vh',
-                    maxHeight: '80vh'
+                    maxHeight: '85vh' // <- PADRAO
                 }}
             >
                 <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-6 pb-2 shrink-0">
-                        <div className="flex items-center gap-3">
+                    <DialogHeader className="p-5 pb-3 shrink-0">
+                        <div className="flex items-center justify-center gap-3"> {/* <- CENTRALIZADO */}
                             <Truck size={24} style={{color: 'var(--cor-primaria)'}} />
                             <DialogTitle className="text-lg font-bold">{editingFornecedor? "Editar" : "Adicionar"} Fornecedor</DialogTitle>
                         </div>
-                        <DialogDescription className="text-sm pt-2" style={{color: 'var(--cor-texto-sec)'}}>
+                        <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}> {/* <- CENTRALIZADO */}
                             Dados da empresa fornecedora
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
+                    <div className="px-5 py-4 grid gap-4 overflow-y-auto flex-1 min-h-0 scrollbar-hide"> {/* <- PADRAO */}
                         {errorMsg && (
-                            <div className="border text-xs p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
+                            <div className="border text-sm p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
                                 {errorMsg}
                             </div>
                         )}
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Nome da Empresa *</Label>
-                            <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} required />
+                        <div className="grid gap-1.5"> {/* <- PADRAO 1 COLUNA */}
+                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Nome da Empresa *</Label>
+                            <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} required />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label style={{color: 'var(--cor-texto-sec)'}}>NIF</Label>
-                                <Input value={formData.nif || ''} onChange={e => setFormData({...formData, nif: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label style={{color: 'var(--cor-texto-sec)'}}>Telefone</Label>
-                                <Input value={formData.telefone || ''} onChange={e => setFormData({...formData, telefone: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
-                            </div>
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>NIF</Label>
+                            <Input value={formData.nif || ''} onChange={e => setFormData({...formData, nif: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Email</Label>
-                            <Input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Telefone</Label>
+                            <Input value={formData.telefone || ''} onChange={e => setFormData({...formData, telefone: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Pessoa de Contato</Label>
-                            <Input value={formData.contato_nome || ''} onChange={e => setFormData({...formData, contato_nome: e.target.value})} className="h-10" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Email</Label>
+                            <Input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
-                        <div className="space-y-2">
-                            <Label style={{color: 'var(--cor-texto-sec)'}}>Endereço</Label>
-                            <Textarea value={formData.endereco || ''} onChange={e => setFormData({...formData, endereco: e.target.value})} className="min-h-20" style={{...inputStyle,...focusStyle}} />
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Pessoa de Contato</Label>
+                            <Input value={formData.contato_nome || ''} onChange={e => setFormData({...formData, contato_nome: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Endereço</Label>
+                            <Textarea value={formData.endereco || ''} onChange={e => setFormData({...formData, endereco: e.target.value})} className="min-h-20 w-full text-sm" style={{...inputStyle,...focusStyle}} />
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex-row justify-end gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}>
-                        <DialogClose asChild>
-                            <Button type="button" className="font-semibold" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}>Cancelar</Button>
-                        </DialogClose>
-                        <Button type="submit" disabled={saving} className="gap-2 font-bold" style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}>
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}> {/* <- BOTOES EMPILHADOS */}
+                        <Button type="submit" disabled={saving} className="gap-2 font-bold w-full h-10 text-sm" style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                             {editingFornecedor? "Salvar" : "Criar"}
                         </Button>
+                        <DialogClose asChild>
+                            <Button type="button" className="font-semibold w-full h-10 text-sm" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}>Cancelar</Button>
+                        </DialogClose>
                     </DialogFooter>
                 </form>
             </DialogContent>

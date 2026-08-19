@@ -22,7 +22,7 @@ interface Props {
     editingUser: UsuarioLoja | null;
     formData: FormDataType;
     setFormData: (d: any) => void;
-    onSave: (payload: any, e: React.FormEvent) => void; // <- MUDA AQUI
+    onSave: (payload: any, e: React.FormEvent) => void;
     saving: boolean;
     errorMsg: string;
     lojaNome: string | undefined;
@@ -34,86 +34,85 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-full max-w-full sm:max-w-[600px] p-0 flex-col border shadow-2xl [&>button]:hidden"
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
                     borderColor: 'var(--cor-borda)',
                     borderRadius: 'var(--radius)',
-                    height: '80vh',
-                    maxHeight: '80vh'
+                    maxHeight: '85vh'
                 }}
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
 
                 <form onSubmit={(e) => onSave(formData, e)} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0">
-                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>{editingUser ? "Editar" : "Adicionar"} Membro</DialogTitle>
-                        <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{`Preencha os dados. Loja: ${lojaNome || "-"}`}</DialogDescription>
+                    <DialogHeader className="p-5 pb-3 shrink-0">
+                        <DialogTitle className="text-lg font-bold text-center" style={{ color: 'var(--cor-texto)' }}>{editingUser? "Editar" : "Adicionar"} Membro</DialogTitle>
+                        <DialogDescription className="text-sm text-center mt-1" style={{ color: 'var(--cor-texto-sec)' }}>{`Preencha os dados. Loja: ${lojaNome || "-"}`}</DialogDescription>
                     </DialogHeader>
 
-                    <div className="grid gap-3 sm:gap-4 py-4 px-4 sm:px-6 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
+                    <div className="grid gap-4 py-4 px-5 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
                         {errorMsg && (
-                            <div className="border text-xs p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
+                            <div className="border text-sm p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
                                 {errorMsg}
                             </div>
                         )}
 
-                        <p className="text-sm font-semibold -mb-2" style={{ color: 'var(--cor-texto-sec)' }}>Dados do Membro</p>
+                        <p className="text-sm font-semibold" style={{ color: 'var(--cor-texto-sec)' }}>Dados do Membro</p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nome *</Label>
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Nome *</Label>
                             <Input
                                 value={formData.nome}
-                                onChange={e => setFormData({ ...formData, nome: e.target.value })}
-                                className="sm:col-span-3 text-xs h-9"
+                                onChange={e => setFormData({...formData, nome: e.target.value })}
+                                className="text-sm h-10 w-full"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                    ...focusStyle
+                                   ...focusStyle
                                 }}
                                 required
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label>
-                            {editingUser ? (
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Email</Label>
+                            {editingUser? (
                                 <Input
                                     type="email"
                                     value={formData.email}
-                                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    className="sm:col-span-3 text-xs h-9"
+                                    onChange={e => setFormData({...formData, email: e.target.value })}
+                                    className="text-sm h-10 w-full"
                                     style={{
                                         backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                        ...focusStyle
+                                       ...focusStyle
                                     }}
                                 />
                             ) : (
-                                <p className="sm:col-span-3 text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Será gerado automaticamente: nome@loja.ao</p>
+                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Será gerado automaticamente: nome@loja.ao</p>
                             )}
                         </div>
 
                         {!editingUser && (
-                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Senha Temp *</Label>
+                            <div className="grid gap-1.5">
+                                <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Senha Temp *</Label>
                                 <Input
                                     type="password"
                                     value={formData.senha || ""}
-                                    onChange={e => setFormData({ ...formData, senha: e.target.value })}
-                                    className="sm:col-span-3 text-xs h-9"
+                                    onChange={e => setFormData({...formData, senha: e.target.value })}
+                                    className="text-sm h-10 w-full"
                                     style={{
                                         backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                        ...focusStyle
+                                       ...focusStyle
                                     }}
                                     required
                                     placeholder="mínimo 6 caracteres"
@@ -122,53 +121,53 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                         )}
 
                         {editingUser && (
-                            <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Nova Senha</Label>
+                            <div className="grid gap-1.5">
+                                <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Nova Senha</Label>
                                 <Input
                                     type="password"
                                     value={formData.senha || ""}
-                                    onChange={e => setFormData({ ...formData, senha: e.target.value })}
-                                    className="sm:col-span-3 text-xs h-9"
+                                    onChange={e => setFormData({...formData, senha: e.target.value })}
+                                    className="text-sm h-10 w-full"
                                     style={{
                                         backgroundColor: 'var(--cor-fundo)',
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                        ...focusStyle
+                                       ...focusStyle
                                     }}
                                     placeholder="deixe em branco para não alterar"
                                 />
                             </div>
                         )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Telefone</Label>
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Telefone</Label>
                             <Input
                                 value={formData.telefone || ""}
-                                onChange={e => setFormData({ ...formData, telefone: e.target.value })}
-                                className="sm:col-span-3 text-xs h-9"
+                                onChange={e => setFormData({...formData, telefone: e.target.value })}
+                                className="text-sm h-10 w-full"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                    ...focusStyle
+                                   ...focusStyle
                                 }}
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Cargo</Label>
+                        <div className="grid gap-1.5">
+                            <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Cargo</Label>
                             <select
                                 value={formData.role}
-                                onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}
-                                className="sm:col-span-3 flex h-9 w-full rounded-md px-3 py-2 text-xs"
+                                onChange={e => setFormData({...formData, role: e.target.value as UserRole })}
+                                className="flex h-10 w-full rounded-md px-3 py-2 text-sm"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                    ...focusStyle
+                                   ...focusStyle
                                 }}
                             >
                                 <option value="GERENTE">Gerente</option>
@@ -180,22 +179,35 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                             </select>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                            <Label className="text-xs sm:text-right" style={{ color: 'var(--cor-texto-sec)' }}>Ativo</Label>
+                        <div className="flex items-center justify-between pt-2">
+                            <Label className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Ativo</Label>
                             <Switch
                                 checked={formData.is_active}
-                                onCheckedChange={v => setFormData({ ...formData, is_active: v })}
-                                className="sm:col-span-3 w-fit data-[state=checked]:bg-[var(--cor-primaria)]"
+                                onCheckedChange={v => setFormData({...formData, is_active: v })}
+                                className="data-[state=checked]:bg-[var(--cor-primaria)]"
                             />
                         </div>
 
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
+                    <DialogFooter className="p-4 border-t shrink-0 flex flex-col gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- BOTOES EMPILHADOS */}
+                        <Button
+                            type="submit"
+                            disabled={saving}
+                            className="gap-2 text-sm w-full h-10 font-bold"
+                            style={{
+                                background: 'var(--cor-primaria)',
+                                color: '#fff',
+                                borderRadius: 'var(--radius)'
+                            }}
+                        >
+                            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                            {editingUser? "Salvar Alterações" : "Salvar"}
+                        </Button>
                         <DialogClose asChild>
                             <Button
                                 type="button"
-                                className="text-xs flex-1 sm:flex-initial font-semibold"
+                                className="text-sm w-full h-10 font-semibold"
                                 style={{
                                     backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',
@@ -206,22 +218,8 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                 Cancelar
                             </Button>
                         </DialogClose>
-                        <Button
-                            type="submit"
-                            disabled={saving}
-                            className="gap-2 text-xs flex-1 sm:flex-initial font-bold"
-                            style={{
-                                background: 'var(--cor-primaria)',
-                                color: '#fff',
-                                borderRadius: 'var(--radius)'
-                            }}
-                        >
-                            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {editingUser ? "Salvar Alterações" : "Salvar"}
-                        </Button>
                     </DialogFooter>
                 </form>
-
 
             </DialogContent>
         </Dialog>
