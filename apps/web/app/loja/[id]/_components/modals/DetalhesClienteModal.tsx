@@ -180,40 +180,8 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
                                 {abaAtiva === 'fiado' && (
                                     <div className="h-full grid grid-cols-1 lg:grid-cols-5 gap-0 overflow-hidden">
-                                        {/* Coluna 1: Carrinho com footer fixo - AGORA NA ESQUERDA */}
-                                        <div className="lg:col-span-2 flex flex-col overflow-hidden border-r" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
-                                            <p className="font-bold text-lg p-4 sm:p-6 pb-2 shrink-0">Carrinho Fiado</p>
-
-                                            <div className="flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 space-y-2">
-                                                {carrinho.length === 0 && <p className="text-sm opacity-70 text-center py-10">Adicione produtos ao carrinho</p>}
-                                                {carrinho.map(i => {
-                                                    const preco = getPreco(i);
-                                                    return (
-                                                        <div key={i.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 5%, transparent)' }}>
-                                                            <div className="min-w-0 flex-1">
-                                                                <p className="text-sm font-semibold truncate">{i.nome}</p>
-                                                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatCurrency(preco)} x {i.qtd} = {formatCurrency(preco * i.qtd)}</p>
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => alterarQtd(i.id, -1)}><Minus size={14} /></Button>
-                                                                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => removerDoCarrinho(i.id)}><Trash2 size={14} /></Button>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                            </div>
-
-                                            {/* FOOTER FIXO */}
-                                            <div className="border-t pt-4 p-4 sm:p-6 shrink-0 sticky bottom-0" style={{ borderColor: 'var(--cor-borda)', backgroundColor: 'var(--cor-card)' }}>
-                                                <div className="flex justify-between items-center mb-4"><p className="font-semibold">Total da Dívida:</p><p className="font-bold text-2xl" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</p></div>
-                                                <Button className="w-full h-11" disabled={carrinho.length === 0 || salvando} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', fontWeight: 600 }} onClick={handleSalvarFiado}>
-                                                    {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
-                                                </Button>
-                                            </div>
-                                        </div>
-
-                                        {/* Coluna 2: Produtos - AGORA NA DIREITA */}
-                                        <div className="lg:col-span-3 p-4 sm:p-6 flex-col overflow-hidden" style={{ borderColor: 'var(--cor-borda)' }}>
+                                        {/* Coluna 1: Produtos - ESQUERDA */}
+                                        <div className="lg:col-span-3 p-4 sm:p-6 border-r flex flex-col overflow-hidden" style={{ borderColor: 'var(--cor-borda)' }}>
                                             <div className="flex items-center gap-2 mb-4 shrink-0"><Package size={18} /><h3 className="font-bold text-lg">Selecionar Produtos</h3></div>
                                             <div className="relative mb-4 shrink-0">
                                                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--cor-texto-sec)' }} />
@@ -264,6 +232,38 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                                         )
                                                     })}
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Coluna 2: Carrinho com footer fixo - DIREITA */}
+                                        <div className="lg:col-span-2 flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--cor-card)' }}>
+                                            <p className="font-bold text-lg p-4 sm:p-6 pb-2 shrink-0">Carrinho Fiado</p>
+
+                                            <div className="flex-1 overflow-y-auto scrollbar-hide px-4 sm:px-6 space-y-2">
+                                                {carrinho.length === 0 && <p className="text-sm opacity-70 text-center py-10">Adicione produtos ao carrinho</p>}
+                                                {carrinho.map(i => {
+                                                    const preco = getPreco(i);
+                                                    return (
+                                                        <div key={i.id} className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'color-mix(in srgb, var(--cor-primaria) 5%, transparent)' }}>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-sm font-semibold truncate">{i.nome}</p>
+                                                                <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatCurrency(preco)} x {i.qtd} = {formatCurrency(preco * i.qtd)}</p>
+                                                            </div>
+                                                            <div className="flex items-center gap-1">
+                                                                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => alterarQtd(i.id, -1)}><Minus size={14} /></Button>
+                                                                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => removerDoCarrinho(i.id)}><Trash2 size={14} /></Button>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+
+                                            {/* FOOTER FIXO */}
+                                            <div className="border-t pt-4 p-4 sm:p-6 shrink-0 sticky bottom-0" style={{ borderColor: 'var(--cor-borda)', backgroundColor: 'var(--cor-card)' }}>
+                                                <div className="flex justify-between items-center mb-4"><p className="font-semibold">Total da Dívida:</p><p className="font-bold text-2xl" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</p></div>
+                                                <Button className="w-full h-11" disabled={carrinho.length === 0 || salvando} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: '8px', fontWeight: 600 }} onClick={handleSalvarFiado}>
+                                                    {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
