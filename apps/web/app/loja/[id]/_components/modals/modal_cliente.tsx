@@ -38,7 +38,7 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden" // <- AQUI: largura com espaço + centralizado
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -116,13 +116,24 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex flex-col gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
-                        <Button type="submit" disabled={saving} className="gap-2 text-sm w-full h-10 font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- AJUSTADO */}
+                        <Button
+                          type="submit"
+                          disabled={saving}
+                          className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold" // <- AJUSTADO
+                          style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}
+                        >
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                             {isEditing? "Salvar Alterações" : "Cadastrar Cliente"}
                         </Button>
                         <DialogClose asChild>
-                            <Button type="button" className="text-sm w-full h-10 font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>
+                            <Button
+                              type="button"
+                              className="text-sm w-full sm:flex-1 h-10 font-semibold" // <- AJUSTADO
+                              style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}
+                            >
+                              Cancelar
+                            </Button>
                         </DialogClose>
                     </DialogFooter>
                 </form>

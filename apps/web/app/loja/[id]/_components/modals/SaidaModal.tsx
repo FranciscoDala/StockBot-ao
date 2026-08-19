@@ -87,7 +87,7 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -113,20 +113,20 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
                             </div>
                         )}
 
-                        <div className="grid gap-1.5"> {/* <- 1 COLUNA */}
+                        <div className="grid gap-1.5">
                             <Label className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Valor *</Label>
                             <Input
                                 type="number"
                                 step="0.01"
                                 value={formData.valor}
                                 onChange={e => setFormData({...formData, valor: e.target.value })}
-                                className="text-sm h-10 w-full" // <- h-10 w-full
+                                className="text-sm h-10 w-full"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                                 placeholder="0.00"
                                 required
@@ -144,18 +144,18 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                  ...focusStyle
+                                 ...focusStyle
                                 }}
                                 placeholder="Ex: Retirada do dono, Pagamento fornecedor..."
                             />
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex-col gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- BOTOES EMPILHADOS */}
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- AJUSTADO */}
                         <Button
                             type="submit"
                             disabled={saving}
-                            className="gap-2 text-sm w-full h-10 font-bold"
+                            className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold" // <- AJUSTADO
                             style={{
                                 background: '#ef4444',
                                 color: '#fff',
@@ -168,7 +168,7 @@ export function SaidaModal({ open, onOpenChange, onSave, token, lojaId, lojaNome
                         <DialogClose asChild>
                             <Button
                                 type="button"
-                                className="text-sm w-full h-10 font-semibold"
+                                className="text-sm w-full sm:flex-1 h-10 font-semibold" // <- AJUSTADO
                                 style={{
                                     backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',

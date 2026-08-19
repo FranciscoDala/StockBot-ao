@@ -50,12 +50,12 @@ export function ConfirmarModal({
         onClose();
     }
 
-    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' } // <- PADRAO
+    const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px var(--cor-primaria)30' }
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden" // <- PADRAO
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -68,31 +68,31 @@ export function ConfirmarModal({
             >
 
                 <DialogHeader className="p-5 pb-3 shrink-0">
-                    <div className="flex items-center justify-center gap-3"> {/* <- CENTRALIZADO */}
+                    <div className="flex items-center justify-center gap-3">
                         <Shield size={24} style={{color: 'var(--cor-primaria)'}} />
                         <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>{titulo}</DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}> {/* <- CENTRALIZADO */}
+                    <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}>
                         {descricao}
                     </DialogDescription>
                 </DialogHeader>
 
                 {precisaDeSenha && (
                     <div className="px-5 pb-2">
-                        <div className="grid gap-1.5"> {/* <- PADRAO */}
+                        <div className="grid gap-1.5">
                             <Label htmlFor="senha-dono" className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Digite a senha do Dono para confirmar</Label>
                             <Input
                                 id="senha-dono"
                                 type="password"
                                 value={senha}
                                 onChange={(e) => setSenha(e.target.value)}
-                                className="h-10 w-full text-sm" // <- PADRAO
+                                className="h-10 w-full text-sm"
                                 style={{
                                     backgroundColor: 'var(--cor-fundo)',
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                 ...focusStyle
+                                ...focusStyle
                                 }}
                                 placeholder="******"
                                 disabled={loading}
@@ -103,7 +103,7 @@ export function ConfirmarModal({
                 )}
 
                 <DialogFooter
-                    className="p-4 border-t shrink-0 flex-col gap-2" // <- BOTOES EMPILHADOS
+                    className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" // <- AJUSTADO
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -112,7 +112,7 @@ export function ConfirmarModal({
                     <Button
                         onClick={handleConfirm}
                         disabled={loading || (precisaDeSenha && senha.length < 4)}
-                        className="gap-2 font-bold h-10 w-full text-sm whitespace-nowrap" // <- PADRAO
+                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm whitespace-nowrap" // <- AJUSTADO
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',
@@ -127,7 +127,7 @@ export function ConfirmarModal({
                             variant="secondary"
                             onClick={handleClose}
                             disabled={loading}
-                            className="h-10 w-full text-sm font-semibold" // <- PADRAO
+                            className="h-10 w-full sm:flex-1 text-sm font-semibold" // <- AJUSTADO
                             style={{
                                 backgroundColor: 'var(--cor-card)',
                                 color: 'var(--cor-texto)',

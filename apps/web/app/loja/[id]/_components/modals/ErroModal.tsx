@@ -45,7 +45,7 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -55,14 +55,14 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                 }}
             >
                 <DialogHeader className="p-5 pb-3">
-                    <div className="flex flex-col items-center justify-center gap-3 text-center"> {/* <- CENTRALIZADO */}
+                    <div className="flex flex-col items-center justify-center gap-3 text-center">
                         <div>{current.icon}</div>
                         <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>{current.title}</DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm leading-relaxed text-center mt-2" style={{color: 'var(--cor-texto-sec)'}}>{mensagem}</DialogDescription> {/* <- CENTRALIZADO */}
+                    <DialogDescription className="text-sm leading-relaxed text-center mt-2" style={{color: 'var(--cor-texto-sec)'}}>{mensagem}</DialogDescription>
                 </DialogHeader>
                 <DialogFooter
-                    className="p-4 border-t"
+                    className="p-4 border-t flex-col sm:flex-row" // <- PADRAO
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -70,7 +70,7 @@ export function ErroModal({ open, onClose, mensagem, tipo = 'erro', titulo }: Pr
                 >
                     <Button
                         onClick={onClose}
-                        className="w-full font-bold h-10 text-sm" // <- PADRAO
+                        className="w-full sm:flex-1 font-bold h-10 text-sm" // <- PADRAO
                         style={{
                             backgroundColor: current.btnColor,
                             color: '#fff',

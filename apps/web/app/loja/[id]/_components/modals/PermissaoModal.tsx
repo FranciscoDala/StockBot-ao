@@ -33,7 +33,7 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
             <DialogContent
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -43,16 +43,16 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                 }}
             >
                 <DialogHeader className="p-5 pb-3 shrink-0">
-                    <div className="flex items-center justify-center gap-3"> {/* <- CENTRALIZADO */}
+                    <div className="flex items-center justify-center gap-3">
                         <ShieldCheck size={24} style={{color: 'var(--cor-primaria)'}} />
                         <DialogTitle className="text-lg font-bold" style={{color: 'var(--cor-texto)'}}>{titulo}</DialogTitle>
                     </div>
-                    <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}> {/* <- CENTRALIZADO */}
+                    <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}>
                         Esta é uma ação sensível. Para continuar, confirme com a senha do proprietário da loja.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="px-5 pb-4 flex-1">
-                    <div className="grid gap-1.5"> {/* <- PADRAO */}
+                    <div className="grid gap-1.5">
                         <Label htmlFor="senha" className="flex items-center gap-2 text-xs" style={{color: 'var(--cor-texto-sec)'}}>
                             <KeyRound size={14}/> Senha do Proprietário
                         </Label>
@@ -63,13 +63,13 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                             value={senha}
                             onChange={(e) => setSenha(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                            className="h-10 w-full text-sm" // <- PADRAO
+                            className="h-10 w-full text-sm"
                             style={{
                                 backgroundColor: 'var(--cor-fundo)',
                                 color: 'var(--cor-texto)',
                                 border: '1.5px solid var(--cor-primaria)',
                                 borderRadius: 'var(--radius-sm)',
-                            ...focusStyle
+                           ...focusStyle
                             }}
                             autoFocus
                             disabled={loading}
@@ -77,7 +77,7 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                     </div>
                 </div>
                 <DialogFooter
-                    className="p-4 border-t shrink-0 flex-col gap-2" // <- BOTOES EMPILHADOS
+                    className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" // <- AJUSTADO
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)'
@@ -86,7 +86,7 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                     <Button
                         onClick={handleSubmit}
                         disabled={loading ||!senha}
-                        className="gap-2 font-bold w-full h-10 text-sm whitespace-nowrap" // <- PADRAO
+                        className="gap-2 font-bold w-full sm:flex-1 h-10 text-sm whitespace-nowrap" // <- AJUSTADO
                         style={{
                             background: 'var(--cor-primaria)',
                             color: '#fff',
@@ -101,7 +101,7 @@ export function PermissaoModal({ open, onClose, onConfirm, titulo, loading }: Pr
                             variant="secondary"
                             onClick={onClose}
                             disabled={loading}
-                            className="font-semibold w-full h-10 text-sm" // <- PADRAO
+                            className="font-semibold w-full sm:flex-1 h-10 text-sm" // <- AJUSTADO
                             style={{
                                 backgroundColor: 'var(--cor-card)',
                                 color: 'var(--cor-texto)',

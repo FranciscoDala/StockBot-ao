@@ -39,33 +39,33 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
                     borderColor: 'var(--cor-borda)',
                     borderRadius: 'var(--radius)',
-                    maxHeight: '85vh' // <- PADRAO
+                    maxHeight: '85vh'
                 }}
             >
                 <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="flex flex-col flex-1 min-h-0">
                     <DialogHeader className="p-5 pb-3 shrink-0">
-                        <div className="flex items-center justify-center gap-3"> {/* <- CENTRALIZADO */}
+                        <div className="flex items-center justify-center gap-3">
                             <Truck size={24} style={{color: 'var(--cor-primaria)'}} />
                             <DialogTitle className="text-lg font-bold">{editingFornecedor? "Editar" : "Adicionar"} Fornecedor</DialogTitle>
                         </div>
-                        <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}> {/* <- CENTRALIZADO */}
+                        <DialogDescription className="text-sm text-center mt-1" style={{color: 'var(--cor-texto-sec)'}}>
                             Dados da empresa fornecedora
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="px-5 py-4 grid gap-4 overflow-y-auto flex-1 min-h-0 scrollbar-hide"> {/* <- PADRAO */}
+                    <div className="px-5 py-4 grid gap-4 overflow-y-auto flex-1 min-h-0 scrollbar-hide">
                         {errorMsg && (
                             <div className="border text-sm p-3" style={{ backgroundColor: 'var(--cor-erro)14', borderColor: 'var(--cor-erro)30', color: 'var(--cor-erro)', borderRadius: 'var(--radius)' }}>
                                 {errorMsg}
                             </div>
                         )}
-                        <div className="grid gap-1.5"> {/* <- PADRAO 1 COLUNA */}
+                        <div className="grid gap-1.5">
                             <Label className="text-xs" style={{color: 'var(--cor-texto-sec)'}}>Nome da Empresa *</Label>
                             <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="h-10 w-full text-sm" style={{...inputStyle,...focusStyle}} required />
                         </div>
@@ -91,13 +91,24 @@ export function FornecedorModal({ open, onOpenChange, editingFornecedor, formDat
                         </div>
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex-col gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}> {/* <- BOTOES EMPILHADOS */}
-                        <Button type="submit" disabled={saving} className="gap-2 font-bold w-full h-10 text-sm" style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}>
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)'}}> {/* <- AJUSTADO */}
+                        <Button
+                          type="submit"
+                          disabled={saving}
+                          className="gap-2 font-bold w-full sm:flex-1 h-10 text-sm" // <- AJUSTADO
+                          style={{background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)'}}
+                        >
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                             {editingFornecedor? "Salvar" : "Criar"}
                         </Button>
                         <DialogClose asChild>
-                            <Button type="button" className="font-semibold w-full h-10 text-sm" style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}>Cancelar</Button>
+                            <Button
+                              type="button"
+                              className="font-semibold w-full sm:flex-1 h-10 text-sm" // <- AJUSTADO
+                              style={{backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)'}}
+                            >
+                              Cancelar
+                            </Button>
                         </DialogClose>
                     </DialogFooter>
                 </form>

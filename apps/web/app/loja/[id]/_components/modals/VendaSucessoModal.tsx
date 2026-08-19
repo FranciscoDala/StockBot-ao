@@ -45,7 +45,7 @@ export function VendaSucessoModal({
         <>
             <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" style={{backgroundColor: 'rgba(0,0,0,0.8)'}}>
                 <div
-                    className="border shadow-2xl max-w-md w-full mx-4 overflow-hidden" // <- ADICIONADO: overflow-hidden + mx-4
+                    className="border shadow-2xl max-w-md w-full mx-4 overflow-hidden"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
@@ -97,10 +97,10 @@ export function VendaSucessoModal({
                             </div>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-2 pt-4"> {/* <- AJUSTADO: responsivo */}
+                        <div className="flex flex-col sm:flex-row gap-2 pt-4"> {/* <- PADRAO */}
                             <Button
                                 onClick={onClose}
-                                className="flex-1 font-semibold"
+                                className="w-full sm:flex-1 font-semibold h-10 text-sm" // <- AJUSTADO
                                 style={{
                                     backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',
@@ -112,7 +112,7 @@ export function VendaSucessoModal({
                             </Button>
                             <Button
                                 onClick={handleImprimir}
-                                className="flex-1 gap-2 font-bold"
+                                className="w-full sm:flex-1 gap-2 font-bold h-10 text-sm" // <- AJUSTADO
                                 style={{
                                     background: 'var(--cor-sucesso)',
                                     color: '#fff',

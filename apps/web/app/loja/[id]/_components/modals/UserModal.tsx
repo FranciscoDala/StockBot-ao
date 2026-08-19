@@ -34,7 +34,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden" // <- PADRAO
+                className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -72,7 +72,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                   ...focusStyle
+                                  ...focusStyle
                                 }}
                                 required
                             />
@@ -91,7 +91,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                       ...focusStyle
+                                      ...focusStyle
                                     }}
                                 />
                             ) : (
@@ -112,7 +112,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                       ...focusStyle
+                                      ...focusStyle
                                     }}
                                     required
                                     placeholder="mínimo 6 caracteres"
@@ -133,7 +133,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                         color: 'var(--cor-texto)',
                                         border: '1.5px solid var(--cor-primaria)',
                                         borderRadius: 'var(--radius-sm)',
-                                       ...focusStyle
+                                      ...focusStyle
                                     }}
                                     placeholder="deixe em branco para não alterar"
                                 />
@@ -151,7 +151,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                   ...focusStyle
+                                  ...focusStyle
                                 }}
                             />
                         </div>
@@ -167,7 +167,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                   ...focusStyle
+                                  ...focusStyle
                                 }}
                             >
                                 <option value="GERENTE">Gerente</option>
@@ -190,11 +190,11 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
 
                     </div>
 
-                    <DialogFooter className="p-4 border-t shrink-0 flex flex-col gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}> {/* <- BOTOES EMPILHADOS */}
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
                         <Button
                             type="submit"
                             disabled={saving}
-                            className="gap-2 text-sm w-full h-10 font-bold"
+                            className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold"
                             style={{
                                 background: 'var(--cor-primaria)',
                                 color: '#fff',
@@ -207,7 +207,7 @@ export function UserModal({ open, onOpenChange, editingUser, formData, setFormDa
                         <DialogClose asChild>
                             <Button
                                 type="button"
-                                className="text-sm w-full h-10 font-semibold"
+                                className="text-sm w-full sm:flex-1 h-10 font-semibold"
                                 style={{
                                     backgroundColor: 'var(--cor-card)',
                                     color: 'var(--cor-texto)',
