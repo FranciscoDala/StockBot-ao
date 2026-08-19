@@ -109,9 +109,9 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setProdutosLoja([]);
         }
 
-        // 2. Busca dívidas SEPARADO
+        // 2. AJUSTE: Buscar HISTÓRICO completo em vez de só pendentes
         try {
-            const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
+            const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/vendas`, { headers: { "Authorization": `Bearer ${token}` } }); // MUDOU AQUI: /pendentes -> /vendas
             if (resVendas.ok) {
                 const dataVendas = await resVendas.json();
                 setVendasPendentes(Array.isArray(dataVendas)? dataVendas : []);
@@ -131,8 +131,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
         try {
             const [resVendas, resProdutos] = await Promise.all([
-                fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } }) // CORRIGIDO
+                fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/vendas`, { headers: { "Authorization": `Bearer ${token}` } }), // MUDOU AQUI TAMBEM: /pendentes -> /vendas
+                fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
             if(resVendas.ok) setVendasPendentes(await resVendas.json() || []);
             if(resProdutos.ok) setProdutosLoja(await resProdutos.json() || []);
@@ -173,12 +173,14 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (!token ||!clienteSelecionado || carrinho.length === 0) return;
 
         const payload = {
+            loja_id: lojaId,
             cliente_id: clienteSelecionado.id,
+            status: 'fiado',
             itens: carrinho.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco })),
             total: carrinho.reduce((acc, i) => acc + i.preco * i.qtd, 0)
         };
 
-        const res = await fetch(`${API_URL}/vendas/fiado`, { // CORRIGIDO
+        const res = await fetch(`${API_URL}/lojas/${lojaId}/vendas`, {
             method: 'POST',
             headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -248,8 +250,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             setSaving(true);
             try {
                 const payload: Record<string, any> = {
-                   ...formDataCliente
-                    // REMOVI loja_id: lojaId - backend já pega da URL
+                  ...formDataCliente
                 };
                 Object.keys(payload).forEach(key => { if (payload[key] === "") payload[key] = null; });
 
@@ -344,10 +345,10 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 <div className="relative flex-1">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
                     <Input
-                        key={`busca-${showModal}-${showDetalhes}-${showConfirmarModal}-${showPagarModal}`} // recria só quando modal muda
+                        key={`busca-${showModal}-${showDetalhes}-${showConfirmarModal}-${showPagarModal}`}
                         type="search"
-                        name="busca_clientes" // nome fixo
-                        autoComplete="new-password" // chrome odeia isso = não preenche
+                        name="busca_clientes"
+                        autoComplete="new-password"
                         role="presentation"
                         placeholder="Buscar por nome, BI, telefone..."
                         value={busca}
@@ -410,7 +411,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 vendas={vendasPendentes}
                 produtos={produtosLoja}
                 onPagar={handleAbrirPagar}
-                onSalvarFiado={handleSalvarFiado} // <- cria essa função que chama a API
+                onSalvarFiado={handleSalvarFiado}
                 formatCurrency={formatCurrency}
                 loading={loadingDetalhes}
             />

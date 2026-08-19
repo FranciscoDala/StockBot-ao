@@ -69,248 +69,424 @@ className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !fle
 
 
 
+"use client";
+import { useState, useEffect, useMemo, Dispatch, SetStateAction, FormEvent } from "react";
+import { Users, DollarSign, ChevronLeft, ChevronRight, Plus, Search, Filter, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Produto } from "../modals/ProdutoModal";
+import { ClienteModal, ClienteForm } from "../modals/modal_cliente";
+import { ConfirmarModal } from "../modals/ConfirmacaoModal";
+import { DetalhesClienteModal, type VendaPendente } from "../modals/DetalhesClienteModal";
+import { PagarDividaModal } from "../modals/PagarDividaModal";
 
-main sem loop
+// BATE 100% COM ClienteOut DO BACKEND
+export type Cliente = {
+    id: string;
+    loja_id: string;
+    nome: string;
+    nome_empresa: string | null;
+    bi: string | null;
+    telefone: string | null;
+    email: string | null;
+    endereco: string | null;
+    cidade: string | null;
+    provincia: string | null;
+    observacoes: string | null;
+    is_active: boolean;
+    created_at: string;
+    total_divida: number;
+    ultima_compra: string | null;
+    status: 'com_divida' | 'em_dia';
+};
 
+type Props = { lojaId: string; token: string | null; theme: string; cardStyle: string; cardSize: string; formatCurrency: (v: number) => string; }
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://stockbot-ao.onrender.com/api/v1";
+type FiltroCliente = 'todos' | 'com_divida' | 'novo' | 'em_dia';
+type ProdutoCarrinho = Omit<Produto, 'unidade'> & { qtd: number };
 
-from fastapi import FastAPI, Depends, APIRouter, Request, UploadFile, File
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
-from contextlib import asynccontextmanager
-import logging, traceback, uuid
-from typing import AsyncGenerator
-from pathlib import Path
+export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatCurrency }: Props) {
+    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingDetalhes, setLoadingDetalhes] = useState(false);
+    const [filtro, setFiltro] = useState<FiltroCliente>('com_divida');
+    const [busca, setBusca] = useState("");
+    const [pagina, setPagina] = useState(1);
+    const ITENS_POR_PAGINA = 8;
+    const [showModal, setShowModal] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [savingPagamento, setSavingPagamento] = useState(false);
+    const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
+    const [formDataCliente, setFormDataCliente] = useState<ClienteForm>({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
+    const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
+    const [showDetalhes, setShowDetalhes] = useState(false);
+    const [vendasPendentes, setVendasPendentes] = useState<VendaPendente[]>([]);
+    const [carrinhoFiado, setCarrinhoFiado] = useState<ProdutoCarrinho[]>([]);
+    const [produtosLoja, setProdutosLoja] = useState<Produto[]>([]);
+    const [showPagarModal, setShowPagarModal] = useState(false);
+    const [vendaSelecionada, setVendaSelecionada] = useState<VendaPendente | null>(null);
+    const [valorPagamento, setValorPagamento] = useState("");
+    const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
+    const [showConfirmarModal, setShowConfirmarModal] = useState(false);
+    const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar', data: Cliente | null } | null>(null);
 
-from app.db.session import engine, Base
-from app.core.deps import get_current_user, require_role
-from app.core.config import settings
-from app.models.usuario import Usuario
-from app.schemas.usuario import userread, Role
-from app.websocket.manager import manager # <- ADICIONADO
+    const fetchClientes = async () => {
+        if (!token) return;
+        setLoading(true);
+        try {
+            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
+            if (!res.ok) throw new Error((await res.json()).detail || `Erro ${res.status}`)
+            const data = await res.json();
+            setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0, ultima_compra: c.ultima_compra || null })));
+        } catch (e: any) {
+            toast.error(e.message || "Erro ao carregar clientes");
+            setClientes([])
+        } finally { setLoading(false) }
+    }
 
-# Cloudinary
-import cloudinary
-from cloudinary import CloudinaryImage
-import cloudinary.uploader
+    const atualizarClienteSelecionado = async () => {
+        if(!token ||!clienteSelecionado) return;
+        try {
+            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
+            if(res.ok){
+                const data = await res.json();
+                const lista = Array.isArray(data)? data : [];
+                const clienteNovo = lista.find((c: any) => c.id === clienteSelecionado.id);
+                if(clienteNovo) setClienteSelecionado({...clienteNovo, total_divida: clienteNovo.total_divida?? 0, ultima_compra: clienteNovo.ultima_compra || null });
+            }
+        } catch {}
+    }
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
+    const fetchDetalhesCliente = async (e: React.MouseEvent, cliente: Cliente) => {
+        e.preventDefault();
+        if (!token) return;
+        setClienteSelecionado(cliente);
+        setShowDetalhes(true);
+        setLoadingDetalhes(true);
+        setVendasPendentes([]);
+        setProdutosLoja([]);
 
-# Configura Cloudinary
-cloudinary.config(
-    cloud_name = settings.CLOUDINARY_CLOUD_NAME,
-    api_key = settings.CLOUDINARY_API_KEY,
-    api_secret = settings.CLOUDINARY_API_SECRET
-)
-logger.info(f"Cloudinary Configurado: {settings.CLOUDINARY_CLOUD_NAME}")
-
-def import_all_models():
-    logger.info("forçando import de todos os models...")
-    from app.models.usuario import Usuario
-    from app.models.loja import Loja
-    from app.models.usuario_loja import UsuarioLoja
-    from app.models.produto import Produto
-    from app.models.venda import Venda
-    from app.models.itens_venda import ItemVenda
-    from app.models.documento import DocumentoKYC
-    from app.models.role import UserRole
-    from app.models.categoria import Categoria
-    from app.models.fornecedor import Fornecedor
-    from app.models.saidas import Saida
-    from app.models.caixa import Caixa # <- NOVO
-    from app.models.movimentacao_caixa import MovimentacaoCaixa # <- NOVO
-    tabelas = sorted(list(Base.metadata.tables.keys()))
-    logger.info(f"models registrados no metadata: {', '.join(tabelas)}")
-    logger.info(f"total: {len(tabelas)} tabelas mapeadas.")
-
-@asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    logger.info("stockbot ao api a iniciar...")
-    import_all_models()
-
-    # <- INICIA REDIS AQUI - AJUSTE: NAO DERRUBA O APP SE FALHAR
-    try:
-        await manager.connect_redis()
-        logger.info("Redis PubSub conectado")
-    except Exception as e:
-        logger.error(f"AVISO: Redis nao conectou. Websocket so funciona em 1 instancia. Erro: {e}")
-
-    try:
-        async with engine.begin() as conn:
-            table_exists = await conn.run_sync(lambda sync_conn: sync_conn.dialect.has_table(sync_conn, "usuarios"))
-            if not table_exists:
-                logger.warning("tabelas não encontradas. criando tudo no postgres...")
-                await conn.run_sync(Base.metadata.create_all)
-            else:
-                logger.info("tabelas já existem. pulando criação.")
-    except Exception as e:
-        logger.error(f"erro critico: {e}\n{traceback.format_exc()}")
-        raise e
-    yield
-
-    # <- FECHA REDIS AQUI
-    await manager.close()
-    logger.info("Redis PubSub fechado")
-    logger.info("api a desligar...")
-
-app = FastAPI(
-    title="stockbot ao api",
-    version="1.0.0",
-    lifespan=lifespan,
-    docs_url="/docs",
-    root_path="/api/v1"
-)
-
-logger.info(f"CORS liberado para: {settings.ALLOWED_ORIGINS_LIST}")
-
-app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"]
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS_LIST,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"]
-)
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Erro 500 nao tratado na rota {request.url}: {exc}\n{traceback.format_exc()}")
-    return JSONResponse(status_code=500, content={"detail": f"Erro interno: {str(exc)}"})
-
-# VOLTOU: Pasta local pra dev
-UPLOAD_DIR = Path("apps/uploads/produtos")
-UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
-app.mount("/uploads", StaticFiles(directory="apps/uploads"), name="uploads")
-
-api_v1_router = APIRouter()
-
-# ROTA 1: SALVAR LOCAL - pra dev/teste
-@api_v1_router.post("/upload/produto/local", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
-async def upload_produto_local(file: UploadFile = File(...)):
-    ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
-    MAX_FILE_SIZE = 5 * 1024 * 1024
-
-    filename = file.filename or f"arquivo_{uuid.uuid4()}" # <- CORRIGIDO
-    extension = filename.split(".")[-1].lower() if "." in filename else "jpg" # <- CORRIGIDO
-
-    if extension not in ALLOWED_EXTENSIONS:
-        return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
-
-    contents = await file.read()
-    if len(contents) > MAX_FILE_SIZE:
-        return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
-
-    file_name = f"{uuid.uuid4()}.{extension}"
-    file_path = UPLOAD_DIR / file_name
-    with open(file_path, "wb") as buffer:
-        buffer.write(contents)
-
-    base_url = settings.BASE_URL
-    url = f"{base_url}/uploads/produtos/{file_name}"
-    logger.info(f"[LOCAL] Arquivo salvo: {url}")
-    return {"url": url, "filename": file_name, "storage": "local"}
-
-# ROTA 2: SALVAR CLOUDINARY - pra produção
-@api_v1_router.post("/upload/produto/cloudinary", tags=["upload"], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
-async def upload_produto_cloudinary(file: UploadFile = File(...)):
-    return await _upload_to_cloudinary(file)
-
-# FUNCAO REUTILIZAVEL CLOUDINARY
-async def _upload_to_cloudinary(file: UploadFile):
-    ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "webp"}
-    MAX_FILE_SIZE = 5 * 1024 * 1024
-
-    filename = file.filename or f"arquivo_{uuid.uuid4()}" # <- CORRIGIDO
-    extension = filename.split(".")[-1].lower() if "." in filename else "jpg" # <- CORRIGIDO
-
-    if extension not in ALLOWED_EXTENSIONS:
-        return JSONResponse(status_code=400, content={"detail": "Formato invalido. Use: jpg, jpeg, png, webp"})
-
-    contents = await file.read()
-    if len(contents) > MAX_FILE_SIZE:
-        return JSONResponse(status_code=400, content={"detail": "Arquivo muito grande. Max 5MB"})
-
-    try:
-        logger.info(f"[CLOUDINARY] Enviando arquivo: {filename} - Tamanho: {len(contents)} bytes")
-
-        upload_result = cloudinary.uploader.upload(
-            contents,
-            folder="stockbot/apps/uploads/produtos",
-            resource_type="image"
-        )
-
-        logger.info(f"[CLOUDINARY] SUCESSO! URL: {upload_result['secure_url']}")
-
-        public_id = upload_result['public_id']
-        optimized_url = CloudinaryImage(public_id).build_url(
-            fetch_format="auto",
-            quality="auto"
-        )
-
-        return {
-            "original_url": upload_result['secure_url'],
-            "optimized_url": optimized_url,
-            "public_id": public_id,
-            "width": upload_result['width'],
-            "height": upload_result['height'],
-            "format": upload_result['format'],
-            "size_bytes": upload_result['bytes'],
-            "storage": "cloudinary"
+        // 1. Busca produtos SEMPRE
+        try {
+            const resProdutos = await fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } });
+            if (resProdutos.ok) {
+                const dataProdutos = await resProdutos.json();
+                setProdutosLoja(Array.isArray(dataProdutos)? dataProdutos : []);
+            }
+        } catch {
+            setProdutosLoja([]);
         }
-    except Exception as e:
-        logger.error(f"[CLOUDINARY] ERRO: {e}\n{traceback.format_exc()}")
-        return JSONResponse(status_code=500, content={"detail": f"Erro ao enviar para Cloudinary: {str(e)}"})
 
-@api_v1_router.get("/health", tags=["health"])
-async def health_check():
-    return {"status": "ok"}
+        // 2. Busca dívidas SEPARADO
+        try {
+            const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
+            if (resVendas.ok) {
+                const dataVendas = await resVendas.json();
+                setVendasPendentes(Array.isArray(dataVendas)? dataVendas : []);
+            }
+        } catch {
+            setVendasPendentes([]);
+        } finally {
+            setLoadingDetalhes(false);
+        }
+    }
 
-@app.get("/health", tags=["health"])
-async def health_check_root():
-    return {"status": "ok"}
+    const recarregarDetalhesCliente = async (cliente: Cliente) => {
+        if (!token) return;
+        setLoadingDetalhes(true);
+        setVendasPendentes([]);
+        setProdutosLoja([]);
 
-@app.get("/me", response_model=userread, tags=["auth"])
-async def read_me(current_user: Usuario = Depends(get_current_user)):
-    return current_user
+        try {
+            const [resVendas, resProdutos] = await Promise.all([
+                fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } }),
+                fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } }) // CORRIGIDO
+            ]);
+            if(resVendas.ok) setVendasPendentes(await resVendas.json() || []);
+            if(resProdutos.ok) setProdutosLoja(await resProdutos.json() || []);
+        } catch {
+            setVendasPendentes([]);
+            setProdutosLoja([]);
+        } finally {
+            setLoadingDetalhes(false);
+        }
+    }
 
-from app.api.v1 import auth as auth_router
-from app.api.v1 import usuario as usuario_router
-from app.api.v1 import loja as admin_loja_router
-from app.api.v1 import company as company_router
-from app.api.v1 import users as users_router
-from app.api.v1 import produto as produto_router
-from app.api.v1 import venda as venda_router
-from app.api.v1 import webhook as webhook_router
-from app.api.v1 import documentos as documentos_router
-from app.api.v1 import websocket as websocket_router
-from app.api.v1 import saidas as saidas_router
-from app.api.v1 import caixas as caixas_router # <- NOVO
-from app.api.v1 import movimentos_caixas as movimentos_caixas_router # <- NOVO
+    const handleAbrirPagar = (venda: VendaPendente) => {
+        setVendaSelecionada(venda);
+        setValorPagamento(String(venda.saldo_devedor));
+        setShowPagarModal(true);
+    }
 
-api_v1_router.include_router(auth_router.router, prefix="/auth", tags=["auth"])
-api_v1_router.include_router(usuario_router.router, prefix="")
-api_v1_router.include_router(admin_loja_router.router, prefix="/lojas", tags=["lojas"])
-api_v1_router.include_router(company_router.router, prefix="/company", tags=["company"])
-api_v1_router.include_router(users_router.router, prefix="/users", tags=["users"])
-api_v1_router.include_router(produto_router.router, prefix="/produtos", tags=["produtos"])
-api_v1_router.include_router(venda_router.router, prefix="/vendas", tags=["vendas"])
-api_v1_router.include_router(webhook_router.router, prefix="/webhook", tags=["whatsapp"])
-api_v1_router.include_router(documentos_router.router, prefix="/kyc", tags=["kyc"])
-api_v1_router.include_router(websocket_router.router)
-api_v1_router.include_router(saidas_router.router)
+    const handleConfirmarPagamento = async () => {
+        if (!token ||!clienteSelecionado ||!vendaSelecionada ||!valorPagamento || parseFloat(valorPagamento) <= 0) return toast.error("Valor inválido");
+        setSavingPagamento(true);
+        try {
+            const url = `${API_URL}/lojas/${lojaId}/clientes/${clienteSelecionado.id}/vendas/${vendaSelecionada.id}/pagar`;
+            const payload = { valor: parseFloat(valorPagamento), forma_pagamento: formaPagamento, observacao: `Pagamento venda ${vendaSelecionada.id.slice(0, 8)}` };
+            console.log("[DEBUG] PAGAR:", url, payload)
+            const res = await fetch(url, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || "Erro ao pagar");
+            toast.success(data.detail);
+            setShowPagarModal(false);
+            setVendaSelecionada(null);
+            await fetchClientes();
+            await atualizarClienteSelecionado(); // ATUALIZA HEADER DO MODAL
+            if (clienteSelecionado) await recarregarDetalhesCliente(clienteSelecionado);
+        } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
+    }
 
-# COMPATIBILIDADE: registra com s e sem s pra nao quebrar o front
-api_v1_router.include_router(caixas_router.router, prefix="/caixas", tags=["caixas"])
-api_v1_router.include_router(caixas_router.router, prefix="/caixa", tags=["caixas"]) # <- ACEITA OS 2 AGORA
+    const handleSalvarFiado = async (carrinho: ProdutoCarrinho[]): Promise<void> => {
+        if (!token ||!clienteSelecionado || carrinho.length === 0) return;
 
-api_v1_router.include_router(movimentos_caixas_router.router, prefix="/movimentos-caixas", tags=["movimentos-caixas"])
+        const payload = {
+            cliente_id: clienteSelecionado.id,
+            itens: carrinho.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco })),
+            total: carrinho.reduce((acc, i) => acc + i.preco * i.qtd, 0)
+        };
 
-app.include_router(api_v1_router)
+        const res = await fetch(`${API_URL}/vendas/fiado`, { // CORRIGIDO
+            method: 'POST',
+            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
 
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Erro ao lançar fiado");
+
+        toast.success("Dívida lançada com sucesso!");
+        setCarrinhoFiado([]);
+        await fetchClientes();
+        await atualizarClienteSelecionado(); // ATUALIZA HEADER DO MODAL
+        await recarregarDetalhesCliente(clienteSelecionado);
+    }
+
+    const handleEditClick = (e: React.MouseEvent, c: Cliente) => {
+        e.preventDefault();
+        setEditingClienteId(c.id);
+        setFormDataCliente({
+            nome: c.nome, nome_empresa: c.nome_empresa || null, bi: c.bi || null,
+            telefone: c.telefone || null, email: c.email || null, endereco: c.endereco || null,
+            cidade: c.cidade || null, provincia: c.provincia || null, observacoes: c.observacoes || null, is_active: c.is_active
+        });
+        setAcaoPendente({ tipo: 'editar', data: c });
+        setShowModal(true);
+    }
+
+    const handleDeleteClick = (e: React.MouseEvent, c: Cliente) => {
+        e.preventDefault();
+        setAcaoPendente({ tipo: 'apagar', data: c });
+        setShowConfirmarModal(true);
+    }
+
+    const executarAcaoComSenha = async (senha?: string) => {
+        if (!token ||!acaoPendente ||!senha) return toast.error("Senha obrigatória");
+        setSaving(true);
+        try {
+            if (acaoPendente.tipo === 'editar' && editingClienteId) {
+                const payload = {...formDataCliente, senha_dono: senha };
+                console.log("[DEBUG] EDITAR:", `${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, payload)
+                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, { method: 'PUT', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erro ao editar");
+                toast.success("Cliente atualizado!");
+            }
+            if (acaoPendente.tipo === 'apagar' && acaoPendente.data) {
+                const payload = { senha_dono: senha };
+                console.log("[DEBUG] APAGAR:", `${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, payload)
+                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Erro ao apagar");
+                toast.success(data.message);
+            }
+            setShowConfirmarModal(false); setAcaoPendente(null); setEditingClienteId(null); fetchClientes();
+        } catch (err: any) { toast.error(err.message || "Senha incorreta"); } finally { setSaving(false); }
+    }
+
+    const handleSaveCliente = async (e?: FormEvent) => {
+        e?.preventDefault();
+        console.log("[DEBUG 1] INICIO CADASTRO", { token:!!token, lojaId })
+
+        if (!token ||!lojaId) return toast.error("Erro: Loja não encontrada");
+        if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
+
+        if (editingClienteId) { setShowModal(false); setShowConfirmarModal(true); }
+        else {
+            setSaving(true);
+            try {
+                const payload: Record<string, any> = {
+                   ...formDataCliente
+                    // REMOVI loja_id: lojaId - backend já pega da URL
+                };
+                Object.keys(payload).forEach(key => { if (payload[key] === "") payload[key] = null; });
+
+                console.log("[DEBUG 2] PAYLOAD ENVIADO:", payload)
+                console.log("[DEBUG 3] URL:", `${API_URL}/lojas/${lojaId}/clientes`)
+
+                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
+                    method: 'POST',
+                    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log("[DEBUG 4] STATUS RESPONSE:", res.status, res.statusText)
+                const text = await res.text(); // <- pega como texto primeiro
+                console.log("[DEBUG 5] CORPO BRUTO:", text)
+
+                let data;
+                try { data = JSON.parse(text) } catch { data = { detail: text } }
+
+                if (!res.ok) throw new Error(data.detail || `Erro ${res.status}`);
+
+                toast.success("Cliente cadastrado com sucesso!");
+                setShowModal(false); setFiltro('todos');
+                setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
+                fetchClientes();
+            } catch (err: any) {
+                console.error("[DEBUG ERRO]", err)
+                toast.error(err.message);
+            } finally { setSaving(false); }
+        }
+    }
+
+    const adicionarAoCarrinhoFiado = (p: Produto) => {
+        setCarrinhoFiado(prev => {
+            const item = prev.find(i => i.id === p.id);
+            if (item) return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
+            const { unidade,...restoDoProduto } = p;
+            return [...prev, {...restoDoProduto, qtd: 1 }];
+        })
+    }
+    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id!== id));
+    const totalCarrinhoFiado = carrinhoFiado.reduce((acc, i) => acc + i.preco * i.qtd, 0);
+    useEffect(() => { fetchClientes() }, [lojaId, token]);
+
+    const totalComDivida = clientes.filter(c => (c.total_divida?? 0) > 0).length;
+    const totalEmDia = clientes.filter(c => (c.total_divida?? 0) === 0).length;
+    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida?? 0), 0);
+
+    const clientesFiltrados = useMemo(() => {
+        let lista = [...clientes];
+        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0);
+        if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!!c.ultima_compra);
+        if (filtro === 'novo') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!c.ultima_compra);
+        if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.telefone?.includes(busca) || c.email?.toLowerCase().includes(busca.toLowerCase()));
+        return lista;
+    }, [clientes, filtro, busca]);
+
+    const totalPaginas = Math.ceil(clientesFiltrados.length / ITENS_POR_PAGINA);
+    const clientesPaginados = clientesFiltrados.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA);
+    useEffect(() => { setPagina(1) }, [filtro, busca]);
+
+    // Limpa a busca e força reset do input quando qualquer modal abre/fecha
+    useEffect(() => {
+        if (showModal || showDetalhes || showConfirmarModal || showPagarModal) {
+            setBusca('')
+        }
+    }, [showModal, showDetalhes, showConfirmarModal, showPagarModal]);
+
+    const radius = cardStyle === 'arredondado'? '16px' : '8px';
+    const padding = cardSize === 'grande'? '20px' : '16px';
+
+    if (loading) return <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Clientes <Users size={16} style={{ color: 'var(--cor-primaria)' }} /></h2>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Controle de dívidas e pagamentos</p>
+                </div>
+                <Button type="button" onClick={() => { setEditingClienteId(null); setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true }); setShowModal(true) }} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
+                    <Plus size={16} /> Novo Cliente
+                </Button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #ef444430', borderRadius: radius, padding }}><p className="text-xs">Com Dívida</p><p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{totalComDivida}</p><p className="text-xs">{formatCurrency(valorTotalEmDivida)}</p></div>
+                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #22c55e40', borderRadius: radius, padding }}><p className="text-xs">Em Dia</p><p className="text-2xl font-bold" style={{ color: '#22c55e' }}>{totalEmDia}</p></div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3" style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
+                <div className="relative flex-1">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                        key={`busca-${showModal}-${showDetalhes}-${showConfirmarModal}-${showPagarModal}`} // recria só quando modal muda
+                        type="search"
+                        name="busca_clientes" // nome fixo
+                        autoComplete="new-password" // chrome odeia isso = não preenche
+                        role="presentation"
+                        placeholder="Buscar por nome, BI, telefone..."
+                        value={busca}
+                        onChange={e => setBusca(e.target.value)}
+                        className="pl-9 h-9"
+                    />
+                </div>
+                <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroCliente)}>
+                    <SelectTrigger className="w-full sm:w-[240px] h-9"><Filter size={14} className="mr-2" /> <SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="todos">Todos clientes</SelectItem>
+                        <SelectItem value="com_divida">Com Dívida</SelectItem>
+                        <SelectItem value="novo">Novo Cliente</SelectItem>
+                        <SelectItem value="em_dia">Em Dia</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: 0 }}>
+                <div className="space-y-3">
+                    {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>Nenhum cliente encontrado</p></div>}
+                    {clientesPaginados.map(c => {
+                        const temDivida = (c.total_divida?? 0) > 0;
+                        const isNovo =!temDivida &&!c.ultima_compra;
+                        let badgeText = "Em Dia"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)'; let buttonColor = "#22c55e";
+                        if (temDivida) { badgeText = "Devendo"; badgeColor = "#ef4444"; borderColor = "#ef4444"; bgColor = 'color-mix(in srgb, #ef4444 5%, transparent)'; buttonColor = "#ef4444"; }
+                        else if (isNovo) { badgeText = "Novo Cliente"; badgeColor = "#3b82f6"; borderColor = "#3b82f6"; bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)'; buttonColor = "#3b82f6"; }
+                        return (
+                            <div key={c.id} className="flex flex-col gap-3 transition hover:bg-[var(--cor-primaria)5] w-full" style={{ border: `1px solid ${borderColor}`, background: bgColor, borderRadius: radius, padding }}>
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="font-semibold truncate">{c.nome}</p>
+                                            <Badge style={{ background: badgeColor, color: '#fff', fontSize: '11px', padding: '2px 10px', borderRadius: '999px' }}>{badgeText}</Badge>
+                                        </div>
+                                        <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
+                                        <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}</p>
+                                    </div>
+                                    {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
+                                </div>
+                                <div className="flex items-center justify-center sm:justify-start gap-2 w-full pt-2">
+                                    <Button type="button" size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '10px', height: '28px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, flex: 1, maxWidth: '110px' }} onClick={(e) => fetchDetalhesCliente(e, c)}>Detalhes</Button>
+                                    <Button type="button" size="sm" variant="outline" style={{ height: '28px', fontSize: '10px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', color: 'var(--cor-texto)', flex: 1, maxWidth: '110px' }} onClick={(e) => handleEditClick(e, c)}>Atualizar</Button>
+                                    <Button type="button" size="sm" style={{ height: '28px', fontSize: '10px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, background: '#ef4444', color: '#fff', flex: 1, maxWidth: '110px' }} onClick={(e) => handleDeleteClick(e, c)}>Apagar</Button>
+                                </div>
+                            </div>
+                        )
+                    })}
+                </div>
+                {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button type="button" size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button type="button" size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
+            </div>
+
+            <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} isEditing={!!editingClienteId} />
+            <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`} loading={saving} tipo={acaoPendente?.tipo === 'editar'? 'edit' : 'delete'} textoConfirmar={acaoPendente?.tipo === 'editar'? "Salvar Alterações" : "Apagar Cliente"} />
+
+            <DetalhesClienteModal
+                open={showDetalhes}
+                onClose={() => setShowDetalhes(false)}
+                cliente={clienteSelecionado}
+                vendas={vendasPendentes}
+                produtos={produtosLoja}
+                onPagar={handleAbrirPagar}
+                onSalvarFiado={handleSalvarFiado} // <- cria essa função que chama a API
+                formatCurrency={formatCurrency}
+                loading={loadingDetalhes}
+            />
+
+            <PagarDividaModal open={showPagarModal} onClose={() => setShowPagarModal(false)} venda={vendaSelecionada} valor={valorPagamento} setValor={setValorPagamento} forma={formaPagamento} setForma={setFormaPagamento} onConfirmar={handleConfirmarPagamento} saving={savingPagamento} formatCurrency={formatCurrency} />
+        </div>
+    )
+}
