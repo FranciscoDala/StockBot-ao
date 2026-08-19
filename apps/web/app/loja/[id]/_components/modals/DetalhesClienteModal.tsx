@@ -115,10 +115,11 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         setShowConfirmFiado(false);
         setSalvando(true);
         try {
-            await onSalvarFiado(carrinho);
+            await onSalvarFiado(carrinho); // <- espera salvar primeiro
+            toast.success("Fiado lançado com sucesso!");
             setCarrinho([]);
             setAbaAtiva('dividas');
-            onClose();
+            onClose(); // <- só depois fecha e o pai recarrega a lista
         } catch (e: any) {
             toast.error(e.message)
         } finally {
@@ -185,7 +186,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
             </div>
 
             <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 min-h-0">
-                <div className="lg:col-span-2 p-3 flex-col overflow-hidden">
+                <div className="lg:col-span-2 p-3 flex-col overflow-hidden pb-24"> {/* <- pb-24 pra não ficar por baixo do botão */}
                     <div className="relative mb-3 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
                         <Input
@@ -254,17 +255,6 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             })}
                         </div>
                     </div>
-
-                    {/* MOBILE FOOTER FIXO IGUAL VENDA */}
-                    <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0 pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
-                        <div className="flex justify-between items-center">
-                            <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total da Dívida</span>
-                            <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span>
-                        </div>
-                        <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
-                            {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
-                        </Button>
-                    </div>
                 </div>
 
                 {/* DESKTOP CARRINHO IGUAL VENDA */}
@@ -294,6 +284,19 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida [Enter]"}
                         </Button>
                     </div>
+                </div>
+            </div>
+
+            {/* MOBILE FOOTER FIXO IGUAL VENDA */}
+            <div className="lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+                <div className="flex justify-between items-center px-3">
+                    <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total da Dívida</span>
+                    <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span>
+                </div>
+                <div className="px-3">
+                    <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
+                        {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
+                    </Button>
                 </div>
             </div>
         </div>
