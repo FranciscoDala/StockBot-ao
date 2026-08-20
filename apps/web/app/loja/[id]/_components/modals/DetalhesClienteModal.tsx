@@ -194,7 +194,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     </div>
                 </div>
             )}
-            <div className="flex items-center gap-2"><History size={18} /><h3 className="font-bold text-lg">Histórico de Vendas</h3></div>
+            <div className="flex items-center gap-2"><History size={18} /><h3 className="font-bold text-lg">Histórico de dívidas</h3></div>
             {vendas.length === 0? (
                 <div className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-10 text-center mt-4" style={{ borderColor: 'var(--cor-borda)', background: 'var(--cor-card)' }}><Inbox size={40} style={{ color: 'var(--cor-texto-sec)' }} /><p className="font-semibold">Nenhuma venda registrada</p></div>
             ) : (
@@ -368,7 +368,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                 <div className="flex items-center gap-4 mt-1 flex-wrap justify-start">
                                     <DialogDescription className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{cliente?.telefone}</DialogDescription>
                                     <div className="flex items-center gap-1 text-sm"><Wallet size={14} style={{ color: '#ef4444' }} /><span>Dívida: </span><span className="font-bold" style={{ color: '#ef4444' }}>{formatCurrency(cliente?.total_divida?? 0)}</span></div>
+                                    {/*
                                     <div className="flex items-center gap-1 text-sm"><Calendar size={14} style={{ color: 'var(--cor-texto-sec)' }} /><span>Última: {cliente?.ultima_compra? new Date(cliente.ultima_compra).toLocaleDateString('pt-AO') : 'Nunca'}</span></div>
+                                    */}
                                 </div>
                             </div>
                             <button onClick={onClose} className="h-10 w-10 flex items-center justify-center rounded-lg transition shrink-0" style={{ background: '#fee2e2', color: '#ef4444' }}><X size={22} strokeWidth={2.5} /></button>
