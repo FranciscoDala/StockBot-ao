@@ -56,7 +56,7 @@ function TabButton({ label, icon, active, onClick, count, radius }: {
     return (
         <button
             onClick={onClick}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-sm transition-all"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
             style={{
                 borderRadius: radius,
                 border: `2px solid ${active? 'var(--cor-primaria)' : 'transparent'}`,
@@ -376,7 +376,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     )}
 
                     {abaAtiva === ABAS.DIVIDAS && (
-                        <div className="flex gap-2 px-3 sm:px-6 py-3 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                        <div className="flex gap-2 px-3 sm:px-6 py-0 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                             <TabButton
                                 label="Dívidas"
                                 icon={<FileText size={16} />}
