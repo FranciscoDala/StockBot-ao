@@ -335,7 +335,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     <div className="border-t p-3 space-y-2 mt-auto" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                         <div className="flex justify-between text-lg"><span className="font-bold">Total</span><span className="font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span></div>
                         <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-11 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
-                            {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida [Enter]"}
+                            {salvando? <Loader2 size={18} className="animate-spin" /> : "Guardar Dívida [Enter]"}
                         </Button>
                     </div>
                 </div>
