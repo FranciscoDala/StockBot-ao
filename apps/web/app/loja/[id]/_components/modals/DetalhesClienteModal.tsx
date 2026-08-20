@@ -146,7 +146,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         setSalvando(true);
         try {
             await onSalvarFiado(carrinho);
-            toast.success("Fiado lançado com sucesso!");
+            toast.success("Dívida guardada com sucesso!");
             setCarrinho([]);
             setAbaAtiva(ABAS.DIVIDAS);
             setRefreshing(true);

@@ -289,7 +289,7 @@ async def criar_venda(
             logger.error(f"ERRO AO LANÇAR VENDA NO CAIXA: {e}", exc_info=True)
 
     return {
-        "detail": "Venda fiado lançada com sucesso" if is_fiado else "Venda registrada com sucesso",
+        "detail": "Dívida guardada com sucesso" if is_fiado else "Venda registrada com sucesso",
         "venda_id": str(nova_venda.id), "total": float(nova_venda.total), "status": nova_venda.status
     }
 
