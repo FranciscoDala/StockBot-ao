@@ -201,7 +201,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Voltar</div>
             </div>
 
-            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1">
+            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-[calc(140px+env(safe-area-inset-bottom))]">
                 <div className="lg:col-span-2 p-3">
                     <div className="relative mb-3 sticky top-[57px] z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
@@ -250,7 +250,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     {/* MOBILE CARRINHO IGUAL VENDA TAB */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
-                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-[calc(120px+env(safe-area-inset-bottom))] rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                        <div className="space-y-1 pb-4 rounded-lg py-2" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
                             {carrinho.length === 0 && <p className="text-center text-xs py-6 opacity-70">Adicione produtos ao carrinho</p>}
                             {carrinho.map(i => {
                                 const preco = getPreco(i);
