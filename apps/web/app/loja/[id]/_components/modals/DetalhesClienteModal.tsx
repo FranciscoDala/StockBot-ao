@@ -201,6 +201,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Voltar</div>
             </div>
 
+            {/* MUDOU AQUI: add overflow-y-auto e padding-bottom pra nao ficar atras do rodape */}
             <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-[calc(140px+env(safe-area-inset-bottom))]">
                 <div className="lg:col-span-2 p-3">
                     <div className="relative mb-3 sticky top-[57px] z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
@@ -247,7 +248,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                         })}
                     </div>
 
-                    {/* MOBILE CARRINHO IGUAL VENDA TAB */}
+                    {/* MOBILE CARRINHO: TIREI max-h e overflow. Agora rola junto */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
                         <div className="space-y-1 pb-4 rounded-lg py-2" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
@@ -270,7 +271,6 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             })}
                         </div>
                     </div>
-
 
                 </div>
 
@@ -327,7 +327,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     return (
         <>
             <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)] lg:hidden overflow-y-auto" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
 
                     {abaAtiva === 'dividas' && (
                         <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
