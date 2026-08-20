@@ -11,6 +11,12 @@ import { ConfirmarModal } from "./ConfirmacaoModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
 
+const ABAS = {
+  DIVIDAS: "dividas",
+  FIADO: "fiado"
+} as const;
+type Aba = typeof ABAS[keyof typeof ABAS];
+
 export type Cliente = {
     id: string; loja_id: string; nome: string; nome_empresa: string | null; bi: string | null;
     telefone: string | null; email: string | null; endereco: string | null; cidade: string | null;
@@ -24,7 +30,6 @@ export type VendaPendente = {
 }
 
 type ProdutoCarrinho = Omit<Produto, 'unidade'> & { qtd: number };
-type Aba = "dividas" | "fiado"; // <- CORREÇÃO AQUI
 
 interface Props {
     open: boolean;
@@ -77,7 +82,7 @@ function TabButton({ label, icon, active, onClick, count, radius }: {
 }
 
 export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos, onPagar, onSalvarFiado, onRefreshVendas, formatCurrency, loading, cardStyle = 'arredondado' }: Props) {
-    const [abaAtiva, setAbaAtiva] = useState<Aba>("dividas"); // <- CORREÇÃO AQUI
+    const [abaAtiva, setAbaAtiva] = useState<Aba>(ABAS.DIVIDAS);
     const [carrinho, setCarrinho] = useState<ProdutoCarrinho[]>([]);
     const [buscaProduto, setBuscaProduto] = useState("");
     const [salvando, setSalvando] = useState(false);
@@ -89,7 +94,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     useEffect(() => {
         if (open) {
             document.body.style.overflow = 'hidden';
-            setAbaAtiva("dividas"); // <- aspas duplas
+            setAbaAtiva(ABAS.DIVIDAS);
             setCarrinho([]);
             setBuscaProduto("");
         } else document.body.style.overflow = 'unset';
@@ -143,14 +148,12 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
             await onSalvarFiado(carrinho);
             toast.success("Fiado lançado com sucesso!");
             setCarrinho([]);
-            setAbaAtiva("dividas");
-
+            setAbaAtiva(ABAS.DIVIDAS);
             setRefreshing(true);
             if (onRefreshVendas) {
                 await onRefreshVendas();
             }
             setRefreshing(false);
-
         } catch (e: any) {
             toast.error(e.message)
         } finally {
@@ -172,8 +175,8 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (abaAtiva!== "fiado") return; // <- aspas duplas
-            if (e.key === 'Escape') setAbaAtiva("dividas");
+            if (abaAtiva!== ABAS.FIADO) return;
+            if (e.key === 'Escape') setAbaAtiva(ABAS.DIVIDAS);
             if (e.key === 'Enter' && podeFinalizar) handleSalvarFiado();
             if (e.key === 'F2') document.getElementById('busca-fiado')?.focus();
         };
@@ -217,7 +220,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     const fiadoContent = (
         <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
             <div className="flex items-center justify-between p-3 border-b sticky top-0 z-10 shrink-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
-                <Button variant="ghost" onClick={() => setAbaAtiva("dividas")} className="gap-2 h-9">
+                <Button variant="ghost" onClick={() => setAbaAtiva(ABAS.DIVIDAS)} className="gap-2 h-9">
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
                 <h2 className="font-bold text-base truncate">Fiado para: {cliente?.nome}</h2>
@@ -356,9 +359,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     return (
         <>
             <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                <DialogContent className="!fixed!inset-0!w-screen!h-screen!max-w-none!max-h-none!p-0!flex!flex-col!border-0!rounded-none!shadow-none!translate-x-0!translate-y-0 [&>button]:hidden lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
 
-                    {abaAtiva === "dividas" && (
+                    {abaAtiva === ABAS.DIVIDAS && (
                         <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
                             <div className="min-w-0 flex-1 text-left">
                                 <DialogTitle className="text-xl sm:text-2xl font-bold text-left">{cliente?.nome}</DialogTitle>
@@ -372,30 +375,32 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                         </DialogHeader>
                     )}
 
-                    <div className="flex gap-2 px-3 sm:px-6 py-3 shrink-0" style={{ backgroundColor: 'var(--cor-card)' }}>
-                        <TabButton
-                            label="Dívidas"
-                            icon={<FileText size={16} />}
-                            active={abaAtiva === "dividas"}
-                            onClick={() => setAbaAtiva("dividas")}
-                            count={dividasPendentes.length}
-                            radius={radius}
-                        />
-                        <TabButton
-                            label="Lançar Fiado"
-                            icon={<ShoppingCart size={16} />}
-                            active={abaAtiva === "fiado"}
-                            onClick={() => setAbaAtiva("fiado")}
-                            count={totalItens}
-                            radius={radius}
-                        />
-                    </div>
+                    {abaAtiva === ABAS.DIVIDAS && (
+                        <div className="flex gap-2 px-3 sm:px-6 py-3 shrink-0" style={{ backgroundColor: 'var(--cor-card)' }}>
+                            <TabButton
+                                label="Dívidas"
+                                icon={<FileText size={16} />}
+                                active={abaAtiva === ABAS.DIVIDAS}
+                                onClick={() => setAbaAtiva(ABAS.DIVIDAS)}
+                                count={dividasPendentes.length}
+                                radius={radius}
+                            />
+                            <TabButton
+                                label="Lançar Fiado"
+                                icon={<ShoppingCart size={16} />}
+                                active={(abaAtiva as any) === ABAS.FIADO}
+                                onClick={() => setAbaAtiva(ABAS.FIADO)}
+                                count={totalItens}
+                                radius={radius}
+                            />
+                        </div>
+                    )}
 
                     <div className="flex-1 min-h-0">
                         {loading? (<div className="flex flex-col items-center justify-center h-full gap-3"><Loader2 className="animate-spin" size={32} style={{ color: 'var(--cor-primaria)' }} /><p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Carregando...</p></div>) : (
                             <>
-                                {abaAtiva === "dividas" && dividasContent}
-                                {abaAtiva === "fiado" && fiadoContent}
+                                {abaAtiva === ABAS.DIVIDAS && dividasContent}
+                                {abaAtiva === ABAS.FIADO && fiadoContent}
                             </>
                         )}
                     </div>
