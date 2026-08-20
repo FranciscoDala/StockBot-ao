@@ -206,9 +206,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-bold flex items-center gap-1"><Calendar size={14} />{new Date(v.data_venda).toLocaleDateString('pt-AO')}</p><Badge style={{ background: estaPaga? '#22c55e' : '#f59e0b', color: '#fff', fontSize: '10px', padding: '2px 8px' }}>{estaPaga? 'Pago' : 'Pendente'}</Badge></div>
                                     <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>ID: #{v.id.slice(0, 8)} | Itens: {v.total_itens}</p>
-                                    <div className="flex items-center gap-4 mt-2"><p className="text-sm">Total: <span className="font-semibold">{formatCurrency(v.total)}</span></p><p className="text-sm">Saldo: <span className="font-bold" style={{ color: estaPaga? '#22c55e' : '#ef4444' }}>{formatCurrency(v.saldo_devedor)}</span></p></div>
+                                    <div className="flex items-center gap-4 mt-2"><p className="text-sm">Total: <span className="font-semibold">{formatCurrency(v.total)}</span></p><p className="text-sm">Falta: <span className="font-bold" style={{ color: estaPaga? '#22c55e' : '#ef4444' }}>{formatCurrency(v.saldo_devedor)}</span></p></div>
                                 </div>
-                                {!estaPaga && (<Button size="sm" className="w-full sm:w-auto" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius, fontWeight: 600 }} onClick={() => onPagar(v)}>Pagar</Button>)}
+                                {!estaPaga && (<Button size="sm" className="w-full sm:w-auto" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius, fontWeight: 600 }} onClick={() => onPagar(v)}>Pagar Dívida</Button>)}
                             </div>
                         )
                     })}
