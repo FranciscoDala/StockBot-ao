@@ -341,14 +341,16 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             <div className="flex flex-col sm:flex-row gap-3" style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', borderRadius: radius }}>
                 <div className="relative flex-1">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input key={`busca-${showModal}-${showDetalhes}-${showConfirmarModal}-${showPagarModal}`} type="search" name="busca_clientes" autoComplete="new-password" role="presentation" placeholder="Buscar por nome, BI, telefone..." value={busca} onChange={e => setBusca(e.target.value)} className="pl-9 h-9" />
+                    <Input key={`busca-${showModal}-${showDetalhes}-${showConfirmarModal}-${showPagarModal}`} type="search" name="busca_clientes" autoComplete="new-password" role="presentation" placeholder="Pesquisar cliente..." value={busca} onChange={e => setBusca(e.target.value)} className="pl-9 h-9" />
                 </div>
                 <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroCliente)}>
-                    <SelectTrigger className="w-full sm:w-[240px] h-9"><Filter size={14} className="mr-2" /> <SelectValue /></SelectTrigger>
+                    <SelectTrigger className="w-full sm:w-[240px] h-9"><Filter size={14} className="mr-2" />
+                    <SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="todos">Todos clientes</SelectItem>
                         <SelectItem value="novo">Clientes Novo</SelectItem>
-                        <SelectItem value="em_dia">Clientes sem dívidas</SelectItem></SelectContent>
+                        <SelectItem value="em_dia">Clientes sem dívidas</SelectItem>
+                    </SelectContent>
                         <SelectItem value="com_divida">Clientes com dívidas</SelectItem>
                 </Select>
             </div>
