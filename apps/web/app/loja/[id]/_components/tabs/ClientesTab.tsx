@@ -334,8 +334,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #ef444430', borderRadius: radius, padding }}><p className="text-xs">Com Dívida</p><p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{totalComDivida}</p><p className="text-xs">{formatCurrency(valorTotalEmDivida)}</p></div>
-                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #22c55e40', borderRadius: radius, padding }}><p className="text-xs">Em Dia</p><p className="text-2xl font-bold" style={{ color: '#22c55e' }}>{totalEmDia}</p></div>
+                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #ef444430', borderRadius: radius, padding }}><p className="text-xs">Clientes com dívidas</p><p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{totalComDivida}</p><p className="text-xs">{formatCurrency(valorTotalEmDivida)}</p></div>
+                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #22c55e40', borderRadius: radius, padding }}><p className="text-xs">Clientes sem dívidas</p><p className="text-2xl font-bold" style={{ color: '#22c55e' }}>{totalEmDia}</p></div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3" style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', borderRadius: radius }}>
@@ -345,7 +345,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 </div>
                 <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroCliente)}>
                     <SelectTrigger className="w-full sm:w-[240px] h-9"><Filter size={14} className="mr-2" /> <SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="todos">Todos clientes</SelectItem><SelectItem value="com_divida">Com Dívida</SelectItem><SelectItem value="novo">Novo Cliente</SelectItem><SelectItem value="em_dia">Em Dia</SelectItem></SelectContent>
+                    <SelectContent>
+                        <SelectItem value="todos">Todos clientes</SelectItem>
+                        <SelectItem value="novo">Clientes Novo</SelectItem>
+                        <SelectItem value="em_dia">Clientes sem dívidas</SelectItem></SelectContent>
+                        <SelectItem value="com_divida">Clientes com dívidas</SelectItem>
                 </Select>
             </div>
 
