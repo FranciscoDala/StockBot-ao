@@ -252,7 +252,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     {/* MOBILE CARRINHO: tirei max-h e overflow-y-auto. Igual VendaTab */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
-                        <div className="space-y-1 pb-40 rounded-lg py-2" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                        <div className="max-h-[200px] overflow-y-auto space-y-1 pb-10 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
                             {carrinho.length === 0 && <p className="text-center text-xs py-6 opacity-70">Adicione produtos ao carrinho</p>}
                             {carrinho.map(i => {
                                 const preco = getPreco(i);
