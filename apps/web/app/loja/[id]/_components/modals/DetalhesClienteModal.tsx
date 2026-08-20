@@ -223,7 +223,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 <Button variant="ghost" onClick={() => setAbaAtiva(ABAS.DIVIDAS)} className="gap-2 h-9">
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
-                <h2 className="font-bold text-base truncate">Fiado para: {cliente?.nome}</h2>
+                <h2 className="font-bold text-base truncate">Vender para: {cliente?.nome}</h2>
                 <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Voltar</div>
             </div>
 
