@@ -349,7 +349,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 </div>
                 <div className="px-3">
                     <Button onClick={handleSalvarFiado} disabled={!podeFinalizar} className="w-full h-12 text-base font-bold disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
-                        {salvando? <Loader2 size={18} className="animate-spin" /> : "Confirmar e Salvar Dívida"}
+                        {salvando? <Loader2 size={18} className="animate-spin" /> : "Guardar Dívida"}
                     </Button>
                 </div>
             </div>
@@ -407,7 +407,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 </DialogContent>
             </Dialog>
 
-            <ConfirmarModal open={showConfirmFiado} onClose={() => setShowConfirmFiado(false)} onConfirm={executarSalvarFiado} titulo="Confirmar Lançamento Fiado" descricao={`Tem certeza que deseja lançar uma dívida de ${formatCurrency(totalCarrinho)} para ${cliente?.nome}?`} loading={salvando} tipo="venda" textoConfirmar="Sim, Lançar Dívida" />
+            <ConfirmarModal open={showConfirmFiado} onClose={() => setShowConfirmFiado(false)} onConfirm={executarSalvarFiado} titulo="Guardar Dívida" descricao={`Tem certeza que desejas guardar uma dívida de ${formatCurrency(totalCarrinho)} para ${cliente?.nome}?`} loading={salvando} tipo="venda" textoConfirmar="Sim, Guardar Dívida" />
         </>
     )
 }
