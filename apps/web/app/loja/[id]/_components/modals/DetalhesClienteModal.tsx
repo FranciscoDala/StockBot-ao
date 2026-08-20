@@ -33,7 +33,7 @@ interface Props {
     produtos: Produto[];
     onPagar: (v: VendaPendente) => void;
     onSalvarFiado: (carrinho: ProdutoCarrinho[]) => Promise<void>;
-    onRefreshVendas?: () => Promise<void>;
+    onRefreshVendas?: () => Promise<void>; // <- NOVO: função pra recarregar
     formatCurrency: (v: number) => string;
     loading: boolean;
     cardStyle?: string;
@@ -59,7 +59,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     const [buscaProduto, setBuscaProduto] = useState("");
     const [salvando, setSalvando] = useState(false);
     const [showConfirmFiado, setShowConfirmFiado] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
+    const [refreshing, setRefreshing] = useState(false); // <- NOVO
 
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
 
@@ -120,11 +120,12 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
             await onSalvarFiado(carrinho);
             toast.success("Fiado lançado com sucesso!");
             setCarrinho([]);
-            setAbaAtiva('dividas');
+            setAbaAtiva('dividas'); // volta pra aba dívidas
 
+            // REFRESH SEM FECHAR
             setRefreshing(true);
             if (onRefreshVendas) {
-                await onRefreshVendas();
+                await onRefreshVendas(); // chama função do pai pra buscar vendas novas
             }
             setRefreshing(false);
 
@@ -160,7 +161,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
     const dividasContent = (
         <div className="h-full overflow-y-auto p-4 sm:p-6 space-y-4 relative">
-            {refreshing && (
+            {refreshing && ( // <- SPINNER DE REFRESH
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10 rounded-xl">
                     <div className="flex items-center gap-2 bg-white dark:bg-zinc-800 px-4 py-2 rounded-lg">
                         <RefreshCw size={16} className="animate-spin" />
@@ -192,8 +193,8 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     );
 
     const fiadoContent = (
-        <div className="flex flex-col min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
-            <div className="flex items-center justify-between p-3 border-b sticky top-0 z-20" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
+        <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+            <div className="flex items-center justify-between p-3 border-b sticky top-0 z-10 shrink-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                 <Button variant="ghost" onClick={() => setAbaAtiva('dividas')} className="gap-2 h-9">
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
                 </Button>
@@ -201,9 +202,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Voltar</div>
             </div>
 
-            {/* MUDOU AQUI: add overflow-y-auto e padding-bottom pra nao ficar atras do rodape */}
-            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-[calc(140px+env(safe-area-inset-bottom))]">
-                <div className="lg:col-span-2 p-3">
+            {/* MUDOU: tirei min-h-0 e overflow-hidden. Scroll agora é da página */}
+            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1">
+                <div className="lg:col-span-2 p-3 pb-24">
                     <div className="relative mb-3 sticky top-[57px] z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
                         <Input
@@ -248,10 +249,10 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                         })}
                     </div>
 
-                    {/* MOBILE CARRINHO: TIREI max-h e overflow. Agora rola junto */}
+                    {/* MOBILE CARRINHO: tirei max-h e overflow-y-auto. Igual VendaTab */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
-                        <div className="space-y-1 pb-4 rounded-lg py-2" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                        <div className="space-y-1 pb-40 rounded-lg py-2" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
                             {carrinho.length === 0 && <p className="text-center text-xs py-6 opacity-70">Adicione produtos ao carrinho</p>}
                             {carrinho.map(i => {
                                 const preco = getPreco(i);
@@ -271,10 +272,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                             })}
                         </div>
                     </div>
-
                 </div>
 
-                {/* DESKTOP CARRINHO IGUAL VENDA TAB */}
+                {/* DESKTOP CARRINHO igual VendaTab */}
                 <div className="border-t lg:border-t-0 lg:border-l hidden lg:flex lg:flex-col h-[calc(100vh-57px)] sticky top-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                     <h3 className="font-bold text-base flex items-center gap-2 p-3 border-b shrink-0" style={{ color: 'var(--cor-texto)', borderColor: 'var(--cor-primaria)30' }}>
                         <ShoppingCart size={18} /> Carrinho {totalItens > 0 && `(${totalItens})`}
@@ -310,7 +310,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
             </div>
 
             {/* MOBILE RODAPE IGUAL VENDA TAB */}
-            <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0 z-10" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+            <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0 z-10" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
                 <div className="flex justify-between items-center px-3">
                     <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total da Dívida</span>
                     <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span>
@@ -327,7 +327,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     return (
         <>
             <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)] lg:hidden overflow-y-auto" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
 
                     {abaAtiva === 'dividas' && (
                         <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
@@ -365,3 +365,5 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
         </>
     )
 }
+
+
