@@ -359,7 +359,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     return (
         <>
             <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]">
+                <DialogContent className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !flex !flex-col !border-0 !rounded-none !shadow-none !translate-x-0 !translate-y-0 [&>button]:hidden lg:hidden py-3 space-y-2 border-t fixed bottom-0 left-0 right-0 pb-[env(safe-area-inset-bottom)]" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
 
                     {abaAtiva === ABAS.DIVIDAS && (
                         <DialogHeader className="p-4 sm:p-5 border-b shrink-0 flex-row items-center justify-between gap-4 text-left" style={{ borderColor: 'color-mix(in srgb, var(--cor-borda) 20%, transparent)', backgroundColor: 'var(--cor-card)' }}>
@@ -376,7 +376,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     )}
 
                     {abaAtiva === ABAS.DIVIDAS && (
-                        <div className="flex gap-2 px-3 sm:px-6 py-3 shrink-0" style={{ backgroundColor: 'var(--cor-card)' }}>
+                        <div className="flex gap-2 px-3 sm:px-6 py-3 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                             <TabButton
                                 label="Dívidas"
                                 icon={<FileText size={16} />}
@@ -386,7 +386,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                                 radius={radius}
                             />
                             <TabButton
-                                label="Lançar Fiado"
+                                label="Comprar"
                                 icon={<ShoppingCart size={16} />}
                                 active={(abaAtiva as any) === ABAS.FIADO}
                                 onClick={() => setAbaAtiva(ABAS.FIADO)}
