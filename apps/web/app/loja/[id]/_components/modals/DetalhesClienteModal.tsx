@@ -193,7 +193,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
     );
 
     const fiadoContent = (
-        <div className="flex flex-col h-[100dvh]" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
+        <div className="flex flex-col min-h-[100dvh]" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}>
             <div className="flex items-center justify-between p-3 border-b sticky top-0 z-10 shrink-0" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30' }}>
                 <Button variant="ghost" onClick={() => setAbaAtiva('dividas')} className="gap-2 h-9">
                     <ArrowLeft size={18} /> <span className="hidden sm:inline">Voltar</span>
@@ -203,7 +203,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
             </div>
 
             {/* MUDOU: tirei min-h-0 e overflow-hidden. Scroll agora é da página */}
-            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1">
+            <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 overflow-y-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-[160px]">
                 <div className="lg:col-span-2 p-3 pb-24">
                     <div className="relative mb-3 sticky top-[57px] z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
@@ -252,7 +252,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     {/* MOBILE CARRINHO: tirei max-h e overflow-y-auto. Igual VendaTab */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
-                        <div className="max-h-[35vh] overflow-y-auto space-y-1 mb-[140px] rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                        <div className="space-y-1 pb-4 rounded-lg py-2" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
                             {carrinho.length === 0 && <p className="text-center text-xs py-6 opacity-70">Adicione produtos ao carrinho</p>}
                             {carrinho.map(i => {
                                 const preco = getPreco(i);
