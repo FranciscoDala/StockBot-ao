@@ -202,10 +202,9 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                 <div className="text-xs hidden lg:block" style={{ color: 'var(--cor-texto-sec)' }}>F2: Buscar | ESC: Voltar</div>
             </div>
 
-            {/* SEM SCROLL AQUI. Scroll é só no carrinho */}
             <div className="flex flex-col lg:grid lg:grid-cols-3 flex-1 min-h-0">
-                <div className="lg:col-span-2 p-3 flex flex-col min-h-0">
-                    <div className="relative mb-3 sticky top-[57px] z-10 pb-2 shrink-0" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+                <div className="lg:col-span-2 p-3">
+                    <div className="relative mb-3 sticky top-[57px] z-10 pb-2" style={{ backgroundColor: 'var(--cor-fundo)' }}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={18} style={{ color: 'var(--cor-texto-sec)' }} />
                         <Input
                             id="busca-fiado"
@@ -219,7 +218,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
 
                     {produtosFiltrados.length === 0 && (<div className="flex flex-col items-center justify-center h-64" style={{ color: 'var(--cor-texto-sec)' }}><PackageX size={40} /><p className="mt-2 text-sm">Nenhum produto encontrado</p></div>)}
 
-                    <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4 shrink-0">
+                    <div className="flex lg:grid gap-3 overflow-x-auto lg:overflow-x-visible lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-4">
                         {produtosFiltrados.map(p => {
                             const preco = getPreco(p);
                             const estoqueAtual = p.estoque ?? 0;
@@ -249,17 +248,28 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                         })}
                     </div>
 
-                    {/* MOBILE CARRINHO COM SCROLL INVISIVEL */}
-                    <div className="lg:hidden mt-4 flex-col flex-1 min-h-0">
-                        <h3 className="font-bold text-sm flex items-center gap-2 mb-2 shrink-0" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
-                        <div className="flex-1 overflow-y-auto space-y-1 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
-                            {carrinho.length === 0 && <p className="text-center text-xs py-6 opacity-70">Adicione produtos ao carrinho</p>}
+                    {/* MOBILE CARRINHO IGUAL VENDA TAB */}
+                    <div className="lg:hidden mt-4">
+                        <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}>
+                            <ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}
+                        </h3>
+                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                            {carrinho.length === 0 && (
+                                <div className="flex flex-col items-center justify-center h-24" style={{ color: 'var(--cor-texto-sec)' }}>
+                                    <ShoppingCart size={24} />
+                                    <p className="mt-1 text-xs">Adicione produtos ao carrinho</p>
+                                </div>
+                            )}
                             {carrinho.map(i => {
                                 const preco = getPreco(i);
                                 return (
-                                    <div key={i.id} className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors" style={{ background: 'var(--cor-fundo)', borderRadius: radius }}>
+                                    <div
+                                        key={i.id}
+                                        className="flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-red-950/30 transition-colors"
+                                        style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}
+                                    >
                                         <span className="text-xs font-bold w-8 text-center">{i.qtd}</span>
-                                        <div className="min-w-0 flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <p className="text-xs font-semibold truncate" style={{ color: 'var(--cor-texto)' }}>{i.nome}</p>
                                             <p className="text-xs font-bold" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</p>
                                         </div>

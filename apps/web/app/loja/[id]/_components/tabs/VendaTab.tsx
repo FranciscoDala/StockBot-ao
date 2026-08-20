@@ -323,6 +323,9 @@ export function VendaTab({
                         })}
 
                     </div>
+
+
+                    
                     {/* MOBILE CARRINHO */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}>
@@ -419,6 +422,8 @@ export function VendaTab({
                             ) : "Finalizar Venda"}
                         </Button>
                     </div>
+
+
                 </div>
 
 
