@@ -250,7 +250,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
                     {/* MOBILE CARRINHO IGUAL VENDA TAB */}
                     <div className="lg:hidden mt-4">
                         <h3 className="font-bold text-sm flex items-center gap-2 mb-2" style={{ color: 'var(--cor-texto)' }}><ShoppingCart size={16} /> Produtos {totalItens > 0 && `(${totalItens})`}</h3>
-                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-24 rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
+                        <div className="max-h-[180px] sm:max-h-none overflow-y-auto space-y-1 pb-[calc(120px+env(safe-area-inset-bottom))] rounded-lg py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}>
                             {carrinho.length === 0 && <p className="text-center text-xs py-6 opacity-70">Adicione produtos ao carrinho</p>}
                             {carrinho.map(i => {
                                 const preco = getPreco(i);
@@ -308,7 +308,7 @@ export function DetalhesClienteModal({ open, onClose, cliente, vendas, produtos,
             </div>
 
             {/* MOBILE RODAPE IGUAL VENDA TAB */}
-            <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0 z-10" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
+            <div className="lg:hidden py-3 space-y-2 border-t sticky bottom-0 z-10" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-primaria)30', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
                 <div className="flex justify-between items-center px-3">
                     <span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Total da Dívida</span>
                     <span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(totalCarrinho)}</span>
