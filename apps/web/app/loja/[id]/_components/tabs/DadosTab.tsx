@@ -68,9 +68,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
     const carregarDados = useCallback(async () => {
         console.log("=== DEBUG DADOS TAB INICIO ===");
-        console.log("lojaId:", lojaId, "token:",!!token, "API_URL:",!!API_URL);
+        console.log("lojaId:", lojaId, "token:", !!token, "API_URL:", !!API_URL);
 
-        if (!lojaId ||!token ||!API_URL) {
+        if (!lojaId || !token || !API_URL) {
             setLoading(false);
             console.log("FALTOU PARAMETRO, SAINDO");
             return;
@@ -102,9 +102,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
             console.log("STATUS RESPOSTAS:", { vendas: resVendas.status, saidas: resSaidas.status, mov: resMov.status });
 
-            const dataVendas: VendaAPI[] = resVendas.ok? await resVendas.json() : [];
-            const dataSaidas: SaidaAPI[] = resSaidas.ok? await resSaidas.json() : [];
-            const dataMov: { movimentacoes: any[] } = resMov.ok? await resMov.json() : { movimentacoes: [] };
+            const dataVendas: VendaAPI[] = resVendas.ok ? await resVendas.json() : [];
+            const dataSaidas: SaidaAPI[] = resSaidas.ok ? await resSaidas.json() : [];
+            const dataMov: { movimentacoes: any[] } = resMov.ok ? await resMov.json() : { movimentacoes: [] };
 
             console.log("MOVIMENTACOES RAW:", dataMov);
             console.log("QTD MOVIMENTACOES:", dataMov.movimentacoes?.length);
@@ -117,9 +117,9 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
             }
 
             const statusValidos = ["concluida", "concluído", "paga", "finalizada"];
-            const vendas = (Array.isArray(dataVendas)? dataVendas : [])
-               .filter(v => statusValidos.includes(v.status?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
-               .map(v => ({...v, total: Number(v.total) || 0 }));
+            const vendas = (Array.isArray(dataVendas) ? dataVendas : [])
+                .filter(v => statusValidos.includes(v.status?.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")))
+                .map(v => ({ ...v, total: Number(v.total) || 0 }));
 
             const vendasHoje = vendas.filter(v => v.data_venda && v.data_venda.startsWith(hojeStr));
             const vendasMes = vendas.filter(v => v.data_venda && v.data_venda.split('T')[0] >= inicioMesStr);
@@ -139,30 +139,30 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
 
             // 2. CAIXA FISICO VEM DAS MOVIMENTACOES
             let cashHoje = movsHoje
-               .filter(m => tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
-               .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+                .filter(m => tiposEntrada.includes(m.tipo) && String(m.forma_pagamento || '').toLowerCase() === 'dinheiro')
+                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
             let tpaHoje = movsHoje
-               .filter(m => tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia', 'pix'].includes(String(m.forma_pagamento || '').toLowerCase()))
-               .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+                .filter(m => tiposEntrada.includes(m.tipo) && ['tpa', 'transferencia', 'pix'].includes(String(m.forma_pagamento || '').toLowerCase()))
+                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
             // FALLBACK: Se não tem mov no caixa ainda, usa as vendas pra não zerar
             if (cashHoje === 0 && tpaHoje === 0 && movsHoje.length === 0) {
                 console.log("USANDO FALLBACK: Vendas de Hoje - Caixa sem movimentacoes");
                 cashHoje = vendasHoje
-                   .filter(v => String(v.forma_pagamento || '').toLowerCase() === 'dinheiro')
-                   .reduce((acc, v) => acc + Number(v.total || 0), 0);
+                    .filter(v => String(v.forma_pagamento || '').toLowerCase() === 'dinheiro')
+                    .reduce((acc, v) => acc + Number(v.total || 0), 0);
 
                 tpaHoje = vendasHoje
-                   .filter(v => ['tpa', 'transferencia', 'pix'].includes(String(v.forma_pagamento || '').toLowerCase()))
-                   .reduce((acc, v) => acc + Number(v.total || 0), 0);
+                    .filter(v => ['tpa', 'transferencia', 'pix'].includes(String(v.forma_pagamento || '').toLowerCase()))
+                    .reduce((acc, v) => acc + Number(v.total || 0), 0);
             } else {
                 console.log("USANDO: Movimentacoes do Caixa");
             }
 
             const saidasCaixa = movsHoje
-               .filter(m => tiposSaida.includes(m.tipo))
-               .reduce((acc, m) => acc + Number(m.valor || 0), 0);
+                .filter(m => tiposSaida.includes(m.tipo))
+                .reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
             console.log("RESULTADO CALCULO:", { totalVendasHoje, cashHoje, tpaHoje, saidasCaixa, saidasHoje });
             console.log("=== DEBUG DADOS TAB FIM ===");
@@ -263,12 +263,13 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                     <CardStats titulo="Ticket Médio" stats={{ total: ticketMedio, qtdVendas: kpis.qtdVendasHoje, ticketMedio }} icon={<TrendingUp size={16} />} descricao="Valor por venda" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
                     <CardAlertaDanger titulo="Saída do Dia" valor={kpis.saidaDiaria} descricao="Total de saídas/retiradas de hoje" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
                 </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                     <div style={{ background: 'color-mix(in srgb, #3b82f6 15%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, #3b82f6 40%, transparent)', color: '#3b82f6', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, #3b82f6 20%, transparent)' }}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: '#3b82f6' }}><Info size={14} /> Resumo do Mês - Entradas</p>
-                                <p className="text-3xl font-bold mt-1" style={{ color: '#3b82f6' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
+                                <p className="text-sm font-medium flex items-center gap-1 mb-2" style={{ opacity: 0.9, color: '#3b82f6' }}><Info size={16} /> Resumo do Mês - Entradas</p>
+                                <p className="text-2xl font-bold" style={{ color: '#3b82f6' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
                                 <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#3b82f6' }}>Total vendido no mês corrente</p>
                             </div>
                         </div>
@@ -276,13 +277,15 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                     <div style={{ background: 'color-mix(in srgb, #ef4444 15%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, #ef4444 40%, transparent)', color: '#ef4444', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, #ef4444 20%, transparent)' }}>
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs font-medium flex items-center gap-1" style={{ opacity: 0.9, color: '#ef4444' }}><ArrowDownCircle size={14} /> Resumo do Mês - Saídas</p>
-                                <p className="text-3xl font-bold mt-1" style={{ color: '#ef4444' }}>{loading ? "..." : safeFormat(kpis.totalSaidasMes)}</p>
+                                <p className="text-sm font-medium flex items-center gap-1 mb-2" style={{ opacity: 0.9, color: '#ef4444' }}><ArrowDownCircle size={16} /> Resumo do Mês - Saídas</p>
+                                <p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{loading ? "..." : safeFormat(kpis.totalSaidasMes)}</p>
                                 <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#ef4444' }}>Total de saídas no mês corrente</p>
                             </div>
                         </div>
                     </div>
                 </div>
+
+
             </div>
             <SaidaModal open={showSaidaModal} onOpenChange={setShowSaidaModal} onSave={handleSaidaCriada} token={token} lojaId={lojaId} lojaNome={loja?.nome} />
             <CaixaModal open={showCaixaModal} onOpenChange={setShowCaixaModal} lojaId={lojaId || ''} token={token || ''} onSave={handleAcaoCaixa} />
