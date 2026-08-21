@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Eye, Trash2, Users, UserCheck, UserX, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { UsuarioLoja, UsuarioLojaPage } from "../../page";
 import { formatCurrency } from "../utils";
 
-type FiltroEquipa = 'ativos' | 'inativos'; // <- REMOVIDO 'todos'
+type FiltroEquipa = 'ativos' | 'inativos';
 
 interface Props {
     equipa: UsuarioLojaPage[];
@@ -32,7 +32,7 @@ function AbaButton({ label, active, onClick }: {
             onClick={onClick}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-sm transition-all"
             style={{
-                borderRadius: '9999px', // <- pill igual DetalhesModal
+                borderRadius: '9999px',
                 border: `1px solid ${active ? '#000' : 'var(--cor-borda)'}`,
                 background: active ? '#000' : 'transparent',
                 color: active ? '#fff' : 'var(--cor-texto)',
@@ -57,7 +57,7 @@ export function EquipaTab({
     cardStyle,
     cardSize
 }: Props) {
-    const [filtro, setFiltro] = useState<FiltroEquipa>('ativos'); // <- default continua ativos
+    const [filtro, setFiltro] = useState<FiltroEquipa>('ativos');
 
     const toModalUser = (u: UsuarioLojaPage): UsuarioLoja => ({
         ...u,
@@ -66,12 +66,22 @@ export function EquipaTab({
 
     const totalAtivos = equipa.filter(u => u.is_active).length;
     const totalInativos = equipa.filter(u => !u.is_active).length;
-    const totalGerentes = equipa.filter(u => u.role === 'GERENTE' || u.role === 'DONO').length;
 
-    const equipaFiltrada = equipa.filter(u => {
-        if (filtro === 'ativos') return u.is_active;
-        return !u.is_active; // <- só tem 2 casos agora
-    });
+    // ORDENAR POR ORDEM DESC: mais recente primeiro usando ID
+    const equipaFiltrada = useMemo(() => {
+        const filtrados = equipa.filter(u => {
+            if (filtro === 'ativos') return u.is_active;
+            return !u.is_active;
+        });
+
+        // Ordena DESC. Funciona tanto pra id number quanto string
+        return [...filtrados].sort((a, b) => {
+            if (typeof a.id === 'number' && typeof b.id === 'number') {
+                return b.id - a.id;
+            }
+            return String(b.id).localeCompare(String(a.id)); // se for string
+        });
+    }, [equipa, filtro]);
 
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const padding = cardSize === 'grande' ? '20px' : '16px';
@@ -98,7 +108,7 @@ export function EquipaTab({
                 )}
             </div>
 
-            <div className="flex gap-3 px-0 sm:px-6 py-0"> {/* <- agora só 2 abas */}
+            <div className="flex gap-3 px-0 sm:px-6 py-0">
                 <AbaButton
                     label={`Ativos (${totalAtivos})`}
                     active={filtro === 'ativos'}
@@ -117,9 +127,9 @@ export function EquipaTab({
                         <div
                             className="text-center py-16"
                             style={{
-                                border: '2px dashed var(--cor-primaria)', // <- 2px dashed pra destacar
+                                border: '2px dashed var(--cor-primaria)',
                                 borderRadius: radius,
-                                background: 'rgba(0,0,0,0.02)' // <- fundo neutro pra não conflitar com tema
+                                background: 'rgba(0,0,0,0.02)'
                             }}
                         >
                             {filtro === 'inativos'
@@ -135,6 +145,11 @@ export function EquipaTab({
                         let badgeText = "Ativo"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)';
                         if (!u.is_active) { badgeText = "Inativo"; badgeColor = "#6b7280"; borderColor = "#6b7280"; bgColor = 'color-mix(in srgb, #6b7280 5%, transparent)'; }
                         if (u.role === 'DONO' || u.role === 'GERENTE') { badgeText = u.role; badgeColor = "var(--cor-primaria)"; borderColor = "var(--cor-primaria)"; bgColor = 'color-mix(in srgb, var(--cor-primaria) 5%, transparent)'; }
+
+                        // LÓGICA DOS BOTÕES
+                        const canEdit = u.role !== 'DONO';
+                        const canDelete = isDono && u.role !== 'DONO';
+                        const botoes = [true, canEdit, canDelete].filter(Boolean).length;
 
                         return (
                             <div
@@ -160,7 +175,12 @@ export function EquipaTab({
                                 </div>
 
                                 {isAdmin && (
-                                    <div className="flex items-center justify-center sm:justify-start gap-2 w-full pt-2">
+                                    <div
+                                        className="flex items-center gap-2 w-full pt-2"
+                                        style={{
+                                            justifyContent: botoes === 1 ? 'stretch' : 'center'
+                                        }}
+                                    >
                                         <Button
                                             type="button"
                                             size="sm"
@@ -172,14 +192,15 @@ export function EquipaTab({
                                                 padding: '0 12px',
                                                 borderRadius: '8px',
                                                 fontWeight: 600,
-                                                flex: 1,
-                                                maxWidth: '110px'
+                                                flex: botoes === 1 ? 1 : '0 1 auto',
+                                                width: botoes === 1 ? '100%' : 'auto',
+                                                maxWidth: botoes === 1 ? '100%' : '110px'
                                             }}
                                             onClick={() => onView(toModalUser(u))}
                                         >
                                             <Eye size={14} /> Ver
                                         </Button>
-                                        {u.role !== 'DONO' && (
+                                        {canEdit && (
                                             <Button
                                                 type="button"
                                                 size="sm"
@@ -193,7 +214,7 @@ export function EquipaTab({
                                                     borderColor: 'var(--cor-borda)',
                                                     background: 'var(--cor-card)',
                                                     color: 'var(--cor-texto)',
-                                                    flex: 1,
+                                                    flex: '0 1 auto',
                                                     maxWidth: '110px'
                                                 }}
                                                 onClick={() => onEdit(toModalUser(u))}
@@ -201,7 +222,7 @@ export function EquipaTab({
                                                 Editar
                                             </Button>
                                         )}
-                                        {isDono && u.role !== 'DONO' && (
+                                        {canDelete && (
                                             <Button
                                                 type="button"
                                                 size="sm"
@@ -213,7 +234,7 @@ export function EquipaTab({
                                                     fontWeight: 600,
                                                     background: '#ef4444',
                                                     color: '#fff',
-                                                    flex: 1,
+                                                    flex: '0 1 auto',
                                                     maxWidth: '110px'
                                                 }}
                                                 onClick={() => onDelete(u)}
