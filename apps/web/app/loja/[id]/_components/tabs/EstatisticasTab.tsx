@@ -427,7 +427,7 @@ export function EstatisticasTab({ lojaId, token, formatCurrency, nomeLoja = "MIN
             {abaAtiva === "resumo" && (
                 <div className="space-y-4">
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-4">
                         <CardStats
                             titulo="Faturamento"
                             stats={statsPeriodo}

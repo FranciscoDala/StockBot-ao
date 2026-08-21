@@ -263,7 +263,7 @@ export function DocumentosTab({ lojaId, token, loja, formatCurrency, theme, card
             </div>
 
             {/* CARDS */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-4"> {/* <- era grid-cols-2 */}
                 <div className="p-3 md:p-4 min-w-0 overflow-hidden" style={{ border: '1px solid var(--cor-primaria)40', background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', backdropFilter: 'blur(12px)', borderRadius: radius, boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 18%, transparent)' }}>
                     <div className="flex items-center justify-between mb-2 gap-2">
                         <p className="text-base md:text-sm font-medium truncate" style={{ color: 'var(--cor-texto-sec)' }}>Total Vendido</p>

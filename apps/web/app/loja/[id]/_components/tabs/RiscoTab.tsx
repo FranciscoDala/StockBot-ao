@@ -88,7 +88,7 @@ function CardRisco({
                 <p className="text-xs md:text-sm font-medium" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>{titulo}</p>
                 <div style={{ color: 'var(--cor-primaria)' }}>{icon}</div>
             </div>
-            <p className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{qtd}</p>
+            <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{qtd}</p>
             <p className="text-xs mt-1" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>{descricao}</p>
             {tendencia && <p className="text-xs mt-1" style={{ opacity: 0.7, color: 'var(--cor-primaria)' }}>{tendencia}</p>}
         </div>
@@ -96,7 +96,6 @@ function CardRisco({
 }
 
 function BarraProgresso({ valor, max, cor, cardStyle }: { valor: number, max: number, cor: string, cardStyle: string }) {
-    cardStyle
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const pct = max > 0 ? (valor / max) * 100 : 0
     return (
@@ -293,10 +292,10 @@ export function RiscoTab({
                 </div>
             </div>
 
-            {/* CONTEUDO POR ABA */}
+           {/* CONTEUDO POR ABA */}
             {abaAtiva === "estoque" && (
                 <div className="space-y-4">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-4">
 
                         <CardRisco titulo="Estoque Zerado" qtd={produtosZerados.length} descricao="Não consegue vender" cor="alerta" icon={<Ban size={16} />} tendencia="-12% vs mês ant" cardStyle={cardStyle} cardSize={cardSize} />
 
@@ -305,7 +304,6 @@ export function RiscoTab({
                         <CardRisco titulo="Produtos Parados" qtd={produtosParados.length} descricao="+30 dias sem girar" cor="yellow" icon={<Clock size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
 
                         <CardRisco titulo="Validade Próxima" qtd={produtosValidade.length} descricao="Vence em 15 dias" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
-
 
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -320,13 +318,13 @@ export function RiscoTab({
                         >
                             <h3 className="font-bold text-base mb-3 flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}><PackageX size={16} style={{ color: '#ef4444' }} /> Alertas Críticos</h3>
                             <div className="space-y-2 max-h-[350px] overflow-y-auto scrollbar-hide">
-                                {[...produtosZerados, ...produtosRuptura].slice(0, 15).map(p => (
+                                {[...produtosZerados,...produtosRuptura].slice(0, 15).map(p => (
                                     <div key={p.id} className="p-3" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
                                         <div className="flex justify-between items-center mb-2">
                                             <p className="font-medium text-sm truncate max-w-[200px]" style={{ color: 'var(--cor-texto)' }}>{p.nome}</p>
-                                            <span className="font-bold text-xs" style={{ color: p.estoque <= 0 ? '#ef4444' : '#f97316' }}>Est: {p.estoque}</span>
+                                            <span className="font-bold text-xs" style={{ color: p.estoque <= 0? '#ef4444' : '#f97316' }}>Est: {p.estoque}</span>
                                         </div>
-                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0 ? "#ef4444" : "#f97316"} cardStyle={cardStyle} />
+                                        <BarraProgresso valor={p.estoque} max={p.estoque_minimo * 2} cor={p.estoque <= 0? "#ef4444" : "#f97316"} cardStyle={cardStyle} />
                                         <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>Mínimo: {p.estoque_minimo}</p>
                                     </div>
                                 ))}
@@ -362,7 +360,7 @@ export function RiscoTab({
 
             {abaAtiva === "financeiro" && (
                 <div className="space-y-4">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 md:gap-4">
                         <CardRisco titulo="Vendas Canceladas" qtd={vendasCanceladas.length} descricao={`${taxaCancelamento.toFixed(1)}% do total`} cor="alerta" icon={<TrendingDown size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
                         <CardRisco titulo="Perda Estimada" qtd={0} descricao={formatCurrency(totalPerdido)} cor="yellow" icon={<Ban size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
                         <CardRisco titulo="Desconto >20%" qtd={vendasComDesconto.length} descricao="Risco de margem" cor="yellow" icon={<Flame size={16} />} cardStyle={cardStyle} cardSize={cardSize} />
