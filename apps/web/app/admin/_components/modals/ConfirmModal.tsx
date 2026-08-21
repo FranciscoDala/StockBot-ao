@@ -94,6 +94,19 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                     }}
                 >
                     <Button
+                        onClick={handleConfirm}
+                        disabled={saving || adminSenha.length < 4}
+                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm"
+                        style={{
+                            background: saving || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-primaria) 50%, transparent)' : 'var(--cor-primaria)',
+                            color: '#fff',
+                            borderRadius: 'var(--radius)'
+                        }}
+                    >
+                        {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Salvar Alterações
+                    </Button>
+                    <Button
                         variant="secondary"
                         onClick={handleClose}
                         disabled={saving}
@@ -106,19 +119,6 @@ export function ConfirmModal({ open, onOpenChange, adminSenha, setAdminSenha, on
                         }}
                     >
                         Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleConfirm}
-                        disabled={saving || adminSenha.length < 4}
-                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm"
-                        style={{
-                            background: saving || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-primaria) 50%, transparent)' : 'var(--cor-primaria)',
-                            color: '#fff',
-                            borderRadius: 'var(--radius)'
-                        }}
-                    >
-                        {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Salvar Alterações
                     </Button>
                 </DialogFooter>
             </DialogContent>

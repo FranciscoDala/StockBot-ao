@@ -123,7 +123,7 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
                     <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
                         <Button type="submit" disabled={saving} className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                            {editingLoja? "Salvar Alterações" : "Salvar"}
+                            {editingLoja? "Salvar Alterações" : "Cadastrar Loja"}
                         </Button>
                         <DialogClose asChild>
                             <Button type="button" className="text-sm w-full sm:flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>

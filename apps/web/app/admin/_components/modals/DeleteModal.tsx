@@ -109,6 +109,19 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     }}
                 >
                     <Button
+                        onClick={handleDelete}
+                        disabled={deleting || adminSenha.length < 4}
+                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm pb-1"
+                        style={{
+                            background: deleting || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-erro) 50%, transparent)' : 'var(--cor-erro)',
+                            color: '#fff',
+                            borderRadius: 'var(--radius)'
+                        }}
+                    >
+                        {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Apagar para sempre
+                    </Button>
+                    <Button
                         variant="secondary"
                         onClick={handleClose}
                         disabled={deleting}
@@ -121,19 +134,6 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                         }}
                     >
                         Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleDelete}
-                        disabled={deleting || adminSenha.length < 4}
-                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm"
-                        style={{
-                            background: deleting || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-erro) 50%, transparent)' : 'var(--cor-erro)',
-                            color: '#fff',
-                            borderRadius: 'var(--radius)'
-                        }}
-                    >
-                        {deleting && <Loader2 className="w-4 h-4 animate-spin" />}
-                        Apagar para sempre
                     </Button>
                 </div>
             </DialogContent>
