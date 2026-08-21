@@ -460,11 +460,12 @@ export default function LojaPage() {
 
             // 1. SE NÃO TEM SENHA DO DONO: Pede senha
             if (!payload.senha_dono || !payload.senha_confirmacao) {
-                console.log("1. SEM SENHA - PEDINDO PERMISSAO")
                 setAcaoPendente({
                     tipo: modalType === 'user' ? (editingUser ? 'editar' : 'adicionar') : (editingProduto ? 'editar' : 'adicionar'),
                     entidade: modalType,
-                    descricao: '',
+                    descricao: modalType === 'user'
+                        ? (editingUser ? `Tem certeza que deseja salvar as alterações?` : `Esta é uma ação sensível. Para adicionar um novo membro, confirme com a senha do proprietário da loja.`)
+                        : (editingProduto ? `Tem certeza que deseja salvar as alterações?` : `Esta é uma ação sensível. Para adicionar um novo produto, confirme com a senha do proprietário da loja.`),
                     data: payload
                 });
                 setShowPermissaoModal(true);
@@ -654,7 +655,27 @@ export default function LojaPage() {
 
                     <UserModal open={showModal && modalType === 'user'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingUser={editingUser} formData={formDataUser} setFormData={setFormDataUser} onSave={handleSave} saving={saving} errorMsg={errorMsg} lojaNome={loja?.nome} />
                     <ProdutoModal open={showModal && modalType === 'produto'} onOpenChange={(v) => { if (!saving) setShowModal(v) }} editingProduto={editingProduto} formData={formDataProduto} setFormData={setFormDataProduto} onSave={handleSave} saving={saving} errorMsg={errorMsg} />
-                    <PermissaoModal open={showPermissaoModal} onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} loading={saving} />
+
+                    <PermissaoModal
+                        open={showPermissaoModal}
+                        onClose={() => { setShowPermissaoModal(false); setAcaoPendente(null) }}
+                        onConfirm={executarAcaoComSenha}
+                        titulo={
+                            acaoPendente?.tipo === 'editar'
+                                ? "Confirmar Edição"
+                                : acaoPendente?.tipo === 'adicionar'
+                                    ? "Confirmar Adição"
+                                    : "Confirmar Exclusão"
+                        }
+                        descricao={acaoPendente?.descricao || "Esta é uma ação sensível. Para continuar, confirme com a senha do proprietário da loja."}
+                        textoConfirmar={
+                            acaoPendente?.tipo === 'adicionar' ? "Adicionar Membro" :
+                                acaoPendente?.tipo === 'editar' ? "Salvar Alterações" :
+                                    "Confirmar Exclusão"
+                        }
+                        loading={saving}
+                    />
+
                     <ErroModal open={showErroModal} onClose={() => setShowErroModal(false)} mensagem={erroMsgPermissao} />
                     <DetalhesModal open={showDetalhesModal} onClose={() => setShowDetalhesModal(false)} dados={detalhesUser} />
                     <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setItemParaRemover(null) }} onConfirm={handleConfirmarRemocao} titulo="Remover do Carrinho" descricao={`Deseja remover ${itemParaRemover?.nome} do carrinho?`} loading={false} tipo="venda" />

@@ -31,7 +31,8 @@ export function ConfirmarModal({
 }: Props) {
     const [senha, setSenha] = useState("");
 
-    const precisaDeSenha = tipo === 'edit' || tipo === 'delete';
+    // AJUSTE: create também precisa de senha
+    const precisaDeSenha = tipo === 'edit' || tipo === 'delete' || tipo === 'create';
 
     useEffect(() => {
         if (!open) setSenha("");
@@ -55,7 +56,6 @@ export function ConfirmarModal({
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
-                // AJUSTE 1 e 2: já tinha respiro, só garantir overflow-hidden + mx-auto
                 className="w-[calc(100%-2rem)] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{
                     backgroundColor: 'var(--cor-card)',
@@ -67,8 +67,6 @@ export function ConfirmarModal({
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
-
-                {/* AJUSTE 4: text-left no header */}
                 <DialogHeader className="p-5 pb-3 shrink-0 text-left">
                     <div className="flex items-center gap-3">
                         <Shield size={24} style={{color: 'var(--cor-primaria)'}} />
@@ -80,7 +78,6 @@ export function ConfirmarModal({
                 </DialogHeader>
 
                 {precisaDeSenha && (
-                    // AJUSTE 3: grid 4 colunas pra senha
                     <div className="px-5 pb-2">
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="senha-dono" className="text-xs sm:text-right sm:justify-self-end" style={{color: 'var(--cor-texto-sec)'}}>Senha Dono *</Label>
@@ -95,7 +92,7 @@ export function ConfirmarModal({
                                     color: 'var(--cor-texto)',
                                     border: '1.5px solid var(--cor-primaria)',
                                     borderRadius: 'var(--radius-sm)',
-                                ...focusStyle
+                               ...focusStyle
                                 }}
                                 placeholder="******"
                                 disabled={loading}
