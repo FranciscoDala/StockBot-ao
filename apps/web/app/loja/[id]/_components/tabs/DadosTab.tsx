@@ -264,22 +264,23 @@ export function DadosTab({ loja, user, lojaId: lojaIdProp, token: tokenProp, the
                     <CardAlertaDanger titulo="Saída do Dia" valor={kpis.saidaDiaria} descricao="Total de saídas/retiradas de hoje" formatCurrency={safeFormat} cardStyle={cardStyle} cardSize={cardSize} />
                 </div>
 
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                     <div style={{ background: 'color-mix(in srgb, #3b82f6 15%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, #3b82f6 40%, transparent)', color: '#3b82f6', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, #3b82f6 20%, transparent)' }}>
                         <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium flex items-center gap-1 mb-2" style={{ opacity: 0.9, color: '#3b82f6' }}><Info size={16} /> Resumo do Mês - Entradas</p>
-                                <p className="text-2xl font-bold" style={{ color: '#3b82f6' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
-                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#3b82f6' }}>Total vendido no mês corrente</p>
+                            <div className="w-full">
+                                <p className="text-xs md:text-sm font-medium flex items-center gap-1 mb-2" style={{ opacity: 0.9, color: '#3b82f6' }}><Info size={16} /> Resumo do Mês - Entradas</p>
+                                <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: '#3b82f6' }}>{loading ? "..." : safeFormat(kpis.totalVendasMes)}</p>
+                                <p className="text-xs md:text-xs mt-1" style={{ opacity: 0.8, color: '#3b82f6' }}>Total vendido no mês corrente</p>
                             </div>
                         </div>
                     </div>
                     <div style={{ background: 'color-mix(in srgb, #ef4444 15%, transparent)', backdropFilter: 'blur(16px)', border: '1px solid color-mix(in srgb, #ef4444 40%, transparent)', color: '#ef4444', padding: cardSize === 'grande' ? '24px' : '16px', borderRadius: radius, boxShadow: '0 0 30px color-mix(in srgb, #ef4444 20%, transparent)' }}>
                         <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium flex items-center gap-1 mb-2" style={{ opacity: 0.9, color: '#ef4444' }}><ArrowDownCircle size={16} /> Resumo do Mês - Saídas</p>
-                                <p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{loading ? "..." : safeFormat(kpis.totalSaidasMes)}</p>
-                                <p className="text-xs mt-1" style={{ opacity: 0.8, color: '#ef4444' }}>Total de saídas no mês corrente</p>
+                            <div className="w-full">
+                                <p className="text-xs md:text-sm font-medium flex items-center gap-1 mb-2" style={{ opacity: 0.9, color: '#ef4444' }}><ArrowDownCircle size={16} /> Resumo do Mês - Saídas</p>
+                                <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: '#ef4444' }}>{loading ? "..." : safeFormat(kpis.totalSaidasMes)}</p>
+                                <p className="text-xs md:text-xs mt-1" style={{ opacity: 0.8, color: '#ef4444' }}>Total de saídas no mês corrente</p>
                             </div>
                         </div>
                     </div>
