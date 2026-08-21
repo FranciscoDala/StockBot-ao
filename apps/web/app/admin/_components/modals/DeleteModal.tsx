@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"; // 👈 Adicionei DialogFooter
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -77,7 +77,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                                 color: 'var(--cor-texto)',
                                 border: '1.5px solid var(--cor-primaria)',
                                 borderRadius: 'var(--radius-sm)',
-                            ...focusStyle
+                           ...focusStyle
                             }}
                             placeholder="******"
                             disabled={deleting}
@@ -94,22 +94,18 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     </div>
                 </div>
 
-                {/* AJUSTE: p-5 e gap-3 pra desgrudar os botões no mobile */}
-                <div
-                    className="p-5 border-t shrink-0 flex-col gap-3"
+                {/* AJUSTE: Troquei div por DialogFooter igual ConfirmModal */}
+                <DialogFooter
+                    className="p-4 border-t shrink-0 flex-col sm:flex-row gap-3"
                     style={{
                         backgroundColor: 'var(--cor-card)',
-                        borderColor: 'var(--cor-borda)',
-                        borderTopLeftRadius: 0,
-                        borderTopRightRadius: 0,
-                        borderBottomLeftRadius: 'var(--radius)',
-                        borderBottomRightRadius: 'var(--radius)'
+                        borderColor: 'var(--cor-borda)'
                     }}
                 >
                     <Button
                         onClick={handleDelete}
                         disabled={deleting || adminSenha.length < 4}
-                        className="gap-2 font-bold h-10 w-full text-sm"
+                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm"
                         style={{
                             background: deleting || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-erro) 50%, transparent)' : 'var(--cor-erro)',
                             color: '#fff',
@@ -123,7 +119,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                         variant="secondary"
                         onClick={handleClose}
                         disabled={deleting}
-                        className="h-10 w-full text-sm font-semibold"
+                        className="h-10 w-full sm:flex-1 text-sm font-semibold"
                         style={{
                             backgroundColor: 'var(--cor-card)',
                             color: 'var(--cor-texto)',
@@ -133,7 +129,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     >
                         Cancelar
                     </Button>
-                </div>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     )
