@@ -91,10 +91,10 @@ export function ProdutosTab({
     return (
         <>
             <style jsx global>{`
-              .scrollbar-hide::-webkit-scrollbar { display: none; }
-              .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-              .snap-x { scroll-snap-type: x mandatory; }
-              .snap-center { scroll-snap-align: center; }
+             .scrollbar-hide::-webkit-scrollbar { display: none; }
+             .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+             .snap-x { scroll-snap-type: x mandatory; }
+             .snap-center { scroll-snap-align: center; }
         `}</style>
             <div
                 className="space-y-6"
@@ -123,8 +123,8 @@ export function ProdutosTab({
                     )}
                 </div>
 
-                {/* CARDS KPI PADRONIZADOS */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                {/* CARDS KPI PADRONIZADOS - AJUSTE: grid-cols-1 no mobile */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div
                         className="transition hover:scale-[1.02] min-w-0"
                         style={{
