@@ -211,7 +211,7 @@ export function EquipaTab({
                                             }}
                                             onClick={() => onView(toModalUser(u))}
                                         >
-                                            <Eye size={14} /> Detalhes
+                                            <Eye size={14} /> Ver
                                         </Button>
                                         {canEdit && (
                                             <Button
