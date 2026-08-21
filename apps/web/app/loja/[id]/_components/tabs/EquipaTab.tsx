@@ -117,14 +117,14 @@ export function EquipaTab({
                         <div
                             className="text-center py-16"
                             style={{
-                                border: '1px solid var(--cor-primaria)',
+                                border: '2px dashed var(--cor-primaria)', // <- 2px dashed pra destacar
                                 borderRadius: radius,
-                                background: 'color-mix(in srgb, var(--cor-primaria) 4%, transparent)'
+                                background: 'rgba(0,0,0,0.02)' // <- fundo neutro pra não conflitar com tema
                             }}
                         >
                             {filtro === 'inativos'
-                                ? <UserX size={32} className="mx-auto mb-3 opacity-50" style={{ color: 'var(--cor-primaria)' }} />
-                                : <Users size={32} className="mx-auto mb-3 opacity-50" style={{ color: 'var(--cor-primaria)' }} />
+                                ? <UserX size={32} className="mx-auto mb-3" style={{ color: 'var(--cor-primaria)' }} />
+                                : <Users size={32} className="mx-auto mb-3" style={{ color: 'var(--cor-primaria)' }} />
                             }
                             <p className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
                                 {filtro === 'ativos' ? "Nenhum membro ativo" : "Nenhum membro inativo"}
