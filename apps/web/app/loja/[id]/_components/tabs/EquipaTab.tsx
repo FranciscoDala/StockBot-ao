@@ -59,7 +59,7 @@ export function EquipaTab({
     cardSize
 }: Props) {
     const [filtro, setFiltro] = useState<FiltroEquipa>('ativos');
-    const [paginaAtual, setPaginaAtual] = useState(1); // <- estado da paginação
+    const [paginaAtual, setPaginaAtual] = useState(1);
 
     const toModalUser = (u: UsuarioLojaPage): UsuarioLoja => ({
         ...u,
@@ -92,7 +92,7 @@ export function EquipaTab({
     const totalPaginas = Math.ceil(equipaFiltrada.length / ITENS_POR_PAGINA);
     const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
     const fim = inicio + ITENS_POR_PAGINA;
-    const equipaPaginada = equipaFiltrada.slice(inicio, fim); // <- só os 10 da página
+    const equipaPaginada = equipaFiltrada.slice(inicio, fim);
 
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const padding = cardSize === 'grande' ? '20px' : '16px';
@@ -153,7 +153,6 @@ export function EquipaTab({
                         </div>
                     )}
 
-                    {/* AGORA MAPEIA A LISTA PAGINADA */}
                     {equipaPaginada.map(u => {
                         let badgeText = "Ativo"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)';
                         if (!u.is_active) { badgeText = "Inativo"; badgeColor = "#6b7280"; borderColor = "#6b7280"; bgColor = 'color-mix(in srgb, #6b7280 5%, transparent)'; }
@@ -189,78 +188,90 @@ export function EquipaTab({
 
                                 {isAdmin && (
                                     <div className="grid w-full pt-2" style={{
-                                        gridTemplateColumns: botoes === 1 ? '1fr' : botoes === 2 ? '1fr 1fr' : '1fr 1fr 1fr',
+                                        gridTemplateColumns: '1fr', // Mobile: 1 coluna
                                         gap: '8px'
                                     }}>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            style={{
-                                                background: 'var(--cor-primaria)',
-                                                color: '#fff',
-                                                fontSize: '10px',
-                                                height: '32px',
-                                                padding: '0 12px',
-                                                borderRadius: '8px',
-                                                fontWeight: 600,
-                                                width: '100%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                gap: '4px'
-                                            }}
-                                            onClick={() => onView(toModalUser(u))}
-                                        >
-                                            <Eye size={14} /> Ver
-                                        </Button>
-                                        {canEdit && (
-                                            <Button
-                                                type="button"
-                                                size="sm"
-                                                variant="outline"
-                                                style={{
-                                                    height: '32px',
-                                                    fontSize: '10px',
-                                                    padding: '0 12px',
-                                                    borderRadius: '8px',
-                                                    fontWeight: 600,
-                                                    borderColor: 'var(--cor-borda)',
-                                                    background: 'var(--cor-card)',
-                                                    color: 'var(--cor-texto)',
-                                                    width: '100%',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: '4px'
-                                                }}
-                                                onClick={() => onEdit(toModalUser(u))}
-                                            >
-                                                Atualizar
-                                            </Button>
-                                        )}
-                                        {canDelete && (
+                                        <style jsx>{`
+                                            @media (min-width: 640px) {
+                                                .grid-botoes-${u.id} {
+                                                    grid-template-columns: ${botoes === 1 ? '1fr' : botoes === 2 ? '1fr 1fr' : '1fr 1fr 1fr'} !important;
+                                                }
+                                            }
+                                        `}</style>
+                                        <div className={`grid-botoes-${u.id}`} style={{ display: 'contents' }}>
                                             <Button
                                                 type="button"
                                                 size="sm"
                                                 style={{
-                                                    height: '32px',
-                                                    fontSize: '10px',
-                                                    padding: '0 12px',
-                                                    borderRadius: '8px',
-                                                    fontWeight: 600,
-                                                    background: '#ef4444',
+                                                    background: 'var(--cor-primaria)',
                                                     color: '#fff',
+                                                    fontSize: '11px',
+                                                    height: '32px',
+                                                    padding: '0 8px',
+                                                    borderRadius: '8px',
+                                                    fontWeight: 600,
                                                     width: '100%',
                                                     display: 'flex',
                                                     alignItems: 'center',
                                                     justifyContent: 'center',
-                                                    gap: '4px'
+                                                    gap: '4px',
+                                                    whiteSpace: 'nowrap'
                                                 }}
-                                                onClick={() => onDelete(u)}
+                                                onClick={() => onView(toModalUser(u))}
                                             >
-                                                <Trash2 size={14} /> Apagar
+                                                <Eye size={14} /> Ver
                                             </Button>
-                                        )}
+                                            {canEdit && (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="outline"
+                                                    style={{
+                                                        height: '32px',
+                                                        fontSize: '11px',
+                                                        padding: '0 8px',
+                                                        borderRadius: '8px',
+                                                        fontWeight: 600,
+                                                        borderColor: 'var(--cor-borda)',
+                                                        background: 'var(--cor-card)',
+                                                        color: 'var(--cor-texto)',
+                                                        width: '100%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '4px',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                    onClick={() => onEdit(toModalUser(u))}
+                                                >
+                                                    Atualizar
+                                                </Button>
+                                            )}
+                                            {canDelete && (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    style={{
+                                                        height: '32px',
+                                                        fontSize: '11px',
+                                                        padding: '0 8px',
+                                                        borderRadius: '8px',
+                                                        fontWeight: 600,
+                                                        background: '#ef4444',
+                                                        color: '#fff',
+                                                        width: '100%',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        gap: '4px',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                    onClick={() => onDelete(u)}
+                                                >
+                                                    <Trash2 size={14} /> Apagar
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
