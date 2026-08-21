@@ -27,8 +27,7 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent
-                // AJUSTE: largura com respiro + centralizada
-                className="w-[95vw] max-w-[600px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
+                className="w-[95vw] max-w-[600px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -41,7 +40,6 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
-                    {/* AJUSTE: header text-left */}
                     <DialogHeader className="p-5 pb-3 shrink-0 text-left">
                         <DialogTitle className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>{editingLoja? "Editar Loja" : "Criar Nova Loja"}</DialogTitle>
                         <DialogDescription className="text-sm mt-1" style={{ color: 'var(--cor-texto-sec)' }}>{editingLoja? "Altere os dados abaixo." : `Preencha os dados. Slug: /${formData.slug || "minha-loja"}`}</DialogDescription>
@@ -121,15 +119,15 @@ export function LojaModal({ open, onOpenChange, editingLoja, donos, formData, se
                             </>
                         )}
                     </div>
-                    {/* AJUSTE: Footer igual as outras */}
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
-                        <DialogClose asChild>
-                            <Button type="button" className="text-sm h-10 flex-1 font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>
-                        </DialogClose>
-                        <Button type="submit" disabled={saving} className="gap-2 text-sm h-10 flex-1 font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
+                    {/* AJUSTE: Ordem e tamanho igual UserModal */}
+                    <DialogFooter className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
+                        <Button type="submit" disabled={saving} className="gap-2 text-sm w-full sm:flex-1 h-10 font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                             {editingLoja? "Salvar Alterações" : "Salvar"}
                         </Button>
+                        <DialogClose asChild>
+                            <Button type="button" className="text-sm w-full sm:flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>Cancelar</Button>
+                        </DialogClose>
                     </DialogFooter>
                 </form>
             </DialogContent>

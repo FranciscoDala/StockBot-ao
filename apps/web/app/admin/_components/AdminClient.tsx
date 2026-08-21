@@ -459,13 +459,13 @@ export default function AdminClient({ lojasIniciais, donosIniciais }: { lojasIni
                                         </CardContent>
                                         <div className="p-4 pt-2 flex gap-2 opacity-100">
                                             <Link href={`/admin/empresas/${loja.slug}`} className={cn(buttonVariants({ size: "sm", variant: "outline" }), "flex-1 gap-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10")}>
-                                                <Eye size={14} /> Ver
+                                                Ver
                                             </Link>
                                             <Button size="sm" variant="outline" className="flex-1 gap-1 border-orange-500/30 text-orange-400 hover:bg-orange-500/10" onClick={() => handleOpenModal(loja)}>
-                                                <Edit size={14} /> Editar
+                                                Atualizar
                                             </Button>
                                             <Button size="sm" variant="outline" className="flex-1 gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10" onClick={() => { setLojaToDelete(loja); setDeleteModalOpen(true); }}>
-                                                <Trash2 size={14} />
+                                                Apagar
                                             </Button>
                                         </div>
                                     </Card>
