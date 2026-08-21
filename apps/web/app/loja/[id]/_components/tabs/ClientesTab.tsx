@@ -365,7 +365,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                         const isNovo =!temDivida &&!c.ultima_compra;
                         let badgeText = "Pago"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)'; let buttonColor = "#22c55e";
                         if (temDivida) { badgeText = "Devendo"; badgeColor = "#ef4444"; borderColor = "#ef4444"; bgColor = 'color-mix(in srgb, #ef4444 5%, transparent)'; buttonColor = "#ef4444"; }
-                        else if (isNovo) { badgeText = "Cliente novo"; badgeColor = "#3b82f6"; borderColor = "#3b82f6"; bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)'; buttonColor = "#3b82f6"; }
+                        else if (isNovo) { badgeText = "Novo Cliente"; badgeColor = "#3b82f6"; borderColor = "#3b82f6"; bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)'; buttonColor = "#3b82f6"; }
                         return (
                             <div key={c.id} className="flex flex-col gap-3 transition hover:bg-[var(--cor-primaria)5] w-full" style={{ border: `1px solid ${borderColor}`, background: bgColor, borderRadius: radius, padding }}>
                                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">

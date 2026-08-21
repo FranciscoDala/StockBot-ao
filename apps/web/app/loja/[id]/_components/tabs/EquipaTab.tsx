@@ -146,8 +146,6 @@ export function EquipaTab({
                                     opacity: u.is_active ? 1 : 0.7
                                 }}
                             >
-
-                                
                                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">

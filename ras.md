@@ -68,425 +68,236 @@ className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !p-0 !fle
 
 
 
-
 "use client";
-import { useState, useEffect, useMemo, Dispatch, SetStateAction, FormEvent } from "react";
-import { Users, DollarSign, ChevronLeft, ChevronRight, Plus, Search, Filter, Calendar } from "lucide-react";
+import { useState } from "react";
+import { Plus, Eye, Trash2, Users, UserCheck, UserX, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Produto } from "../modals/ProdutoModal";
-import { ClienteModal, ClienteForm } from "../modals/modal_cliente";
-import { ConfirmarModal } from "../modals/ConfirmacaoModal";
-import { DetalhesClienteModal, type VendaPendente } from "../modals/DetalhesClienteModal";
-import { PagarDividaModal } from "../modals/PagarDividaModal";
+import type { UsuarioLoja, UsuarioLojaPage } from "../../page";
+import { formatCurrency } from "../utils";
 
-// BATE 100% COM ClienteOut DO BACKEND
-export type Cliente = {
-    id: string;
-    loja_id: string;
-    nome: string;
-    nome_empresa: string | null;
-    bi: string | null;
-    telefone: string | null;
-    email: string | null;
-    endereco: string | null;
-    cidade: string | null;
-    provincia: string | null;
-    observacoes: string | null;
-    is_active: boolean;
-    created_at: string;
-    total_divida: number;
-    ultima_compra: string | null;
-    status: 'com_divida' | 'em_dia';
-};
+type FiltroEquipa = 'ativos' | 'inativos' | 'todos';
 
-type Props = { lojaId: string; token: string | null; theme: string; cardStyle: string; cardSize: string; formatCurrency: (v: number) => string; }
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://stockbot-ao.onrender.com/api/v1";
-type FiltroCliente = 'todos' | 'com_divida' | 'novo' | 'em_dia';
-type ProdutoCarrinho = Omit<Produto, 'unidade'> & { qtd: number };
+interface Props {
+    equipa: UsuarioLojaPage[];
+    isAdmin: boolean;
+    isDono: boolean;
+    lojaId?: string;
+    onAdd: () => void;
+    onEdit: (u: UsuarioLojaPage) => void;
+    onDelete: (u: UsuarioLojaPage) => void;
+    onView: (u: UsuarioLojaPage) => void;
+    theme: string;
+    cardStyle: string;
+    cardSize: string;
+}
 
-export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatCurrency }: Props) {
-    const [clientes, setClientes] = useState<Cliente[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadingDetalhes, setLoadingDetalhes] = useState(false);
-    const [filtro, setFiltro] = useState<FiltroCliente>('com_divida');
-    const [busca, setBusca] = useState("");
-    const [pagina, setPagina] = useState(1);
-    const ITENS_POR_PAGINA = 8;
-    const [showModal, setShowModal] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [savingPagamento, setSavingPagamento] = useState(false);
-    const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
-    const [formDataCliente, setFormDataCliente] = useState<ClienteForm>({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
-    const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
-    const [showDetalhes, setShowDetalhes] = useState(false);
-    const [vendasPendentes, setVendasPendentes] = useState<VendaPendente[]>([]);
-    const [carrinhoFiado, setCarrinhoFiado] = useState<ProdutoCarrinho[]>([]);
-    const [produtosLoja, setProdutosLoja] = useState<Produto[]>([]);
-    const [showPagarModal, setShowPagarModal] = useState(false);
-    const [vendaSelecionada, setVendaSelecionada] = useState<VendaPendente | null>(null);
-    const [valorPagamento, setValorPagamento] = useState("");
-    const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
-    const [showConfirmarModal, setShowConfirmarModal] = useState(false);
-    const [acaoPendente, setAcaoPendente] = useState<{ tipo: 'editar' | 'apagar', data: Cliente | null } | null>(null);
+function AbaButton({ label, active, onClick }: {
+    label: string,
+    active: boolean,
+    onClick: () => void
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-sm transition-all"
+            style={{
+                borderRadius: '9999px', // <- pill igual DetalhesModal
+                border: `1px solid ${active? '#000' : 'var(--cor-borda)'}`,
+                background: active? '#000' : 'transparent',
+                color: active? '#fff' : 'var(--cor-texto)',
+                fontWeight: 600
+            }}
+        >
+            {label}
+        </button>
+    )
+}
 
-    const fetchClientes = async () => {
-        if (!token) return;
-        setLoading(true);
-        try {
-            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
-            if (!res.ok) throw new Error((await res.json()).detail || `Erro ${res.status}`)
-            const data = await res.json();
-            setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0, ultima_compra: c.ultima_compra || null })));
-        } catch (e: any) {
-            toast.error(e.message || "Erro ao carregar clientes");
-            setClientes([])
-        } finally { setLoading(false) }
-    }
+export function EquipaTab({
+    equipa,
+    isAdmin,
+    isDono,
+    lojaId,
+    onAdd,
+    onEdit,
+    onDelete,
+    onView,
+    theme,
+    cardStyle,
+    cardSize
+}: Props) {
+    const [filtro, setFiltro] = useState<FiltroEquipa>('ativos');
 
-    const atualizarClienteSelecionado = async () => {
-        if(!token ||!clienteSelecionado) return;
-        try {
-            const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
-            if(res.ok){
-                const data = await res.json();
-                const lista = Array.isArray(data)? data : [];
-                const clienteNovo = lista.find((c: any) => c.id === clienteSelecionado.id);
-                if(clienteNovo) setClienteSelecionado({...clienteNovo, total_divida: clienteNovo.total_divida?? 0, ultima_compra: clienteNovo.ultima_compra || null });
-            }
-        } catch {}
-    }
+    const toModalUser = (u: UsuarioLojaPage): UsuarioLoja => ({
+        ...u,
+        telefone: u.telefone ?? undefined
+    })
 
-    const fetchDetalhesCliente = async (e: React.MouseEvent, cliente: Cliente) => {
-        e.preventDefault();
-        if (!token) return;
-        setClienteSelecionado(cliente);
-        setShowDetalhes(true);
-        setLoadingDetalhes(true);
-        setVendasPendentes([]);
-        setProdutosLoja([]);
+    const totalAtivos = equipa.filter(u => u.is_active).length;
+    const totalInativos = equipa.filter(u => !u.is_active).length;
+    const totalGerentes = equipa.filter(u => u.role === 'GERENTE' || u.role === 'DONO').length;
 
-        // 1. Busca produtos SEMPRE
-        try {
-            const resProdutos = await fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } });
-            if (resProdutos.ok) {
-                const dataProdutos = await resProdutos.json();
-                setProdutosLoja(Array.isArray(dataProdutos)? dataProdutos : []);
-            }
-        } catch {
-            setProdutosLoja([]);
-        }
+    const equipaFiltrada = equipa.filter(u => {
+        if (filtro === 'ativos') return u.is_active;
+        if (filtro === 'inativos') return !u.is_active;
+        return true;
+    });
 
-        // 2. Busca dívidas SEPARADO
-        try {
-            const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } });
-            if (resVendas.ok) {
-                const dataVendas = await resVendas.json();
-                setVendasPendentes(Array.isArray(dataVendas)? dataVendas : []);
-            }
-        } catch {
-            setVendasPendentes([]);
-        } finally {
-            setLoadingDetalhes(false);
-        }
-    }
-
-    const recarregarDetalhesCliente = async (cliente: Cliente) => {
-        if (!token) return;
-        setLoadingDetalhes(true);
-        setVendasPendentes([]);
-        setProdutosLoja([]);
-
-        try {
-            const [resVendas, resProdutos] = await Promise.all([
-                fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/pendentes`, { headers: { "Authorization": `Bearer ${token}` } }),
-                fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } }) // CORRIGIDO
-            ]);
-            if(resVendas.ok) setVendasPendentes(await resVendas.json() || []);
-            if(resProdutos.ok) setProdutosLoja(await resProdutos.json() || []);
-        } catch {
-            setVendasPendentes([]);
-            setProdutosLoja([]);
-        } finally {
-            setLoadingDetalhes(false);
-        }
-    }
-
-    const handleAbrirPagar = (venda: VendaPendente) => {
-        setVendaSelecionada(venda);
-        setValorPagamento(String(venda.saldo_devedor));
-        setShowPagarModal(true);
-    }
-
-    const handleConfirmarPagamento = async () => {
-        if (!token ||!clienteSelecionado ||!vendaSelecionada ||!valorPagamento || parseFloat(valorPagamento) <= 0) return toast.error("Valor inválido");
-        setSavingPagamento(true);
-        try {
-            const url = `${API_URL}/lojas/${lojaId}/clientes/${clienteSelecionado.id}/vendas/${vendaSelecionada.id}/pagar`;
-            const payload = { valor: parseFloat(valorPagamento), forma_pagamento: formaPagamento, observacao: `Pagamento venda ${vendaSelecionada.id.slice(0, 8)}` };
-            console.log("[DEBUG] PAGAR:", url, payload)
-            const res = await fetch(url, { method: 'POST', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || "Erro ao pagar");
-            toast.success(data.detail);
-            setShowPagarModal(false);
-            setVendaSelecionada(null);
-            await fetchClientes();
-            await atualizarClienteSelecionado(); // ATUALIZA HEADER DO MODAL
-            if (clienteSelecionado) await recarregarDetalhesCliente(clienteSelecionado);
-        } catch (err: any) { toast.error(err?.detail || err?.message || "Erro ao pagar") } finally { setSavingPagamento(false) }
-    }
-
-    const handleSalvarFiado = async (carrinho: ProdutoCarrinho[]): Promise<void> => {
-        if (!token ||!clienteSelecionado || carrinho.length === 0) return;
-
-        const payload = {
-            cliente_id: clienteSelecionado.id,
-            itens: carrinho.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco })),
-            total: carrinho.reduce((acc, i) => acc + i.preco * i.qtd, 0)
-        };
-
-        const res = await fetch(`${API_URL}/vendas/fiado`, { // CORRIGIDO
-            method: 'POST',
-            headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Erro ao lançar fiado");
-
-        toast.success("Dívida lançada com sucesso!");
-        setCarrinhoFiado([]);
-        await fetchClientes();
-        await atualizarClienteSelecionado(); // ATUALIZA HEADER DO MODAL
-        await recarregarDetalhesCliente(clienteSelecionado);
-    }
-
-    const handleEditClick = (e: React.MouseEvent, c: Cliente) => {
-        e.preventDefault();
-        setEditingClienteId(c.id);
-        setFormDataCliente({
-            nome: c.nome, nome_empresa: c.nome_empresa || null, bi: c.bi || null,
-            telefone: c.telefone || null, email: c.email || null, endereco: c.endereco || null,
-            cidade: c.cidade || null, provincia: c.provincia || null, observacoes: c.observacoes || null, is_active: c.is_active
-        });
-        setAcaoPendente({ tipo: 'editar', data: c });
-        setShowModal(true);
-    }
-
-    const handleDeleteClick = (e: React.MouseEvent, c: Cliente) => {
-        e.preventDefault();
-        setAcaoPendente({ tipo: 'apagar', data: c });
-        setShowConfirmarModal(true);
-    }
-
-    const executarAcaoComSenha = async (senha?: string) => {
-        if (!token ||!acaoPendente ||!senha) return toast.error("Senha obrigatória");
-        setSaving(true);
-        try {
-            if (acaoPendente.tipo === 'editar' && editingClienteId) {
-                const payload = {...formDataCliente, senha_dono: senha };
-                console.log("[DEBUG] EDITAR:", `${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, payload)
-                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, { method: 'PUT', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || "Erro ao editar");
-                toast.success("Cliente atualizado!");
-            }
-            if (acaoPendente.tipo === 'apagar' && acaoPendente.data) {
-                const payload = { senha_dono: senha };
-                console.log("[DEBUG] APAGAR:", `${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, payload)
-                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${acaoPendente.data.id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || "Erro ao apagar");
-                toast.success(data.message);
-            }
-            setShowConfirmarModal(false); setAcaoPendente(null); setEditingClienteId(null); fetchClientes();
-        } catch (err: any) { toast.error(err.message || "Senha incorreta"); } finally { setSaving(false); }
-    }
-
-    const handleSaveCliente = async (e?: FormEvent) => {
-        e?.preventDefault();
-        console.log("[DEBUG 1] INICIO CADASTRO", { token:!!token, lojaId })
-
-        if (!token ||!lojaId) return toast.error("Erro: Loja não encontrada");
-        if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
-
-        if (editingClienteId) { setShowModal(false); setShowConfirmarModal(true); }
-        else {
-            setSaving(true);
-            try {
-                const payload: Record<string, any> = {
-                   ...formDataCliente
-                    // REMOVI loja_id: lojaId - backend já pega da URL
-                };
-                Object.keys(payload).forEach(key => { if (payload[key] === "") payload[key] = null; });
-
-                console.log("[DEBUG 2] PAYLOAD ENVIADO:", payload)
-                console.log("[DEBUG 3] URL:", `${API_URL}/lojas/${lojaId}/clientes`)
-
-                const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
-                    method: 'POST',
-                    headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-
-                console.log("[DEBUG 4] STATUS RESPONSE:", res.status, res.statusText)
-                const text = await res.text(); // <- pega como texto primeiro
-                console.log("[DEBUG 5] CORPO BRUTO:", text)
-
-                let data;
-                try { data = JSON.parse(text) } catch { data = { detail: text } }
-
-                if (!res.ok) throw new Error(data.detail || `Erro ${res.status}`);
-
-                toast.success("Cliente cadastrado com sucesso!");
-                setShowModal(false); setFiltro('todos');
-                setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
-                fetchClientes();
-            } catch (err: any) {
-                console.error("[DEBUG ERRO]", err)
-                toast.error(err.message);
-            } finally { setSaving(false); }
-        }
-    }
-
-    const adicionarAoCarrinhoFiado = (p: Produto) => {
-        setCarrinhoFiado(prev => {
-            const item = prev.find(i => i.id === p.id);
-            if (item) return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
-            const { unidade,...restoDoProduto } = p;
-            return [...prev, {...restoDoProduto, qtd: 1 }];
-        })
-    }
-    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id!== id));
-    const totalCarrinhoFiado = carrinhoFiado.reduce((acc, i) => acc + i.preco * i.qtd, 0);
-    useEffect(() => { fetchClientes() }, [lojaId, token]);
-
-    const totalComDivida = clientes.filter(c => (c.total_divida?? 0) > 0).length;
-    const totalEmDia = clientes.filter(c => (c.total_divida?? 0) === 0).length;
-    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida?? 0), 0);
-
-    const clientesFiltrados = useMemo(() => {
-        let lista = [...clientes];
-        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0);
-        if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!!c.ultima_compra);
-        if (filtro === 'novo') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!c.ultima_compra);
-        if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.telefone?.includes(busca) || c.email?.toLowerCase().includes(busca.toLowerCase()));
-        return lista;
-    }, [clientes, filtro, busca]);
-
-    const totalPaginas = Math.ceil(clientesFiltrados.length / ITENS_POR_PAGINA);
-    const clientesPaginados = clientesFiltrados.slice((pagina - 1) * ITENS_POR_PAGINA, pagina * ITENS_POR_PAGINA);
-    useEffect(() => { setPagina(1) }, [filtro, busca]);
-
-    // Limpa a busca e força reset do input quando qualquer modal abre/fecha
-    useEffect(() => {
-        if (showModal || showDetalhes || showConfirmarModal || showPagarModal) {
-            setBusca('')
-        }
-    }, [showModal, showDetalhes, showConfirmarModal, showPagarModal]);
-
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '20px' : '16px';
-
-    if (loading) return <div className="flex justify-center py-10"><div className="animate-spin rounded-full h-10 w-10 border-b-2" style={{ borderColor: 'var(--cor-primaria)' }}></div></div>
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '20px' : '16px';
 
     return (
         <div className="space-y-6">
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Clientes <Users size={16} style={{ color: 'var(--cor-primaria)' }} /></h2>
-                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Controle de dívidas e pagamentos</p>
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
+                        Equipa
+                        <Users size={16} style={{ color: 'var(--cor-primaria)' }} />
+                    </h2>
+                    <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Gerencie os membros da loja</p>
                 </div>
-                <Button type="button" onClick={() => { setEditingClienteId(null); setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true }); setShowModal(true) }} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
-                    <Plus size={16} /> Novo Cliente
-                </Button>
+                {isAdmin && (
+                    <Button
+                        type="button"
+                        onClick={onAdd}
+                        style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
+                    >
+                        <Plus size={16} /> Adicionar Membro
+                    </Button>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #ef444430', borderRadius: radius, padding }}><p className="text-xs">Com Dívida</p><p className="text-2xl font-bold" style={{ color: '#ef4444' }}>{totalComDivida}</p><p className="text-xs">{formatCurrency(valorTotalEmDivida)}</p></div>
-                <div style={{ background: 'color-mix(in srgb, var(--cor-card) 80%, transparent)', border: '1px solid #22c55e40', borderRadius: radius, padding }}><p className="text-xs">Em Dia</p><p className="text-2xl font-bold" style={{ color: '#22c55e' }}>{totalEmDia}</p></div>
-            </div>
+            {/* CARDS KPI REMOVIDOS */}
 
-            <div className="flex flex-col sm:flex-row gap-3" style={{ background: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
-                <div className="relative flex-1">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                        key={`busca-${showModal}-${showDetalhes}-${showConfirmarModal}-${showPagarModal}`} // recria só quando modal muda
-                        type="search"
-                        name="busca_clientes" // nome fixo
-                        autoComplete="new-password" // chrome odeia isso = não preenche
-                        role="presentation"
-                        placeholder="Buscar por nome, BI, telefone..."
-                        value={busca}
-                        onChange={e => setBusca(e.target.value)}
-                        className="pl-9 h-9"
-                    />
-                </div>
-                <Select value={filtro} onValueChange={(v) => setFiltro(v as FiltroCliente)}>
-                    <SelectTrigger className="w-full sm:w-[240px] h-9"><Filter size={14} className="mr-2" /> <SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="todos">Todos clientes</SelectItem>
-                        <SelectItem value="com_divida">Com Dívida</SelectItem>
-                        <SelectItem value="novo">Novo Cliente</SelectItem>
-                        <SelectItem value="em_dia">Em Dia</SelectItem>
-                    </SelectContent>
-                </Select>
+            <div className="flex gap-3 px-3 sm:px-6 py-3"> {/* <- estilo igual DetalhesModal */}
+                <AbaButton
+                    label={`Ativos (${totalAtivos})`}
+                    active={filtro === 'ativos'}
+                    onClick={() => setFiltro('ativos')}
+                />
+                <AbaButton
+                    label={`Inativos (${totalInativos})`}
+                    active={filtro === 'inativos'}
+                    onClick={() => setFiltro('inativos')}
+                />
+                <AbaButton
+                    label={`Todos (${equipa.length})`}
+                    active={filtro === 'todos'}
+                    onClick={() => setFiltro('todos')}
+                />
             </div>
 
             <div style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: 0 }}>
                 <div className="space-y-3">
-                    {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>Nenhum cliente encontrado</p></div>}
-                    {clientesPaginados.map(c => {
-                        const temDivida = (c.total_divida?? 0) > 0;
-                        const isNovo =!temDivida &&!c.ultima_compra;
-                        let badgeText = "Em Dia"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)'; let buttonColor = "#22c55e";
-                        if (temDivida) { badgeText = "Devendo"; badgeColor = "#ef4444"; borderColor = "#ef4444"; bgColor = 'color-mix(in srgb, #ef4444 5%, transparent)'; buttonColor = "#ef4444"; }
-                        else if (isNovo) { badgeText = "Novo Cliente"; badgeColor = "#3b82f6"; borderColor = "#3b82f6"; bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)'; buttonColor = "#3b82f6"; }
+                    {equipaFiltrada.length === 0 && (
+                        <div className="text-center py-16">
+                            {filtro === 'inativos' ? <UserX size={32} className="mx-auto mb-3 opacity-50" style={{ color: '#ef4444' }} /> : <Users size={32} className="mx-auto mb-3 opacity-50" style={{ color: 'var(--cor-primaria)' }} />}
+                            <p className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
+                                {filtro === 'ativos' ? "Nenhum membro ativo" : filtro === 'inativos' ? "Nenhum membro inativo" : "Nenhum membro cadastrado"}
+                            </p>
+                        </div>
+                    )}
+                    {equipaFiltrada.map(u => {
+                        let badgeText = "Ativo"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)';
+                        if (!u.is_active) { badgeText = "Inativo"; badgeColor = "#6b7280"; borderColor = "#6b7280"; bgColor = 'color-mix(in srgb, #6b7280 5%, transparent)'; }
+                        if (u.role === 'DONO' || u.role === 'GERENTE') { badgeText = u.role; badgeColor = "var(--cor-primaria)"; borderColor = "var(--cor-primaria)"; bgColor = 'color-mix(in srgb, var(--cor-primaria) 5%, transparent)'; }
+
                         return (
-                            <div key={c.id} className="flex flex-col gap-3 transition hover:bg-[var(--cor-primaria)5] w-full" style={{ border: `1px solid ${borderColor}`, background: bgColor, borderRadius: radius, padding }}>
+                            <div
+                                key={u.id}
+                                className="flex flex-col gap-3 hover:bg-[var(--cor-primaria)5] transition w-full"
+                                style={{
+                                    border: `1px solid ${borderColor}`,
+                                    background: bgColor,
+                                    borderRadius: radius,
+                                    padding: padding,
+                                    opacity: u.is_active ? 1 : 0.7
+                                }}
+                            >
+
+
                                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                     <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <p className="font-semibold truncate">{c.nome}</p>
+                                            <p className="font-semibold truncate" style={{ color: 'var(--cor-texto)' }}>{u.nome}</p>
                                             <Badge style={{ background: badgeColor, color: '#fff', fontSize: '11px', padding: '2px 10px', borderRadius: '999px' }}>{badgeText}</Badge>
                                         </div>
-                                        <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
-                                        <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última compra: {c.ultima_compra? new Date(c.ultima_compra).toLocaleDateString('pt-AO') : "Nunca"}</p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>{u.email}</p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--cor-texto-sec)' }}>Cargo: {u.role}</p>
                                     </div>
-                                    {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
                                 </div>
-                                <div className="flex items-center justify-center sm:justify-start gap-2 w-full pt-2">
-                                    <Button type="button" size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '10px', height: '28px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, flex: 1, maxWidth: '110px' }} onClick={(e) => fetchDetalhesCliente(e, c)}>Detalhes</Button>
-                                    <Button type="button" size="sm" variant="outline" style={{ height: '28px', fontSize: '10px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, borderColor: 'var(--cor-borda)', background: 'var(--cor-card)', color: 'var(--cor-texto)', flex: 1, maxWidth: '110px' }} onClick={(e) => handleEditClick(e, c)}>Atualizar</Button>
-                                    <Button type="button" size="sm" style={{ height: '28px', fontSize: '10px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, background: '#ef4444', color: '#fff', flex: 1, maxWidth: '110px' }} onClick={(e) => handleDeleteClick(e, c)}>Apagar</Button>
-                                </div>
+
+                                {isAdmin && (
+                                    <div className="flex items-center justify-center sm:justify-start gap-2 w-full pt-2">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            style={{
+                                                background: 'var(--cor-primaria)',
+                                                color: '#fff',
+                                                fontSize: '10px',
+                                                height: '28px',
+                                                padding: '0 12px',
+                                                borderRadius: '8px',
+                                                fontWeight: 600,
+                                                flex: 1,
+                                                maxWidth: '110px'
+                                            }}
+                                            onClick={() => onView(toModalUser(u))}
+                                        >
+                                            <Eye size={14} /> Ver
+                                        </Button>
+                                        {u.role !== 'DONO' && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                variant="outline"
+                                                style={{
+                                                    height: '28px',
+                                                    fontSize: '10px',
+                                                    padding: '0 12px',
+                                                    borderRadius: '8px',
+                                                    fontWeight: 600,
+                                                    borderColor: 'var(--cor-borda)',
+                                                    background: 'var(--cor-card)',
+                                                    color: 'var(--cor-texto)',
+                                                    flex: 1,
+                                                    maxWidth: '110px'
+                                                }}
+                                                onClick={() => onEdit(toModalUser(u))}
+                                            >
+                                                Editar
+                                            </Button>
+                                        )}
+                                        {isDono && u.role !== 'DONO' && (
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                style={{
+                                                    height: '28px',
+                                                    fontSize: '10px',
+                                                    padding: '0 12px',
+                                                    borderRadius: '8px',
+                                                    fontWeight: 600,
+                                                    background: '#ef4444',
+                                                    color: '#fff',
+                                                    flex: 1,
+                                                    maxWidth: '110px'
+                                                }}
+                                                onClick={() => onDelete(u)}
+                                            >
+                                                <Trash2 size={14} /> Apagar
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )
                     })}
                 </div>
-                {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button type="button" size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button type="button" size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
             </div>
-
-            <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} isEditing={!!editingClienteId} />
-            <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`} loading={saving} tipo={acaoPendente?.tipo === 'editar'? 'edit' : 'delete'} textoConfirmar={acaoPendente?.tipo === 'editar'? "Salvar Alterações" : "Apagar Cliente"} />
-
-            <DetalhesClienteModal
-                open={showDetalhes}
-                onClose={() => setShowDetalhes(false)}
-                cliente={clienteSelecionado}
-                vendas={vendasPendentes}
-                produtos={produtosLoja}
-                onPagar={handleAbrirPagar}
-                onSalvarFiado={handleSalvarFiado} // <- cria essa função que chama a API
-                formatCurrency={formatCurrency}
-                loading={loadingDetalhes}
-            />
-
-            <PagarDividaModal open={showPagarModal} onClose={() => setShowPagarModal(false)} venda={vendaSelecionada} valor={valorPagamento} setValor={setValorPagamento} forma={formaPagamento} setForma={setFormaPagamento} onConfirmar={handleConfirmarPagamento} saving={savingPagamento} formatCurrency={formatCurrency} />
         </div>
     )
 }
