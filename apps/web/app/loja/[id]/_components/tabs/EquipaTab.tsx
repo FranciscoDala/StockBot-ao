@@ -1,12 +1,13 @@
 "use client";
-import { useState, useMemo } from "react";
-import { Plus, Eye, Trash2, Users, UserCheck, UserX, Shield } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Plus, Eye, Trash2, Users, UserCheck, UserX, Shield, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { UsuarioLoja, UsuarioLojaPage } from "../../page";
 import { formatCurrency } from "../utils";
 
 type FiltroEquipa = 'ativos' | 'inativos';
+const ITENS_POR_PAGINA = 10;
 
 interface Props {
     equipa: UsuarioLojaPage[];
@@ -58,6 +59,7 @@ export function EquipaTab({
     cardSize
 }: Props) {
     const [filtro, setFiltro] = useState<FiltroEquipa>('ativos');
+    const [paginaAtual, setPaginaAtual] = useState(1); // <- estado da paginação
 
     const toModalUser = (u: UsuarioLojaPage): UsuarioLoja => ({
         ...u,
@@ -74,14 +76,23 @@ export function EquipaTab({
             return !u.is_active;
         });
 
-        // Ordena DESC. Funciona tanto pra id number quanto string
         return [...filtrados].sort((a, b) => {
             if (typeof a.id === 'number' && typeof b.id === 'number') {
                 return b.id - a.id;
             }
-            return String(b.id).localeCompare(String(a.id)); // se for string
+            return String(b.id).localeCompare(String(a.id));
         });
     }, [equipa, filtro]);
+
+    // Resetar pra página 1 quando mudar o filtro
+    useEffect(() => {
+        setPaginaAtual(1);
+    }, [filtro]);
+
+    const totalPaginas = Math.ceil(equipaFiltrada.length / ITENS_POR_PAGINA);
+    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const fim = inicio + ITENS_POR_PAGINA;
+    const equipaPaginada = equipaFiltrada.slice(inicio, fim); // <- só os 10 da página
 
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
     const padding = cardSize === 'grande' ? '20px' : '16px';
@@ -141,7 +152,9 @@ export function EquipaTab({
                             </p>
                         </div>
                     )}
-                    {equipaFiltrada.map(u => {
+
+                    {/* AGORA MAPEIA A LISTA PAGINADA */}
+                    {equipaPaginada.map(u => {
                         let badgeText = "Ativo"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)';
                         if (!u.is_active) { badgeText = "Inativo"; badgeColor = "#6b7280"; borderColor = "#6b7280"; bgColor = 'color-mix(in srgb, #6b7280 5%, transparent)'; }
                         if (u.role === 'DONO' || u.role === 'GERENTE') { badgeText = u.role; badgeColor = "var(--cor-primaria)"; borderColor = "var(--cor-primaria)"; bgColor = 'color-mix(in srgb, var(--cor-primaria) 5%, transparent)'; }
@@ -175,12 +188,10 @@ export function EquipaTab({
                                 </div>
 
                                 {isAdmin && (
-                                    <div
-                                        className="flex items-center gap-2 w-full pt-2"
-                                        style={{
-                                            justifyContent: botoes === 1 ? 'stretch' : 'center'
-                                        }}
-                                    >
+                                    <div className="grid w-full pt-2" style={{
+                                        gridTemplateColumns: botoes === 1 ? '1fr' : botoes === 2 ? '1fr 1fr' : '1fr 1fr 1fr',
+                                        gap: '8px'
+                                    }}>
                                         <Button
                                             type="button"
                                             size="sm"
@@ -188,13 +199,15 @@ export function EquipaTab({
                                                 background: 'var(--cor-primaria)',
                                                 color: '#fff',
                                                 fontSize: '10px',
-                                                height: '28px',
+                                                height: '32px',
                                                 padding: '0 12px',
                                                 borderRadius: '8px',
                                                 fontWeight: 600,
-                                                flex: botoes === 1 ? 1 : '0 1 auto',
-                                                width: botoes === 1 ? '100%' : 'auto',
-                                                maxWidth: botoes === 1 ? '100%' : '110px'
+                                                width: '100%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '4px'
                                             }}
                                             onClick={() => onView(toModalUser(u))}
                                         >
@@ -206,7 +219,7 @@ export function EquipaTab({
                                                 size="sm"
                                                 variant="outline"
                                                 style={{
-                                                    height: '28px',
+                                                    height: '32px',
                                                     fontSize: '10px',
                                                     padding: '0 12px',
                                                     borderRadius: '8px',
@@ -214,8 +227,11 @@ export function EquipaTab({
                                                     borderColor: 'var(--cor-borda)',
                                                     background: 'var(--cor-card)',
                                                     color: 'var(--cor-texto)',
-                                                    flex: '0 1 auto',
-                                                    maxWidth: '110px'
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px'
                                                 }}
                                                 onClick={() => onEdit(toModalUser(u))}
                                             >
@@ -227,15 +243,18 @@ export function EquipaTab({
                                                 type="button"
                                                 size="sm"
                                                 style={{
-                                                    height: '28px',
+                                                    height: '32px',
                                                     fontSize: '10px',
                                                     padding: '0 12px',
                                                     borderRadius: '8px',
                                                     fontWeight: 600,
                                                     background: '#ef4444',
                                                     color: '#fff',
-                                                    flex: '0 1 auto',
-                                                    maxWidth: '110px'
+                                                    width: '100%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: '4px'
                                                 }}
                                                 onClick={() => onDelete(u)}
                                             >
@@ -248,6 +267,58 @@ export function EquipaTab({
                         )
                     })}
                 </div>
+
+                {/* CONTROLES DE PAGINAÇÃO */}
+                {totalPaginas > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4">
+                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                            Mostrando {inicio + 1} - {Math.min(fim, equipaFiltrada.length)} de {equipaFiltrada.length}
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={paginaAtual === 1}
+                                onClick={() => setPaginaAtual(p => p - 1)}
+                                style={{
+                                    height: '32px',
+                                    padding: '0 12px',
+                                    borderRadius: '8px',
+                                    borderColor: 'var(--cor-borda)',
+                                    background: 'var(--cor-card)',
+                                    color: 'var(--cor-texto)',
+                                    opacity: paginaAtual === 1 ? 0.5 : 1
+                                }}
+                            >
+                                <ChevronLeft size={14} /> Anterior
+                            </Button>
+
+                            <span className="text-xs font-medium px-2" style={{ color: 'var(--cor-texto)' }}>
+                                Página {paginaAtual} de {totalPaginas}
+                            </span>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={paginaAtual === totalPaginas}
+                                onClick={() => setPaginaAtual(p => p + 1)}
+                                style={{
+                                    height: '32px',
+                                    padding: '0 12px',
+                                    borderRadius: '8px',
+                                    borderColor: 'var(--cor-borda)',
+                                    background: 'var(--cor-card)',
+                                    color: 'var(--cor-texto)',
+                                    opacity: paginaAtual === totalPaginas ? 0.5 : 1
+                                }}
+                            >
+                                Próxima <ChevronRight size={14} />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )
