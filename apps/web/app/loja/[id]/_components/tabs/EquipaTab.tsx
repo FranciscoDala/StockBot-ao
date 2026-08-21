@@ -98,7 +98,7 @@ export function EquipaTab({
                 )}
             </div>
 
-            <div className="flex gap-3 px-3 sm:px-6 py-3"> {/* <- agora só 2 abas */}
+            <div className="flex gap-3 px-0 sm:px-6 py-0"> {/* <- agora só 2 abas */}
                 <AbaButton
                     label={`Ativos (${totalAtivos})`}
                     active={filtro === 'ativos'}
