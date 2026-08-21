@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import type { UsuarioLoja, UsuarioLojaPage } from "../../page";
 import { formatCurrency } from "../utils";
 
-type FiltroEquipa = 'ativos' | 'inativos' | 'todos';
+type FiltroEquipa = 'ativos' | 'inativos'; // <- REMOVIDO 'todos'
 
 interface Props {
     equipa: UsuarioLojaPage[];
@@ -57,7 +57,7 @@ export function EquipaTab({
     cardStyle,
     cardSize
 }: Props) {
-    const [filtro, setFiltro] = useState<FiltroEquipa>('ativos');
+    const [filtro, setFiltro] = useState<FiltroEquipa>('ativos'); // <- default continua ativos
 
     const toModalUser = (u: UsuarioLojaPage): UsuarioLoja => ({
         ...u,
@@ -70,8 +70,7 @@ export function EquipaTab({
 
     const equipaFiltrada = equipa.filter(u => {
         if (filtro === 'ativos') return u.is_active;
-        if (filtro === 'inativos') return !u.is_active;
-        return true;
+        return !u.is_active; // <- só tem 2 casos agora
     });
 
     const radius = cardStyle === 'arredondado' ? '16px' : '8px';
@@ -99,9 +98,7 @@ export function EquipaTab({
                 )}
             </div>
 
-            {/* CARDS KPI REMOVIDOS */}
-
-            <div className="flex gap-3 px-3 sm:px-6 py-3"> {/* <- estilo igual DetalhesModal */}
+            <div className="flex gap-3 px-3 sm:px-6 py-3"> {/* <- agora só 2 abas */}
                 <AbaButton
                     label={`Ativos (${totalAtivos})`}
                     active={filtro === 'ativos'}
@@ -112,11 +109,6 @@ export function EquipaTab({
                     active={filtro === 'inativos'}
                     onClick={() => setFiltro('inativos')}
                 />
-                <AbaButton
-                    label={`Todos (${equipa.length})`}
-                    active={filtro === 'todos'}
-                    onClick={() => setFiltro('todos')}
-                />
             </div>
 
             <div style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: 0 }}>
@@ -125,7 +117,7 @@ export function EquipaTab({
                         <div className="text-center py-16">
                             {filtro === 'inativos' ? <UserX size={32} className="mx-auto mb-3 opacity-50" style={{ color: '#ef4444' }} /> : <Users size={32} className="mx-auto mb-3 opacity-50" style={{ color: 'var(--cor-primaria)' }} />}
                             <p className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
-                                {filtro === 'ativos' ? "Nenhum membro ativo" : filtro === 'inativos' ? "Nenhum membro inativo" : "Nenhum membro cadastrado"}
+                                {filtro === 'ativos' ? "Nenhum membro ativo" : "Nenhum membro inativo"}
                             </p>
                         </div>
                     )}
