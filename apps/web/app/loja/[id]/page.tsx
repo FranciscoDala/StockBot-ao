@@ -21,6 +21,7 @@ import { RiscoTab } from "./_components/tabs/RiscoTab";
 import { FornecedoresTab } from "./_components/tabs/FornecedoresTab";
 import { ClientesTab } from "./_components/tabs/ClientesTab"; // <- nova aba
 import { DocumentosTab } from "./_components/tabs/DocumentosTab";
+import { FacturacaoTab } from "./_components/tabs/FacturacaoTab"; // <- NOVA ABA AGT
 import { DefinicoesTab } from "./_components/tabs/DefinicoesTab";
 import { PermissaoModal } from "./_components/modals/PermissaoModal";
 import { ErroModal } from "./_components/modals/ErroModal";
@@ -88,16 +89,17 @@ export default function LojaPage() {
     const modo = loja?.modo || "completo"; // <- pega o modo da loja
 
     const allTabs = [
-        { id: "dados", label: "Dados", icon: FileText, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
+        { id: "dados", label: "Dados", icon: FileText, show: modo === "completo" || modo === "venda" },
         { id: "venda", label: "Venda", icon: ShoppingCart, show: podeVerVendas && (modo === "completo" || modo === "venda") },
-        { id: "produtos", label: "Produtos", icon: Package, show: (podeVerVendas || podeVerEstoque) && (modo === "completo" || modo === "venda" || modo === "cliente" ) },
+        { id: "produtos", label: "Produtos", icon: Package, show: (podeVerVendas || podeVerEstoque) && (modo === "completo" || modo === "venda" || modo === "cliente") },
         { id: "clientes", label: "Clientes", icon: UserRound, show: modo === "completo" || modo === "cliente" },
-        { id: "equipa", label: "Equipa", icon: Users, show: modo === "completo" || modo === "cliente" || modo === "venda"  }, // <- AJUSTADO
+        { id: "equipa", label: "Equipa", icon: Users, show: modo === "completo" || modo === "cliente" || modo === "venda" },
         { id: "fornecedores", label: "Fornecedores", icon: Truck, show: podeVerTudo && (modo === "completo" || modo === "venda") },
-        { id: "documentos", label: "Relatórios", icon: FileText, show: podeVerTudo && (modo === "completo" || modo === "venda") }, // <- AJUSTADO
-        { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: modo === "completo" || modo === "venda" }, // <- AJUSTADO
+        { id: "documentos", label: "Relatórios", icon: FileText, show: podeVerTudo && (modo === "completo" || modo === "venda") },
+        { id: "facturacao", label: "Facturação", icon: FileText, show: podeVerTudo && (modo === "completo" || modo === "venda") }, // <- NOVA ABA AGT
+        { id: "estatisticas", label: "Estatisticas", icon: BarChart3, show: modo === "completo" || modo === "venda" },
         { id: "risco", label: "Risco", icon: ShieldAlert, show: podeVerTudo && (modo === "completo" || modo === "venda") },
-        { id: "definicoes", label: "Definições", icon: Settings, show: (modo === "completo" || modo === "cliente") }, // <- tirei o podeVerTudo // <- AJUSTADO
+        { id: "definicoes", label: "Definições", icon: Settings, show: (modo === "completo" || modo === "cliente") },
     ];
 
     const initialTabs = useMemo(() =>
@@ -644,6 +646,19 @@ export default function LojaPage() {
                                 formatCurrency={formatCurrency}
                                 theme={theme}
                                 cardStyle={cardStyle}
+                            />
+                        )}
+
+                        {activeTab === "facturacao" && (
+                            <FacturacaoTab
+                                lojaId={lojaId}
+                                token={token}
+                                loja={loja}
+                                vendas={vendasParaRisco as any}
+                                formatCurrency={formatCurrency}
+                                theme={theme}
+                                cardStyle={cardStyle}
+                                cardSize={cardSize}
                             />
                         )}
 
