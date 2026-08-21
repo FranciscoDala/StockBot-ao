@@ -40,8 +40,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
     return (
         <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent
-                // AJUSTE: largura com respiro + centralizada
-                className="w-[95vw] max-w-[420px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto gap-0"
+                className="w-[95vw] max-w-[420px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto gap-0"
                 style={{
                     backgroundColor: 'var(--cor-card)',
                     color: 'var(--cor-texto)',
@@ -52,7 +51,6 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                 onInteractOutside={(e) => e.preventDefault()}
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
-                {/* AJUSTE: header igual as outras */}
                 <DialogHeader className="p-5 pb-3 shrink-0 text-left">
                     <div className="flex items-center gap-3">
                         <Trash2 size={24} style={{color: 'var(--cor-erro)'}} className="shrink-0" />
@@ -79,7 +77,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                                 color: 'var(--cor-texto)',
                                 border: '1.5px solid var(--cor-primaria)',
                                 borderRadius: 'var(--radius-sm)',
-                              ...focusStyle
+                             ...focusStyle
                             }}
                             placeholder="******"
                             disabled={deleting}
@@ -96,9 +94,9 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     </div>
                 </div>
 
-                {/* AJUSTE: Footer igual as outras modals */}
+                {/* AJUSTE: padding igual as outras + ordem igual UserModal */}
                 <div
-                    className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2"
+                    className="p-4 border-t shrink-0 flex-col sm:flex-row gap-2"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         borderColor: 'var(--cor-borda)',
@@ -111,7 +109,7 @@ export function DeleteModal({ open, onOpenChange, loja, adminSenha, setAdminSenh
                     <Button
                         onClick={handleDelete}
                         disabled={deleting || adminSenha.length < 4}
-                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm pb-1"
+                        className="gap-2 font-bold h-10 w-full sm:flex-1 text-sm"
                         style={{
                             background: deleting || adminSenha.length < 4? 'color-mix(in srgb, var(--cor-erro) 50%, transparent)' : 'var(--cor-erro)',
                             color: '#fff',
