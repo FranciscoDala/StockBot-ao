@@ -33,9 +33,9 @@ function AbaButton({ label, active, onClick }: {
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 font-semibold text-sm transition-all"
             style={{
                 borderRadius: '9999px', // <- pill igual DetalhesModal
-                border: `1px solid ${active? '#000' : 'var(--cor-borda)'}`,
-                background: active? '#000' : 'transparent',
-                color: active? '#fff' : 'var(--cor-texto)',
+                border: `1px solid ${active ? '#000' : 'var(--cor-borda)'}`,
+                background: active ? '#000' : 'transparent',
+                color: active ? '#fff' : 'var(--cor-texto)',
                 fontWeight: 600
             }}
         >
@@ -114,8 +114,18 @@ export function EquipaTab({
             <div style={{ background: 'transparent', border: 'none', borderRadius: 0, padding: 0 }}>
                 <div className="space-y-3">
                     {equipaFiltrada.length === 0 && (
-                        <div className="text-center py-16">
-                            {filtro === 'inativos' ? <UserX size={32} className="mx-auto mb-3 opacity-50" style={{ color: '#ef4444' }} /> : <Users size={32} className="mx-auto mb-3 opacity-50" style={{ color: 'var(--cor-primaria)' }} />}
+                        <div
+                            className="text-center py-16"
+                            style={{
+                                border: '1px solid var(--cor-primaria)',
+                                borderRadius: radius,
+                                background: 'color-mix(in srgb, var(--cor-primaria) 4%, transparent)'
+                            }}
+                        >
+                            {filtro === 'inativos'
+                                ? <UserX size={32} className="mx-auto mb-3 opacity-50" style={{ color: 'var(--cor-primaria)' }} />
+                                : <Users size={32} className="mx-auto mb-3 opacity-50" style={{ color: 'var(--cor-primaria)' }} />
+                            }
                             <p className="text-sm font-medium" style={{ color: 'var(--cor-texto)' }}>
                                 {filtro === 'ativos' ? "Nenhum membro ativo" : "Nenhum membro inativo"}
                             </p>
