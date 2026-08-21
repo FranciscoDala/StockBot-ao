@@ -157,7 +157,7 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
         }
 
         let finalData = {
-          ...formData,
+         ...formData,
             imagem_url: imagemUrlFinal,
             public_id: formData.public_id || ""
         };
@@ -191,18 +191,16 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                 <DialogContent
                     onInteractOutside={(e) => e.preventDefault()}
                     onEscapeKeyDown={(e) => e.preventDefault()}
-                    // AJUSTE 1 e 2: overflow-hidden + centralizado com respiro + max-width
-                    className="w-[calc(100%-2rem)] max-w-[800px] p-0 flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
+                    className="w-[95vw] max-w-[800px] p-0 flex flex-col border shadow-2xl overflow-hidden [&>button]:hidden mx-auto"
                     style={{
                         backgroundColor: 'var(--cor-card)',
                         color: 'var(--cor-texto)',
                         borderColor: 'var(--cor-borda)',
                         borderRadius: 'var(--radius)',
-                        height: '80vh',
-                        maxHeight: '80vh'
+                        height: '85vh',
+                        maxHeight: '85vh'
                     }}
                 >
-                    {/* AJUSTE 4: text-left no header */}
                     <DialogHeader className="p-4 sm:p-6 pb-4 shrink-0 text-left">
                         <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>{editingProduto? "Editar Produto" : "Adicionar Novo Produto"}</DialogTitle>
                         <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Preencha as informações do produto. Campos com * são obrigatórios.</DialogDescription>
@@ -211,18 +209,17 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                     <div className="flex-1 overflow-y-auto px-4 sm:px-6 scrollbar-hide">
                         <Tabs defaultValue="dados" className="w-full">
                             <TabsList
-                                className="grid w-full grid-cols-3 sticky top-0 z-10 h-10"
+                                className="grid w-full grid-cols-3 sticky top-0 z-10 h-10 overflow-x-auto"
                                 style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: 'var(--radius)' }}
                             >
-                                <TabsTrigger value="dados" className="text-xs data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white"><Package size={14} className="mr-1" />Dados</TabsTrigger>
-                                <TabsTrigger value="imagem" className="text-xs data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white"><ImageIcon size={14} className="mr-1" />Imagem</TabsTrigger>
-                                <TabsTrigger value="preco" className="text-xs data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white"><DollarSign size={14} className="mr-1" />Preço</TabsTrigger>
+                                <TabsTrigger value="dados" className="text-xs data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white whitespace-nowrap"><Package size={14} className="mr-1" />Dados</TabsTrigger>
+                                <TabsTrigger value="imagem" className="text-xs data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white whitespace-nowrap"><ImageIcon size={14} className="mr-1" />Imagem</TabsTrigger>
+                                <TabsTrigger value="preco" className="text-xs data-[state=active]:bg-[var(--cor-primaria)] data-[state=active]:text-white whitespace-nowrap"><DollarSign size={14} className="mr-1" />Preço</TabsTrigger>
                             </TabsList>
                             <div className="py-4">
 
                                 <TabsContent value="dados" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
-                                        {/* AJUSTE 3: sm:text-right sm:justify-self-end */}
                                         <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Nome *</Label>
                                         <Input placeholder="Ex: Arroz 5kg" value={formData.nome || ''} onChange={(e) => handleInputChange("nome", e.target.value)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
                                     </div>
@@ -315,12 +312,12 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                 <TabsContent value="preco" className="space-y-4 mt-0">
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Preço Custo</Label>
-                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
+                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco_custo || ''} onChange={(e) => handleInputChange("preco_custo", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3 font-mono" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                         <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Preço Venda *</Label>
-                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
+                                        <Input type="number" step="0.01" placeholder="0.00" value={formData.preco || ''} onChange={(e) => handleInputChange("preco", parseFloat(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3 font-mono" style={{...inputStyle,...focusStyle }} />
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
@@ -336,12 +333,26 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                                         <>
                                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                                 <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Estoque</Label>
-                                                <Input type="number" value={formData.estoque || 0} onChange={(e) => handleInputChange("estoque", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
+                                                <Input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={formData.estoque || 0}
+                                                    onChange={(e) => handleInputChange("estoque", parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0)}
+                                                    className="sm:col-span-3 h-9 text-xs px-3 font-mono"
+                                                    style={{...inputStyle,...focusStyle }}
+                                                />
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                                                 <Label className="text-xs sm:text-right sm:justify-self-end" style={labelStyle}>Estoque Mín</Label>
-                                                <Input type="number" value={formData.estoque_minimo || 5} onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value) || 0)} className="sm:col-span-3 h-9 text-xs px-3" style={{...inputStyle,...focusStyle }} />
+                                                <Input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={formData.estoque_minimo || 5}
+                                                    onChange={(e) => handleInputChange("estoque_minimo", parseInt(e.target.value.replace(/[^0-9]/g, '')) || 0)}
+                                                    className="sm:col-span-3 h-9 text-xs px-3 font-mono"
+                                                    style={{...inputStyle,...focusStyle }}
+                                                />
                                             </div>
                                         </>
                                     )}
@@ -366,16 +377,16 @@ export function ProdutoModal({ open, onOpenChange, editingProduto, formData, set
                         </Tabs>
                     </div>
 
-                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
-                        <div className="flex items-center space-x-2 mr-auto">
+                    <DialogFooter className="p-4 sm:p-6 pt-4 border-t shrink-0 flex-col sm:flex-row gap-2" style={{ backgroundColor: 'var(--cor-card)', borderColor: 'var(--cor-borda)' }}>
+                        <div className="flex items-center space-x-2 flex-1">
                             <Checkbox id="active" checked={formData.is_active?? true} onCheckedChange={(val) => handleInputChange("is_active",!!val)} className="data-[state=checked]:bg-[var(--cor-primaria)] data-[state=checked]:border-[var(--cor-primaria)]" />
                             <Label htmlFor="active" className="text-xs font-medium cursor-pointer" style={labelStyle}>Produto Ativo</Label>
                         </div>
-                        <div className="flex gap-2">
-                            <Button type="button" onClick={() => onOpenChange(false)} disabled={saving || uploading} className="text-xs flex-1 sm:flex-initial font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button type="button" onClick={() => onOpenChange(false)} disabled={saving || uploading} className="text-xs flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-card)', color: 'var(--cor-texto)', border: '1px solid var(--cor-borda)', borderRadius: 'var(--radius)' }}>
                                 Cancelar
                             </Button>
-                            <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="gap-2 text-xs flex-1 sm:flex-initial font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
+                            <Button type="button" onClick={handleSaveClick} disabled={saving || uploading} className="gap-2 text-xs flex-1 h-10 font-bold" style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: 'var(--radius)' }}>
                                 {(saving || uploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 {editingProduto? 'Salvar Alterações' : 'Salvar'}
                             </Button>
