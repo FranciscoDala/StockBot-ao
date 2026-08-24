@@ -38,7 +38,6 @@ async def criar_venda_endpoint(venda_in: VendaCreate, background_tasks: Backgrou
         venda.numero_fatura = None
         venda.valor_iva = Decimal(0)
         venda.subtotal = venda.total
-
         await db.commit()
 
         for item in venda.itens:
@@ -94,15 +93,15 @@ async def get_vendas(db: AsyncSession = Depends(get_db), current_user: Usuario =
             "id": v.id,
             "loja_id": v.loja_id,
             "usuario_id": v.usuario_id,
-            "cliente_id": v.cliente_id, # <- CORREÇÃO AQUI
+            "cliente_id": v.cliente_id, # <- ESSENCIAL
             "nome_vendedor": v.usuario.nome if v.usuario else "Sistema",
-            "cliente_nome": v.cliente.nome if v.cliente else None,
-            "cliente_nif": v.cliente.nif if v.cliente else None,
-            "total": v.total, "subtotal": v.subtotal, "valor_iva": v.valor_iva,
+            "nome_cliente": v.cliente.nome if v.cliente else None, # <- BATE COM O SCHEMA
+            "subtotal": v.subtotal, "valor_iva": v.valor_iva, "total": v.total,
             "total_itens": v.total_itens, "forma_pagamento": v.forma_pagamento,
             "valor_recebido": v.valor_recebido, "troco": v.troco, "status": v.status,
-            "tipo_documento": v.tipo_documento, "numero_fatura": v.numero_fatura,
-            "serie": v.serie, "data_venda": v.created_at, "itens": itens
+            "tipo_documento": v.tipo_documento, "serie": v.serie, "numero_fatura": v.numero_fatura,
+            "qr_code_url": v.qr_code_url, "observacao": v.observacao,
+            "data_venda": v.created_at, "itens": itens
         })
 
     return vendas_response
@@ -190,7 +189,6 @@ async def estornar_venda(id: UUID, db: AsyncSession = Depends(get_db), loja_id: 
     return None
 
 async def gerar_numero_fatura(db: AsyncSession, loja_id: UUID, serie: str = "FT") -> str:
-    """Gera numero sequencial: FT 001/2026/000001"""
     ano_atual = date.today().year
     stmt = select(func.count(Venda.id)).where(and_(Venda.loja_id == loja_id, Venda.tipo_documento == "FACTURA", Venda.serie == serie, func.extract('year', Venda.created_at) == ano_atual))
     result = await db.execute(stmt)
