@@ -57,3 +57,7 @@ class Venda(BaseModel):
     @property
     def nome_cliente(self) -> str | None:
         return getattr(self.cliente, 'nome', None) if self.cliente else None
+
+    @property
+    def cliente_nif(self) -> str | None:
+        return getattr(self.cliente, 'nif', None) if self.cliente else None

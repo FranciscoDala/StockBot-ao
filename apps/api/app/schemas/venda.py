@@ -56,10 +56,14 @@ class ItemVendaRead(BaseModel):
 class VendaRead(BaseModel):
     id: UUID
     loja_id: UUID
-    usuario_id: Optional[UUID]
-    cliente_id: Optional[UUID]
-    nome_vendedor: Optional[str] = None # <- bate com property do Model
-    nome_cliente: Optional[str] = None
+    usuario_id: Optional[UUID] = None
+    cliente_id: Optional[UUID] = None
+    created_at: datetime
+
+    data_venda: datetime # <- do @property
+    nome_vendedor: Optional[str] = None # <- do @property
+    nome_cliente: Optional[str] = None # <- do @property
+    cliente_nif: Optional[str] = None # <- NOVO: pra bater com o front
 
     subtotal: Decimal
     valor_iva: Decimal
@@ -77,7 +81,6 @@ class VendaRead(BaseModel):
     qr_code_url: Optional[str] = None
     observacao: Optional[str] = None
 
-    data_venda: datetime # <- bate com property do Model
     itens: List[ItemVendaRead] = []
 
     model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})

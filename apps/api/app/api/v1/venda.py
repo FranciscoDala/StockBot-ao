@@ -71,12 +71,31 @@ async def criar_venda_endpoint(venda_in: VendaCreate, background_tasks: Backgrou
         background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
     return venda
 
+
+
 @router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
-async def get_vendas(db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user), loja_id_param: UUID | None = Query(None, alias="loja_id"), loja_id_token: UUID = Depends(get_current_loja_id), data_inicio: date | None = Query(None), data_fim: date | None = Query(None), vendedor_id: UUID | None = Query(None), page: int = Query(1, ge=1), limit: int = Query(5000, ge=1, le=5000)):
+async def get_vendas(
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+    loja_id_param: UUID | None = Query(None, alias="loja_id"),
+    loja_id_token: UUID = Depends(get_current_loja_id),
+    data_inicio: date | None = Query(None),
+    data_fim: date | None = Query(None),
+    vendedor_id: UUID | None = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(5000, ge=1, le=5000)
+):
     loja_id_usar = loja_id_param or loja_id_token
     offset = (page - 1) * limit
 
-    query = (select(Venda).options(joinedload(Venda.usuario), joinedload(Venda.cliente), joinedload(Venda.itens).joinedload(ItemVenda.produto)).where(Venda.loja_id == loja_id_usar).order_by(Venda.created_at.desc()).limit(limit).offset(offset))
+    query = (
+        select(Venda)
+       .options(joinedload(Venda.usuario), joinedload(Venda.cliente), joinedload(Venda.itens).joinedload(ItemVenda.produto))
+       .where(Venda.loja_id == loja_id_usar)
+       .order_by(Venda.created_at.desc())
+       .limit(limit)
+       .offset(offset)
+    )
 
     if data_inicio: query = query.where(Venda.created_at >= data_inicio)
     if data_fim: query = query.where(Venda.created_at <= data_fim)
@@ -85,26 +104,11 @@ async def get_vendas(db: AsyncSession = Depends(get_db), current_user: Usuario =
     result = await db.execute(query)
     vendas_db = result.scalars().unique().all()
 
-    vendas_response = []
-    for v in vendas_db:
-        itens = [{"id": i.id, "venda_id": i.venda_id, "produto_id": i.produto_id, "loja_id": i.loja_id, "nome_produto": i.produto.nome if i.produto else "Produto Removido", "quantidade": i.quantidade, "preco_unitario": i.preco_unitario, "subtotal": i.subtotal} for i in v.itens]
+    # Deixa o Pydantic montar o objeto sozinho usando from_attributes
+    return vendas_db
 
-        vendas_response.append({
-            "id": v.id,
-            "loja_id": v.loja_id,
-            "usuario_id": v.usuario_id,
-            "cliente_id": v.cliente_id, # <- ESSENCIAL
-            "nome_vendedor": v.usuario.nome if v.usuario else "Sistema",
-            "nome_cliente": v.cliente.nome if v.cliente else None, # <- BATE COM O SCHEMA
-            "subtotal": v.subtotal, "valor_iva": v.valor_iva, "total": v.total,
-            "total_itens": v.total_itens, "forma_pagamento": v.forma_pagamento,
-            "valor_recebido": v.valor_recebido, "troco": v.troco, "status": v.status,
-            "tipo_documento": v.tipo_documento, "serie": v.serie, "numero_fatura": v.numero_fatura,
-            "qr_code_url": v.qr_code_url, "observacao": v.observacao,
-            "data_venda": v.created_at, "itens": itens
-        })
 
-    return vendas_response
+
 
 @router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
 async def imprimir_venda(venda_id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
