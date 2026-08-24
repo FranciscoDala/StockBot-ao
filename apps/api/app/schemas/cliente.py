@@ -1,12 +1,13 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, Literal
 from datetime import datetime
-from uuid import UUID # <- Pode deixar o import, usamos no model
+from uuid import UUID
 
 class ClienteBase(BaseModel):
     nome: str = Field(..., min_length=2)
     nome_empresa: Optional[str] = None
     bi: Optional[str] = None
+    nif: Optional[str] = None # <- ADICIONADO PRA AGT
     telefone: Optional[str] = None
     email: Optional[EmailStr] = None
     endereco: Optional[str] = None
@@ -16,12 +17,13 @@ class ClienteBase(BaseModel):
     is_active: bool = True
 
 class ClienteCreate(ClienteBase):
-    pass # <- FICA VAZIO. loja_id vem da URL
+    pass
 
 class ClienteUpdate(BaseModel):
     nome: Optional[str] = None
     nome_empresa: Optional[str] = None
     bi: Optional[str] = None
+    nif: Optional[str] = None # <- ADICIONADO PRA AGT
     telefone: Optional[str] = None
     email: Optional[EmailStr] = None
     endereco: Optional[str] = None
@@ -31,8 +33,8 @@ class ClienteUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 class ClienteOut(ClienteBase):
-    id: str # <- CORRIGIDO: UUID -> str
-    loja_id: str # <- CORRIGIDO: UUID -> str
+    id: str
+    loja_id: str
     total_divida: float = 0.0
     ultima_compra: Optional[datetime] = None
     status: Literal['com_divida', 'em_dia'] = "em_dia"

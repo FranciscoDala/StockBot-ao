@@ -4,6 +4,7 @@ from sqlalchemy import ForeignKey, Numeric, DateTime, func, String, Integer, Tex
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
+from decimal import Decimal # <- ADICIONA ISSO
 from..db.base import BaseModel
 from typing import TYPE_CHECKING, List
 
@@ -21,16 +22,16 @@ class Venda(BaseModel):
     usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("usuarios.id", ondelete="SET NULL"), nullable=True)
     cliente_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clientes.id", ondelete="SET NULL"), nullable=True, index=True)
 
-    # VALORES
-    subtotal: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0) # Total sem IVA
-    valor_iva: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0) # IVA 14%
-    total: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0) # subtotal + iva
+    # VALORES - AGORA É DECIMAL
+    subtotal: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal(0)) # Total sem IVA
+    valor_iva: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal(0)) # IVA 14%
+    total: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal(0)) # subtotal + iva
     total_itens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # PAGAMENTO
     forma_pagamento: Mapped[str] = mapped_column(String(50), nullable=False, default='Dinheiro')
-    valor_recebido: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0)
-    troco: Mapped[float] = mapped_column(Numeric(14, 2), nullable=False, default=0)
+    valor_recebido: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal(0))
+    troco: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=Decimal(0))
 
     # STATUS
     status: Mapped[str] = mapped_column(String(20), nullable=False, default='emitida') # emitida, anulada, divida
