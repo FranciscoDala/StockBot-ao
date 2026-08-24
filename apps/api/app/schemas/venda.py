@@ -53,15 +53,15 @@ class ItemVendaRead(BaseModel):
     subtotal: Decimal
     model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})
 
-
 class VendaRead(BaseModel):
     id: UUID
     loja_id: UUID
     usuario_id: Optional[UUID] = None
     cliente_id: Optional[UUID] = None
-    created_at: Optional[datetime] = None # <- deixei opcional
+    created_at: datetime # <- volta a ser obrigatório
 
-    data_venda: datetime = Field(alias="created_at") # <- Pega do created_at se a property falhar
+    data_venda: datetime # <- SEM ALIAS
+
     nome_vendedor: Optional[str] = None
     nome_cliente: Optional[str] = None
     cliente_nif: Optional[str] = None
@@ -84,8 +84,13 @@ class VendaRead(BaseModel):
 
     itens: List[ItemVendaRead] = []
 
+    @field_validator('data_venda', mode='before')
+    @classmethod
+    def set_data_venda(cls, v, info):
+        # Pega do created_at se data_venda vier None
+        return info.data.get('created_at', v)
+
     model_config = ConfigDict(
         from_attributes=True,
-        populate_by_name=True, # <- ESSENCIAL pra aceitar alias
         json_encoders={Decimal: float}
     )

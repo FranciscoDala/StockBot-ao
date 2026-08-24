@@ -1,5 +1,5 @@
 "use client"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { FileText, Search, Download, Printer, Ban, Building2, ChevronLeft, ChevronRight } from "lucide-react"
 import { api } from "@/lib/api"
 
@@ -43,7 +43,11 @@ function formatData(data: string | null | undefined) {
     if (!data) return "Sem data"
     const d = new Date(data)
     if (isNaN(d.getTime())) return "Data inválida"
-    return d.toLocaleString('pt-AO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return d.toLocaleString('pt-AO', {
+        timeZone: 'Africa/Luanda', // <- Força Angola
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+    })
 }
 
 function CardInfo({ titulo, valor, sub, icon, cor, cardStyle, cardSize }: any) {
@@ -67,8 +71,8 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
     const [faturandoId, setFaturandoId] = useState<string | null>(null)
     const [nifPorVenda, setNifPorVenda] = useState<Record<string, string>>({})
     const [nomePorVenda, setNomePorVenda] = useState<Record<string, string>>({})
-    const [paginaAtual, setPaginaAtual] = useState(1) // <- NOVO
-    const itensPorPagina = 10 // <- NOVO
+    const [paginaAtual, setPaginaAtual] = useState(1)
+    const itensPorPagina = 10
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '24px' : '16px';
@@ -79,8 +83,8 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         return passaBusca && passaFiltro
     }), [vendas, busca, filtro])
 
-    // Resetar pagina quando filtrar
-    useMemo(() => setPaginaAtual(1), [busca, filtro])
+    // CORRIGIDO: useEffect em vez de useMemo
+    useEffect(() => setPaginaAtual(1), [busca, filtro])
 
     const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPagina)
     const vendasPaginadas = useMemo(() => {
