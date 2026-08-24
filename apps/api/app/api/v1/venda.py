@@ -91,11 +91,11 @@ async def get_vendas(
 
     query = (
         select(Venda)
-       .options(joinedload(Venda.usuario), joinedload(Venda.cliente), joinedload(Venda.itens).joinedload(ItemVenda.produto))
-       .where(Venda.loja_id == loja_id_usar)
-       .order_by(Venda.created_at.desc())
-       .limit(limit)
-       .offset(offset)
+     .options(joinedload(Venda.usuario), joinedload(Venda.cliente), joinedload(Venda.itens).joinedload(ItemVenda.produto))
+     .where(Venda.loja_id == loja_id_usar)
+     .order_by(Venda.created_at.desc())
+     .limit(limit)
+     .offset(offset)
     )
 
     if data_inicio: query = query.where(Venda.created_at >= data_inicio)
@@ -105,9 +105,17 @@ async def get_vendas(
     result = await db.execute(query)
     vendas_db = result.scalars().unique().all()
 
-    # Deixa o Pydantic montar o objeto sozinho usando from_attributes
-    return vendas_db
+    # MONTA NA MÃO PRA GARANTIR
+    response = []
+    for v in vendas_db:
+        data = VendaRead.model_validate(v).model_dump()
+        data["data_venda"] = v.created_at
+        data["nome_vendedor"] = v.usuario.nome if v.usuario else "Sistema"
+        data["nome_cliente"] = v.cliente.nome if v.cliente else None
+        data["cliente_nif"] = v.cliente.nif if v.cliente else None
+        response.append(VendaRead.model_validate(data))
 
+    return response
 
 
 

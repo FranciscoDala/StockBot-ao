@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_serializer
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -15,16 +15,13 @@ class VendaCreate(BaseModel):
     cliente_id: UUID | None = None
     nif_cliente: Optional[str] = None
     nome_cliente: Optional[str] = None
-
     subtotal: Decimal = Decimal(0)
     valor_iva: Decimal = Decimal(0)
     total: Decimal
     total_itens: int
-
     forma_pagamento: str
     valor_recebido: Decimal = Decimal(0)
     troco: Decimal = Decimal(0)
-
     status: str = "emitida"
     observacao: Optional[str] = None
     itens: List[ItemVendaCreate] = Field(min_length=1)
@@ -39,7 +36,6 @@ class VendaCreate(BaseModel):
             if info.field_name == 'valor_iva': return iva
             if info.field_name == 'total': return sub + iva
         return v
-
     model_config = ConfigDict(json_encoders={Decimal: float})
 
 class ItemVendaRead(BaseModel):
@@ -61,7 +57,7 @@ class VendaRead(BaseModel):
     created_at: datetime
 
     data_venda: datetime
-    nome_vendedor: Optional[str] = None
+    nome_vendedor: str
     nome_cliente: Optional[str] = None
     cliente_nif: Optional[str] = None
 
@@ -80,28 +76,4 @@ class VendaRead(BaseModel):
     observacao: Optional[str] = None
     itens: List[ItemVendaRead] = []
 
-    @field_validator('data_venda', 'nome_vendedor', 'nome_cliente', 'cliente_nif', mode='before')
-    @classmethod
-    def fill_from_sqlalchemy(cls, v, info):
-        obj = info.context.get('obj') if info.context else None
-        if not obj:
-            obj = info.data # fallback para when vem de dict
-
-        field = info.field_name
-        if field == 'data_venda':
-            return getattr(obj, 'created_at', None)
-        if field == 'nome_vendedor':
-            usuario = getattr(obj, 'usuario', None)
-            return getattr(usuario, 'nome', 'Sistema') if usuario else 'Sistema'
-        if field == 'nome_cliente':
-            cliente = getattr(obj, 'cliente', None)
-            return getattr(cliente, 'nome', None) if cliente else None
-        if field == 'cliente_nif':
-            cliente = getattr(obj, 'cliente', None)
-            return getattr(cliente, 'nif', None) if cliente else None
-        return v
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_encoders={Decimal: float}
-    )
+    model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})
