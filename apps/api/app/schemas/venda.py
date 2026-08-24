@@ -12,37 +12,32 @@ class ItemVendaCreate(BaseModel):
     model_config = ConfigDict(json_encoders={Decimal: float})
 
 class VendaCreate(BaseModel):
-    # CLIENTE
     cliente_id: UUID | None = None
-    nif_cliente: Optional[str] = None # <- NOVO: se vier NIF vira FACTURA AGT
-    nome_cliente: Optional[str] = None # <- NOVO: pra vendas avulsas sem cadastro
+    nif_cliente: Optional[str] = None
+    nome_cliente: Optional[str] = None
 
-    # VALORES
-    subtotal: Decimal = Decimal(0) # <- NOVO: total sem IVA
-    valor_iva: Decimal = Decimal(0) # <- NOVO: IVA 14%
+    subtotal: Decimal = Decimal(0)
+    valor_iva: Decimal = Decimal(0)
     total: Decimal
     total_itens: int
 
-    # PAGAMENTO
     forma_pagamento: str
     valor_recebido: Decimal = Decimal(0)
     troco: Decimal = Decimal(0)
 
-    # STATUS
     status: str = "emitida"
     observacao: Optional[str] = None
-
-    # ITENS
     itens: List[ItemVendaCreate] = Field(min_length=1)
 
-    @field_validator('valor_iva', 'total')
+    @field_validator('valor_iva', 'total', mode='before')
     @classmethod
     def calcular_valores(cls, v, info):
-        # se vier só o total, calcula subtotal e iva automaticamente
-        if 'subtotal' in info.data and info.data['subtotal'] > 0:
-            sub = info.data['subtotal']
+        data = info.data
+        if 'subtotal' in data and data['subtotal'] > 0:
+            sub = data['subtotal']
             iva = sub * Decimal('0.14')
-            return iva if info.field_name == 'valor_iva' else sub + iva
+            if info.field_name == 'valor_iva': return iva
+            if info.field_name == 'total': return sub + iva
         return v
 
     model_config = ConfigDict(json_encoders={Decimal: float})
@@ -62,30 +57,27 @@ class VendaRead(BaseModel):
     id: UUID
     loja_id: UUID
     usuario_id: Optional[UUID]
-    cliente_id: Optional[UUID] # <- NOVO
-    nome_vendedor: str
-    nome_cliente: Optional[str] = None # <- NOVO
+    cliente_id: Optional[UUID]
+    nome_vendedor: Optional[str] = None # <- bate com property do Model
+    nome_cliente: Optional[str] = None
 
-    # VALORES AGT
-    subtotal: Decimal # <- NOVO
-    valor_iva: Decimal # <- NOVO
+    subtotal: Decimal
+    valor_iva: Decimal
     total: Decimal
     total_itens: int
 
-    # PAGAMENTO
     forma_pagamento: str
     valor_recebido: Decimal
     troco: Decimal
 
-    # STATUS + AGT
     status: str
-    tipo_documento: str # <- NOVO: RECIBO ou FACTURA
-    serie: str # <- NOVO
-    numero_fatura: Optional[str] = None # <- NOVO
-    qr_code_url: Optional[str] = None # <- NOVO
+    tipo_documento: str
+    serie: str
+    numero_fatura: Optional[str] = None
+    qr_code_url: Optional[str] = None
     observacao: Optional[str] = None
 
-    data_venda: datetime
+    data_venda: datetime # <- bate com property do Model
     itens: List[ItemVendaRead] = []
 
     model_config = ConfigDict(from_attributes=True, json_encoders={Decimal: float})
