@@ -39,6 +39,7 @@ async def criar_venda_endpoint(venda_in: VendaCreate, background_tasks: Backgrou
         venda.valor_iva = Decimal(0)
         venda.subtotal = venda.total
         await db.commit()
+        await db.refresh(venda) # <- ADICIONA ISSO AQUI
 
         for item in venda.itens:
             produto_id = item.produto_id
