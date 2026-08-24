@@ -1,5 +1,5 @@
 "use client"
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, useRef } from "react"
 import { FileText, Search, Download, Printer, Ban, Building2, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { api } from "@/lib/api"
 
@@ -22,9 +22,17 @@ type VendaAGT = {
     status: string
     cliente_nome?: string
     cliente_nif?: string
+    cliente_bi?: string // <- ADICIONADO
     tipo_documento: string
     serie?: string
     numero_fatura?: string
+}
+
+type ClienteSugestao = {
+    id: string
+    nome: string
+    nif?: string
+    bi?: string
 }
 
 type Props = {
@@ -74,10 +82,12 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
     const [paginaAtual, setPaginaAtual] = useState(1)
     const itensPorPagina = 10
 
-    // NOVO: ESTADOS DA MODAL DE IMPRESSÃO
+    // ESTADOS DA MODAL DE IMPRESSÃO
     const [modalImprimirAberta, setModalImprimirAberta] = useState(false)
     const [vendaParaImprimir, setVendaParaImprimir] = useState<VendaAGT | null>(null)
-    const [buscandoCliente, setBuscandoCliente] = useState(false)
+    const [sugestoes, setSugestoes] = useState<ClienteSugestao[]>([]) // <- NOVO
+    const [mostrarSugestoes, setMostrarSugestoes] = useState(false) // <- NOVO
+    const refSugestoes = useRef<HTMLDivElement>(null) // <- NOVO
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '24px' : '16px';
@@ -124,34 +134,46 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         }
     }
 
-    // NOVO: ABRIR MODAL AO CLICAR EM IMPRIMIR
+    // ABRIR MODAL AO CLICAR EM IMPRIMIR
     const abrirModalImprimir = (v: VendaAGT) => {
         setVendaParaImprimir(v)
-        setNifPorVenda(prev => ({...prev, [v.id]: v.cliente_nif || ""}))
+        setNifPorVenda(prev => ({...prev, [v.id]: v.cliente_nif || v.cliente_bi || ""}))
         setNomePorVenda(prev => ({...prev, [v.id]: v.cliente_nome || ""}))
+        setSugestoes([])
+        setMostrarSugestoes(false)
         setModalImprimirAberta(true)
     }
 
-    // NOVO: BUSCAR CLIENTE NA MODAL
+    // NOVO: BUSCAR CLIENTE COM SUGESTÕES A PARTIR DE 3 DIGITOS
     useEffect(() => {
         if(!vendaParaImprimir) return;
-        const nif = nifPorVenda[vendaParaImprimir.id]
-        if(nif?.length === 14){
-            const timer = setTimeout(async () => {
-                setBuscandoCliente(true)
-                try {
-                    const res = await api.get(`/clientes?search=${nif}`)
-                    if(res.data.length > 0){
-                        setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: res.data[0].nome}))
-                    }
-                } catch {}
-                finally { setBuscandoCliente(false) }
-            }, 500)
-            return () => clearTimeout(timer)
-        }
-    }, [nifPorVenda, vendaParaImprimir])
+        const termo = nifPorVenda[vendaParaImprimir.id]
+        if(!termo || termo.length < 3){ setSugestoes([]); setMostrarSugestoes(false); return }
 
-    // NOVO: CONFIRMAR E ABRIR IMPRESSÃO
+        const timer = setTimeout(async () => {
+            try {
+                const res = await api.get(`/${loja.id}/clientes?search=${termo}`) // <- AGORA PASSA LOJA_ID
+                setSugestoes(res.data)
+                setMostrarSugestoes(res.data.length > 0)
+            } catch { setSugestoes([]) }
+        }, 300)
+        return () => clearTimeout(timer)
+    }, [nifPorVenda, vendaParaImprimir, loja.id])
+
+    // Fechar sugestões ao clicar fora
+    useEffect(() => {
+        const handleClickFora = (e: MouseEvent) => { if(refSugestoes.current &&!refSugestoes.current.contains(e.target as Node)) setMostrarSugestoes(false) }
+        document.addEventListener("mousedown", handleClickFora); return () => document.removeEventListener("mousedown", handleClickFora)
+    }, [])
+
+    const selecionarCliente = (cliente: ClienteSugestao) => {
+        if(!vendaParaImprimir) return;
+        setNifPorVenda(prev => ({...prev, [vendaParaImprimir.id]: cliente.nif || cliente.bi || ""}))
+        setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: cliente.nome}))
+        setMostrarSugestoes(false)
+    }
+
+    // CONFIRMAR E ABRIR IMPRESSÃO
     const confirmarImpressao = () => {
         if(!vendaParaImprimir) return;
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
@@ -184,13 +206,13 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
 
                 {/* DESKTOP */}
                 <div className="hidden lg:block overflow-x-auto">
-                    <table className="w-full text-sm"><thead><tr style={{ borderBottom: '1px solid var(--cor-primaria)30' }}><th className="text-left py-2 px-2">Data</th><th className="text-left py-2 px-2">Nº Factura</th><th className="text-left py-2 px-2">Cliente</th><th className="text-left py-2 px-2">NIF</th><th className="text-right py-2 px-2">Total</th><th className="text-center py-2 px-2">Ações</th></tr></thead><tbody>
+                    <table className="w-full text-sm"><thead><tr style={{ borderBottom: '1px solid var(--cor-primaria)30' }}><th className="text-left py-2 px-2">Data</th><th className="text-left py-2 px-2">Nº Factura</th><th className="text-left py-2 px-2">Cliente</th><th className="text-left py-2 px-2">NIF/BI</th><th className="text-right py-2 px-2">Total</th><th className="text-center py-2 px-2">Ações</th></tr></thead><tbody>
                         {vendasPaginadas.map(v => (
                             <tr key={v.id} style={{ borderBottom: '1px solid var(--cor-primaria)15' }}>
                                 <td className="py-2 px-2">{formatData(v.data_venda)}</td>
                                 <td className="py-2 px-2 font-mono text-xs">{v.numero_fatura || `REC ${v.id.slice(0,8)}`}</td>
                                 <td className="py-2 px-2">{v.cliente_nome || "Consumidor Final"}</td>
-                                <td className="py-2 px-2">{v.cliente_nif || "-"}</td>
+                                <td className="py-2 px-2">{v.cliente_nif || v.cliente_bi || "-"}</td>
                                 <td className="py-2 px-2 text-right font-bold">{formatCurrency(v.total)}</td>
                                 <td className="py-2 px-2">
                                     <div className="flex gap-2 justify-center">
@@ -199,7 +221,7 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                                 <input
                                                     value={nifPorVenda[v.id] || ''}
                                                     onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value}))}
-                                                    placeholder="NIF"
+                                                    placeholder="NIF/BI"
                                                     className="w-24 text-xs p-1 rounded"
                                                     style={{ border: '1px solid #ccc', background: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
                                                 />
@@ -213,7 +235,6 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                                 </button>
                                             </div>
                                         }
-                                        {/* MUDOU AQUI: onClick abre modal */}
                                         <button onClick={() => abrirModalImprimir(v)} className="p-1.5 rounded" style={{ background: 'var(--cor-primaria)20' }}><Printer size={14} /></button>
                                     </div>
                                 </td>
@@ -227,14 +248,14 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                     {vendasPaginadas.map(v => (
                         <div key={v.id} className="p-3" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
                             <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-sm">{v.numero_fatura || `REC ${v.id.slice(0,8)}`}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatData(v.data_venda)}</p></div><p className="font-bold">{formatCurrency(v.total)}</p></div>
-                            <p className="text-xs font-medium">{v.cliente_nome || "Consumidor Final"}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>NIF: {v.cliente_nif || "-"}</p>
+                            <p className="text-xs font-medium">{v.cliente_nome || "Consumidor Final"}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>NIF/BI: {v.cliente_nif || v.cliente_bi || "-"}</p>
                             <div className="flex gap-2 mt-2">
                                 {v.tipo_documento === "RECIBO" &&
                                     <div className="flex-1 flex gap-1">
                                         <input
                                             value={nifPorVenda[v.id] || ''}
                                             onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value}))}
-                                            placeholder="NIF"
+                                            placeholder="NIF/BI"
                                             className="w-full text-xs p-1 rounded"
                                             style={{ border: '1px solid #ccc', background: 'var(--cor-card)', color: 'var(--cor-texto)' }}
                                         />
@@ -248,7 +269,6 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                         </button>
                                     </div>
                                 }
-                                {/* MUDOU AQUI: onClick abre modal */}
                                 <button onClick={() => abrirModalImprimir(v)} className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded font-semibold" style={{ background: 'var(--cor-primaria)', color: '#fff' }}><Printer size={12} /> Imprimir</button>
                             </div>
                         </div>
@@ -271,7 +291,7 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                 )}
             </div>
 
-            {/* NOVO: MODAL DE IMPRESSÃO */}
+            {/* MODAL DE IMPRESSÃO COM SUGESTÕES */}
             {modalImprimirAberta && vendaParaImprimir && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="w-full max-w-md p-6 space-y-4" style={{ background: 'var(--cor-card)', borderRadius: radius }}>
@@ -280,35 +300,40 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                             <button onClick={() => setModalImprimirAberta(false)}><X size={20} /></button>
                         </div>
                         <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Venda: {vendaParaImprimir.numero_fatura || `REC ${vendaParaImprimir.id.slice(0,8)}`}</p>
-                        <div>
-                            <label className="text-sm font-medium">NIF do Cliente</label>
+
+                        <div className="relative" ref={refSugestoes}>
+                            <label className="text-sm font-medium">NIF ou BI do Cliente</label>
                             <input
                                 value={nifPorVenda[vendaParaImprimir.id] || ''}
-                                onChange={e => setNifPorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value.replace(/\D/g, '')}))}
-                                placeholder="Digite 14 digitos"
-                                maxLength={14}
+                                onChange={e => setNifPorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value}))}
+                                onFocus={() => nifPorVenda[vendaParaImprimir.id]?.length >= 3 && setMostrarSugestoes(true)}
+                                placeholder="Digite 3+ caracteres"
+                                className="w-full mt-1 p-2 rounded"
+                                style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', color: 'var(--cor-texto)' }}
+                            />
+                            {mostrarSugestoes && (
+                                <div className="absolute z-10 w-full mt-1 max-h-40 overflow-y-auto rounded shadow-lg" style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30' }}>
+                                    {sugestoes.map(c => (
+                                        <div key={c.id} onClick={() => selecionarCliente(c)} className="p-2 text-sm cursor-pointer hover:bg-[var(--cor-primaria)20]">
+                                            <p className="font-semibold">{c.nome}</p>
+                                            <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>NIF: {c.nif || "-"} | BI: {c.bi || "-"}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium">Nome do Cliente</label>
+                            <input
+                                value={nomePorVenda[vendaParaImprimir.id] || ''}
+                                onChange={e => setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value}))}
+                                placeholder="Nome aparecerá aqui"
                                 className="w-full mt-1 p-2 rounded"
                                 style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', color: 'var(--cor-texto)' }}
                             />
                         </div>
-                        <div>
-                            <label className="text-sm font-medium">Nome do Cliente</label>
-                            <input
-                                value={buscandoCliente? "Buscando..." : nomePorVenda[vendaParaImprimir.id] || ''}
-                                onChange={e => setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value}))}
-                                placeholder="Nome aparecerá aqui"
-                                readOnly={buscandoCliente}
-                                className="w-full mt-1 p-2 rounded disabled:opacity-70"
-                                style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', color: 'var(--cor-texto)' }}
-                            />
-                        </div>
-                        <button
-                            onClick={confirmarImpressao}
-                            className="w-full py-2 rounded font-semibold"
-                            style={{ background: 'var(--cor-primaria)', color: '#fff' }}
-                        >
-                            Imprimir
-                        </button>
+                        <button onClick={confirmarImpressao} className="w-full py-2 rounded font-semibold" style={{ background: 'var(--cor-primaria)', color: '#fff' }}>Imprimir</button>
                     </div>
                 </div>
             )}

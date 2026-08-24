@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import func, select, update, delete, and_
+from sqlalchemy import func, select, update, delete, and_, or_
 from pydantic import BaseModel, Field
 
 from app.db.session import get_db
@@ -120,15 +120,32 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
     )
     await db.commit()
 
+
 @router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
-async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
+async def listar_clientes(
+    loja_id: UUID,
+    search: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
     await verificar_acesso_loja(loja_id, db, current_user)
-    # ORDENAÇÃO POR HORA: ultima_compra primeiro, depois created_at
-    stmt = (
-        select(Cliente)
-      .where(Cliente.loja_id == loja_id, Cliente.is_active == True)
-      .order_by(Cliente.ultima_compra.desc().nulls_last(), Cliente.created_at.desc())
-    )
+
+    stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.is_active == True)
+
+    # BUSCA POR NOME, NIF, BI
+    if search and len(search) >= 2:
+        search_like = f"%{search}%"
+        stmt = stmt.where(
+            or_(
+                Cliente.nome.ilike(search_like), # <- CORRIGIDO
+                Cliente.nif.ilike(search_like), # <- CORRIGIDO
+                Cliente.bi.ilike(search_like) # <- CORRIGIDO
+            )
+        )
+        stmt = stmt.limit(10) # <- só 10 sugestões
+    else:
+        stmt = stmt.order_by(Cliente.ultima_compra.desc().nulls_last(), Cliente.created_at.desc())
+
     result = await db.execute(stmt)
     clientes_db = result.scalars().all()
 
@@ -136,6 +153,7 @@ async def listar_clientes(loja_id: UUID, db: AsyncSession = Depends(get_db), cur
     for cliente in clientes_db:
         clientes_out.append(await _cliente_to_out(db, cliente))
     return clientes_out
+
 
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
