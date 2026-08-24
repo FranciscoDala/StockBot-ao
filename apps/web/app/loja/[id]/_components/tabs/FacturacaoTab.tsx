@@ -1,6 +1,6 @@
 "use client"
 import { useMemo, useState } from "react"
-import { FileText, Search, Download, Printer, Ban, CheckCircle2, AlertTriangle, QrCode, Building2 } from "lucide-react"
+import { FileText, Search, Download, Printer, Ban, Building2, ChevronLeft, ChevronRight } from "lucide-react"
 import { api } from "@/lib/api"
 
 type ItemVenda = {
@@ -39,6 +39,13 @@ type Props = {
     onVendaFaturada?: () => void
 }
 
+function formatData(data: string | null | undefined) {
+    if (!data) return "Sem data"
+    const d = new Date(data)
+    if (isNaN(d.getTime())) return "Data inválida"
+    return d.toLocaleString('pt-AO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
 function CardInfo({ titulo, valor, sub, icon, cor, cardStyle, cardSize }: any) {
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '20px' : '16px';
@@ -58,8 +65,10 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
     const [busca, setBusca] = useState("")
     const [filtro, setFiltro] = useState<"todas" | "agt" | "anuladas">("todas")
     const [faturandoId, setFaturandoId] = useState<string | null>(null)
-    const [nifPorVenda, setNifPorVenda] = useState<Record<string, string>>({}) // <- AJUSTE 1: NIF por venda
+    const [nifPorVenda, setNifPorVenda] = useState<Record<string, string>>({})
     const [nomePorVenda, setNomePorVenda] = useState<Record<string, string>>({})
+    const [paginaAtual, setPaginaAtual] = useState(1) // <- NOVO
+    const itensPorPagina = 10 // <- NOVO
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '24px' : '16px';
@@ -70,12 +79,21 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         return passaBusca && passaFiltro
     }), [vendas, busca, filtro])
 
+    // Resetar pagina quando filtrar
+    useMemo(() => setPaginaAtual(1), [busca, filtro])
+
+    const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPagina)
+    const vendasPaginadas = useMemo(() => {
+        const inicio = (paginaAtual - 1) * itensPorPagina
+        return vendasFiltradas.slice(inicio, inicio + itensPorPagina)
+    }, [vendasFiltradas, paginaAtual])
+
     const totalFacturado = useMemo(() => vendasFiltradas.filter(v => v.status!== "anulada").reduce((acc, v) => acc + v.total, 0), [vendasFiltradas])
     const totalAGT = useMemo(() => vendasFiltradas.filter(v => v.cliente_nif && v.status!== "anulada").length, [vendasFiltradas])
     const totalAnuladas = useMemo(() => vendasFiltradas.filter(v => v.status === "anulada").length, [vendasFiltradas])
 
     const exportarLivro = () => {
-        const linhas = [ ["Data", "Nº Factura", "Cliente", "NIF", "Subtotal", "IVA", "Total", "Status"],...vendasFiltradas.map(v => [ new Date(v.data_venda).toLocaleDateString('pt-AO'), v.numero_fatura || v.id.slice(0,8), v.cliente_nome || "Consumidor Final", v.cliente_nif || "-", v.subtotal, v.valor_iva, v.total, v.status ])]
+        const linhas = [ ["Data", "Nº Factura", "Cliente", "NIF", "Subtotal", "IVA", "Total", "Status"],...vendasFiltradas.map(v => [ formatData(v.data_venda), v.numero_fatura || v.id.slice(0,8), v.cliente_nome || "Consumidor Final", v.cliente_nif || "-", v.subtotal, v.valor_iva, v.total, v.status ])]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
         const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `livro-vendas-agt-${new Date().toISOString().split('T')[0]}.csv`; a.click()
@@ -98,7 +116,6 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         }
     }
 
-    // AJUSTE 2: IMPRIMIR AGORA CHAMA O BACKEND
     const imprimirFacturaAGT = (v: VendaAGT) => {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
         window.open(`${API_URL}/vendas/${v.id}/imprimir`, '_blank')
@@ -126,11 +143,13 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
 
             <div style={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
                 <h3 className="font-bold text-base mb-3" style={{ color: 'var(--cor-texto)' }}>Livro de Vendas</h3>
+
+                {/* DESKTOP */}
                 <div className="hidden lg:block overflow-x-auto">
                     <table className="w-full text-sm"><thead><tr style={{ borderBottom: '1px solid var(--cor-primaria)30' }}><th className="text-left py-2 px-2">Data</th><th className="text-left py-2 px-2">Nº Factura</th><th className="text-left py-2 px-2">Cliente</th><th className="text-left py-2 px-2">NIF</th><th className="text-right py-2 px-2">Total</th><th className="text-center py-2 px-2">Ações</th></tr></thead><tbody>
-                        {vendasFiltradas.slice(0, 20).map(v => (
+                        {vendasPaginadas.map(v => (
                             <tr key={v.id} style={{ borderBottom: '1px solid var(--cor-primaria)15' }}>
-                                <td className="py-2 px-2">{new Date(v.data_venda).toLocaleDateString('pt-AO')}</td>
+                                <td className="py-2 px-2">{formatData(v.data_venda)}</td>
                                 <td className="py-2 px-2 font-mono text-xs">{v.numero_fatura || `REC ${v.id.slice(0,8)}`}</td>
                                 <td className="py-2 px-2">{v.cliente_nome || "Consumidor Final"}</td>
                                 <td className="py-2 px-2">{v.cliente_nif || "-"}</td>
@@ -163,10 +182,12 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                         ))}
                     </tbody></table>
                 </div>
+
+                {/* MOBILE */}
                 <div className="lg:hidden space-y-2 max-h-[500px] overflow-y-auto">
-                    {vendasFiltradas.slice(0, 20).map(v => (
+                    {vendasPaginadas.map(v => (
                         <div key={v.id} className="p-3" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
-                            <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-sm">{v.numero_fatura || `REC ${v.id.slice(0,8)}`}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{new Date(v.data_venda).toLocaleDateString('pt-AO')}</p></div><p className="font-bold">{formatCurrency(v.total)}</p></div>
+                            <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-sm">{v.numero_fatura || `REC ${v.id.slice(0,8)}`}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatData(v.data_venda)}</p></div><p className="font-bold">{formatCurrency(v.total)}</p></div>
                             <p className="text-xs font-medium">{v.cliente_nome || "Consumidor Final"}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>NIF: {v.cliente_nif || "-"}</p>
                             <div className="flex gap-2 mt-2">
                                 {v.tipo_documento === "RECIBO" &&
@@ -192,10 +213,39 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                             </div>
                         </div>
                     ))}
-                    {vendasFiltradas.length === 0 && <p className="text-center py-8 text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Nenhuma factura encontrada</p>}
+                    {vendasPaginadas.length === 0 && <p className="text-center py-8 text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Nenhuma factura encontrada</p>}
                 </div>
+
+                {/* PAGINAÇÃO */}
+                {totalPaginas > 1 && (
+                    <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid var(--cor-primaria)30' }}>
+                        <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
+                            Mostrando {((paginaAtual - 1) * itensPorPagina) + 1} a {Math.min(paginaAtual * itensPorPagina, vendasFiltradas.length)} de {vendasFiltradas.length}
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPaginaAtual(p => Math.max(1, p - 1))}
+                                disabled={paginaAtual === 1}
+                                className="p-2 rounded disabled:opacity-40"
+                                style={{ background: 'var(--cor-primaria)20' }}
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <span className="text-sm font-semibold px-2" style={{ color: 'var(--cor-texto)' }}>
+                                {paginaAtual} / {totalPaginas}
+                            </span>
+                            <button
+                                onClick={() => setPaginaAtual(p => Math.min(totalPaginas, p + 1))}
+                                disabled={paginaAtual === totalPaginas}
+                                className="p-2 rounded disabled:opacity-40"
+                                style={{ background: 'var(--cor-primaria)20' }}
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-            <div className="text-xs text-center" style={{ color: 'var(--cor-texto-sec)' }}><QrCode size={12} className="inline mr-1" /> Todas as facturas devem conter QR Code e numeração sequencial conforme AGT</div>
         </div>
     )
 }
