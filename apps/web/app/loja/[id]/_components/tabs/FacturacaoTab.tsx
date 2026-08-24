@@ -1,6 +1,6 @@
 "use client"
 import { useMemo, useState, useEffect } from "react"
-import { FileText, Search, Download, Printer, Ban, Building2, ChevronLeft, ChevronRight, X } from "lucide-react" // <- ADICIONEI O X
+import { FileText, Search, Download, Printer, Ban, Building2, ChevronLeft, ChevronRight, X } from "lucide-react"
 import { api } from "@/lib/api"
 
 type ItemVenda = {
@@ -74,16 +74,16 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
     const [paginaAtual, setPaginaAtual] = useState(1)
     const itensPorPagina = 10
 
-    // NOVO: ESTADOS DA MODAL
-    const [modalAberta, setModalAberta] = useState(false)
-    const [vendaModalId, setVendaModalId] = useState<string | null>(null)
+    // NOVO: ESTADOS DA MODAL DE IMPRESSÃO
+    const [modalImprimirAberta, setModalImprimirAberta] = useState(false)
+    const [vendaParaImprimir, setVendaParaImprimir] = useState<VendaAGT | null>(null)
     const [buscandoCliente, setBuscandoCliente] = useState(false)
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '24px' : '16px';
 
     const vendasFiltradas = useMemo(() => vendas.filter(v => {
-        const passaBusca = v.id.toLowerCase().includes(busca.toLowerCase()) || v.numero_fatura?.toLowerCase().includes(busca.toLowerCase()) || v.cliente_nome?.toLowerCase().includes(busca.toLowerCase()) || v.cliente_nif?.includes(busca) // <- ADICIONEI BUSCA POR NUMERO_FATURA
+        const passaBusca = v.id.toLowerCase().includes(busca.toLowerCase()) || v.numero_fatura?.toLowerCase().includes(busca.toLowerCase()) || v.cliente_nome?.toLowerCase().includes(busca.toLowerCase()) || v.cliente_nif?.includes(busca)
         const passaFiltro = filtro === "todas"? true : filtro === "agt"?!!v.cliente_nif : filtro === "anuladas"? v.status === "anulada" : true
         return passaBusca && passaFiltro
     }), [vendas, busca, filtro])
@@ -107,38 +107,6 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `livro-vendas-agt-${new Date().toISOString().split('T')[0]}.csv`; a.click()
     }
 
-    // NOVO: BUSCAR CLIENTE QUANDO DIGITAR NIF NA TABELA
-    useEffect(() => {
-        const vendaId = Object.keys(nifPorVenda).find(id => nifPorVenda[id].length === 14)
-        if(!vendaId) return;
-        const nif = nifPorVenda[vendaId]
-        const timer = setTimeout(async () => {
-            setBuscandoCliente(true)
-            try {
-                const res = await api.get(`/clientes?search=${nif}`)
-                if(res.data.length > 0){
-                    setNomePorVenda(prev => ({...prev, [vendaId]: res.data[0].nome}))
-                }
-            } catch {}
-            finally { setBuscandoCliente(false) }
-        }, 500)
-        return () => clearTimeout(timer)
-    }, [nifPorVenda])
-
-    // NOVO: FUNÇÕES DA MODAL
-    const abrirModal = (vendaId: string) => {
-        setVendaModalId(vendaId)
-        setNifPorVenda(prev => ({...prev, [vendaId]: ""}))
-        setNomePorVenda(prev => ({...prev, [vendaId]: ""}))
-        setModalAberta(true)
-    }
-
-    const handleFaturarModal = async () => {
-        if (!vendaModalId) return
-        await handleFaturar(vendaModalId)
-        setModalAberta(false)
-    }
-
     const handleFaturar = async (vendaId: string) => {
         const nif = nifPorVenda[vendaId]
         const nome = nomePorVenda[vendaId] || "Cliente AGT"
@@ -156,9 +124,39 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         }
     }
 
-    const imprimirFacturaAGT = (v: VendaAGT) => {
+    // NOVO: ABRIR MODAL AO CLICAR EM IMPRIMIR
+    const abrirModalImprimir = (v: VendaAGT) => {
+        setVendaParaImprimir(v)
+        setNifPorVenda(prev => ({...prev, [v.id]: v.cliente_nif || ""}))
+        setNomePorVenda(prev => ({...prev, [v.id]: v.cliente_nome || ""}))
+        setModalImprimirAberta(true)
+    }
+
+    // NOVO: BUSCAR CLIENTE NA MODAL
+    useEffect(() => {
+        if(!vendaParaImprimir) return;
+        const nif = nifPorVenda[vendaParaImprimir.id]
+        if(nif?.length === 14){
+            const timer = setTimeout(async () => {
+                setBuscandoCliente(true)
+                try {
+                    const res = await api.get(`/clientes?search=${nif}`)
+                    if(res.data.length > 0){
+                        setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: res.data[0].nome}))
+                    }
+                } catch {}
+                finally { setBuscandoCliente(false) }
+            }, 500)
+            return () => clearTimeout(timer)
+        }
+    }, [nifPorVenda, vendaParaImprimir])
+
+    // NOVO: CONFIRMAR E ABRIR IMPRESSÃO
+    const confirmarImpressao = () => {
+        if(!vendaParaImprimir) return;
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
-        window.open(`${API_URL}/vendas/${v.id}/imprimir`, '_blank')
+        window.open(`${API_URL}/vendas/${vendaParaImprimir.id}/imprimir`, '_blank')
+        setModalImprimirAberta(false)
     }
 
     return (
@@ -200,14 +198,11 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                             <div className="flex gap-1">
                                                 <input
                                                     value={nifPorVenda[v.id] || ''}
-                                                    onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value.replace(/\D/g, '')}))} // <- só números
+                                                    onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value}))}
                                                     placeholder="NIF"
-                                                    maxLength={14}
                                                     className="w-24 text-xs p-1 rounded"
                                                     style={{ border: '1px solid #ccc', background: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
                                                 />
-                                                {/* NOVO: Botão pra abrir modal */}
-                                                <button onClick={() => abrirModal(v.id)} className="px-2 py-1 rounded text-xs font-semibold" style={{ background: '#3b82f6', color: '#fff' }}>+</button>
                                                 <button
                                                     onClick={() => handleFaturar(v.id)}
                                                     disabled={faturandoId === v.id}
@@ -218,7 +213,8 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                                 </button>
                                             </div>
                                         }
-                                        <button onClick={() => imprimirFacturaAGT(v)} className="p-1.5 rounded" style={{ background: 'var(--cor-primaria)20' }}><Printer size={14} /></button>
+                                        {/* MUDOU AQUI: onClick abre modal */}
+                                        <button onClick={() => abrirModalImprimir(v)} className="p-1.5 rounded" style={{ background: 'var(--cor-primaria)20' }}><Printer size={14} /></button>
                                     </div>
                                 </td>
                             </tr>
@@ -237,13 +233,11 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                     <div className="flex-1 flex gap-1">
                                         <input
                                             value={nifPorVenda[v.id] || ''}
-                                            onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value.replace(/\D/g, '')}))}
+                                            onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value}))}
                                             placeholder="NIF"
-                                            maxLength={14}
                                             className="w-full text-xs p-1 rounded"
                                             style={{ border: '1px solid #ccc', background: 'var(--cor-card)', color: 'var(--cor-texto)' }}
                                         />
-                                        <button onClick={() => abrirModal(v.id)} className="px-2 text-xs rounded font-semibold" style={{ background: '#3b82f6', color: '#fff' }}>+</button>
                                         <button
                                             onClick={() => handleFaturar(v.id)}
                                             disabled={faturandoId === v.id}
@@ -254,7 +248,8 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                         </button>
                                     </div>
                                 }
-                                <button onClick={() => imprimirFacturaAGT(v)} className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded font-semibold" style={{ background: 'var(--cor-primaria)', color: '#fff' }}><Printer size={12} /> Imprimir</button>
+                                {/* MUDOU AQUI: onClick abre modal */}
+                                <button onClick={() => abrirModalImprimir(v)} className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded font-semibold" style={{ background: 'var(--cor-primaria)', color: '#fff' }}><Printer size={12} /> Imprimir</button>
                             </div>
                         </div>
                     ))}
@@ -276,19 +271,20 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                 )}
             </div>
 
-            {/* NOVO: MODAL */}
-            {modalAberta && vendaModalId && (
+            {/* NOVO: MODAL DE IMPRESSÃO */}
+            {modalImprimirAberta && vendaParaImprimir && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="w-full max-w-md p-6 space-y-4" style={{ background: 'var(--cor-card)', borderRadius: radius }}>
                         <div className="flex justify-between items-center">
-                            <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Dados do Cliente</h3>
-                            <button onClick={() => setModalAberta(false)}><X size={20} /></button>
+                            <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Dados para Impressão</h3>
+                            <button onClick={() => setModalImprimirAberta(false)}><X size={20} /></button>
                         </div>
+                        <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Venda: {vendaParaImprimir.numero_fatura || `REC ${vendaParaImprimir.id.slice(0,8)}`}</p>
                         <div>
-                            <label className="text-sm font-medium">NIF</label>
+                            <label className="text-sm font-medium">NIF do Cliente</label>
                             <input
-                                value={nifPorVenda[vendaModalId] || ''}
-                                onChange={e => setNifPorVenda(prev => ({...prev, [vendaModalId]: e.target.value.replace(/\D/g, '')}))}
+                                value={nifPorVenda[vendaParaImprimir.id] || ''}
+                                onChange={e => setNifPorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value.replace(/\D/g, '')}))}
                                 placeholder="Digite 14 digitos"
                                 maxLength={14}
                                 className="w-full mt-1 p-2 rounded"
@@ -298,8 +294,8 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                         <div>
                             <label className="text-sm font-medium">Nome do Cliente</label>
                             <input
-                                value={buscandoCliente? "Buscando..." : nomePorVenda[vendaModalId] || ''}
-                                onChange={e => setNomePorVenda(prev => ({...prev, [vendaModalId]: e.target.value}))}
+                                value={buscandoCliente? "Buscando..." : nomePorVenda[vendaParaImprimir.id] || ''}
+                                onChange={e => setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value}))}
                                 placeholder="Nome aparecerá aqui"
                                 readOnly={buscandoCliente}
                                 className="w-full mt-1 p-2 rounded disabled:opacity-70"
@@ -307,12 +303,11 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                             />
                         </div>
                         <button
-                            onClick={handleFaturarModal}
-                            disabled={!nifPorVenda[vendaModalId] || faturandoId!== null}
-                            className="w-full py-2 rounded font-semibold disabled:opacity-50"
+                            onClick={confirmarImpressao}
+                            className="w-full py-2 rounded font-semibold"
                             style={{ background: 'var(--cor-primaria)', color: '#fff' }}
                         >
-                            {faturandoId? "Emitindo..." : "Emitir Factura"}
+                            Imprimir
                         </button>
                     </div>
                 </div>
