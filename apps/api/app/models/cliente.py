@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Boolean, DateTime, Text, ForeignKey, Floa
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from..db.base import BaseModel
+from ..db.base import BaseModel
 import uuid
 
 class Cliente(BaseModel):
@@ -11,7 +11,8 @@ class Cliente(BaseModel):
     loja_id = Column(UUID(as_uuid=True), ForeignKey("lojas.id", ondelete="CASCADE"), nullable=False, index=True)
     nome = Column(String(255), nullable=False)
     nome_empresa = Column(String(255), nullable=True)
-    bi = Column(String(50), nullable=True, index=True)
+    bi = Column(String(50), nullable=True, index=True) # <- BI 14 digitos Angola
+    nif = Column(String(14), nullable=True, index=True) # <- NIF 14 digitos AGT
     telefone = Column(String(20), nullable=True, index=True)
     email = Column(String(255), nullable=True)
     endereco = Column(Text, nullable=True)
@@ -20,10 +21,7 @@ class Cliente(BaseModel):
     observacoes = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
 
-    # ADICIONADO AGT
-    nif = Column(String(14), nullable=True, index=True) # <- NOVO CAMPO PRA FATURAR
-
-    # ADICIONADO: Campo pra guardar a ultima compra fiada
+    # AGT + DIVIDA
     total_divida = Column(Float, default=0.0, nullable=False)
     ultima_compra = Column(DateTime(timezone=True), nullable=True)
 

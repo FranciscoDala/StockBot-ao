@@ -46,10 +46,10 @@ class VendaCreate(BaseModel):
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (
         select(Usuario, UsuarioLoja)
-      .join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-      .where(UsuarioLoja.loja_id == loja_id)
-      .where(UsuarioLoja.role == UserRole.DONO)
-      .where(UsuarioLoja.is_active == True)
+     .join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
+     .where(UsuarioLoja.loja_id == loja_id)
+     .where(UsuarioLoja.role == UserRole.DONO)
+     .where(UsuarioLoja.is_active == True)
     )
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
@@ -75,7 +75,7 @@ async def _get_caixa_aberto_hoje(db: AsyncSession, loja_id: UUID) -> Caixa | Non
     result_caixa = await db.execute(stmt_caixa)
     return result_caixa.scalar_one_or_none()
 
-async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
+async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut: # <- ADICIONADO DE VOLTA
     total_divida = float(getattr(cliente, "total_divida", 0.0) or 0.0)
     ultima_compra: Optional[datetime] = getattr(cliente, "ultima_compra", None)
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
@@ -86,6 +86,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
         nome=str(getattr(cliente, "nome") or ""),
         nome_empresa=getattr(cliente, "nome_empresa"),
         bi=getattr(cliente, "bi"),
+        nif=getattr(cliente, "nif"), # <- ADICIONADO
         telefone=getattr(cliente, "telefone"),
         email=getattr(cliente, "email"),
         endereco=getattr(cliente, "endereco"),
@@ -115,13 +116,12 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
 
     await db.execute(
         update(Cliente)
-      .where(Cliente.id == cliente_id)
-      .values(total_divida=total_divida, ultima_compra=ultima_compra)
+     .where(Cliente.id == cliente_id)
+     .values(total_divida=total_divida, ultima_compra=ultima_compra)
     )
     await db.commit()
 
-
-@router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
+@router.get("/{loja_id}/clientes", response_model=List[ClienteOut]) # <- ADICIONADO DE VOLTA
 async def listar_clientes(
     loja_id: UUID,
     search: str | None = None,
@@ -137,23 +137,20 @@ async def listar_clientes(
         search_like = f"%{search}%"
         stmt = stmt.where(
             or_(
-                Cliente.nome.ilike(search_like), # <- CORRIGIDO
-                Cliente.nif.ilike(search_like), # <- CORRIGIDO
-                Cliente.bi.ilike(search_like) # <- CORRIGIDO
+                Cliente.nome.ilike(search_like),
+                Cliente.bi.ilike(search_like),
+                Cliente.nif.ilike(search_like)
             )
         )
-        stmt = stmt.limit(10) # <- só 10 sugestões
+        stmt = stmt.limit(10)
     else:
         stmt = stmt.order_by(Cliente.ultima_compra.desc().nulls_last(), Cliente.created_at.desc())
 
     result = await db.execute(stmt)
     clientes_db = result.scalars().all()
 
-    clientes_out = []
-    for cliente in clientes_db:
-        clientes_out.append(await _cliente_to_out(db, cliente))
+    clientes_out = [await _cliente_to_out(db, cliente) for cliente in clientes_db]
     return clientes_out
-
 
 @router.post("/{loja_id}/clientes", response_model=ClienteOut, status_code=status.HTTP_201_CREATED)
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -164,6 +161,12 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
         result = await db.execute(stmt)
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
+
+    if cliente_in.nif: # <- VALIDAÇÃO NIF ADICIONADA
+        stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.nif == cliente_in.nif)
+        result = await db.execute(stmt)
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="NIF já cadastrado para esta loja")
 
     data = cliente_in.model_dump()
     data["loja_id"] = loja_id
@@ -332,8 +335,8 @@ async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoC
         valor_a_pagar = min(valor_restante, divida_atual)
         movimento = MovimentoVenda(venda_id=venda.id, loja_id=loja_id, cliente_id=cliente_id, usuario_id=current_user.id, valor_pago=float(valor_a_pagar), forma_pagamento=pagamento.forma_pagamento, observacao=pagamento.observacao)
         db.add(movimento)
-        venda.valor_recebido = float(Decimal(str(venda.valor_recebido)) + valor_a_pagar)
-        venda.status = "concluida" if float(venda.valor_recebido) >= float(venda.total) else "parcial"
+        venda.valor_recebido = Decimal(str(venda.valor_recebido)) + valor_a_pagar
+        venda.status = "concluida" if venda.valor_recebido >= Decimal(str(venda.total)) else "parcial"
         valor_restante -= valor_a_pagar
         total_pago += valor_a_pagar
 
@@ -342,8 +345,8 @@ async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoC
     # ATUALIZA A HORA DA ULTIMA ATIVIDADE NO PAGAMENTO
     await db.execute(
         update(Cliente)
-      .where(Cliente.id == cliente_id)
-      .values(ultima_compra=func.now())
+     .where(Cliente.id == cliente_id)
+     .values(ultima_compra=func.now())
     )
 
     await db.commit()
@@ -387,7 +390,7 @@ async def pagar_venda_especifica(
     movimento = MovimentoVenda(venda_id=venda.id, loja_id=loja_id, cliente_id=cliente_id, usuario_id=current_user.id, valor_pago=float(valor_a_pagar), forma_pagamento=pagamento.forma_pagamento, observacao=pagamento.observacao)
     db.add(movimento)
     novo_valor_recebido = valor_recebido_atual + valor_a_pagar
-    venda.valor_recebido = float(novo_valor_recebido)
+    venda.valor_recebido = novo_valor_recebido
     venda.status = "concluida" if novo_valor_recebido >= total_venda else "parcial"
 
     await _atualizar_totais_cliente(db, cliente_id)
@@ -395,8 +398,8 @@ async def pagar_venda_especifica(
     # ATUALIZA A HORA DA ULTIMA ATIVIDADE NO PAGAMENTO
     await db.execute(
         update(Cliente)
-      .where(Cliente.id == cliente_id)
-      .values(ultima_compra=func.now())
+     .where(Cliente.id == cliente_id)
+     .values(ultima_compra=func.now())
     )
 
     await db.commit()
