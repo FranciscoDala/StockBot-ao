@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPExce
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy import select, func, and_ # <- adiciona and_ no topo se não tiver
+from sqlalchemy import select, func, and_
 from datetime import date
 from typing import List
 from uuid import UUID
@@ -25,7 +25,7 @@ from app.services.whatsapp import enviar_msg_venda
 from app.websocket.manager import manager
 from app.api.v1.caixas import registrar_movimento_caixa
 
-logger = logging.getLogger(__name__) # <- ADICIONA ISSO NO TOPO
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/", response_model=VendaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
@@ -40,24 +40,21 @@ async def criar_venda_endpoint(venda_in: VendaCreate, background_tasks: Backgrou
         venda.valor_iva = Decimal(0)
         venda.subtotal = venda.total
 
-        await db.commit() # 1. SALVA PRIMEIRO PRA GARANTIR DADOS NO BANCO
-        await db.refresh(venda) # 1.1 RECARREGA PRA TER OS CAMPOS NOVOS
+        await db.commit() # SALVA OS CAMPOS AGT
 
         for item in venda.itens:
             produto_id = item.produto_id
             nome_produto = item.nome_produto
             produto_db = await db.get(Produto, produto_id)
             if produto_db and produto_db.controla_estoque:
-                await db.refresh(produto_db) # 2. PEGA ESTOQUE ATUALIZADO DO BANCO
-                try: # BLINDADO PRA NÃO QUEBRAR SEM REDIS
-                    await manager.broadcast_to_loja(str(loja_id), {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque})
+                await db.refresh(produto_db)
+                try: await manager.broadcast_to_loja(str(loja_id), {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque})
                 except Exception as e: logger.warning(f"WS Broadcast falhou: {e}")
 
-        try: # BLINDADO
-            await manager.broadcast_to_loja(str(loja_id), {"tipo": "stats.updated", "valor_venda": float(venda.total), "total_itens": venda.total_itens, "acao": "add"})
+        try: await manager.broadcast_to_loja(str(loja_id), {"tipo": "stats.updated", "valor_venda": float(venda.total), "total_itens": venda.total_itens, "acao": "add"})
         except Exception as e: logger.warning(f"WS Broadcast falhou: {e}")
 
-        # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
+        # LANÇA NO CAIXA
         try:
             hoje = date.today()
             stmt_caixa = select(Caixa).where(and_(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO, func.date(Caixa.data_caixa) == hoje))
@@ -82,7 +79,7 @@ async def get_vendas(db: AsyncSession = Depends(get_db), current_user: Usuario =
     loja_id_usar = loja_id_param or loja_id_token
     offset = (page - 1) * limit
 
-    query = (select(Venda).options(joinedload(Venda.usuario), joinedload(Venda.cliente), joinedload(Venda.itens).joinedload(ItemVenda.produto)).where(Venda.loja_id == loja_id_usar).order_by(Venda.created_at.desc()).limit(limit).offset(offset)) # AJUSTE AGT 2: ADICIONADO joinedload(Venda.cliente)
+    query = (select(Venda).options(joinedload(Venda.usuario), joinedload(Venda.cliente), joinedload(Venda.itens).joinedload(ItemVenda.produto)).where(Venda.loja_id == loja_id_usar).order_by(Venda.created_at.desc()).limit(limit).offset(offset))
 
     if data_inicio: query = query.where(Venda.created_at >= data_inicio)
     if data_fim: query = query.where(Venda.created_at <= data_fim)
@@ -93,38 +90,24 @@ async def get_vendas(db: AsyncSession = Depends(get_db), current_user: Usuario =
 
     vendas_response = []
     for v in vendas_db:
-        itens = []
-        for i in v.itens:
-            itens.append({"id": i.id, "venda_id": i.venda_id, "produto_id": i.produto_id, "loja_id": i.loja_id, "nome_produto": i.produto.nome if i.produto else "Produto Removido", "quantidade": i.quantidade, "preco_unitario": i.preco_unitario, "subtotal": i.subtotal})
+        itens = [{"id": i.id, "venda_id": i.venda_id, "produto_id": i.produto_id, "loja_id": i.loja_id, "nome_produto": i.produto.nome if i.produto else "Produto Removido", "quantidade": i.quantidade, "preco_unitario": i.preco_unitario, "subtotal": i.subtotal} for i in v.itens]
 
         vendas_response.append({
-            "id": v.id,
-            "loja_id": v.loja_id,
-            "usuario_id": v.usuario_id,
+            "id": v.id, "loja_id": v.loja_id, "usuario_id": v.usuario_id,
             "nome_vendedor": v.usuario.nome if v.usuario else "Sistema",
-            # AJUSTE AGT 3: CAMPOS NOVOS PRO FRONT
             "cliente_nome": v.cliente.nome if v.cliente else None,
             "cliente_nif": v.cliente.nif if v.cliente else None,
-            "total": v.total,
-            "subtotal": v.subtotal,
-            "valor_iva": v.valor_iva,
-            "total_itens": v.total_itens,
-            "forma_pagamento": v.forma_pagamento,
-            "valor_recebido": v.valor_recebido,
-            "troco": v.troco,
-            "status": v.status,
-            "tipo_documento": v.tipo_documento,
-            "numero_fatura": v.numero_fatura,
-            "serie": v.serie,
-            "data_venda": v.created_at,
-            "itens": itens
+            "total": v.total, "subtotal": v.subtotal, "valor_iva": v.valor_iva,
+            "total_itens": v.total_itens, "forma_pagamento": v.forma_pagamento,
+            "valor_recebido": v.valor_recebido, "troco": v.troco, "status": v.status,
+            "tipo_documento": v.tipo_documento, "numero_fatura": v.numero_fatura,
+            "serie": v.serie, "data_venda": v.created_at, "itens": itens
         })
 
     return vendas_response # type: ignore
 
 @router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
 async def imprimir_venda(venda_id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
-    # AJUSTE AGT 4: ADICIONADO selectinload(Venda.cliente)
     stmt = select(Venda).options(selectinload(Venda.itens).selectinload(ItemVenda.produto), selectinload(Venda.loja), selectinload(Venda.usuario), selectinload(Venda.cliente)).where(Venda.id == venda_id, Venda.loja_id == loja_id)
     result = await db.execute(stmt)
     venda = result.scalar_one_or_none()
