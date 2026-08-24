@@ -1,4 +1,4 @@
-import logging # <- ADICIONA ISSO NO TOPO
+import logging
 from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,14 +33,13 @@ async def criar_venda_endpoint(venda_in: VendaCreate, background_tasks: Backgrou
     venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
     if venda and venda.itens:
-        # AJUSTE AGT 1: FORÇA RECIBO SEM IVA
         venda.tipo_documento = "RECIBO"
         venda.serie = "REC"
         venda.numero_fatura = None
         venda.valor_iva = Decimal(0)
         venda.subtotal = venda.total
 
-        await db.commit() # SALVA OS CAMPOS AGT
+        await db.commit()
 
         for item in venda.itens:
             produto_id = item.produto_id
@@ -54,7 +53,6 @@ async def criar_venda_endpoint(venda_in: VendaCreate, background_tasks: Backgrou
         try: await manager.broadcast_to_loja(str(loja_id), {"tipo": "stats.updated", "valor_venda": float(venda.total), "total_itens": venda.total_itens, "acao": "add"})
         except Exception as e: logger.warning(f"WS Broadcast falhou: {e}")
 
-        # LANÇA NO CAIXA
         try:
             hoje = date.today()
             stmt_caixa = select(Caixa).where(and_(Caixa.loja_id == loja_id, Caixa.status == StatusCaixa.ABERTO, func.date(Caixa.data_caixa) == hoje))
@@ -93,7 +91,10 @@ async def get_vendas(db: AsyncSession = Depends(get_db), current_user: Usuario =
         itens = [{"id": i.id, "venda_id": i.venda_id, "produto_id": i.produto_id, "loja_id": i.loja_id, "nome_produto": i.produto.nome if i.produto else "Produto Removido", "quantidade": i.quantidade, "preco_unitario": i.preco_unitario, "subtotal": i.subtotal} for i in v.itens]
 
         vendas_response.append({
-            "id": v.id, "loja_id": v.loja_id, "usuario_id": v.usuario_id,
+            "id": v.id,
+            "loja_id": v.loja_id,
+            "usuario_id": v.usuario_id,
+            "cliente_id": v.cliente_id, # <- CORREÇÃO AQUI
             "nome_vendedor": v.usuario.nome if v.usuario else "Sistema",
             "cliente_nome": v.cliente.nome if v.cliente else None,
             "cliente_nif": v.cliente.nif if v.cliente else None,
@@ -104,7 +105,7 @@ async def get_vendas(db: AsyncSession = Depends(get_db), current_user: Usuario =
             "serie": v.serie, "data_venda": v.created_at, "itens": itens
         })
 
-    return vendas_response # type: ignore
+    return vendas_response
 
 @router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
 async def imprimir_venda(venda_id: UUID, db: AsyncSession = Depends(get_db), loja_id: UUID = Depends(get_current_loja_id)):
@@ -212,4 +213,4 @@ async def faturar_venda(venda_id: UUID, payload: dict, db: AsyncSession = Depend
     if not cliente: cliente = Cliente(loja_id=loja_id, nome=nome_cliente, nif=nif); db.add(cliente); await db.flush()
     venda.cliente_id = cliente.id
     await db.commit(); await db.refresh(venda)
-    return venda # type: ignore
+    return venda
