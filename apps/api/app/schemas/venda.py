@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, computed_field
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
@@ -58,10 +58,9 @@ class VendaRead(BaseModel):
     loja_id: UUID
     usuario_id: Optional[UUID] = None
     cliente_id: Optional[UUID] = None
-    created_at: datetime # <- volta a ser obrigatório
+    created_at: datetime
 
-    data_venda: datetime # <- SEM ALIAS
-
+    data_venda: datetime
     nome_vendedor: Optional[str] = None
     nome_cliente: Optional[str] = None
     cliente_nif: Optional[str] = None
@@ -70,25 +69,37 @@ class VendaRead(BaseModel):
     valor_iva: Decimal
     total: Decimal
     total_itens: int
-
     forma_pagamento: str
     valor_recebido: Decimal
     troco: Decimal
-
     status: str
     tipo_documento: str
     serie: str
     numero_fatura: Optional[str] = None
     qr_code_url: Optional[str] = None
     observacao: Optional[str] = None
-
     itens: List[ItemVendaRead] = []
 
-    @field_validator('data_venda', mode='before')
+    @field_validator('data_venda', 'nome_vendedor', 'nome_cliente', 'cliente_nif', mode='before')
     @classmethod
-    def set_data_venda(cls, v, info):
-        # Pega do created_at se data_venda vier None
-        return info.data.get('created_at', v)
+    def fill_from_sqlalchemy(cls, v, info):
+        obj = info.context.get('obj') if info.context else None
+        if not obj:
+            obj = info.data # fallback para when vem de dict
+
+        field = info.field_name
+        if field == 'data_venda':
+            return getattr(obj, 'created_at', None)
+        if field == 'nome_vendedor':
+            usuario = getattr(obj, 'usuario', None)
+            return getattr(usuario, 'nome', 'Sistema') if usuario else 'Sistema'
+        if field == 'nome_cliente':
+            cliente = getattr(obj, 'cliente', None)
+            return getattr(cliente, 'nome', None) if cliente else None
+        if field == 'cliente_nif':
+            cliente = getattr(obj, 'cliente', None)
+            return getattr(cliente, 'nif', None) if cliente else None
+        return v
 
     model_config = ConfigDict(
         from_attributes=True,
