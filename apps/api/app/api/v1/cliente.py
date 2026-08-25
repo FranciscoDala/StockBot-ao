@@ -156,13 +156,13 @@ async def listar_clientes(
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    if cliente_in.bi:
+    if cliente_in.bi and cliente_in.bi.strip() != "":  # <- CORRIGIDO
         stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi)
         result = await db.execute(stmt)
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
-    if cliente_in.nif: # <- VALIDAÇÃO NIF ADICIONADA
+    if cliente_in.nif and cliente_in.nif.strip() != "": # <- CORRIGIDO
         stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.nif == cliente_in.nif)
         result = await db.execute(stmt)
         if result.scalars().first():
@@ -179,6 +179,7 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
     await db.refresh(db_cliente)
     return await _cliente_to_out(db, db_cliente)
 
+
 @router.put("/{loja_id}/clientes/{cliente_id}", response_model=ClienteOut)
 async def atualizar_cliente(
     loja_id: UUID, cliente_id: UUID, payload: dict = Body(...),
@@ -193,12 +194,36 @@ async def atualizar_cliente(
         raise HTTPException(status_code=404, detail="Cliente não encontrado")
 
     dados_para_atualizar = {k: v for k, v in payload.items() if k!= "senha_dono"}
+
+    # VALIDAÇÃO NIF NA EDIÇÃO
+    if "nif" in dados_para_atualizar and dados_para_atualizar["nif"] and dados_para_atualizar["nif"].strip() != "":
+        stmt = select(Cliente).where(
+            Cliente.loja_id == loja_id,
+            Cliente.nif == dados_para_atualizar["nif"],
+            Cliente.id != cliente_id
+        )
+        result = await db.execute(stmt)
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="NIF já cadastrado para esta loja")
+
+    # VALIDAÇÃO BI NA EDIÇÃO
+    if "bi" in dados_para_atualizar and dados_para_atualizar["bi"] and dados_para_atualizar["bi"].strip() != "":
+        stmt = select(Cliente).where(
+            Cliente.loja_id == loja_id,
+            Cliente.bi == dados_para_atualizar["bi"],
+            Cliente.id != cliente_id
+        )
+        result = await db.execute(stmt)
+        if result.scalars().first():
+            raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
+
     for key, value in dados_para_atualizar.items():
         setattr(db_cliente, key, value)
 
     await db.commit()
     await db.refresh(db_cliente)
     return await _cliente_to_out(db, db_cliente)
+
 
 @router.delete("/{loja_id}/clientes/{cliente_id}", status_code=status.HTTP_200_OK)
 async def deletar_cliente(
@@ -313,6 +338,9 @@ async def criar_venda(
         "detail": "Dívida guardada com sucesso" if is_fiado else "Venda registrada com sucesso",
         "venda_id": str(nova_venda.id), "total": float(nova_venda.total), "status": nova_venda.status
     }
+
+
+
 
 @router.post("/{loja_id}/clientes/{cliente_id}/receber-parcela")
 async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):

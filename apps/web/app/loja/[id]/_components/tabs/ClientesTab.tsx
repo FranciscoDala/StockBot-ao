@@ -287,7 +287,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
         if (editingClienteId) {
             // não fecha ainda, só abre o modal de senha
-            // setShowModal(false);
+            setShowModal(false);
             setShowConfirmarModal(true);
         }
         else {
