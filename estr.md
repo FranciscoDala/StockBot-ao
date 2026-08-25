@@ -295,448 +295,339 @@ RETURNING id;
 
 
 
+import logging # <- ADICIONA ISSO NO TOPO
+from fastapi import APIRouter, Depends, status, Query, BackgroundTasks, HTTPException
+from fastapi.responses import HTMLResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy import select, func, and_ # <- adiciona and_ no topo se não tiver
+from datetime import date
+from typing import List
+from uuid import UUID
+import asyncio
+from decimal import Decimal
 
 
-"use client";
-import { Plus, Edit, Trash2, Package, TrendingUp, TrendingDown, AlertTriangle, Tag, ImageOff, QrCode, Download, DollarSign, ShoppingBag } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { QRCodeSVG } from "qrcode.react";
-import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { toast } from "sonner";
-import { Loja, userread } from "../../page";
-import { formatCurrency } from "../utils";
+from app.core.deps import get_current_user, require_role, get_current_loja_id
+from app.schemas.usuario import Role
+from app.models.usuario import Usuario
+from app.models.venda import Venda
+from app.models.itens_venda import ItemVenda
+from app.models.produto import Produto
+from app.models.loja import Loja
+from app.models.caixa import Caixa, StatusCaixa
+from app.models.movimentacao_caixa import TipoMovimentacao
+from app.db.session import get_db
+from app.schemas.venda import VendaCreate, VendaRead
+from app.services.venda import criar_venda, estornar_venda_service
+from app.services.whatsapp import enviar_msg_venda
+from app.websocket.manager import manager
+from app.api.v1.caixas import registrar_movimento_caixa
 
-// 1. IMPORT DOS 2 MODAIS
-import { EstoqueModalBaixo } from "../modals/EstoqueModal_baixo";
-import { SemEstoqueModal } from "../modals/SemEstoqueModal";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || "http://127.0.0.1:8000";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+logger = logging.getLogger(__name__) # <- ADICIONA ISSO NO TOPO
 
-interface Props {
-    produtos: any[];
-    isAdmin: boolean;
-    isDono: boolean;
-    lojaId?: string;
-    onAdd: () => void;
-    onEdit: (p: any) => void;
-    onDelete: (p: any) => void;
-    formatCurrency: (v: number) => string;
-    theme: string;
-    cardStyle: string;
-    cardSize: string;
-}
+router = APIRouter()
 
-export function ProdutosTab({
-    produtos,
-    isAdmin,
-    isDono,
-    lojaId,
-    onAdd,
-    onEdit,
-    onDelete,
-    formatCurrency,
-    theme,
-    cardStyle,
-    cardSize
-}: Props) {
-    const [qrProduto, setQrProduto] = useState<any>(null);
 
-    // 2. ESTADOS DOS MODAIS
-    const [modalBaixoOpen, setModalBaixoOpen] = useState(false);
-    const [modalZeradoOpen, setModalZeradoOpen] = useState(false);
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '20px' : '16px';
+@router.post("/", response_model=VendaRead, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
+async def criar_venda_endpoint(
+    venda_in: VendaCreate,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+    loja_id: UUID = Depends(get_current_loja_id)
+):
+    venda = await criar_venda(db=db, venda_in=venda_in, usuario=current_user, loja_id=loja_id)
 
-    const getEstoqueStatus = (estoque: number, minimo: number) => {
-        if (estoque === 0) return { color: "#ef4444", bg: "#ef444414", border: "#ef444430", label: "Sem Estoque", icon: <AlertTriangle size={12} /> };
-        if (estoque <= minimo) return { color: "#f59e0b", bg: "#f59e0b14", border: "#f59e0b30", label: "Estoque Baixo", icon: <TrendingDown size={12} /> };
-        return { color: "var(--cor-primaria)", bg: "var(--cor-primaria)14", border: "var(--cor-primaria)30", label: "Em Estoque", icon: <TrendingUp size={12} /> };
-    }
+    if venda and venda.itens:
+        await db.commit() # 1. SALVA PRIMEIRO PRA GARANTIR DADOS NO BANCO
 
-    const kpis = useMemo(() => {
-        const totalProdutos = produtos.length;
-        const totalEmEstoque = produtos.filter(p => p.estoque > p.estoque_minimo).length;
-        const estoqueBaixo = produtos.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo).length;
-        const semEstoque = produtos.filter(p => p.estoque === 0).length;
-        const valorTotalEstoque = produtos.reduce((acc, p) => acc + ((p.preco_custo || 0) * (p.estoque || 0)), 0);
+        for item in venda.itens:
+            produto_id = item.produto_id
+            nome_produto = item.nome_produto
+            produto_db = await db.get(Produto, produto_id)
+            if produto_db and produto_db.controla_estoque:
+                await db.refresh(produto_db) # 2. PEGA ESTOQUE ATUALIZADO DO BANCO
+                await manager.broadcast_to_loja(
+                    str(loja_id),
+                    {"tipo": "stock.updated", "produto_id": str(produto_id), "nome_produto": nome_produto, "novo_estoque": produto_db.estoque}
+                )
 
-        // 3. FILTRA OS PRODUTOS PRA PASSAR PRO MODAL
-        const produtosEstoqueBaixo = produtos.filter(p => p.estoque > 0 && p.estoque <= p.estoque_minimo);
-        const produtosSemEstoque = produtos.filter(p => p.estoque === 0);
+        await manager.broadcast_to_loja(
+            str(loja_id),
+            {"tipo": "stats.updated", "valor_venda": float(venda.total), "total_itens": venda.total_itens, "acao": "add"}
+        )
 
-        return { totalProdutos, totalEmEstoque, estoqueBaixo, semEstoque, valorTotalEstoque, produtosEstoqueBaixo, produtosSemEstoque };
-    }, [produtos]);
+        # 3. LANÇA NO CAIXA TODA VENDA - DINHEIRO, TPA, PIX, ETC
+        try:
+            hoje = date.today()
+            stmt_caixa = select(Caixa).where(
+                and_(
+                    Caixa.loja_id == loja_id,
+                    Caixa.status == StatusCaixa.ABERTO,
+                    func.date(Caixa.data_caixa) == hoje
+                )
+            )
+            result_caixa = await db.execute(stmt_caixa)
+            caixa_aberto = result_caixa.scalar_one_or_none()
 
-    const handleDownloadQR = (p: any) => {
-        const svg = document.getElementById(`qr-${p.id}`);
-        if (!svg) return;
-        const serializer = new XMLSerializer();
-        const svgBlob = new Blob([serializer.serializeToString(svg)], { type: "image/svg+xml;charset=utf-8" });
-        const url = URL.createObjectURL(svgBlob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `QR-${p.sku || p.id}.svg`;
-        link.click();
-        URL.revokeObjectURL(url);
-    };
+            logger.info(f"[VENDA] Caixa encontrado: {caixa_aberto.id if caixa_aberto else 'NENHUM'}")
 
-    return (
-        <>
-            <style jsx global>{`
-               .scrollbar-hide::-webkit-scrollbar { display: none; }
-               .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-               .snap-x { scroll-snap-type: x mandatory; }
-               .snap-center { scroll-snap-align: center; }
-        `}</style>
-            <div
-                className="space-y-6"
-                data-theme={theme}
-                data-card-style={cardStyle}
-                data-card-size={cardSize}
-            >
+            if caixa_aberto:
+                await registrar_movimento_caixa(
+                    db=db,
+                    caixa_id=UUID(str(caixa_aberto.id)), # type: ignore
+                    loja_id=loja_id,
+                    tipo=TipoMovimentacao.ENTRADA,
+                    valor=Decimal(str(venda.total)),
+                    descricao=f"Venda #{str(venda.id)[:8]} - {venda.forma_pagamento}",
+                    usuario_id=current_user.id,
+                    referencia_id=venda.id,
+                    referencia_tipo='venda',
+                    forma_pagamento=venda.forma_pagamento
+                )
+                await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
+            else:
+                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto HOJE para venda {venda.id}")
 
-                {/* HEADER PADRONIZADO */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <div>
-                        <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>
-                            Produtos
-                            <Package size={16} style={{ color: 'var(--cor-primaria)' }} />
-                        </h2>
-                        <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>{kpis.totalProdutos} produtos cadastrados</p>
-                    </div>
-                    {isAdmin && (
-                        <button
-                            onClick={onAdd}
-                            className="w-full sm:w-auto flex items-center justify-center gap-2 font-semibold transition hover:brightness-110 text-sm h-10 px-4" // padronizado
-                            style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
-                        >
-                            <Plus size={16} /> Adicionar Produto
-                        </button>
-                    )}
-                </div>
+        except Exception as e:
+            logger.error(f"ERRO AO LANÇAR NO CAIXA: {e}", exc_info=True)
 
-                {/* CARDS KPI PADRONIZADOS */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                    <div
-                        className="transition hover:scale-[1.02] min-w-0"
-                        style={{
-                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
-                            backdropFilter: 'blur(12px)',
-                            color: 'var(--cor-primaria)', // 👈 letras primary
-                            borderRadius: radius,
-                            padding,
-                            border: 'none', // 👈 remove borda
-                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
-                        }}
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ opacity: 0.9, color: 'var(--cor-primaria)' }}>Valor em Estoque</p>
-                            <DollarSign size={16} style={{ color: 'var(--cor-primaria)' }} />
-                        </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold truncate" style={{ color: 'var(--cor-primaria)' }} title={formatCurrency(kpis.valorTotalEstoque)}>
-                            {formatCurrency(kpis.valorTotalEstoque)}
-                        </p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ opacity: 0.8, color: 'var(--cor-primaria)' }}>Total do estoque atual</p>
-                    </div>
+    if venda:
+        background_tasks.add_task(enviar_msg_venda, db, loja_id, venda.id)
+    return venda
 
-                    <div
-                        className="transition hover:scale-[1.02] min-w-0"
-                        style={{
-                            background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', // 👈 glass
-                            backdropFilter: 'blur(12px)',
-                            color: 'var(--cor-primaria)', // 👈 letras primary
-                            borderRadius: radius,
-                            padding,
-                            border: 'none', // 👈 remove borda
-                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-primaria) 20%, transparent)' // 👈 shadow
-                        }}
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-primaria)' }}>Em Estoque</p>
-                            <TrendingUp size={16} style={{ color: 'var(--cor-primaria)' }} />
-                        </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-primaria)' }}>{kpis.totalEmEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-primaria)' }}>Produtos com estoque ok</p>
-                    </div>
 
-                    {/* 4. CARD ESTOQUE BAIXO AGORA É CLICÁVEL */}
-                    <div
-                        onClick={() => setModalBaixoOpen(true)}
-                        className="transition hover:scale-[1.02] min-w-0 cursor-pointer"
-                        style={{
-                            background: 'color-mix(in srgb, var(--cor-aviso) 10%, transparent)', // 👈 glass
-                            backdropFilter: 'blur(12px)',
-                            color: 'var(--cor-aviso)', // 👈 letras aviso
-                            borderRadius: radius,
-                            padding,
-                            border: '1px solid color-mix(in srgb, var(--cor-aviso) 20%, transparent)', // 👈 borda aviso
-                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-aviso) 15%, transparent)' // 👈 shadow aviso
-                        }}
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-aviso)' }}>Estoque Baixo</p>
-                            <AlertTriangle size={16} style={{ color: 'var(--cor-aviso)' }} />
-                        </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-aviso)' }}>{kpis.estoqueBaixo}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-aviso)' }}>Abaixo do mínimo</p>
-                    </div>
 
-                    {/* 5. CARD SEM ESTOQUE AGORA É CLICÁVEL */}
-                    <div
-                        onClick={() => setModalZeradoOpen(true)}
-                        className="transition hover:scale-[1.02] min-w-0 cursor-pointer"
-                        style={{
-                            background: 'color-mix(in srgb, var(--cor-erro) 10%, transparent)', // 👈 glass
-                            backdropFilter: 'blur(12px)',
-                            color: 'var(--cor-erro)', // 👈 letras erro
-                            borderRadius: radius,
-                            padding,
-                            border: '1px solid color-mix(in srgb, var(--cor-erro) 20%, transparent)', // 👈 borda erro
-                            boxShadow: '0 0 25px color-mix(in srgb, var(--cor-erro) 15%, transparent)' // 👈 shadow erro
-                        }}
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <p className="text-xs md:text-sm font-medium truncate" style={{ color: 'var(--cor-erro)' }}>Sem Estoque</p>
-                            <TrendingDown size={16} style={{ color: 'var(--cor-erro)' }} />
-                        </div>
-                        <p className="text-xl md:text-2xl lg:text-3xl font-bold" style={{ color: 'var(--cor-erro)' }}>{kpis.semEstoque}</p>
-                        <p className="text-xs md:text-xs mt-1 truncate" style={{ color: 'var(--cor-erro)' }}>Produtos zerados</p>
-                    </div>
-                </div>
 
-                {/* GRID DE PRODUTOS - MOBILE SCROLL | DESKTOP GRID */}
-                <div className="">
-                    {produtos.length === 0? (
-                        <div
-                            className="text-center py-16 border mt-4"
-                            style={{
-                                borderColor: 'color-mix(in srgb, var(--cor-primaria) 20%, transparent)', // 👈 borda bem fraca
-                                borderRadius: radius,
-                                background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)',
-                                boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 10%, transparent)` // 👈 shadow leve
-                            }}
-                        >
-                            <Package className="mx-auto mb-3" size={48} style={{ color: 'var(--cor-primaria)', opacity: 0.5 }} />
-                            <p className="font-medium" style={{ color: 'var(--cor-texto)' }}>Nenhum produto cadastrado</p>
-                            <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Comece adicionando seu primeiro produto</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* MOBILE: SCROLL HORIZONTAL */}
-                            <div className="sm:hidden overflow-x-auto scrollbar-hide snap-x px-4 py-4">
-                                <div className="flex w-max gap-4">
-                                    {produtos.map(p => {
-                                        const preco = p.preco_venda || p.preco || 0;
-                                        const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                        const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
+@router.get("/", response_model=List[VendaRead], dependencies=[Depends(require_role(Role.DONO, Role.GERENTE, Role.VENDEDOR))])
+async def get_vendas(
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+    loja_id_param: UUID | None = Query(None, alias="loja_id"),
+    loja_id_token: UUID = Depends(get_current_loja_id),
+    data_inicio: date | None = Query(None),
+    data_fim: date | None = Query(None),
+    vendedor_id: UUID | None = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(5000, ge=1, le=5000)
+):
+    loja_id_usar = loja_id_param or loja_id_token
+    offset = (page - 1) * limit
 
-                                        return (
-                                            <div
-                                                key={`mobile-${p.id}`} // ou desktop
-                                                className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active? 'opacity-50' : ''} w-[calc(100vw-32px)] snap-center shrink-0 mx-auto`}
-                                                style={{
-                                                    background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)', // 👈 glass leve
-                                                    backdropFilter: 'blur(8px)',
-                                                    border: `1px solid color-mix(in srgb, var(--cor-primaria) 15%, transparent)`, // 👈 borda quase invisivel primary
-                                                    borderRadius: radius,
-                                                    boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 12%, transparent), 0 4px 16px rgba(0,0,0,0.15)`, // 👈 shadow primary + leve
-                                                    opacity: p.is_active? 1 : 0.6
-                                                }}
-                                            >
-                                                {/* IMAGEM */}
-                                                <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                    {p.imagem_url? (
-                                                        <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
-                                                    )}
-                                                    <div className="absolute top-3 right-3 flex gap-2">
-                                                        <button onClick={() => setQrProduto(p)} className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all" style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius }}>
-                                                            <QrCode size={18} className="text-white" />
-                                                        </button>
-                                                        {!p.is_active && (<Badge className="text-xs h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444', borderRadius: radius }}>Inativo</Badge>)}
-                                                    </div>
-                                                </div>
-
-                                                {/* CONTEUDO */}
-                                                <div className="p-4 flex-col flex-1">
-                                                    <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
-                                                    <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
-                                                    <div className="space-y-2.5 text-sm flex-1 mb-3">
-                                                        <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                        <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
-                                                    </div>
-                                                    <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
-                                                    {isAdmin && (
-                                                        <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
-                                                            <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>
-                                                            {isDono && (<Button size="sm" variant="destructive" onClick={() => onDelete(p)} className="h-10 px-3" style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: radius }}><Trash2 size={14} /></Button>)}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-
-                            {/* DESKTOP: GRID NORMAL */}
-                            <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-                                {produtos.map(p => {
-                                    const preco = p.preco_venda || p.preco || 0;
-                                    const status = getEstoqueStatus(p.estoque, p.estoque_minimo);
-                                    const imgSrc = p.imagem_url?.startsWith('http')? p.imagem_url : `${API_BASE}${p.imagem_url}`;
-
-                                    return (
-                                        <div
-                                            key={`desktop-${p.id}`}
-                                            className={`overflow-hidden flex-col transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 group ${!p.is_active? 'opacity-50' : ''}`}
-                                            style={{
-                                                background: 'color-mix(in srgb, var(--cor-card) 95%, transparent)', // 👈 glass leve
-                                                backdropFilter: 'blur(8px)',
-                                                border: `1px solid color-mix(in srgb, var(--cor-primaria) 15%, transparent)`, // 👈 borda quase invisivel
-                                                borderRadius: radius,
-                                                boxShadow: `0 0 20px color-mix(in srgb, var(--cor-primaria) 12%, transparent), 0 4px 16px rgba(0,0,0,0.15)`, // 👈 shadow primary
-                                                opacity: p.is_active? 1 : 0.6
-                                            }}
-                                        >
-                                            {/* IMAGEM */}
-                                            <div className="relative w-full h-52 overflow-hidden" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-                                                {p.imagem_url? (
-                                                    <img src={imgSrc} alt={p.nome} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center"><ImageOff size={36} style={{ color: 'var(--cor-primaria)', opacity: 0.3 }} /></div>
-                                                )}
-                                                <div className="absolute top-3 right-3 flex gap-2">
-                                                    <button onClick={() => setQrProduto(p)} className="backdrop-blur-md p-2 rounded-xl hover:scale-110 transition-all" style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: radius }}>
-                                                        <QrCode size={18} className="text-white" />
-                                                    </button>
-                                                    {!p.is_active && (<Badge className="text-xs h-7 px-3 font-semibold" style={{ backgroundColor: '#ef4444', borderRadius: radius }}>Inativo</Badge>)}
-                                                </div>
-                                            </div>
-
-                                            {/* CONTEUDO */}
-                                            <div className="p-4 flex-col flex-1">
-                                                <h4 className="font-bold text-base mb-1.5 truncate" style={{ color: 'var(--cor-texto)' }}>{p.nome}</h4>
-                                                <div className="flex items-center gap-1.5 text-xs mb-4" style={{ color: 'var(--cor-texto-sec)' }}><Tag size={12} /> {p.sku || 'N/A'}</div>
-                                                <div className="space-y-2.5 text-sm flex-1 mb-3">
-                                                    <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Preço</span><span className="font-bold text-lg" style={{ color: 'var(--cor-primaria)' }}>{formatCurrency(preco)}</span></div>
-                                                    <div className="flex justify-between items-center"><span className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>Estoque</span><div className="flex items-center gap-1.5 font-bold" style={{ color: status.color }}>{status.icon}<span>{p.estoque} {p.unidade}</span></div></div>
-                                                </div>
-                                                <div className="mb-4 px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 w-fit" style={{ backgroundColor: status.bg, border: `1px solid ${status.border}`, color: status.color, borderRadius: radius }}>{status.icon} {status.label}</div>
-                                                {isAdmin && (
-                                                    <div className="flex gap-2 mt-auto pt-3 border-t" style={{ borderColor: 'var(--cor-primaria)30' }}>
-                                                        <Button size="sm" onClick={() => onEdit(p)} className="flex-1 h-10 font-semibold" style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}><Edit size={14} /> Editar</Button>
-                                                        {isDono && (<Button size="sm" variant="destructive" onClick={() => onDelete(p)} className="h-10 px-3" style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: radius }}><Trash2 size={14} /></Button>)}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </>
-                    )}
-                </div>
-
-            </div>
-
-            {/* 6. RENDERIZA OS 2 MODAIS AQUI NO FINAL */}
-            <EstoqueModalBaixo
-                open={modalBaixoOpen}
-                onOpenChange={setModalBaixoOpen}
-                produtos={kpis.produtosEstoqueBaixo}
-            />
-
-            <SemEstoqueModal
-                open={modalZeradoOpen}
-                onOpenChange={setModalZeradoOpen}
-                produtos={kpis.produtosSemEstoque}
-            />
-
-            <Dialog open={!!qrProduto} onOpenChange={() => setQrProduto(null)}>
-                <DialogContent
-                    className="border-0 max-w-sm w-[calc(100%-2rem)] p-0 overflow-hidden flex-col h-[80dvh] [&>button]:hidden items-center"
-                    style={{ backgroundColor: 'var(--cor-fundo)' }}
-                >
-                    {/* HEADER */}
-                    <div className="flex items-center justify-between p-4 shrink-0 w-full">
-                        <button onClick={() => setQrProduto(null)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{ color: 'var(--cor-texto)' }}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" /></svg>
-                        </button>
-                        <DialogTitle className="text-base font-semibold" style={{ color: 'var(--cor-texto)' }}>Código QR</DialogTitle>
-                        <button onClick={() => handleDownloadQR(qrProduto)} className="p-2 hover:bg-neutral-900 rounded-full transition" style={{ color: 'var(--cor-texto)' }}>
-                            <Download size={20} />
-                        </button>
-                    </div>
-
-                    {/* CONTEUDO CENTRALIZADO */}
-                    <div className="px-4 pb-6 overflow-y-auto scrollbar-hide flex-1 w-full flex-col items-center">
-                        <div
-                            className="w-full p-6 flex-col items-center justify-center gap-5 text-center"
-                            style={{ backgroundColor: 'var(--cor-card)', borderRadius: radius }}
-                        >
-                            {qrProduto?.imagem_url && (
-                                <img
-                                    src={qrProduto.imagem_url.startsWith('http')? qrProduto.imagem_url : `${API_BASE}${qrProduto.imagem_url}`}
-                                    alt={qrProduto.nome}
-                                    className="w-16 h-16 rounded-full object-cover border-2"
-                                    style={{ borderColor: 'var(--cor-primaria)30' }}
-                                />
-                            )}
-
-                            <div className="space-y-1 w-full">
-                                <p className="font-bold text-xl" style={{ color: 'var(--cor-texto)' }}>{qrProduto?.nome}</p>
-                                <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>SKU: {qrProduto?.sku || 'N/A'}</p>
-                            </div>
-
-                            <div className="bg-white p-5 rounded-2xl shadow-2xl w-full max-w-[280px]">
-                                <QRCodeSVG
-                                    id={`qr-${qrProduto?.id}`}
-                                    value={`${APP_URL}/p/${qrProduto?.sku || qrProduto?.id}`}
-                                    size={256}
-                                    level="H"
-                                    fgColor="#000"
-                                    bgColor="#FFFFFF"
-                                    className="w-full h-auto"
-                                />
-                            </div>
-                        </div>
-
-                        <p className="text-center text-sm mt-6 px-4 leading-relaxed max-w-xs">
-                            Este é o QR do seu produto.
-                            <br />Qualquer pessoa pode escanear
-                            <br />para ver a página e comprar direto.
-                            <br />
-                            <span className="font-medium" style={{ color: 'var(--cor-primaria)' }}>Manter em segurança</span>
-                        </p>
-
-                        <div className="mt-6 space-y-3 w-full max-w-sm px-2">
-                            <Button
-                                onClick={() => handleDownloadQR(qrProduto)}
-                                className="w-full h-12 font-bold text-base flex items-center justify-center gap-2"
-                                style={{ backgroundColor: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
-                            >
-                                <Download size={18} /> Baixar QR Code
-                            </Button>
-
-                            <button
-                                onClick={() => toast.info("Função em breve")}
-                                className="font-semibold text-sm w-full text-center hover:underline"
-                                style={{ color: 'var(--cor-primaria)' }}
-                            >
-                                Gerar novo código
-                            </button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-        </>
+    query = (
+        select(Venda)
+      .options(
+            joinedload(Venda.usuario),
+            joinedload(Venda.itens).joinedload(ItemVenda.produto)
+        )
+      .where(Venda.loja_id == loja_id_usar)
+      .order_by(Venda.created_at.desc())
+      .limit(limit)
+      .offset(offset)
     )
-}
 
+    if data_inicio:
+        query = query.where(Venda.created_at >= data_inicio)
+    if data_fim:
+        query = query.where(Venda.created_at <= data_fim)
+    if vendedor_id:
+        query = query.where(Venda.usuario_id == vendedor_id)
+
+    result = await db.execute(query)
+    vendas_db = result.scalars().unique().all()
+
+    vendas_response = []
+    for v in vendas_db:
+        itens = []
+        for i in v.itens:
+            itens.append({
+                "id": i.id,
+                "venda_id": i.venda_id,
+                "produto_id": i.produto_id,
+                "loja_id": i.loja_id,
+                "nome_produto": i.produto.nome if i.produto else "Produto Removido",
+                "quantidade": i.quantidade,
+                "preco_unitario": i.preco_unitario,
+                "subtotal": i.subtotal,
+            })
+
+        vendas_response.append({
+            "id": v.id,
+            "loja_id": v.loja_id,
+            "usuario_id": v.usuario_id,
+            "nome_vendedor": v.usuario.nome if v.usuario else "Sistema",
+            "total": v.total,
+            "total_itens": v.total_itens,
+            "forma_pagamento": v.forma_pagamento,
+            "valor_recebido": v.valor_recebido,
+            "troco": v.troco,
+            "status": v.status,
+            "data_venda": v.created_at,
+            "itens": itens
+        })
+
+    return vendas_response # type: ignore
+
+
+
+@router.get("/{venda_id}/imprimir", response_class=HTMLResponse)
+async def imprimir_venda(
+    venda_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    loja_id: UUID = Depends(get_current_loja_id)
+):
+    # Busca a venda com itens e loja
+    stmt = select(Venda).options(
+        selectinload(Venda.itens).selectinload(ItemVenda.produto),
+        selectinload(Venda.loja),
+        selectinload(Venda.usuario)
+    ).where(Venda.id == venda_id, Venda.loja_id == loja_id)
+
+    result = await db.execute(stmt)
+    venda = result.scalar_one_or_none()
+
+    if not venda:
+        raise HTTPException(status_code=404, detail="Venda não encontrada")
+
+    # Monta HTML da factura
+    itens_html = ""
+    for item in venda.itens:
+        nome = item.produto.nome if item.produto else "Produto Removido"
+        itens_html += f"""
+        <tr>
+            <td>{nome}</td>
+            <td style="text-align:center">{item.quantidade}</td>
+            <td style="text-align:right">{item.preco_unitario:.2f} KZ</td>
+            <td style="text-align:right">{item.subtotal:.2f} KZ</td>
+        </tr>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="pt-AO">
+    <head>
+        <meta charset="UTF-8">
+        <title>Factura #{str(venda.id)[:8]}</title>
+        <style>
+            body {{ font-family: 'Arial', sans-serif; padding: 20px; max-width: 80mm; margin: auto; font-size: 12px; }}
+      .header {{ text-align: center; margin-bottom: 15px; }}
+      .header h1 {{ margin: 0; font-size: 18px; }}
+      .info p {{ margin: 2px 0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+            th, td {{ padding: 4px 0; border-bottom: 1px dashed #ccc; }}
+      .total {{ text-align: right; font-size: 16px; font-weight: bold; margin-top: 10px; }}
+      .footer {{ text-align: center; margin-top: 20px; font-size: 10px; }}
+            @media print {{ body {{ margin: 0; }} }}
+        </style>
+    </head>
+    <body onload="window.print()">
+        <div class="header">
+            <h1>{venda.loja.nome if venda.loja else 'MINHA LOJA'}</h1>
+            <p>FACTURA RECIBO</p>
+        </div>
+        <div class="info">
+            <p><b>Nº:</b> {str(venda.id)[:8]}</p>
+            <p><b>Data:</b> {venda.created_at.strftime('%d/%m/%Y %H:%M')}</p>
+            <p><b>Vendedor:</b> {venda.usuario.nome if venda.usuario else 'Sistema'}</p>
+            <p><b>Pagamento:</b> {venda.forma_pagamento}</p>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Produto</th><th>Qtd</th><th>Preço</th><th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {itens_html}
+            </tbody>
+        </table>
+        <div class="total">TOTAL: {venda.total:.2f} KZ</div>
+        <div class="footer">
+            <p>Obrigado pela preferência!</p>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_role(Role.DONO, Role.GERENTE))])
+async def estornar_venda(
+    id: UUID,
+    db: AsyncSession = Depends(get_db),
+    loja_id: UUID = Depends(get_current_loja_id),
+    current_user: Usuario = Depends(get_current_user)
+):
+    itens_estornados = await estornar_venda_service(db=db, venda_id=id, loja_id=loja_id)
+
+    valor_estornado = Decimal('0')
+    total_itens_estornados = 0
+
+    if itens_estornados:
+        for item in itens_estornados:
+            produto_id = item.get("produto_id")
+            nome = item.get("nome")
+            novo_estoque = item.get("novo_estoque")
+            valor_estornado += Decimal(str(item.get("subtotal", 0)))
+            total_itens_estornados += item.get("quantidade", 0)
+
+            await manager.broadcast_to_loja(str(loja_id),{"tipo": "stock.updated","produto_id": str(produto_id),"nome_produto": nome,"novo_estoque": novo_estoque})
+
+    # ATUALIZA ESTATISTICAS DO ESTORNO
+    await manager.broadcast_to_loja(
+        str(loja_id),
+        {
+            "tipo": "stats.updated",
+            "valor_venda": -float(valor_estornado),
+            "total_itens": -total_itens_estornados,
+            "acao": "remove"
+        }
+    )
+
+    # 4. LANÇA ESTORNO NO CAIXA
+    if valor_estornado > 0:
+        try:
+            hoje = date.today() # <- ADICIONADO
+            # BUSCAR CAIXA ABERTO DE HOJE
+            stmt_caixa = select(Caixa).where(
+                and_(
+                    Caixa.loja_id == loja_id,
+                    Caixa.status == StatusCaixa.ABERTO,
+                    func.date(Caixa.data_caixa) == hoje # <- ADICIONADO
+                )
+            )
+            result_caixa = await db.execute(stmt_caixa)
+            caixa_aberto = result_caixa.scalar_one_or_none()
+
+            logger.info(f"[ESTORNO] Caixa encontrado: {caixa_aberto.id if caixa_aberto else 'NENHUM'}") # <- LOG
+
+            if not caixa_aberto:
+                logger.warning(f"AVISO CAIXA: Nenhum caixa aberto HOJE para estorno {id}") # <- LOG
+                raise HTTPException(status_code=400, detail="Nenhum caixa aberto para registrar o estorno")
+
+            await registrar_movimento_caixa(
+                db=db,
+                caixa_id=UUID(str(caixa_aberto.id)), # type: ignore
+                loja_id=loja_id,
+                tipo=TipoMovimentacao.SAIDA,
+                valor=valor_estornado,
+                descricao=f"Estorno Venda #{str(id)[:8]}",
+                usuario_id=current_user.id,
+                referencia_id=id,
+                referencia_tipo='estorno',
+                forma_pagamento=None # <- estorno não tem forma
+            )
+            await db.commit()
+            await manager.broadcast_to_loja(str(loja_id), {"tipo": "caixa.updated"})
+        except HTTPException as e:
+            await db.rollback()
+            logger.error(f"AVISO CAIXA ESTORNO: {e.detail}") # <- troquei print por logger
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"ERRO AO LANÇAR ESTORNO NO CAIXA: {e}", exc_info=True)
+
+    return None

@@ -13,6 +13,7 @@ const focusStyle = { outline: 'none', boxShadow: '0 0 0 3px rgba(34, 197, 94, 0.
 export type ClienteForm = {
     nome: string;
     nome_empresa: string | null;
+    nif: string | null; // <- NOVO CAMPO
     bi: string | null;
     telefone: string | null;
     email: string | null;
@@ -52,11 +53,11 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                 onEscapeKeyDown={(e) => e.preventDefault()}
             >
                 <form onSubmit={onSave} className="flex flex-col flex-1 min-h-0">
-                    <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0 text-left"> {/* <- AJUSTADO: text-left */}
-                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}> {/* <- REMOVI text-center */}
+                    <DialogHeader className="p-4 sm:p-6 pb-0 shrink-0 text-left">
+                        <DialogTitle className="text-base sm:text-lg" style={{ color: 'var(--cor-texto)' }}>
                             {isEditing? "Editar Cliente" : "Cadastrar Cliente"}
                         </DialogTitle>
-                        <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}> {/* <- REMOVI text-center */}
+                        <DialogDescription className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>
                             {isEditing? "Altere os dados do cliente." : "Preencha os dados do cliente"}
                         </DialogDescription>
                     </DialogHeader>
@@ -89,6 +90,12 @@ export function ClienteModal({ open, onOpenChange, isEditing = false, formData, 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
                             <Label htmlFor="nome_empresa" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>Nome Empresa</Label>
                             <Input id="nome_empresa" value={formData.nome_empresa || ""} onChange={e => handleChange('nome_empresa', e.target.value)} placeholder="Empresa LDA" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
+                        </div>
+
+                        {/* CAMPO NIF ADICIONADO AQUI */}
+                        <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
+                            <Label htmlFor="nif" className="text-xs sm:text-right sm:justify-self-end" style={{ color: 'var(--cor-texto-sec)' }}>NIF</Label>
+                            <Input id="nif" value={formData.nif || ""} onChange={e => handleChange('nif', e.target.value)} placeholder="000000000" className="sm:col-span-3 text-xs h-9" style={{ backgroundColor: 'var(--cor-fundo)', color: 'var(--cor-texto)', border: '1.5px solid var(--cor-primaria)', borderRadius: 'var(--radius-sm)',...focusStyle }} />
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-4 sm:items-center gap-1 sm:gap-4">
