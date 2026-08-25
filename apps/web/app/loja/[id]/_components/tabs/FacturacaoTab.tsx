@@ -13,7 +13,7 @@ type ItemVenda = {
 
 type VendaAGT = {
     id: string
-    data_venda: string
+    data_venda: string // pode vir como created_at do backend
     total: number
     subtotal: number
     valor_iva: number
@@ -95,11 +95,12 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
 
     const vendasFiltradas = useMemo(() => {
         return vendas.filter(v => {
+            const dataBusca = v.data_venda || v.id // fallback
             const passaBusca = v.id.toLowerCase().includes(busca.toLowerCase()) ||
                 v.numero_fatura?.toLowerCase().includes(busca.toLowerCase()) ||
                 v.cliente_nome?.toLowerCase().includes(busca.toLowerCase()) ||
                 v.cliente_nif?.includes(busca)
-            const passaFiltro = filtro === "todas"? true : filtro === "agt"?!!v.cliente_nif : filtro === "anuladas"? v.status === "anulada" : true
+            const passaFiltro = filtro === "todas"? true : filtro === "agt"? v.tipo_documento === "FACTURA" : filtro === "anuladas"? v.status === "anulada" : true
             return passaBusca && passaFiltro
         })
     }, [vendas, busca, filtro])
@@ -113,11 +114,11 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
     }, [vendasFiltradas, paginaAtual])
 
     const totalFacturado = useMemo(() => vendasFiltradas.filter(v => v.status!== "anulada").reduce((acc, v) => acc + v.total, 0), [vendasFiltradas])
-    const totalAGT = useMemo(() => vendasFiltradas.filter(v => v.cliente_nif && v.status!== "anulada").length, [vendasFiltradas])
+    const totalAGT = useMemo(() => vendasFiltradas.filter(v => v.tipo_documento === "FACTURA" && v.status!== "anulada").length, [vendasFiltradas])
     const totalAnuladas = useMemo(() => vendasFiltradas.filter(v => v.status === "anulada").length, [vendasFiltradas])
 
     const exportarLivro = () => {
-        const linhas = [["Data", "Nº Factura", "Cliente", "NIF", "Subtotal", "IVA", "Total", "Status"],...vendasFiltradas.map(v => [formatData(v.data_venda), v.numero_fatura || v.id.slice(0, 8), v.cliente_nome || "Consumidor Final", v.cliente_nif || "-", v.subtotal, v.valor_iva, v.total, v.status])]
+        const linhas = [["Data", "Nº Factura", "Cliente", "NIF", "Subtotal", "IVA", "Total", "Status"],...vendasFiltradas.map(v => [formatData(v.data_venda), v.numero_fatura || v.id.slice(0, 8), v.cliente_nome || "Consumidor Final", v.cliente_nif || "-", v.subtotal || 0, v.valor_iva || 0, v.total, v.status])]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
         const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `livro-vendas-agt-${new Date().toISOString().split('T')[0]}.csv`; a.click()
@@ -127,9 +128,12 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
         const nif = nifPorVenda[vendaId]
         const nome = nomePorVenda[vendaId] || "Cliente AGT"
         if (!nif) return alert("Digite o NIF do cliente")
+        if (!token) return alert("Token não encontrado")
         setFaturandoId(vendaId)
         try {
-            await api.post(`/vendas/${vendaId}/faturar`, { nif, nome_cliente: nome })
+            await api.post(`/vendas/${vendaId}/faturar`, { nif, nome_cliente: nome }, {
+                headers: { Authorization: `Bearer ${token}` } // <- CORRIGIDO
+            })
             alert("Venda faturada com sucesso!")
             setNifPorVenda(prev => ({...prev, [vendaId]: "" })); setNomePorVenda(prev => ({...prev, [vendaId]: "" }))
             onVendaFaturada?.()
@@ -159,8 +163,7 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
         setBuscandoCliente(true)
         const timer = setTimeout(async () => {
             try {
-                // PING PRA ACORDAR O RENDER ANTES
-                await fetch(`${API_URL}/health`).catch(()=>{})
+                await fetch(`${API_URL}/health`).catch(()=>{}) // PING
 
                 const res = await api.get(`/lojas/${lojaId}/clientes?search=${encodeURIComponent(nifModal)}`, {
                     headers: { Authorization: `Bearer ${token}` },
@@ -185,7 +188,6 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
         setSugestoes([])
     }
 
-    // IMPRESSÃO EM NOVA ABA - NÃO TRAVA MAIS
     const confirmarImpressao = () => {
         if (!vendaParaImprimir ||!token) return;
         const url = `${API_URL}/lojas/${lojaId}/vendas/${vendaParaImprimir.id}/imprimir?token=${token}`

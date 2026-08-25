@@ -5,6 +5,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi.responses import HTMLResponse # <- NOVO
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select, update, delete, and_, or_
 from pydantic import BaseModel, Field
@@ -27,6 +28,7 @@ from app.api.v1.caixas import registrar_movimento_caixa
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# ========== SCHEMAS ==========
 class PagamentoCreate(BaseModel):
     valor: float
     forma_pagamento: str
@@ -43,13 +45,18 @@ class VendaCreate(BaseModel):
     observacao: str | None = None
     tipo_pagamento: str = "fiado" # "dinheiro", "fiado", "transferencia"
 
+class FaturarVendaSchema(BaseModel): # <- NOVO
+    nif: str
+    nome_cliente: str
+
+# ========== FUNCOES AUX ==========
 async def get_dono_loja(db: AsyncSession, loja_id: UUID) -> tuple[Usuario | None, UsuarioLoja | None]:
     stmt = (
         select(Usuario, UsuarioLoja)
-     .join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
-     .where(UsuarioLoja.loja_id == loja_id)
-     .where(UsuarioLoja.role == UserRole.DONO)
-     .where(UsuarioLoja.is_active == True)
+    .join(UsuarioLoja, UsuarioLoja.usuario_id == Usuario.id)
+    .where(UsuarioLoja.loja_id == loja_id)
+    .where(UsuarioLoja.role == UserRole.DONO)
+    .where(UsuarioLoja.is_active == True)
     )
     res = (await db.execute(stmt)).first()
     return (res[0], res[1]) if res else (None, None)
@@ -75,7 +82,7 @@ async def _get_caixa_aberto_hoje(db: AsyncSession, loja_id: UUID) -> Caixa | Non
     result_caixa = await db.execute(stmt_caixa)
     return result_caixa.scalar_one_or_none()
 
-async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut: # <- ADICIONADO DE VOLTA
+async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut:
     total_divida = float(getattr(cliente, "total_divida", 0.0) or 0.0)
     ultima_compra: Optional[datetime] = getattr(cliente, "ultima_compra", None)
     status_cliente = "com_divida" if total_divida > 0 else "em_dia"
@@ -86,7 +93,7 @@ async def _cliente_to_out(db: AsyncSession, cliente: Cliente) -> ClienteOut: # <
         nome=str(getattr(cliente, "nome") or ""),
         nome_empresa=getattr(cliente, "nome_empresa"),
         bi=getattr(cliente, "bi"),
-        nif=getattr(cliente, "nif"), # <- ADICIONADO
+        nif=getattr(cliente, "nif"),
         telefone=getattr(cliente, "telefone"),
         email=getattr(cliente, "email"),
         endereco=getattr(cliente, "endereco"),
@@ -116,12 +123,18 @@ async def _atualizar_totais_cliente(db: AsyncSession, cliente_id: UUID):
 
     await db.execute(
         update(Cliente)
-     .where(Cliente.id == cliente_id)
-     .values(total_divida=total_divida, ultima_compra=ultima_compra)
+    .where(Cliente.id == cliente_id)
+    .values(total_divida=total_divida, ultima_compra=ultima_compra)
     )
     await db.commit()
 
-@router.get("/{loja_id}/clientes", response_model=List[ClienteOut]) # <- ADICIONADO DE VOLTA
+# ========== ROTAS ==========
+
+@router.get("/health") # <- NOVO: PRA ACORDAR O RENDER
+async def health_check():
+    return {"status": "ok"}
+
+@router.get("/{loja_id}/clientes", response_model=List[ClienteOut])
 async def listar_clientes(
     loja_id: UUID,
     search: str | None = None,
@@ -132,7 +145,6 @@ async def listar_clientes(
 
     stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.is_active == True)
 
-    # BUSCA POR NOME, NIF, BI
     if search and len(search) >= 2:
         search_like = f"%{search}%"
         stmt = stmt.where(
@@ -156,13 +168,13 @@ async def listar_clientes(
 async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
     await verificar_acesso_loja(loja_id, db, current_user)
 
-    if cliente_in.bi and cliente_in.bi.strip() != "":  # <- CORRIGIDO
+    if cliente_in.bi and cliente_in.bi.strip()!= "":
         stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == cliente_in.bi)
         result = await db.execute(stmt)
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
 
-    if cliente_in.nif and cliente_in.nif.strip() != "": # <- CORRIGIDO
+    if cliente_in.nif and cliente_in.nif.strip()!= "":
         stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.nif == cliente_in.nif)
         result = await db.execute(stmt)
         if result.scalars().first():
@@ -179,7 +191,6 @@ async def criar_cliente(loja_id: UUID, cliente_in: ClienteCreate, db: AsyncSessi
     await db.refresh(db_cliente)
     return await _cliente_to_out(db, db_cliente)
 
-
 @router.put("/{loja_id}/clientes/{cliente_id}", response_model=ClienteOut)
 async def atualizar_cliente(
     loja_id: UUID, cliente_id: UUID, payload: dict = Body(...),
@@ -195,24 +206,14 @@ async def atualizar_cliente(
 
     dados_para_atualizar = {k: v for k, v in payload.items() if k!= "senha_dono"}
 
-    # VALIDAÇÃO NIF NA EDIÇÃO
-    if "nif" in dados_para_atualizar and dados_para_atualizar["nif"] and dados_para_atualizar["nif"].strip() != "":
-        stmt = select(Cliente).where(
-            Cliente.loja_id == loja_id,
-            Cliente.nif == dados_para_atualizar["nif"],
-            Cliente.id != cliente_id
-        )
+    if "nif" in dados_para_atualizar and dados_para_atualizar["nif"] and dados_para_atualizar["nif"].strip()!= "":
+        stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.nif == dados_para_atualizar["nif"], Cliente.id!= cliente_id)
         result = await db.execute(stmt)
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="NIF já cadastrado para esta loja")
 
-    # VALIDAÇÃO BI NA EDIÇÃO
-    if "bi" in dados_para_atualizar and dados_para_atualizar["bi"] and dados_para_atualizar["bi"].strip() != "":
-        stmt = select(Cliente).where(
-            Cliente.loja_id == loja_id,
-            Cliente.bi == dados_para_atualizar["bi"],
-            Cliente.id != cliente_id
-        )
+    if "bi" in dados_para_atualizar and dados_para_atualizar["bi"] and dados_para_atualizar["bi"].strip()!= "":
+        stmt = select(Cliente).where(Cliente.loja_id == loja_id, Cliente.bi == dados_para_atualizar["bi"], Cliente.id!= cliente_id)
         result = await db.execute(stmt)
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="BI já cadastrado para esta loja")
@@ -223,7 +224,6 @@ async def atualizar_cliente(
     await db.commit()
     await db.refresh(db_cliente)
     return await _cliente_to_out(db, db_cliente)
-
 
 @router.delete("/{loja_id}/clientes/{cliente_id}", status_code=status.HTTP_200_OK)
 async def deletar_cliente(
@@ -303,7 +303,8 @@ async def criar_venda(
         status="divida" if is_fiado else "concluida",
         total_itens=total_itens,
         observacao=venda_in.observacao,
-        forma_pagamento=venda_in.tipo_pagamento
+        forma_pagamento=venda_in.tipo_pagamento,
+        tipo_documento="RECIBO" # <- GARANTE QUE COMEÇA COMO RECIBO
     )
     db.add(nova_venda)
     await db.flush()
@@ -317,7 +318,6 @@ async def criar_venda(
     await db.commit()
     await db.refresh(nova_venda)
 
-    # REGISTRA NO CAIXA SE FOR A VISTA
     if not is_fiado:
         try:
             caixa_aberto = await _get_caixa_aberto_hoje(db, loja_id)
@@ -339,8 +339,69 @@ async def criar_venda(
         "venda_id": str(nova_venda.id), "total": float(nova_venda.total), "status": nova_venda.status
     }
 
+@router.post("/vendas/{venda_id}/faturar") # <- NOVA ROTA
+async def faturar_venda(
+    venda_id: UUID,
+    payload: FaturarVendaSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    stmt = select(Venda).where(Venda.id == venda_id)
+    venda = (await db.execute(stmt)).scalar_one_or_none()
+    if not venda:
+        raise HTTPException(status_code=404, detail="Venda não encontrada")
 
+    await verificar_acesso_loja(venda.loja_id, db, current_user)
 
+    if venda.tipo_documento == "FACTURA":
+        raise HTTPException(status_code=400, detail="Esta venda já foi faturada")
+
+    # Aqui você pode adicionar a lógica de comunicação com a AGT depois
+    await db.execute(
+        update(Venda)
+    .where(Venda.id == venda_id)
+    .values(
+         tipo_documento="FACTURA",
+         cliente_nome=payload.nome_cliente,
+         cliente_nif=payload.nif
+     )
+    )
+    await db.commit()
+
+    return {"detail": "Venda faturada com sucesso"}
+
+@router.get("/lojas/{loja_id}/vendas/{venda_id}/imprimir") # <- NOVA ROTA
+async def imprimir_venda(
+    loja_id: UUID,
+    venda_id: UUID,
+    token: str, # token vem da URL
+    db: AsyncSession = Depends(get_db)
+):
+    # TODO: Validar o token aqui se quiser segurança extra
+    stmt = select(Venda).where(Venda.id == venda_id, Venda.loja_id == loja_id)
+    venda = (await db.execute(stmt)).scalar_one_or_none()
+    if not venda:
+        raise HTTPException(status_code=404, detail="Venda não encontrada")
+
+    # HTML SIMPLES PRA TESTE. Depois troca por PDF real com reportlab
+    html_content = f"""
+    <html>
+        <head><title>Factura {venda.id}</title></head>
+        <body style="font-family: sans-serif; padding: 20px;">
+            <h1>FACTURA</h1>
+            <p><b>Nº:</b> {venda.numero_fatura or venda.id}</p>
+            <p><b>Data:</b> {venda.created_at.strftime('%d/%m/%Y %H:%M')}</p>
+            <hr>
+            <p><b>Cliente:</b> {venda.cliente_nome or 'Consumidor Final'}</p>
+            <p><b>NIF:</b> {venda.cliente_nif or '-'}</p>
+            <hr>
+            <p><b>Total:</b> {venda.total:.2f} KZ</p>
+            <p><b>Status:</b> {venda.tipo_documento}</p>
+            <script>window.print()</script>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @router.post("/{loja_id}/clientes/{cliente_id}/receber-parcela")
 async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoCreate, db: AsyncSession = Depends(get_db), current_user: Usuario = Depends(get_current_user)):
@@ -369,17 +430,9 @@ async def receber_parcela(loja_id: UUID, cliente_id: UUID, pagamento: PagamentoC
         total_pago += valor_a_pagar
 
     await _atualizar_totais_cliente(db, cliente_id)
-
-    # ATUALIZA A HORA DA ULTIMA ATIVIDADE NO PAGAMENTO
-    await db.execute(
-        update(Cliente)
-     .where(Cliente.id == cliente_id)
-     .values(ultima_compra=func.now())
-    )
-
+    await db.execute(update(Cliente).where(Cliente.id == cliente_id).values(ultima_compra=func.now()))
     await db.commit()
 
-    # REGISTRA NO CAIXA O RECEBIMENTO
     try:
         caixa_aberto = await _get_caixa_aberto_hoje(db, loja_id)
         if caixa_aberto and total_pago > 0:
@@ -422,17 +475,9 @@ async def pagar_venda_especifica(
     venda.status = "concluida" if novo_valor_recebido >= total_venda else "parcial"
 
     await _atualizar_totais_cliente(db, cliente_id)
-
-    # ATUALIZA A HORA DA ULTIMA ATIVIDADE NO PAGAMENTO
-    await db.execute(
-        update(Cliente)
-     .where(Cliente.id == cliente_id)
-     .values(ultima_compra=func.now())
-    )
-
+    await db.execute(update(Cliente).where(Cliente.id == cliente_id).values(ultima_compra=func.now()))
     await db.commit()
 
-    # REGISTRA NO CAIXA O PAGAMENTO
     try:
         caixa_aberto = await _get_caixa_aberto_hoje(db, loja_id)
         if caixa_aberto:
