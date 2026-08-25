@@ -18,6 +18,7 @@ export type Cliente = {
     loja_id: string;
     nome: string;
     nome_empresa: string | null;
+    nif: string | null; // <- ADICIONAR
     bi: string | null;
     telefone: string | null;
     email: string | null;
@@ -31,6 +32,7 @@ export type Cliente = {
     ultima_compra: string | null;
     status: 'com_divida' | 'em_dia';
 };
+
 
 type Props = { lojaId: string; token: string | null; theme: string; cardStyle: string; cardSize: string; formatCurrency: (v: number) => string; }
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://stockbot-ao.onrender.com/api/v1";
@@ -49,7 +51,21 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const [saving, setSaving] = useState(false);
     const [savingPagamento, setSavingPagamento] = useState(false);
     const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
-    const [formDataCliente, setFormDataCliente] = useState<ClienteForm>({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
+
+    const [formDataCliente, setFormDataCliente] = useState<ClienteForm>({
+        nome: "",
+        nome_empresa: null,
+        nif: null, // <- ADICIONAR
+        bi: null,
+        telefone: null,
+        email: null,
+        endereco: null,
+        cidade: null,
+        provincia: null,
+        observacoes: null,
+        is_active: true
+    });
+
     const [clienteSelecionado, setClienteSelecionado] = useState<Cliente | null>(null);
     const [showDetalhes, setShowDetalhes] = useState(false);
     const [vendasPendentes, setVendasPendentes] = useState<VendaPendente[]>([]);
@@ -70,7 +86,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             if (!res.ok) throw new Error((await res.json()).detail || `Erro ${res.status}`)
             const data = await res.json();
             // Backend já vem ordenado por ultima_compra DESC. Só normalizar
-            setClientes((Array.isArray(data)? data : []).map((c: any) => ({...c, total_divida: c.total_divida?? 0, ultima_compra: c.ultima_compra || null })));
+            setClientes((Array.isArray(data) ? data : []).map((c: any) => ({ ...c, total_divida: c.total_divida ?? 0, ultima_compra: c.ultima_compra || null })));
         } catch (e: any) {
             toast.error(e.message || "Erro ao carregar clientes");
             setClientes([])
@@ -78,16 +94,16 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     }
 
     const atualizarClienteSelecionado = async () => {
-        if(!token ||!clienteSelecionado) return;
+        if (!token || !clienteSelecionado) return;
         try {
             const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, { headers: { "Authorization": `Bearer ${token}` } });
-            if(res.ok){
+            if (res.ok) {
                 const data = await res.json();
-                const lista = Array.isArray(data)? data : [];
+                const lista = Array.isArray(data) ? data : [];
                 const clienteNovo = lista.find((c: any) => c.id === clienteSelecionado.id);
-                if(clienteNovo) setClienteSelecionado({...clienteNovo, total_divida: clienteNovo.total_divida?? 0, ultima_compra: clienteNovo.ultima_compra || null });
+                if (clienteNovo) setClienteSelecionado({ ...clienteNovo, total_divida: clienteNovo.total_divida ?? 0, ultima_compra: clienteNovo.ultima_compra || null });
             }
-        } catch {}
+        } catch { }
     }
 
     const fetchDetalhesCliente = async (e: React.MouseEvent, cliente: Cliente) => {
@@ -104,7 +120,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const resProdutos = await fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } });
             if (resProdutos.ok) {
                 const dataProdutos = await resProdutos.json();
-                setProdutosLoja(Array.isArray(dataProdutos)? dataProdutos : []);
+                setProdutosLoja(Array.isArray(dataProdutos) ? dataProdutos : []);
             }
         } catch {
             setProdutosLoja([]);
@@ -115,7 +131,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
             const resVendas = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/historico`, { headers: { "Authorization": `Bearer ${token}` } });
             if (resVendas.ok) {
                 const dataVendas = await resVendas.json();
-                setVendasPendentes(Array.isArray(dataVendas)? dataVendas : []);
+                setVendasPendentes(Array.isArray(dataVendas) ? dataVendas : []);
             } else {
                 setVendasPendentes([]);
             }
@@ -137,8 +153,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 fetch(`${API_URL}/lojas/${lojaId}/clientes/${cliente.id}/historico`, { headers: { "Authorization": `Bearer ${token}` } }),
                 fetch(`${API_URL}/produtos?loja_id=${lojaId}&apenas_ativos=true&estoque_maior_que=0`, { headers: { "Authorization": `Bearer ${token}` } })
             ]);
-            if(resVendas.ok) setVendasPendentes(await resVendas.json() || []);
-            if(resProdutos.ok) setProdutosLoja(await resProdutos.json() || []);
+            if (resVendas.ok) setVendasPendentes(await resVendas.json() || []);
+            if (resProdutos.ok) setProdutosLoja(await resProdutos.json() || []);
         } catch {
             setVendasPendentes([]);
             setProdutosLoja([]);
@@ -154,7 +170,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     }
 
     const handleConfirmarPagamento = async () => {
-        if (!token ||!clienteSelecionado ||!vendaSelecionada ||!valorPagamento || parseFloat(valorPagamento) <= 0) return toast.error("Valor inválido");
+        if (!token || !clienteSelecionado || !vendaSelecionada || !valorPagamento || parseFloat(valorPagamento) <= 0) return toast.error("Valor inválido");
         setSavingPagamento(true);
         try {
             const url = `${API_URL}/lojas/${lojaId}/clientes/${clienteSelecionado.id}/vendas/${vendaSelecionada.id}/pagar`;
@@ -172,12 +188,12 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     }
 
     const handleSalvarFiado = async (carrinho: ProdutoCarrinho[]): Promise<void> => {
-        if (!token ||!clienteSelecionado || carrinho.length === 0) return;
+        if (!token || !clienteSelecionado || carrinho.length === 0) return;
 
         const payload = {
             cliente_id: clienteSelecionado.id,
             tipo_pagamento: 'fiado',
-            itens: carrinho.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco_venda?? i.preco })),
+            itens: carrinho.map(i => ({ produto_id: i.id, quantidade: i.qtd, preco_unitario: i.preco_venda ?? i.preco })),
             observacao: "Venda fiado"
         };
 
@@ -203,9 +219,17 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         e.preventDefault();
         setEditingClienteId(c.id);
         setFormDataCliente({
-            nome: c.nome, nome_empresa: c.nome_empresa || null, bi: c.bi || null,
-            telefone: c.telefone || null, email: c.email || null, endereco: c.endereco || null,
-            cidade: c.cidade || null, provincia: c.provincia || null, observacoes: c.observacoes || null, is_active: c.is_active
+            nome: c.nome,
+            nome_empresa: c.nome_empresa || null,
+            nif: c.nif || null, // <- ADICIONAR
+            bi: c.bi || null,
+            telefone: c.telefone || null,
+            email: c.email || null,
+            endereco: c.endereco || null,
+            cidade: c.cidade || null,
+            provincia: c.provincia || null,
+            observacoes: c.observacoes || null,
+            is_active: c.is_active
         });
         setAcaoPendente({ tipo: 'editar', data: c });
         setShowModal(true);
@@ -218,11 +242,11 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     }
 
     const executarAcaoComSenha = async (senha?: string) => {
-        if (!token ||!acaoPendente ||!senha) return toast.error("Senha obrigatória");
+        if (!token || !acaoPendente || !senha) return toast.error("Senha obrigatória");
         setSaving(true);
         try {
             if (acaoPendente.tipo === 'editar' && editingClienteId) {
-                const payload = {...formDataCliente, senha_dono: senha };
+                const payload = { ...formDataCliente, senha_dono: senha };
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes/${editingClienteId}`, { method: 'PUT', headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload) });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.detail || "Erro ao editar");
@@ -241,14 +265,14 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
 
     const handleSaveCliente = async (e?: FormEvent) => {
         e?.preventDefault();
-        if (!token ||!lojaId) return toast.error("Erro: Loja não encontrada");
+        if (!token || !lojaId) return toast.error("Erro: Loja não encontrada");
         if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
 
         if (editingClienteId) { setShowModal(false); setShowConfirmarModal(true); }
         else {
             setSaving(true);
             try {
-                const payload: Record<string, any> = {...formDataCliente};
+                const payload: Record<string, any> = { ...formDataCliente };
                 Object.keys(payload).forEach(key => { if (payload[key] === "") payload[key] = null; });
                 const res = await fetch(`${API_URL}/lojas/${lojaId}/clientes`, {
                     method: 'POST',
@@ -260,8 +284,23 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 if (!res.ok) throw new Error(data.detail || `Erro ${res.status}`);
                 toast.success("Cliente cadastrado com sucesso!");
                 setShowModal(false); setFiltro('todos');
-                setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true });
+
+                setFormDataCliente({
+                    nome: "",
+                    nome_empresa: null,
+                    nif: null, // <- ADICIONAR
+                    bi: null,
+                    telefone: null,
+                    email: null,
+                    endereco: null,
+                    cidade: null,
+                    provincia: null,
+                    observacoes: null,
+                    is_active: true
+                });
+
                 fetchClientes();
+
             } catch (err: any) {
                 toast.error(err.message);
             } finally { setSaving(false); }
@@ -271,24 +310,24 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
     const adicionarAoCarrinhoFiado = (p: Produto) => {
         setCarrinhoFiado(prev => {
             const item = prev.find(i => i.id === p.id);
-            if (item) return prev.map(i => i.id === p.id? {...i, qtd: i.qtd + 1 } : i);
-            const { unidade,...restoDoProduto } = p;
-            return [...prev, {...restoDoProduto, qtd: 1 }];
+            if (item) return prev.map(i => i.id === p.id ? { ...i, qtd: i.qtd + 1 } : i);
+            const { unidade, ...restoDoProduto } = p;
+            return [...prev, { ...restoDoProduto, qtd: 1 }];
         })
     }
-    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id!== id));
-    const totalCarrinhoFiado = carrinhoFiado.reduce((acc, i) => acc + (i.preco_venda?? i.preco) * i.qtd, 0);
+    const removerDoCarrinho = (id: string) => setCarrinhoFiado(prev => prev.filter(i => i.id !== id));
+    const totalCarrinhoFiado = carrinhoFiado.reduce((acc, i) => acc + (i.preco_venda ?? i.preco) * i.qtd, 0);
     useEffect(() => { fetchClientes() }, [lojaId, token]);
 
-    const totalComDivida = clientes.filter(c => (c.total_divida?? 0) > 0).length;
-    const totalEmDia = clientes.filter(c => (c.total_divida?? 0) === 0).length;
-    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida?? 0), 0);
+    const totalComDivida = clientes.filter(c => (c.total_divida ?? 0) > 0).length;
+    const totalEmDia = clientes.filter(c => (c.total_divida ?? 0) === 0).length;
+    const valorTotalEmDivida = clientes.reduce((acc, c) => acc + (c.total_divida ?? 0), 0);
 
     const clientesFiltrados = useMemo(() => {
         let lista = [...clientes];
-        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida?? 0) > 0);
-        if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!!c.ultima_compra);
-        if (filtro === 'novo') lista = lista.filter(c => (c.total_divida?? 0) === 0 &&!c.ultima_compra);
+        if (filtro === 'com_divida') lista = lista.filter(c => (c.total_divida ?? 0) > 0);
+        if (filtro === 'em_dia') lista = lista.filter(c => (c.total_divida ?? 0) === 0 && !!c.ultima_compra);
+        if (filtro === 'novo') lista = lista.filter(c => (c.total_divida ?? 0) === 0 && !c.ultima_compra);
         if (busca) lista = lista.filter(c => c.nome.toLowerCase().includes(busca.toLowerCase()) || c.telefone?.includes(busca) || c.email?.toLowerCase().includes(busca.toLowerCase()));
 
         // REMOVIDO O SORT DAQUI: Backend já retorna ordenado por ultima_compra DESC
@@ -305,8 +344,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         }
     }, [showModal, showDetalhes, showConfirmarModal, showPagarModal]);
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '20px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '20px' : '16px';
 
     const formatarDataHora = (data: string | null) => {
         if (!data) return "Nunca";
@@ -328,7 +367,27 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto)' }}>Clientes <Users size={16} style={{ color: 'var(--cor-primaria)' }} /></h2>
                     <p className="text-xs sm:text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Controle de dívidas e pagamentos</p>
                 </div>
-                <Button type="button" onClick={() => { setEditingClienteId(null); setFormDataCliente({ nome: "", nome_empresa: null, bi: null, telefone: null, email: null, endereco: null, cidade: null, provincia: null, observacoes: null, is_active: true }); setShowModal(true) }} style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}>
+                <Button
+                    type="button"
+                    onClick={() => {
+                        setEditingClienteId(null);
+                        setFormDataCliente({
+                            nome: "",
+                            nome_empresa: null,
+                            nif: null, // <- ADICIONAR AQUI
+                            bi: null,
+                            telefone: null,
+                            email: null,
+                            endereco: null,
+                            cidade: null,
+                            provincia: null,
+                            observacoes: null,
+                            is_active: true
+                        });
+                        setShowModal(true)
+                    }}
+                    style={{ background: 'var(--cor-primaria)', color: '#fff', borderRadius: radius }}
+                >
                     <Plus size={16} /> Novo Cliente
                 </Button>
             </div>
@@ -361,8 +420,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 <div className="space-y-3">
                     {clientesPaginados.length === 0 && <div className="text-center py-16"><DollarSign size={32} className="mx-auto mb-3 opacity-50" /><p>Nenhum cliente encontrado</p></div>}
                     {clientesPaginados.map(c => {
-                        const temDivida = (c.total_divida?? 0) > 0;
-                        const isNovo =!temDivida &&!c.ultima_compra;
+                        const temDivida = (c.total_divida ?? 0) > 0;
+                        const isNovo = !temDivida && !c.ultima_compra;
                         let badgeText = "Pago"; let badgeColor = "#22c55e"; let borderColor = "#22c55e"; let bgColor = 'color-mix(in srgb, #22c55e 5%, transparent)'; let buttonColor = "#22c55e";
                         if (temDivida) { badgeText = "Devendo"; badgeColor = "#ef4444"; borderColor = "#ef4444"; bgColor = 'color-mix(in srgb, #ef4444 5%, transparent)'; buttonColor = "#ef4444"; }
                         else if (isNovo) { badgeText = "Novo Cliente"; badgeColor = "#3b82f6"; borderColor = "#3b82f6"; bgColor = 'color-mix(in srgb, #3b82f6 5%, transparent)'; buttonColor = "#3b82f6"; }
@@ -374,7 +433,7 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                                         <p className="text-xs mt-1">{c.telefone || c.email || "Sem contato"}</p>
                                         <p className="text-xs mt-1 flex items-center gap-1"><Calendar size={12} /> Última atividade: {formatarDataHora(c.ultima_compra)}</p>
                                     </div>
-                                    {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida?? 0)}</p></div>}
+                                    {temDivida && <div className="text-left sm:text-right"><p className="text-xs opacity-70">Dívida</p><p className="text-lg font-bold" style={{ color: '#ef4444' }}>{formatCurrency(c.total_divida ?? 0)}</p></div>}
                                 </div>
                                 <div className="flex items-center justify-center sm:justify-start gap-2 w-full pt-2">
                                     <Button type="button" size="sm" style={{ background: buttonColor, color: '#fff', fontSize: '10px', height: '28px', padding: '0 12px', borderRadius: '8px', fontWeight: 600, flex: 1, maxWidth: '110px' }} onClick={(e) => fetchDetalhesCliente(e, c)}>Detalhes</Button>
@@ -388,8 +447,8 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 {totalPaginas > 1 && <div className="flex items-center justify-between mt-4"><p className="text-xs">Página {pagina} de {totalPaginas}</p><div className="flex gap-2"><Button type="button" size="sm" variant="outline" disabled={pagina === 1} onClick={() => setPagina(p => p - 1)}><ChevronLeft size={14} /></Button><Button type="button" size="sm" variant="outline" disabled={pagina === totalPaginas} onClick={() => setPagina(p => p + 1)}><ChevronRight size={14} /></Button></div></div>}
             </div>
 
-            <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({...prev, [field]: value }))} isEditing={!!editingClienteId} />
-            <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar'? "Confirmar Edição" : "Confirmar Exclusão"} descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar'? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`} loading={saving} tipo={acaoPendente?.tipo === 'editar'? 'edit' : 'delete'} textoConfirmar={acaoPendente?.tipo === 'editar'? "Salvar Alterações" : "Apagar Cliente"} />
+            <ClienteModal open={showModal} onOpenChange={setShowModal} formData={formDataCliente} setFormData={setFormDataCliente} onSave={handleSaveCliente} saving={saving} handleChange={(field, value) => setFormDataCliente(prev => ({ ...prev, [field]: value }))} isEditing={!!editingClienteId} />
+            <ConfirmarModal open={showConfirmarModal} onClose={() => { setShowConfirmarModal(false); setAcaoPendente(null); }} onConfirm={executarAcaoComSenha} titulo={acaoPendente?.tipo === 'editar' ? "Confirmar Edição" : "Confirmar Exclusão"} descricao={`Digite a senha do DONO para ${acaoPendente?.tipo === 'editar' ? "editar" : "apagar"} o cliente ${acaoPendente?.data?.nome}`} loading={saving} tipo={acaoPendente?.tipo === 'editar' ? 'edit' : 'delete'} textoConfirmar={acaoPendente?.tipo === 'editar' ? "Salvar Alterações" : "Apagar Cliente"} />
             <DetalhesClienteModal open={showDetalhes} onClose={() => setShowDetalhes(false)} cliente={clienteSelecionado} vendas={vendasPendentes} produtos={produtosLoja} onPagar={handleAbrirPagar} onSalvarFiado={handleSalvarFiado} formatCurrency={formatCurrency} loading={loadingDetalhes} />
             <PagarDividaModal open={showPagarModal} onClose={() => setShowPagarModal(false)} venda={vendaSelecionada} valor={valorPagamento} setValor={setValorPagamento} forma={formaPagamento} setForma={setFormaPagamento} onConfirmar={handleConfirmarPagamento} saving={savingPagamento} formatCurrency={formatCurrency} />
         </div>
