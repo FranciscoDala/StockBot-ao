@@ -1,6 +1,6 @@
 "use client"
 import { useMemo, useState, useEffect } from "react"
-import { FileText, Search, Download, Printer, Ban, Building2, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { FileText, Search, Download, Printer, Ban, Building2, ChevronLeft, ChevronRight, X, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 
 type ItemVenda = {
@@ -82,12 +82,12 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
     const [paginaAtual, setPaginaAtual] = useState(1)
     const itensPorPagina = 10
 
-    // ESTADOS DO MODAL SEPARADOS
     const [modalImprimirAberta, setModalImprimirAberta] = useState(false)
     const [vendaParaImprimir, setVendaParaImprimir] = useState<VendaAGT | null>(null)
-    const [nifModal, setNifModal] = useState("") // <- NOVO
-    const [nomeModal, setNomeModal] = useState("") // <- NOVO
+    const [nifModal, setNifModal] = useState("")
+    const [nomeModal, setNomeModal] = useState("")
     const [sugestoes, setSugestoes] = useState<ClienteSugestao[]>([])
+    const [buscandoCliente, setBuscandoCliente] = useState(false)
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '24px' : '16px';
@@ -141,30 +141,39 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
 
     const abrirModalImprimir = (v: VendaAGT) => {
         setVendaParaImprimir(v)
-        setNifModal(v.cliente_nif || v.cliente_bi || "") // <- USA ESTADO SEPARADO
+        setNifModal(v.cliente_nif || v.cliente_bi || "")
         setNomeModal(v.cliente_nome || "")
         setSugestoes([])
         setModalImprimirAberta(true)
     }
 
-    // BUSCAR CLIENTE AO DIGITAR NO MODAL
+    // BUSCAR CLIENTE AO DIGITAR NO MODAL - CORRIGIDO
     useEffect(() => {
         if (!modalImprimirAberta || nifModal.length < 3 ||!token) {
             setSugestoes([])
             return
         }
 
+        const controller = new AbortController();
+        setBuscandoCliente(true)
         const timer = setTimeout(async () => {
             try {
                 const res = await api.get(`/lojas/${lojaId}/clientes?search=${encodeURIComponent(nifModal)}`, {
-                    headers: { Authorization: `Bearer ${token}` }
+                    headers: { Authorization: `Bearer ${token}` },
+                    signal: controller.signal
+                    // timeout removido daqui. Se quiser, coloca no api.ts: axios.create({ timeout: 15000 })
                 })
                 setSugestoes(res.data)
-            } catch {
-                setSugestoes([])
+            } catch (e: any) {
+                if (e.name!== 'CanceledError' && e.name!== 'AbortError') {
+                    console.error("Erro ao buscar cliente:", e)
+                    setSugestoes([])
+                }
+            } finally {
+                setBuscandoCliente(false)
             }
-        }, 400)
-        return () => clearTimeout(timer)
+        }, 600)
+        return () => { clearTimeout(timer); controller.abort() }
     }, [nifModal, lojaId, token, modalImprimirAberta])
 
     const selecionarCliente = (cliente: ClienteSugestao) => {
@@ -173,11 +182,29 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
         setSugestoes([])
     }
 
+    // IMPRESSÃO VIA IFRAME PRA NÃO TRAVAR
     const confirmarImpressao = () => {
         if (!vendaParaImprimir ||!token) return;
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
         const url = `${API_URL}/lojas/${lojaId}/vendas/${vendaParaImprimir.id}/imprimir?token=${token}`
-        window.open(url, '_blank')
+
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = url;
+        document.body.appendChild(iframe);
+
+        iframe.onload = () => {
+            setTimeout(() => {
+                iframe.contentWindow?.print();
+                setTimeout(() => document.body.removeChild(iframe), 1000)
+            }, 800)
+        }
+
+        iframe.onerror = () => {
+            alert("Não foi possível carregar a factura. O servidor pode estar dormindo. Tente novamente em 30s.")
+            document.body.removeChild(iframe)
+        }
+
         setModalImprimirAberta(false)
     }
 
@@ -299,13 +326,16 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
 
                         <div>
                             <label className="text-sm font-medium">NIF ou BI do Cliente</label>
-                            <input
-                                value={nifModal} // <- AGORA USA ESTADO SEPARADO
-                                onChange={e => setNifModal(e.target.value)}
-                                placeholder="Digite 3+ caracteres"
-                                className="w-full mt-1 p-2 rounded"
-                                style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', color: 'var(--cor-texto)' }}
-                            />
+                            <div className="relative">
+                                <input
+                                    value={nifModal}
+                                    onChange={e => setNifModal(e.target.value)}
+                                    placeholder="Digite 3+ caracteres"
+                                    className="w-full mt-1 p-2 rounded pr-8"
+                                    style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', color: 'var(--cor-texto)' }}
+                                />
+                                {buscandoCliente && <Loader2 size={14} className="absolute right-2 top-3 animate-spin" />}
+                            </div>
                             {sugestoes.length > 0 && (
                                 <div className="mt-1 max-h-40 overflow-y-auto rounded border z-10" style={{ background: 'var(--cor-fundo)', borderColor: 'var(--cor-primaria)30' }}>
                                     {sugestoes.map(c => (
@@ -321,7 +351,7 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
                         <div>
                             <label className="text-sm font-medium">Nome do Cliente</label>
                             <input
-                                value={nomeModal} // <- AGORA USA ESTADO SEPARADO
+                                value={nomeModal}
                                 onChange={e => setNomeModal(e.target.value)}
                                 placeholder="Nome aparecerá aqui"
                                 className="w-full mt-1 p-2 rounded"
