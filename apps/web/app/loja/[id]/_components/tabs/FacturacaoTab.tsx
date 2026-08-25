@@ -22,7 +22,7 @@ type VendaAGT = {
     status: string
     cliente_nome?: string
     cliente_nif?: string
-    cliente_bi?: string // <- ADICIONADO
+    cliente_bi?: string
     tipo_documento: string
     serie?: string
     numero_fatura?: string
@@ -59,8 +59,8 @@ function formatData(data: string | null | undefined) {
 }
 
 function CardInfo({ titulo, valor, sub, icon, cor, cardStyle, cardSize }: any) {
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '20px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '20px' : '16px';
     return (
         <div className="transition hover:scale-[1.02]" style={{ background: 'color-mix(in srgb, var(--cor-card) 75%, transparent)', backdropFilter: 'blur(12px)', border: 'none', borderRadius: radius, padding, boxShadow: `0 0 25px color-mix(in srgb, ${cor} 20%, transparent)` }}>
             <div className="flex items-center justify-between mb-2">
@@ -73,8 +73,8 @@ function CardInfo({ titulo, valor, sub, icon, cor, cardStyle, cardSize }: any) {
     )
 }
 
-export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, cardSize, onVendaFaturada }: Props) {
-    const [busca, setBusca] = useState("")
+export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, theme, cardStyle, cardSize, onVendaFaturada }: Props) {
+    const [busca, setBusca] = useState("") // <- CORRIGIDO
     const [filtro, setFiltro] = useState<"todas" | "agt" | "anuladas">("todas")
     const [faturandoId, setFaturandoId] = useState<string | null>(null)
     const [nifPorVenda, setNifPorVenda] = useState<Record<string, string>>({})
@@ -82,23 +82,27 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
     const [paginaAtual, setPaginaAtual] = useState(1)
     const itensPorPagina = 10
 
-    // ESTADOS DA MODAL DE IMPRESSÃO
     const [modalImprimirAberta, setModalImprimirAberta] = useState(false)
     const [vendaParaImprimir, setVendaParaImprimir] = useState<VendaAGT | null>(null)
-    const [sugestoes, setSugestoes] = useState<ClienteSugestao[]>([]) // <- NOVO
-    const [mostrarSugestoes, setMostrarSugestoes] = useState(false) // <- NOVO
-    const refSugestoes = useRef<HTMLDivElement>(null) // <- NOVO
+    const [sugestoes, setSugestoes] = useState<ClienteSugestao[]>([])
+    const [mostrarSugestoes, setMostrarSugestoes] = useState(false)
+    const refSugestoes = useRef<HTMLDivElement>(null)
 
-    const radius = cardStyle === 'arredondado'? '16px' : '8px';
-    const padding = cardSize === 'grande'? '24px' : '16px';
+    const radius = cardStyle === 'arredondado' ? '16px' : '8px';
+    const padding = cardSize === 'grande' ? '24px' : '16px';
 
-    const vendasFiltradas = useMemo(() => vendas.filter(v => {
-        const passaBusca = v.id.toLowerCase().includes(busca.toLowerCase()) || v.numero_fatura?.toLowerCase().includes(busca.toLowerCase()) || v.cliente_nome?.toLowerCase().includes(busca.toLowerCase()) || v.cliente_nif?.includes(busca)
-        const passaFiltro = filtro === "todas"? true : filtro === "agt"?!!v.cliente_nif : filtro === "anuladas"? v.status === "anulada" : true
-        return passaBusca && passaFiltro
-    }), [vendas, busca, filtro])
+    const vendasFiltradas = useMemo(() => { // <- CORRIGIDO: função
+        return vendas.filter(v => {
+            const passaBusca = v.id.toLowerCase().includes(busca.toLowerCase()) ||
+                v.numero_fatura?.toLowerCase().includes(busca.toLowerCase()) ||
+                v.cliente_nome?.toLowerCase().includes(busca.toLowerCase()) ||
+                v.cliente_nif?.includes(busca)
+            const passaFiltro = filtro === "todas" ? true : filtro === "agt" ? !!v.cliente_nif : filtro === "anuladas" ? v.status === "anulada" : true
+            return passaBusca && passaFiltro
+        })
+    }, [vendas, busca, filtro])
 
-    useEffect(() => setPaginaAtual(1), [busca, filtro])
+    useEffect(() => { setPaginaAtual(1) }, [busca, filtro])
 
     const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPagina)
     const vendasPaginadas = useMemo(() => {
@@ -106,12 +110,12 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         return vendasFiltradas.slice(inicio, inicio + itensPorPagina)
     }, [vendasFiltradas, paginaAtual])
 
-    const totalFacturado = useMemo(() => vendasFiltradas.filter(v => v.status!== "anulada").reduce((acc, v) => acc + v.total, 0), [vendasFiltradas])
-    const totalAGT = useMemo(() => vendasFiltradas.filter(v => v.cliente_nif && v.status!== "anulada").length, [vendasFiltradas])
+    const totalFacturado = useMemo(() => vendasFiltradas.filter(v => v.status !== "anulada").reduce((acc, v) => acc + v.total, 0), [vendasFiltradas])
+    const totalAGT = useMemo(() => vendasFiltradas.filter(v => v.cliente_nif && v.status !== "anulada").length, [vendasFiltradas])
     const totalAnuladas = useMemo(() => vendasFiltradas.filter(v => v.status === "anulada").length, [vendasFiltradas])
 
     const exportarLivro = () => {
-        const linhas = [ ["Data", "Nº Factura", "Cliente", "NIF", "Subtotal", "IVA", "Total", "Status"],...vendasFiltradas.map(v => [ formatData(v.data_venda), v.numero_fatura || v.id.slice(0,8), v.cliente_nome || "Consumidor Final", v.cliente_nif || "-", v.subtotal, v.valor_iva, v.total, v.status ])]
+        const linhas = [["Data", "Nº Factura", "Cliente", "NIF", "Subtotal", "IVA", "Total", "Status"], ...vendasFiltradas.map(v => [formatData(v.data_venda), v.numero_fatura || v.id.slice(0, 8), v.cliente_nome || "Consumidor Final", v.cliente_nif || "-", v.subtotal, v.valor_iva, v.total, v.status])]
         const csv = linhas.map(l => l.join(",")).join("\n")
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
         const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `livro-vendas-agt-${new Date().toISOString().split('T')[0]}.csv`; a.click()
@@ -125,7 +129,7 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         try {
             await api.post(`/vendas/${vendaId}/faturar`, { nif, nome_cliente: nome })
             alert("Venda faturada com sucesso!")
-            setNifPorVenda(prev => ({...prev, [vendaId]: ""})); setNomePorVenda(prev => ({...prev, [vendaId]: ""}))
+            setNifPorVenda(prev => ({ ...prev, [vendaId]: "" })); setNomePorVenda(prev => ({ ...prev, [vendaId]: "" }))
             onVendaFaturada?.()
         } catch (err: any) {
             alert(err.response?.data?.detail || "Erro ao faturar")
@@ -134,50 +138,50 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
         }
     }
 
-    // ABRIR MODAL AO CLICAR EM IMPRIMIR
     const abrirModalImprimir = (v: VendaAGT) => {
         setVendaParaImprimir(v)
-        setNifPorVenda(prev => ({...prev, [v.id]: v.cliente_nif || v.cliente_bi || ""}))
-        setNomePorVenda(prev => ({...prev, [v.id]: v.cliente_nome || ""}))
+        setNifPorVenda(prev => ({ ...prev, [v.id]: v.cliente_nif || v.cliente_bi || "" }))
+        setNomePorVenda(prev => ({ ...prev, [v.id]: v.cliente_nome || "" }))
         setSugestoes([])
         setMostrarSugestoes(false)
         setModalImprimirAberta(true)
     }
 
-    // NOVO: BUSCAR CLIENTE COM SUGESTÕES A PARTIR DE 3 DIGITOS
     useEffect(() => {
-        if(!vendaParaImprimir) return;
+        if (!vendaParaImprimir || !token) return;
         const termo = nifPorVenda[vendaParaImprimir.id]
-        if(!termo || termo.length < 3){ setSugestoes([]); setMostrarSugestoes(false); return }
+        if (!termo || termo.length < 3) { setSugestoes([]); setMostrarSugestoes(false); return }
 
         const timer = setTimeout(async () => {
             try {
-                const res = await api.get(`/${loja.id}/clientes?search=${termo}`) // <- AGORA PASSA LOJA_ID
+                const res = await api.get(`/lojas/${lojaId}/clientes?search=${encodeURIComponent(termo)}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
                 setSugestoes(res.data)
                 setMostrarSugestoes(res.data.length > 0)
-            } catch { setSugestoes([]) }
+            } catch {
+                setSugestoes([])
+            }
         }, 300)
         return () => clearTimeout(timer)
-    }, [nifPorVenda, vendaParaImprimir, loja.id])
-
-    // Fechar sugestões ao clicar fora
+    }, [nifPorVenda, vendaParaImprimir, lojaId, token])
     useEffect(() => {
-        const handleClickFora = (e: MouseEvent) => { if(refSugestoes.current &&!refSugestoes.current.contains(e.target as Node)) setMostrarSugestoes(false) }
+        const handleClickFora = (e: MouseEvent) => { if (refSugestoes.current && !refSugestoes.current.contains(e.target as Node)) setMostrarSugestoes(false) }
         document.addEventListener("mousedown", handleClickFora); return () => document.removeEventListener("mousedown", handleClickFora)
     }, [])
 
     const selecionarCliente = (cliente: ClienteSugestao) => {
-        if(!vendaParaImprimir) return;
-        setNifPorVenda(prev => ({...prev, [vendaParaImprimir.id]: cliente.nif || cliente.bi || ""}))
-        setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: cliente.nome}))
+        if (!vendaParaImprimir) return;
+        setNifPorVenda(prev => ({ ...prev, [vendaParaImprimir.id]: cliente.nif || cliente.bi || "" }))
+        setNomePorVenda(prev => ({ ...prev, [vendaParaImprimir.id]: cliente.nome }))
         setMostrarSugestoes(false)
     }
 
-    // CONFIRMAR E ABRIR IMPRESSÃO
     const confirmarImpressao = () => {
-        if(!vendaParaImprimir) return;
+        if (!vendaParaImprimir || !token) return;
         const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
-        window.open(`${API_URL}/vendas/${vendaParaImprimir.id}/imprimir`, '_blank')
+        const url = `${API_URL}/lojas/${lojaId}/vendas/${vendaParaImprimir.id}/imprimir?token=${token}`
+        window.open(url, '_blank')
         setModalImprimirAberta(false)
     }
 
@@ -204,13 +208,12 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
             <div style={{ backgroundColor: 'var(--cor-card)', border: '1px solid var(--cor-primaria)30', borderRadius: radius, padding }}>
                 <h3 className="font-bold text-base mb-3" style={{ color: 'var(--cor-texto)' }}>Livro de Vendas</h3>
 
-                {/* DESKTOP */}
                 <div className="hidden lg:block overflow-x-auto">
                     <table className="w-full text-sm"><thead><tr style={{ borderBottom: '1px solid var(--cor-primaria)30' }}><th className="text-left py-2 px-2">Data</th><th className="text-left py-2 px-2">Nº Factura</th><th className="text-left py-2 px-2">Cliente</th><th className="text-left py-2 px-2">NIF/BI</th><th className="text-right py-2 px-2">Total</th><th className="text-center py-2 px-2">Ações</th></tr></thead><tbody>
                         {vendasPaginadas.map(v => (
                             <tr key={v.id} style={{ borderBottom: '1px solid var(--cor-primaria)15' }}>
                                 <td className="py-2 px-2">{formatData(v.data_venda)}</td>
-                                <td className="py-2 px-2 font-mono text-xs">{v.numero_fatura || `REC ${v.id.slice(0,8)}`}</td>
+                                <td className="py-2 px-2 font-mono text-xs">{v.numero_fatura || `REC ${v.id.slice(0, 8)}`}</td>
                                 <td className="py-2 px-2">{v.cliente_nome || "Consumidor Final"}</td>
                                 <td className="py-2 px-2">{v.cliente_nif || v.cliente_bi || "-"}</td>
                                 <td className="py-2 px-2 text-right font-bold">{formatCurrency(v.total)}</td>
@@ -220,7 +223,7 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                             <div className="flex gap-1">
                                                 <input
                                                     value={nifPorVenda[v.id] || ''}
-                                                    onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value}))}
+                                                    onChange={e => setNifPorVenda(prev => ({ ...prev, [v.id]: e.target.value }))}
                                                     placeholder="NIF/BI"
                                                     className="w-24 text-xs p-1 rounded"
                                                     style={{ border: '1px solid #ccc', background: 'var(--cor-fundo)', color: 'var(--cor-texto)' }}
@@ -231,7 +234,7 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                                     className="px-2 py-1 rounded text-xs font-semibold disabled:opacity-50"
                                                     style={{ background: '#22c55e', color: '#fff' }}
                                                 >
-                                                    {faturandoId === v.id? '...' : 'Faturar'}
+                                                    {faturandoId === v.id ? '...' : 'Faturar'}
                                                 </button>
                                             </div>
                                         }
@@ -243,18 +246,17 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                     </tbody></table>
                 </div>
 
-                {/* MOBILE */}
                 <div className="lg:hidden space-y-2 max-h-[500px] overflow-y-auto">
                     {vendasPaginadas.map(v => (
                         <div key={v.id} className="p-3" style={{ backgroundColor: 'var(--cor-fundo)', borderRadius: radius }}>
-                            <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-sm">{v.numero_fatura || `REC ${v.id.slice(0,8)}`}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatData(v.data_venda)}</p></div><p className="font-bold">{formatCurrency(v.total)}</p></div>
+                            <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-sm">{v.numero_fatura || `REC ${v.id.slice(0, 8)}`}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>{formatData(v.data_venda)}</p></div><p className="font-bold">{formatCurrency(v.total)}</p></div>
                             <p className="text-xs font-medium">{v.cliente_nome || "Consumidor Final"}</p><p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>NIF/BI: {v.cliente_nif || v.cliente_bi || "-"}</p>
                             <div className="flex gap-2 mt-2">
                                 {v.tipo_documento === "RECIBO" &&
                                     <div className="flex-1 flex gap-1">
                                         <input
                                             value={nifPorVenda[v.id] || ''}
-                                            onChange={e => setNifPorVenda(prev => ({...prev, [v.id]: e.target.value}))}
+                                            onChange={e => setNifPorVenda(prev => ({ ...prev, [v.id]: e.target.value }))}
                                             placeholder="NIF/BI"
                                             className="w-full text-xs p-1 rounded"
                                             style={{ border: '1px solid #ccc', background: 'var(--cor-card)', color: 'var(--cor-texto)' }}
@@ -265,7 +267,7 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                                             className="px-2 text-xs rounded font-semibold disabled:opacity-50"
                                             style={{ background: '#22c55e', color: '#fff' }}
                                         >
-                                            {faturandoId === v.id? '...' : 'Faturar'}
+                                            {faturandoId === v.id ? '...' : 'Faturar'}
                                         </button>
                                     </div>
                                 }
@@ -276,7 +278,6 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                     {vendasPaginadas.length === 0 && <p className="text-center py-8 text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Nenhuma factura encontrada</p>}
                 </div>
 
-                {/* PAGINAÇÃO */}
                 {totalPaginas > 1 && (
                     <div className="flex items-center justify-between mt-4 pt-4" style={{ borderTop: '1px solid var(--cor-primaria)30' }}>
                         <p className="text-xs" style={{ color: 'var(--cor-texto-sec)' }}>
@@ -291,7 +292,6 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                 )}
             </div>
 
-            {/* MODAL DE IMPRESSÃO COM SUGESTÕES */}
             {modalImprimirAberta && vendaParaImprimir && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
                     <div className="w-full max-w-md p-6 space-y-4" style={{ background: 'var(--cor-card)', borderRadius: radius }}>
@@ -299,14 +299,14 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                             <h3 className="text-lg font-bold" style={{ color: 'var(--cor-texto)' }}>Dados para Impressão</h3>
                             <button onClick={() => setModalImprimirAberta(false)}><X size={20} /></button>
                         </div>
-                        <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Venda: {vendaParaImprimir.numero_fatura || `REC ${vendaParaImprimir.id.slice(0,8)}`}</p>
+                        <p className="text-sm" style={{ color: 'var(--cor-texto-sec)' }}>Venda: {vendaParaImprimir.numero_fatura || `REC ${vendaParaImprimir.id.slice(0, 8)}`}</p>
 
                         <div className="relative" ref={refSugestoes}>
                             <label className="text-sm font-medium">NIF ou BI do Cliente</label>
                             <input
                                 value={nifPorVenda[vendaParaImprimir.id] || ''}
-                                onChange={e => setNifPorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value}))}
-                                onFocus={() => nifPorVenda[vendaParaImprimir.id]?.length >= 3 && setMostrarSugestoes(true)}
+                                onChange={e => setNifPorVenda(prev => ({ ...prev, [vendaParaImprimir.id]: e.target.value }))}
+                                onFocus={() => (nifPorVenda[vendaParaImprimir.id]?.length || 0) >= 3 && setMostrarSugestoes(true)}
                                 placeholder="Digite 3+ caracteres"
                                 className="w-full mt-1 p-2 rounded"
                                 style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', color: 'var(--cor-texto)' }}
@@ -327,7 +327,7 @@ export function FacturacaoTab({ loja, vendas, formatCurrency, theme, cardStyle, 
                             <label className="text-sm font-medium">Nome do Cliente</label>
                             <input
                                 value={nomePorVenda[vendaParaImprimir.id] || ''}
-                                onChange={e => setNomePorVenda(prev => ({...prev, [vendaParaImprimir.id]: e.target.value}))}
+                                onChange={e => setNomePorVenda(prev => ({ ...prev, [vendaParaImprimir.id]: e.target.value }))}
                                 placeholder="Nome aparecerá aqui"
                                 className="w-full mt-1 p-2 rounded"
                                 style={{ background: 'var(--cor-fundo)', border: '1px solid var(--cor-primaria)30', color: 'var(--cor-texto)' }}
