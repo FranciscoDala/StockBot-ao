@@ -260,7 +260,23 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 toast.success(data.message);
             }
             setShowConfirmarModal(false); setAcaoPendente(null); setEditingClienteId(null); fetchClientes();
-        } catch (err: any) { toast.error(err.message || "Senha incorreta"); } finally { setSaving(false); }
+        } catch (err: any) {
+            const msg = err.message || "Senha incorreta";
+
+            if (msg.includes("NIF já cadastrado")) {
+                toast.error("Não foi possível atualizar", {
+                    description: "Este NIF já está sendo usado por outro cliente."
+                });
+            } else if (msg.includes("BI já cadastrado")) {
+                toast.error("Não foi possível atualizar", {
+                    description: "Este BI já está sendo usado por outro cliente."
+                });
+            } else {
+                toast.error(msg);
+            }
+        } finally {
+            setSaving(false);
+        }
     }
 
     const handleSaveCliente = async (e?: FormEvent) => {
@@ -268,7 +284,12 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
         if (!token || !lojaId) return toast.error("Erro: Loja não encontrada");
         if (!formDataCliente.nome || formDataCliente.nome.trim().length < 2) return toast.error("O nome do cliente precisa ter no mínimo 2 caracteres")
 
-        if (editingClienteId) { setShowModal(false); setShowConfirmarModal(true); }
+
+        if (editingClienteId) {
+            // não fecha ainda, só abre o modal de senha
+            // setShowModal(false);
+            setShowConfirmarModal(true);
+        }
         else {
             setSaving(true);
             try {
@@ -302,7 +323,19 @@ export function ClientesTab({ lojaId, token, theme, cardStyle, cardSize, formatC
                 fetchClientes();
 
             } catch (err: any) {
-                toast.error(err.message);
+                const msg = err.message || "Erro ao cadastrar";
+
+                if (msg.includes("NIF já cadastrado")) {
+                    toast.error("NIF já cadastrado nesta loja", {
+                        description: "Já existe um cliente com este NIF. Verifique os dados."
+                    });
+                } else if (msg.includes("BI já cadastrado")) {
+                    toast.error("BI já cadastrado nesta loja", {
+                        description: "Já existe um cliente com este BI. Verifique os dados."
+                    });
+                } else {
+                    toast.error(msg);
+                }
             } finally { setSaving(false); }
         }
     }

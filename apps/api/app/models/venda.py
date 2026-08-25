@@ -5,7 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from app.db.base import BaseModel
+from ..db.base import BaseModel
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
