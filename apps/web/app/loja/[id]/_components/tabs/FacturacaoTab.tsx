@@ -91,6 +91,7 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
 
     const radius = cardStyle === 'arredondado'? '16px' : '8px';
     const padding = cardSize === 'grande'? '24px' : '16px';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
 
     const vendasFiltradas = useMemo(() => {
         return vendas.filter(v => {
@@ -147,7 +148,7 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
         setModalImprimirAberta(true)
     }
 
-    // BUSCAR CLIENTE AO DIGITAR NO MODAL - CORRIGIDO
+    // BUSCAR CLIENTE COM PING PRA ACORDAR O RENDER
     useEffect(() => {
         if (!modalImprimirAberta || nifModal.length < 3 ||!token) {
             setSugestoes([])
@@ -158,10 +159,12 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
         setBuscandoCliente(true)
         const timer = setTimeout(async () => {
             try {
+                // PING PRA ACORDAR O RENDER ANTES
+                await fetch(`${API_URL}/health`).catch(()=>{})
+
                 const res = await api.get(`/lojas/${lojaId}/clientes?search=${encodeURIComponent(nifModal)}`, {
                     headers: { Authorization: `Bearer ${token}` },
                     signal: controller.signal
-                    // timeout removido daqui. Se quiser, coloca no api.ts: axios.create({ timeout: 15000 })
                 })
                 setSugestoes(res.data)
             } catch (e: any) {
@@ -172,9 +175,9 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
             } finally {
                 setBuscandoCliente(false)
             }
-        }, 600)
+        }, 800)
         return () => { clearTimeout(timer); controller.abort() }
-    }, [nifModal, lojaId, token, modalImprimirAberta])
+    }, [nifModal, lojaId, token, modalImprimirAberta, API_URL])
 
     const selecionarCliente = (cliente: ClienteSugestao) => {
         setNifModal(cliente.nif || cliente.bi || "")
@@ -182,29 +185,15 @@ export function FacturacaoTab({ lojaId, token, loja, vendas, formatCurrency, the
         setSugestoes([])
     }
 
-    // IMPRESSÃO VIA IFRAME PRA NÃO TRAVAR
+    // IMPRESSÃO EM NOVA ABA - NÃO TRAVA MAIS
     const confirmarImpressao = () => {
         if (!vendaParaImprimir ||!token) return;
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || ""
         const url = `${API_URL}/lojas/${lojaId}/vendas/${vendaParaImprimir.id}/imprimir?token=${token}`
 
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-
-        iframe.onload = () => {
-            setTimeout(() => {
-                iframe.contentWindow?.print();
-                setTimeout(() => document.body.removeChild(iframe), 1000)
-            }, 800)
+        const novaAba = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!novaAba) {
+            alert("Bloqueador de pop-up ativado. Permita pop-ups para imprimir.")
         }
-
-        iframe.onerror = () => {
-            alert("Não foi possível carregar a factura. O servidor pode estar dormindo. Tente novamente em 30s.")
-            document.body.removeChild(iframe)
-        }
-
         setModalImprimirAberta(false)
     }
 
